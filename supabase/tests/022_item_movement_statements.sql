@@ -26,7 +26,9 @@ insert into public.warehouses (id, company_id, name) values
   ('22222222-2222-4222-8222-000000000302', '22222222-2222-4222-8222-0000000000a1', 'المخزن الثاني'),
   ('22222222-2222-4222-8222-000000000303', '22222222-2222-4222-8222-0000000000a2', 'مخزن شركة أخرى');
 insert into public.stock_opening_balances (company_id, warehouse_id, item_id, opening_qty, unit_cost, created_at) values
-  ('22222222-2222-4222-8222-0000000000a1', '22222222-2222-4222-8222-000000000301', '22222222-2222-4222-8222-000000000201', 12, 10, '2026-05-01 10:00:00+00');
+  ('22222222-2222-4222-8222-0000000000a1', '22222222-2222-4222-8222-000000000301', '22222222-2222-4222-8222-000000000201', 62, 10, '2026-05-01 10:00:00+00');
+insert into public.item_stock (company_id, warehouse_id, item_id, qty, avg_cost) values
+  ('22222222-2222-4222-8222-0000000000a1', '22222222-2222-4222-8222-000000000301', '22222222-2222-4222-8222-000000000201', 77, 10);
 insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, total, paid, created_at) values
   ('22222222-2222-4222-8222-0000000000a1', 'purchase', 'PUR-BEFORE', '2026-04-28', '22222222-2222-4222-8222-000000000101', '22222222-2222-4222-8222-000000000301', 500, 0, '2026-04-28 10:00:00+00'),
   ('22222222-2222-4222-8222-0000000000a1', 'purchase', 'PUR-MOVE-1', '2026-06-03', '22222222-2222-4222-8222-000000000101', '22222222-2222-4222-8222-000000000301', 200, 0, '2026-06-03 10:00:00+00'),
@@ -58,13 +60,13 @@ declare
   v_failed boolean := false;
 begin
   perform public.test_expect(
-    (select running_balance = 10 and incoming = 10 and outgoing = 0
+    (select running_balance = 60 and incoming = 60 and outgoing = 0
      from public.get_item_movement_statement('22222222-2222-4222-8222-000000000201', '22222222-2222-4222-8222-000000000301', '2026-06-01', '2026-06-30')
      where row_type = 'opening'),
-    'item statement uses the opening quantity as the brought-forward balance'
+    'item statement reconciles legacy opening snapshot and movements before the selected period'
   );
   perform public.test_expect(
-    (select total_incoming = 30 and total_outgoing = 13 and running_balance = 27
+    (select total_incoming = 30 and total_outgoing = 13 and running_balance = 77
      from public.get_item_movement_statement('22222222-2222-4222-8222-000000000201', '22222222-2222-4222-8222-000000000301', '2026-06-01', '2026-06-30')
      where description = 'تصحيح رصيد افتتاحي'),
     'item statement calculates purchases, sales, returns, waste, adjustments and warehouse transfers',
