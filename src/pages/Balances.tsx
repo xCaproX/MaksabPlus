@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
-import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, StockOpeningRow, WarehouseOption } from '../lib/types';
+import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, ItemMovementStatementRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 
 type BalanceTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes';
 
@@ -26,6 +26,10 @@ export default function Balances() {
   const [cashStatementRows, setCashStatementRows] = useState<CashBoxStatementRow[]>([]);
   const [cashStatementLoading, setCashStatementLoading] = useState(false);
   const [cashStatementError, setCashStatementError] = useState('');
+  const [itemStatementRow, setItemStatementRow] = useState<StockOpeningRow | null>(null);
+  const [itemStatementRows, setItemStatementRows] = useState<ItemMovementStatementRow[]>([]);
+  const [itemStatementLoading, setItemStatementLoading] = useState(false);
+  const [itemStatementError, setItemStatementError] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -114,6 +118,34 @@ export default function Balances() {
       setCashStatementRows((data ?? []) as CashBoxStatementRow[]);
     }
   }
+
+  function openItemStatement(row: StockOpeningRow) {
+    setItemStatementRow(row);
+    setStatementFrom(`${today().slice(0, 7)}-01`);
+    setStatementTo(today());
+    setItemStatementRows([]);
+    setItemStatementError('');
+  }
+
+  async function loadItemStatement(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!itemStatementRow) return;
+    setItemStatementLoading(true);
+    setItemStatementError('');
+    const { data, error: rpcError } = await supabase.rpc('get_item_movement_statement', {
+      p_item_id: itemStatementRow.item_id,
+      p_warehouse_id: itemStatementRow.warehouse_id,
+      p_from: statementFrom,
+      p_to: statementTo,
+    });
+    setItemStatementLoading(false);
+    if (rpcError) {
+      setItemStatementError(translateDbError(rpcError.message));
+      setItemStatementRows([]);
+    } else {
+      setItemStatementRows((data ?? []) as ItemMovementStatementRow[]);
+    }
+  }
   const tabs: { id: BalanceTab; label: string }[] = [
     { id: 'customers', label: 'حسابات العملاء' },
     { id: 'suppliers', label: 'حسابات الموردين' },
@@ -140,9 +172,9 @@ export default function Balances() {
           </tbody></table>}
           {tab === 'items' && <>
             <div className="filter-row balance-filter-row"><label>المخزن<select value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}><option value="">اختر المخزن</option>{warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{entityNumber('WH', warehouse.serial_number)} — {warehouse.name}</option>)}</select></label><p className="filter-note"><strong>ملاحظات المخزن:</strong> {selectedWarehouse?.notes || '—'}</p></div>
-            <table className="table"><thead><tr><th>رقم الصنف</th><th>كود الصنف</th><th>الصنف</th><th>ملاحظات الصنف</th><th>الكمية الحالية</th></tr></thead><tbody>
-              {selectedStockRows.map((row) => <tr key={`${row.warehouse_id}:${row.item_id}`}><td className="num">{entityNumber('ITM', row.item_number)}</td><td className="num">{row.item_code}</td><td>{row.item_name}</td><td>{row.item_notes || '—'}</td><td className="num strong">{formatQty(row.current_qty)} {row.unit}</td></tr>)}
-              {selectedStockRows.length === 0 && <tr><td colSpan={5} className="empty">{warehouses.length === 0 ? 'لا توجد مخازن نشطة.' : selectedWarehouseId ? 'لا توجد أصناف لهذا المخزن.' : 'اختر مخزنًا لعرض أصنافه.'}</td></tr>}
+            <table className="table"><thead><tr><th>رقم الصنف</th><th>كود الصنف</th><th>الصنف</th><th>ملاحظات الصنف</th><th>الكمية الحالية</th><th /></tr></thead><tbody>
+              {selectedStockRows.map((row) => <tr key={`${row.warehouse_id}:${row.item_id}`}><td className="num">{entityNumber('ITM', row.item_number)}</td><td className="num">{row.item_code}</td><td>{row.item_name}</td><td>{row.item_notes || '—'}</td><td className="num strong">{formatQty(row.current_qty)} {row.unit}</td><td><button type="button" className="btn" onClick={() => openItemStatement(row)}>كشف حركة</button></td></tr>)}
+              {selectedStockRows.length === 0 && <tr><td colSpan={6} className="empty">{warehouses.length === 0 ? 'لا توجد مخازن نشطة.' : selectedWarehouseId ? 'لا توجد أصناف لهذا المخزن.' : 'اختر مخزنًا لعرض أصنافه.'}</td></tr>}
             </tbody></table>
           </>}
           {tab === 'cashBoxes' && <table className="table"><thead><tr><th>الرقم</th><th>الخزنة</th><th>الرصيد الحالي</th><th>ملاحظات</th><th /></tr></thead><tbody>
@@ -189,6 +221,26 @@ export default function Balances() {
             <div className="account-statement-totals"><p><span>إجمالي الوارد:</span><strong>{money(cashStatementRows[0].total_incoming)}</strong></p><p><span>إجمالي الصادر:</span><strong>{money(cashStatementRows[0].total_outgoing)}</strong></p><p><span>رصيد آخر المدة:</span><strong>{money(cashStatementRows[cashStatementRows.length - 1].running_balance)}</strong></p></div>
           </>}
           {!cashStatementRows.length && !cashStatementLoading && !cashStatementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
+        </div>
+      </Modal>}
+      {itemStatementRow && <Modal title="كشف حركة صنف" className="account-statement-modal" onClose={() => setItemStatementRow(null)}>
+        <div className="account-statement-print">
+          <div className="account-statement-heading">
+            <div><h2>كشف حركة صنف</h2><strong>[{entityNumber('ITM', itemStatementRow.item_number)}] {itemStatementRow.item_code} — {itemStatementRow.item_name} ~ {itemStatementRow.unit}</strong><p>{selectedWarehouse?.name ?? itemStatementRow.warehouse_name}</p></div>
+            <div className="account-statement-period"><label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label><label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label></div>
+          </div>
+          <div className="actions statement-actions print-hidden">
+            <form onSubmit={loadItemStatement}><button type="submit" className="btn primary" disabled={itemStatementLoading || !statementFrom || !statementTo}>{itemStatementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}</button></form>
+            {itemStatementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
+          </div>
+          {itemStatementError && <p className="alert error print-hidden">{itemStatementError}</p>}
+          {itemStatementRows.length > 0 && <>
+            <div className="table-wrap"><table className="table account-statement-table"><thead><tr><th>التاريخ</th><th>البيان</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody>
+              {itemStatementRows.map((row, index) => <tr key={`${row.row_type}-${row.transaction_date}-${row.transfer_number ?? row.invoice_number ?? index}`} className={row.row_type === 'opening' ? 'statement-opening-row' : undefined}><td className="num">{row.transaction_date}</td><td>{row.description}</td><td className="num">{Number(row.incoming) ? `${formatQty(row.incoming)} ${itemStatementRow.unit}` : '—'}</td><td className="num">{Number(row.outgoing) ? `${formatQty(row.outgoing)} ${itemStatementRow.unit}` : '—'}</td><td className="num strong">{formatQty(row.running_balance)} {itemStatementRow.unit}</td></tr>)}
+            </tbody></table></div>
+            <div className="account-statement-totals"><p><span>إجمالي الوارد:</span><strong>{formatQty(itemStatementRows[0].total_incoming)} {itemStatementRow.unit}</strong></p><p><span>إجمالي الصادر:</span><strong>{formatQty(itemStatementRows[0].total_outgoing)} {itemStatementRow.unit}</strong></p><p><span>رصيد آخر المدة:</span><strong>{formatQty(itemStatementRows[itemStatementRows.length - 1].running_balance)} {itemStatementRow.unit}</strong></p></div>
+          </>}
+          {!itemStatementRows.length && !itemStatementLoading && !itemStatementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
         </div>
       </Modal>}
     </div>

@@ -39,6 +39,7 @@ const MESSAGES: Record<string, string> = {
   warehouse_has_transfers: 'لا يمكن حذف المخزن لوجود تحويلات مخزنية مرتبطة به.',
   cash_box_has_transfers: 'لا يمكن حذف الخزنة لوجود تحويلات نقدية مرتبطة بها.',
   invalid_item: 'اختر صنفًا صحيحًا',
+  invalid_item_statement_target: 'الصنف أو المخزن غير موجود أو لا يتبع شركتك',
   invalid_paid: 'قيمة المدفوع غير صحيحة',
   invalid_kind: 'نوع الفاتورة غير صحيح',
   invoice_not_found: 'الفاتورة غير موجودة',
