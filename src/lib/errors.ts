@@ -5,7 +5,6 @@ const MESSAGES: Record<string, string> = {
   invalid_line_qty: 'الكمية يجب أن تكون أكبر من صفر',
   invalid_line_price: 'السعر غير صحيح',
   invalid_account: 'اختر حسابًا صحيحًا',
-  account_kind_mismatch: 'نوع الحساب لا يناسب نوع الفاتورة',
   invalid_warehouse: 'اختر مخزنًا صحيحًا',
   invalid_item: 'اختر صنفًا صحيحًا',
   invalid_paid: 'قيمة المدفوع غير صحيحة',

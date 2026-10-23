@@ -340,19 +340,6 @@ begin
   end;
   perform public.test_expect(v_ok, 'rejects empty lines');
 
-  -- نوع الحساب لا يطابق نوع الفاتورة
-  v_ok := false;
-  begin
-    perform public.create_invoice(
-      'sale', '11111111-1111-4111-8111-0000000000d1', '11111111-1111-4111-8111-0000000000a1',
-      current_date, 0, null,
-      '[{"item_id":"11111111-1111-4111-8111-0000000000e1","qty":1,"unit_price":10}]'::jsonb
-    );
-  exception when others then
-    v_ok := (sqlerrm = 'account_kind_mismatch');
-  end;
-  perform public.test_expect(v_ok, 'rejects supplier account on sale invoice');
-
   -- كمية صفر
   v_ok := false;
   begin
@@ -417,6 +404,92 @@ begin
   perform public.test_expect(
     (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000c1') = 0,
     'delete: customer balance = 0'
+  );
+end $$;
+
+-- ---------------------------------------------------------------------
+-- (7) نوع الحساب مستقل عن نوع الفاتورة
+--     بيع لمورد + شراء من عميل
+-- ---------------------------------------------------------------------
+do $$
+declare
+  v_sale uuid;
+  v_purchase uuid;
+begin
+  -- بيع لمورد (الحساب d1 مورد)
+  v_sale := public.create_invoice(
+    'sale', '11111111-1111-4111-8111-0000000000d1', '11111111-1111-4111-8111-0000000000a1',
+    current_date, 20, null,
+    '[{"item_id":"11111111-1111-4111-8111-0000000000e1","qty":2,"unit_price":50}]'::jsonb
+  );
+
+  perform public.test_expect(
+    (select number from public.invoices where id = v_sale) = 'SAL-000002',
+    'sale to supplier: created'
+  );
+  perform public.test_expect(
+    (select account_kind from public.v_invoice_list where id = v_sale) = 'supplier',
+    'sale to supplier: account_kind supplier'
+  );
+  perform public.test_expect(
+    (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000d1') = 80,
+    'sale to supplier: balance 100 - 20'
+  );
+  perform public.test_expect(
+    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 20,
+    'sale to supplier: cash +20 (direction from invoice)'
+  );
+  perform public.test_expect(
+    (select qty from public.item_stock where warehouse_id = '11111111-1111-4111-8111-0000000000a1' and item_id = '11111111-1111-4111-8111-0000000000e1') = 8,
+    'sale to supplier: stock -2'
+  );
+
+  -- شراء من عميل (الحساب c1 عميل)
+  v_purchase := public.create_invoice(
+    'purchase', '11111111-1111-4111-8111-0000000000c1', '11111111-1111-4111-8111-0000000000a1',
+    current_date, 0, null,
+    '[{"item_id":"11111111-1111-4111-8111-0000000000e1","qty":1,"unit_price":30}]'::jsonb
+  );
+
+  perform public.test_expect(
+    (select account_kind from public.v_invoice_list where id = v_purchase) = 'customer',
+    'purchase from customer: account_kind customer'
+  );
+  perform public.test_expect(
+    (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000c1') = 30,
+    'purchase from customer: balance 30'
+  );
+  perform public.test_expect(
+    (select count(*) from public.receipts where invoice_id = v_purchase) = 0,
+    'purchase from customer: no receipt (paid 0)'
+  );
+  perform public.test_expect(
+    (select qty from public.item_stock where warehouse_id = '11111111-1111-4111-8111-0000000000a1' and item_id = '11111111-1111-4111-8111-0000000000e1') = 9,
+    'purchase from customer: stock +1'
+  );
+
+  -- تعديل البيع ليصبح لعميل: الرصيد ينتقل من المورد للعميل
+  perform public.update_invoice(
+    v_sale, '11111111-1111-4111-8111-0000000000c1', '11111111-1111-4111-8111-0000000000a1',
+    current_date, 20, null,
+    '[{"item_id":"11111111-1111-4111-8111-0000000000e1","qty":2,"unit_price":50}]'::jsonb
+  );
+
+  perform public.test_expect(
+    (select account_kind from public.v_invoice_list where id = v_sale) = 'customer',
+    'update to customer: account_kind customer'
+  );
+  perform public.test_expect(
+    (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000d1') = 0,
+    'update to customer: supplier balance 0'
+  );
+  perform public.test_expect(
+    (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000c1') = 110,
+    'update to customer: customer balance 100 - 20 + 30'
+  );
+  perform public.test_expect(
+    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 20,
+    'update to customer: cash unchanged 20'
   );
 end $$;
 

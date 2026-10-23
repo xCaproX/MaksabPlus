@@ -151,14 +151,27 @@ export default function InvoiceForm({
         </label>
 
         <label>
-          {isPurchase ? 'المورد' : 'العميل'}
+          الحساب
           <select value={accountId} onChange={(e) => setAccountId(e.target.value)} required>
             <option value="">اختر…</option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
+            <optgroup label="عملاء">
+              {accounts
+                .filter((account) => account.kind === 'customer')
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+            </optgroup>
+            <optgroup label="موردون">
+              {accounts
+                .filter((account) => account.kind === 'supplier')
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+            </optgroup>
           </select>
         </label>
 

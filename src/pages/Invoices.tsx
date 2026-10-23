@@ -57,7 +57,8 @@ export default function Invoices() {
         supabase
           .from('v_account_balances')
           .select('*')
-          .eq('kind', isPurchase ? 'supplier' : 'customer')
+          .eq('is_active', true)
+          .order('kind')
           .order('name'),
         supabase.from('warehouses').select('id, name').eq('is_active', true).order('name'),
         supabase.from('v_item_stock').select('*').eq('is_active', true).order('name'),
@@ -216,7 +217,10 @@ export default function Invoices() {
       <div className="page-head">
         <div>
           <h1>الفواتير</h1>
-          <p className="muted">كل فاتورة مدفوع منها جزء يُنشئ إيصالًا تلقائيًا بقيمة المدفوع.</p>
+          <p className="muted">
+            كل فاتورة مدفوع منها جزء يُنشئ إيصالًا تلقائيًا بقيمة المدفوع. الحساب قد يكون عميلًا أو
+            موردًا في أي نوع.
+          </p>
         </div>
         <div className="actions">
           <button type="button" className="btn" onClick={toggleDeleted}>
@@ -278,7 +282,7 @@ export default function Invoices() {
               <tr>
                 <th>الرقم</th>
                 <th>التاريخ</th>
-                <th>{isPurchase ? 'المورد' : 'العميل'}</th>
+                <th>الحساب</th>
                 <th>المخزن</th>
                 <th>الإجمالي</th>
                 <th>المدفوع</th>
@@ -309,7 +313,12 @@ export default function Invoices() {
                   <tr key={invoice.id}>
                     <td className="num">{invoice.number}</td>
                     <td className="num">{invoice.invoice_date}</td>
-                    <td>{invoice.account_name}</td>
+                    <td>
+                      {invoice.account_name}{' '}
+                      <span className="muted">
+                        ({invoice.account_kind === 'customer' ? 'عميل' : 'مورد'})
+                      </span>
+                    </td>
                     <td>{invoice.warehouse_name}</td>
                     <td className="num">{money(invoice.total)}</td>
                     <td className="num">{money(invoice.paid)}</td>
@@ -358,8 +367,13 @@ export default function Invoices() {
       {viewing && (
         <Modal title={`فاتورة ${viewing.number}`} onClose={() => setViewing(null)}>
           <dl className="doc-meta-list">
-            <dt>{viewing.kind === 'sale' ? 'العميل' : 'المورد'}</dt>
-            <dd>{viewing.account_name}</dd>
+            <dt>الحساب</dt>
+            <dd>
+              {viewing.account_name}{' '}
+              <span className="muted">
+                ({viewing.account_kind === 'customer' ? 'عميل' : 'مورد'})
+              </span>
+            </dd>
             <dt>التاريخ</dt>
             <dd className="num">{viewing.invoice_date}</dd>
             <dt>المخزن</dt>

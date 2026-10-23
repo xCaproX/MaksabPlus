@@ -43,6 +43,7 @@ export interface InvoiceRow {
   invoice_date: string;
   account_id: string;
   account_name: string;
+  account_kind: AccountKind;
   warehouse_id: string;
   warehouse_name: string;
   subtotal: number;
