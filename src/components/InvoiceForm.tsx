@@ -2,12 +2,16 @@ import { useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
+import SearchableSelect from './SearchableSelect';
 import type {
+  AccountKind,
   AccountRow,
+  CashBoxRow,
   InvoiceKind,
   InvoiceRow,
   ItemRow,
   LineDraft,
+  StockOpeningRow,
   WarehouseOption,
 } from '../lib/types';
 
@@ -20,7 +24,9 @@ interface InvoiceFormProps {
   kind: InvoiceKind;
   accounts: AccountRow[];
   warehouses: WarehouseOption[];
+  cashBoxes: CashBoxRow[];
   items: ItemRow[];
+  stockRows: StockOpeningRow[];
   editing: EditingInvoice | null;
   onSaved: (message: string) => void;
   onCancel: () => void;
@@ -34,7 +40,9 @@ export default function InvoiceForm({
   kind,
   accounts,
   warehouses,
+  cashBoxes,
   items,
+  stockRows,
   editing,
   onSaved,
   onCancel,
@@ -49,22 +57,17 @@ export default function InvoiceForm({
       ? 'cash_customer'
       : 'cash_supplier';
   const defaultAccountId = accounts.find((account) => account.system_key === defaultSystemKey)?.id ?? '';
-  const title = editing
-    ? `تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'} ${editing.invoice.number}`
-    : isWaste
-      ? 'فاتورة هالك جديدة'
-      : kind === 'sale'
-      ? 'فاتورة مبيعات جديدة'
-      : kind === 'purchase'
-        ? 'فاتورة مشتريات جديدة'
-        : kind === 'sale_return'
-          ? 'مرتجع مبيعات جديد'
-          : 'مرتجع مشتريات جديد';
-
+  const defaultAccountKind: AccountKind = editing?.invoice.account_kind ?? (
+    isWaste ? 'waste' : kind === 'sale' || kind === 'sale_return' ? 'customer' : 'supplier'
+  );
   const [date, setDate] = useState(editing?.invoice.invoice_date ?? today());
+  const [accountKind, setAccountKind] = useState<AccountKind>(defaultAccountKind);
   const [accountId, setAccountId] = useState(editing?.invoice.account_id ?? defaultAccountId);
   const [warehouseId, setWarehouseId] = useState(
-    editing?.invoice.warehouse_id ?? warehouses[0]?.id ?? '',
+    editing?.invoice.warehouse_id ?? warehouses.find((warehouse) => warehouse.is_active !== false)?.id ?? '',
+  );
+  const [cashBoxId, setCashBoxId] = useState(
+    editing?.invoice.cash_box_id ?? cashBoxes.find((box) => box.is_active)?.id ?? '',
   );
   const [paid, setPaid] = useState(editing ? String(Number(editing.invoice.paid)) : '0');
   const [notes, setNotes] = useState(editing?.invoice.notes ?? '');
@@ -80,6 +83,14 @@ export default function InvoiceForm({
   const cashAccountSelected = accounts.some(
     (account) => account.id === accountId && ['cash_customer', 'cash_supplier'].includes(account.system_key ?? ''),
   );
+  const selectableAccounts = accounts.filter((account) => account.kind === accountKind);
+  const selectableWarehouses = warehouses.filter(
+    (warehouse) => warehouse.is_active !== false || warehouse.id === editing?.invoice.warehouse_id,
+  );
+  const selectableCashBoxes = cashBoxes.filter(
+    (box) => box.is_active || box.id === editing?.invoice.cash_box_id,
+  );
+  const effectiveCashBoxId = cashBoxId || editing?.invoice.cash_box_id || cashBoxes.find((box) => box.is_active)?.id || '';
 
   function updateLine(key: string, patch: Partial<LineDraft>) {
     setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
@@ -122,6 +133,7 @@ export default function InvoiceForm({
 
     if (!accountId) return setError(isWaste ? 'حساب الهالك الثابت غير موجود' : 'اختر الحساب');
     if (!warehouseId) return setError('اختر المخزن');
+    if (paidNumber > 0 && !effectiveCashBoxId) return setError('اختر الخزنة التي استلمت أو صرفت المبلغ');
     if (!date) return setError('أدخل التاريخ');
     if (lines.length === 0) return setError('أضف سطرًا واحدًا على الأقل');
 
@@ -141,6 +153,7 @@ export default function InvoiceForm({
       p_warehouse_id: warehouseId,
       p_invoice_date: date,
       p_paid: round2(paidNumber),
+      p_cash_box_id: paidNumber > 0 ? effectiveCashBoxId : null,
       p_notes: notes.trim() || null,
       p_lines: lines.map((line) => ({
         item_id: line.item_id,
@@ -151,8 +164,8 @@ export default function InvoiceForm({
 
     setBusy(true);
     const { error: rpcError } = editing
-      ? await supabase.rpc('update_invoice', { p_invoice_id: editing.invoice.id, ...args })
-      : await supabase.rpc('create_invoice', { p_kind: kind, ...args });
+      ? await supabase.rpc('update_invoice_with_cash_box', { p_invoice_id: editing.invoice.id, ...args })
+      : await supabase.rpc('create_invoice_with_cash_box', { p_kind: kind, ...args });
     setBusy(false);
 
     if (rpcError) {
@@ -168,16 +181,33 @@ export default function InvoiceForm({
   }
 
   return (
-    <form className="card invoice-form" onSubmit={submit}>
-      <div className="card-head">
-        <h2>{title}</h2>
-        {!editing && <span className="badge">ترقيم تلقائي</span>}
-      </div>
-
+    <form className="invoice-form" onSubmit={submit}>
       <div className="form-grid">
         <label>
           التاريخ
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+        </label>
+
+        <label>
+          نوع الحساب
+          <select
+            value={accountKind}
+            onChange={(e) => {
+              setAccountKind(e.target.value as AccountKind);
+              setAccountId('');
+            }}
+            disabled={isWaste}
+            required
+          >
+            {isWaste ? (
+              <option value="waste">هالك</option>
+            ) : (
+              <>
+                <option value="customer">عميل</option>
+                <option value="supplier">مورد</option>
+              </>
+            )}
+          </select>
         </label>
 
         <label>
@@ -189,37 +219,23 @@ export default function InvoiceForm({
               </option>
             </select>
           ) : (
-            <select value={accountId} onChange={(e) => setAccountId(e.target.value)} required>
-              <option value="">اختر…</option>
-              <optgroup label="عملاء">
-                {accounts
-                  .filter((account) => account.kind === 'customer')
-                  .map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                    </option>
-                  ))}
-              </optgroup>
-              <optgroup label="موردون">
-                {accounts
-                  .filter((account) => account.kind === 'supplier')
-                  .map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                    </option>
-                  ))}
-              </optgroup>
-            </select>
+            <SearchableSelect
+              value={accountId}
+              options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
+              onChange={setAccountId}
+              placeholder="اختر الحساب…"
+              required
+            />
           )}
         </label>
 
         <label>
           المخزن
           <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} required>
-            {warehouses.length === 0 && <option value="">لا يوجد مخزن</option>}
-            {warehouses.map((warehouse) => (
+            {selectableWarehouses.length === 0 && <option value="">لا يوجد مخزن نشط</option>}
+            {selectableWarehouses.map((warehouse) => (
               <option key={warehouse.id} value={warehouse.id}>
-                {warehouse.name}
+                {warehouse.name}{warehouse.is_active === false ? ' — موقوف (للفواتير القديمة)' : ''}
               </option>
             ))}
           </select>
@@ -270,7 +286,7 @@ export default function InvoiceForm({
                         <option value="">اختر صنفًا…</option>
                         {items.map((item) => (
                           <option key={item.id} value={item.id}>
-                            {item.name} — متاح: {formatQty(item.qty)} {item.unit}
+                            {item.name} — متاح: {formatQty(stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0)} {item.unit}
                           </option>
                         ))}
                       </select>
@@ -334,6 +350,19 @@ export default function InvoiceForm({
               onChange={(e) => setPaid(e.target.value)}
             />
           </label>}
+          {!isWaste && paidNumber > 0 && (
+            <label className="paid-field">
+              الخزنة
+              <select value={effectiveCashBoxId} onChange={(event) => setCashBoxId(event.target.value)} required>
+                <option value="">اختر الخزنة…</option>
+                {selectableCashBoxes.map((box) => (
+                  <option key={box.id} value={box.id}>
+                    {box.name}{!box.is_active ? ' — موقوفة (مرتبطة بالفاتورة الحالية)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
 
         <p className="hint">

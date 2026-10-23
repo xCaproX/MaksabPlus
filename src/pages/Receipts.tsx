@@ -2,8 +2,11 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { money, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
+import Modal from '../components/Modal';
+import SearchableSelect from '../components/SearchableSelect';
 import type {
   AccountRow,
+  AccountKind,
   CashBoxRow,
   ReceiptDirection,
   ReceiptRow,
@@ -25,8 +28,10 @@ export default function Receipts() {
   const [editing, setEditing] = useState<ReceiptRow | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
   const [version, setVersion] = useState(0);
+  const [cashBoxFilter, setCashBoxFilter] = useState('all');
 
   const [accountId, setAccountId] = useState('');
+  const [accountKind, setAccountKind] = useState<AccountKind>('customer');
   const [cashBoxId, setCashBoxId] = useState('');
   const [date, setDate] = useState(today());
   const [amount, setAmount] = useState('');
@@ -35,6 +40,13 @@ export default function Receipts() {
   const [busy, setBusy] = useState(false);
 
   const isIn = direction === 'in';
+  const selectableAccounts = accounts.filter(
+    (account) => account.kind === accountKind && account.system_key === null,
+  );
+  const selectableCashBoxes = cashBoxes.filter((box) => box.is_active);
+  const filteredRows = cashBoxFilter === 'all'
+    ? rows
+    : rows.filter((receipt) => receipt.cash_box_id === cashBoxFilter);
 
   useEffect(() => {
     let alive = true;
@@ -64,7 +76,6 @@ export default function Receipts() {
         supabase
           .from('v_cash_box_balances')
           .select('*')
-          .eq('is_active', true)
           .order('name'),
       ]);
 
@@ -95,15 +106,16 @@ export default function Receipts() {
     return () => clearTimeout(timer);
   }, [notice]);
 
-  // لو اتفتح النموذج قبل تحميل الخزائن، اختر أول خزنة تلقائيًا بعد التحميل.
+  // اختر أول خزنة نشطة تلقائيًا بعد التحميل.
   useEffect(() => {
-    if (!cashBoxId && cashBoxes.length > 0) setCashBoxId(cashBoxes[0].id);
-  }, [cashBoxId, cashBoxes]);
+    if (!cashBoxId && selectableCashBoxes.length > 0) setCashBoxId(selectableCashBoxes[0].id);
+  }, [cashBoxId, selectableCashBoxes]);
 
-  function resetForm() {
+  function resetForm(forDirection: ReceiptDirection = direction) {
     setEditing(null);
     setAccountId('');
-    setCashBoxId(cashBoxes[0]?.id ?? '');
+    setAccountKind(forDirection === 'in' ? 'customer' : 'supplier');
+    setCashBoxId(selectableCashBoxes[0]?.id ?? '');
     setDate(today());
     setAmount('');
     setDescription('');
@@ -115,7 +127,7 @@ export default function Receipts() {
     if (next === direction) return;
     setDirection(next);
     setFormOpen(false);
-    resetForm();
+    resetForm(next);
   }
 
   function toggleDeleted() {
@@ -131,6 +143,7 @@ export default function Receipts() {
 
   function startEdit(receipt: ReceiptRow) {
     setEditing(receipt);
+    setAccountKind(receipt.account_kind);
     setAccountId(receipt.account_id);
     setCashBoxId(receipt.cash_box_id);
     setDate(receipt.receipt_date);
@@ -275,35 +288,60 @@ export default function Receipts() {
         </p>
       )}
 
+      <div className="filter-row">
+        <label>
+          تصفية حسب الخزنة
+          <select value={cashBoxFilter} onChange={(event) => setCashBoxFilter(event.target.value)}>
+            <option value="all">كل الخزن</option>
+            {cashBoxes.map((box) => (
+              <option key={box.id} value={box.id}>
+                {box.name}{!box.is_active ? ' — موقوفة' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       {formOpen && !showDeleted && (
-        <form className="card inline-form" onSubmit={submit}>
-          <div className="card-head">
-            <h2>
-              {editing
-                ? `تعديل الإيصال ${editing.number}`
-                : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`}
-            </h2>
-            <span className="badge">ترقيم تلقائي: {isIn ? 'RCP' : 'PAY'}</span>
-          </div>
+        <Modal
+          title={editing ? `تعديل الإيصال ${editing.number}` : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`}
+          onClose={closeForm}
+        >
+        <form className="inline-form" onSubmit={submit}>
 
           <div className="form-grid">
             <label>
-              الحساب
-              <select value={accountId} onChange={(e) => setAccountId(e.target.value)} required>
-                <option value="">اختر…</option>
-              {accounts.filter((account) => account.kind !== 'waste').map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name} — {account.kind === 'customer' ? 'عميل' : 'مورد'}
-                  </option>
-                ))}
+              نوع الحساب
+              <select
+                value={accountKind}
+                onChange={(e) => {
+                  setAccountKind(e.target.value as AccountKind);
+                  setAccountId('');
+                }}
+                required
+              >
+                <option value="customer">عميل</option>
+                <option value="supplier">مورد</option>
               </select>
+            </label>
+
+            <label>
+              الحساب
+              <SearchableSelect
+                value={accountId}
+                options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
+                onChange={setAccountId}
+                placeholder="اختر الحساب…"
+                required
+              />
             </label>
 
             <label>
               الخزنة
               <select value={cashBoxId} onChange={(e) => setCashBoxId(e.target.value)} required>
-                {cashBoxes.length === 0 && <option value="">لا توجد خزنة</option>}
-                {cashBoxes.map((box) => (
+                <option value="">اختر الخزنة…</option>
+                {selectableCashBoxes.length === 0 && <option value="" disabled>لا توجد خزن نشطة</option>}
+                {selectableCashBoxes.map((box) => (
                   <option key={box.id} value={box.id}>
                     {box.name} — {money(box.balance)}
                   </option>
@@ -352,8 +390,8 @@ export default function Receipts() {
 
           <p className="hint">
             {isIn
-              ? 'استلام: يقلّل رصيد الحساب (عميل أو مورد) ويزيد الخزنة.'
-              : 'صرف: يقلّل رصيد الحساب (عميل أو مورد) وينقص الخزنة.'}
+              ? 'استلام من عميل يقلّل رصيده، ومن مورد يزيد رصيده؛ ويزيد رصيد الخزنة.'
+              : 'صرف لعميل يزيد رصيده، ولمورد يقلّل رصيده؛ وينقص رصيد الخزنة.'}
           </p>
 
           <div className="actions">
@@ -365,6 +403,7 @@ export default function Receipts() {
             </button>
           </div>
         </form>
+        </Modal>
       )}
 
       <div className="card">
@@ -391,10 +430,12 @@ export default function Receipts() {
                 </tr>
               )}
 
-              {!loading && rows.length === 0 && (
+              {!loading && filteredRows.length === 0 && (
                 <tr>
                   <td colSpan={8} className="empty">
-                    {showDeleted
+                    {cashBoxFilter !== 'all'
+                      ? 'لا توجد إيصالات في الخزنة المحددة.'
+                      : showDeleted
                       ? 'لا توجد إيصالات محذوفة.'
                       : `لا توجد إيصالات ${isIn ? 'استلام' : 'صرف'} بعد.`}
                   </td>
@@ -402,7 +443,7 @@ export default function Receipts() {
               )}
 
               {!loading &&
-                rows.map((receipt) => (
+                filteredRows.map((receipt) => (
                   <tr key={receipt.id}>
                     <td className="num">{receipt.number}</td>
                     <td className="num">{receipt.receipt_date}</td>

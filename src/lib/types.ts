@@ -8,6 +8,7 @@ export interface AccountRow {
   kind: AccountKind;
   phone: string | null;
   is_active: boolean;
+  opening_balance: number;
   invoiced: number;
   paid: number;
   balance: number;
@@ -28,6 +29,8 @@ export interface ItemRow {
 export interface WarehouseOption {
   id: string;
   name: string;
+  is_active?: boolean;
+  is_primary?: boolean;
 }
 
 export interface CashBoxRow {
@@ -35,6 +38,20 @@ export interface CashBoxRow {
   name: string;
   is_active: boolean;
   balance: number;
+  opening_balance: number;
+  is_primary: boolean;
+}
+
+export interface StockOpeningRow {
+  item_id: string;
+  item_name: string;
+  unit: string;
+  warehouse_id: string;
+  warehouse_name: string;
+  opening_qty: number;
+  unit_cost: number;
+  current_qty: number;
+  cost_locked: boolean;
 }
 
 export interface InvoiceRow {
@@ -57,6 +74,8 @@ export interface InvoiceRow {
   receipt_id: string | null;
   receipt_number: string | null;
   receipt_amount: number | null;
+  cash_box_id?: string | null;
+  cash_box_name?: string | null;
   deleted_at: string | null;
 }
 

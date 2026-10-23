@@ -2,7 +2,7 @@
 -- 005_master_data_delete.sql
 -- حذف الحسابات والأصناف:
 --   - بلا مستندات => حذف نهائي (true).
---   - عليها أي فاتورة/إيصال (حتى محذوفة سوفت) => تعطيل فقط (false).
+--   - عليها أي فاتورة/إيصال/رصيد مخزون افتتاحي (حتى محذوفة سوفت) => تعطيل فقط (false).
 --   - عزل الشركات.
 -- =====================================================================
 begin;
@@ -120,16 +120,16 @@ begin
     'account without documents: gone'
   );
 
-  -- صنف بمخزون فقط (بلا فواتير) => حذف نهائي + حذف صف المخزون
+  -- صنف له رصيد متاح (حتى بلا فواتير) => تعطيل حفاظًا على المخزون
   v_hard := public.delete_item('99999999-9999-4999-8999-0000000000e2');
-  perform public.test_expect(v_hard = true, 'item with stock only: hard deleted');
+  perform public.test_expect(v_hard = false, 'item with stock only: deactivated');
   perform public.test_expect(
-    (select count(*) from public.items where id = '99999999-9999-4999-8999-0000000000e2') = 0,
-    'item with stock only: gone'
+    (select is_active from public.items where id = '99999999-9999-4999-8999-0000000000e2') = false,
+    'item with stock only: retained'
   );
   perform public.test_expect(
-    (select count(*) from public.item_stock where item_id = '99999999-9999-4999-8999-0000000000e2') = 0,
-    'item with stock only: stock row removed'
+    (select qty from public.item_stock where item_id = '99999999-9999-4999-8999-0000000000e2') = 5,
+    'item with stock only: stock preserved'
   );
 
   v_hard := public.delete_item('99999999-9999-4999-8999-0000000000e3');

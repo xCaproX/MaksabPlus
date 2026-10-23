@@ -23,7 +23,8 @@ insert into public.accounts (id, company_id, name, kind)
 values ('eeeeeeee-eeee-4eee-8eee-0000000000c1', 'eeeeeeee-eeee-4eee-8eee-0000000000f1', 'عميل', 'customer'),
        ('eeeeeeee-eeee-4eee-8eee-0000000000d1', 'eeeeeeee-eeee-4eee-8eee-0000000000f1', 'مورد', 'supplier');
 insert into public.items (id, company_id, name, sale_price, purchase_price)
-values ('eeeeeeee-eeee-4eee-8eee-0000000000e1', 'eeeeeeee-eeee-4eee-8eee-0000000000f1', 'صنف', 100, 50);
+values ('eeeeeeee-eeee-4eee-8eee-0000000000e1', 'eeeeeeee-eeee-4eee-8eee-0000000000f1', 'صنف', 100, 50),
+       ('eeeeeeee-eeee-4eee-8eee-0000000000e2', 'eeeeeeee-eeee-4eee-8eee-0000000000f1', 'صنف تعديل شراء', 100, 10);
 insert into public.item_stock (company_id, warehouse_id, item_id, qty, avg_cost)
 values ('eeeeeeee-eeee-4eee-8eee-0000000000f1', 'eeeeeeee-eeee-4eee-8eee-0000000000a1', 'eeeeeeee-eeee-4eee-8eee-0000000000e1', 10, 50);
 
@@ -36,9 +37,26 @@ declare
   v_sale uuid;
   v_waste uuid;
   v_return uuid;
+  v_purchase_edit uuid;
   v_ok boolean;
   v_waste_account uuid;
 begin
+  -- تعديل كمية شراء بعد بيع جزء منها يطبق الفرق مباشرة ولا يرفض بسبب رصيد مؤقت سالب.
+  v_purchase_edit := public.create_invoice(
+    'purchase', 'eeeeeeee-eeee-4eee-8eee-0000000000d1', 'eeeeeeee-eeee-4eee-8eee-0000000000a1',
+    current_date, 0, null,
+    '[{"item_id":"eeeeeeee-eeee-4eee-8eee-0000000000e2","qty":10,"unit_price":10}]'::jsonb
+  );
+  perform public.create_invoice(
+    'sale', 'eeeeeeee-eeee-4eee-8eee-0000000000c1', 'eeeeeeee-eeee-4eee-8eee-0000000000a1',
+    current_date, 0, null,
+    '[{"item_id":"eeeeeeee-eeee-4eee-8eee-0000000000e2","qty":5,"unit_price":100}]'::jsonb
+  );
+  perform public.update_invoice(v_purchase_edit, 'eeeeeeee-eeee-4eee-8eee-0000000000d1',
+    'eeeeeeee-eeee-4eee-8eee-0000000000a1', current_date, 0, null,
+    '[{"item_id":"eeeeeeee-eeee-4eee-8eee-0000000000e2","qty":5,"unit_price":10}]'::jsonb);
+  perform public.test_expect((select qty from public.item_stock where item_id = 'eeeeeeee-eeee-4eee-8eee-0000000000e2') = 0, 'purchase edit applies net quantity change after a sale');
+
   v_purchase := public.create_invoice(
     'purchase', 'eeeeeeee-eeee-4eee-8eee-0000000000d1', 'eeeeeeee-eeee-4eee-8eee-0000000000a1',
     current_date, 0, null,

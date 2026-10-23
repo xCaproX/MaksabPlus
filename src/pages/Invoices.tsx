@@ -6,11 +6,13 @@ import InvoiceForm from '../components/InvoiceForm';
 import Modal from '../components/Modal';
 import type {
   AccountRow,
+  CashBoxRow,
   InvoiceItemRow,
   InvoiceKind,
   InvoiceRow,
   ItemRow,
   LineDraft,
+  StockOpeningRow,
   WarehouseOption,
 } from '../lib/types';
 
@@ -24,7 +26,9 @@ export default function Invoices() {
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
+  const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
   const [items, setItems] = useState<ItemRow[]>([]);
+  const [stockRows, setStockRows] = useState<StockOpeningRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -35,6 +39,7 @@ export default function Invoices() {
   const [viewing, setViewing] = useState<InvoiceRow | null>(null);
   const [details, setDetails] = useState<InvoiceItemRow[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [warehouseFilter, setWarehouseFilter] = useState('all');
 
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
   const viewingIsWaste = viewing?.kind === 'waste';
@@ -51,6 +56,12 @@ export default function Invoices() {
         : kind === 'sale_return'
           ? 'مرتجع مبيعات'
           : 'مرتجع مشتريات';
+  const formTitle = editing
+    ? `تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'} ${editing.invoice.number}`
+    : `${newLabel} جديدة`;
+  const filteredRows = warehouseFilter === 'all'
+    ? rows
+    : rows.filter((invoice) => invoice.warehouse_id === warehouseFilter);
 
   useEffect(() => {
     let alive = true;
@@ -64,7 +75,7 @@ export default function Invoices() {
         ? invoicesQuery.not('deleted_at', 'is', null)
         : invoicesQuery.is('deleted_at', null);
 
-      const [invoicesRes, accountsRes, warehousesRes, itemsRes] = await Promise.all([
+      const [invoicesRes, accountsRes, warehousesRes, itemsRes, cashBoxesRes, stockRowsRes] = await Promise.all([
         invoicesQuery
           .order('invoice_date', { ascending: false })
           .order('number', { ascending: false }),
@@ -74,14 +85,16 @@ export default function Invoices() {
           .eq('is_active', true)
           .order('kind')
           .order('name'),
-        supabase.from('warehouses').select('id, name').eq('is_active', true).order('name'),
+        supabase.from('warehouses').select('id, name, is_active').order('name'),
         supabase.from('v_item_stock').select('*').eq('is_active', true).order('name'),
+        supabase.from('v_cash_box_balances').select('*').order('name'),
+        supabase.from('v_stock_opening_balances').select('*').order('warehouse_name').order('item_name'),
       ]);
 
       if (!alive) return;
 
       const firstError =
-        invoicesRes.error ?? accountsRes.error ?? warehousesRes.error ?? itemsRes.error;
+        invoicesRes.error ?? accountsRes.error ?? warehousesRes.error ?? itemsRes.error ?? cashBoxesRes.error ?? stockRowsRes.error;
 
       if (firstError) {
         setError(translateDbError(firstError.message));
@@ -93,6 +106,8 @@ export default function Invoices() {
       setAccounts((accountsRes.data ?? []) as AccountRow[]);
       setWarehouses((warehousesRes.data ?? []) as WarehouseOption[]);
       setItems((itemsRes.data ?? []) as ItemRow[]);
+      setCashBoxes((cashBoxesRes.data ?? []) as CashBoxRow[]);
+      setStockRows((stockRowsRes.data ?? []) as StockOpeningRow[]);
       setLoading(false);
     }
 
@@ -285,20 +300,41 @@ export default function Invoices() {
         </p>
       )}
 
+      <div className="filter-row">
+        <label>
+          تصفية حسب المخزن
+          <select value={warehouseFilter} onChange={(event) => setWarehouseFilter(event.target.value)}>
+            <option value="all">كل المخازن</option>
+            {warehouses.map((warehouse) => (
+              <option key={warehouse.id} value={warehouse.id}>
+                {warehouse.name}{warehouse.is_active === false ? ' — موقوف' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       {formOpen && (
-        <InvoiceForm
-          key={editing?.invoice.id ?? 'new'}
-          kind={kind}
-          accounts={accounts}
-          warehouses={warehouses}
-          items={items}
-          editing={editing}
-          onSaved={handleSaved}
-          onCancel={() => {
-            setFormOpen(false);
-            setEditing(null);
-          }}
-        />
+        <Modal title={formTitle} onClose={() => {
+          setFormOpen(false);
+          setEditing(null);
+        }}>
+          <InvoiceForm
+            key={editing?.invoice.id ?? 'new'}
+            kind={kind}
+            accounts={accounts}
+            warehouses={warehouses}
+            cashBoxes={cashBoxes}
+            items={items}
+            stockRows={stockRows}
+            editing={editing}
+            onSaved={handleSaved}
+            onCancel={() => {
+              setFormOpen(false);
+              setEditing(null);
+            }}
+          />
+        </Modal>
       )}
 
       <div className="card">
@@ -310,6 +346,7 @@ export default function Invoices() {
                 <th>التاريخ</th>
                 <th>الحساب</th>
                 <th>المخزن</th>
+                <th>الخزنة</th>
                 <th>الإجمالي</th>
                 <th>{kind === 'waste' ? 'الخسارة' : kind === 'sale' || kind === 'sale_return' ? 'الربح / الخسارة' : 'تكلفة الأصناف'}</th>
                 <th>{isReturn ? 'المسترد' : 'المدفوع'}</th>
@@ -321,16 +358,18 @@ export default function Invoices() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={10} className="empty">
+                  <td colSpan={11} className="empty">
                     جارٍ التحميل…
                   </td>
                 </tr>
               )}
 
-              {!loading && rows.length === 0 && (
+              {!loading && filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="empty">
-                    {showDeleted
+                  <td colSpan={11} className="empty">
+                    {warehouseFilter !== 'all'
+                      ? 'لا توجد مستندات في المخزن المحدد.'
+                      : showDeleted
                       ? `لا توجد ${isReturn ? 'مرتجعات' : 'فواتير'} محذوفة.`
                       : `لا توجد ${isReturn ? 'مرتجعات' : 'فواتير'} بعد.`}
                   </td>
@@ -338,7 +377,7 @@ export default function Invoices() {
               )}
 
               {!loading &&
-                rows.map((invoice) => (
+                filteredRows.map((invoice) => (
                   <tr key={invoice.id}>
                     <td className="num">{invoice.number}</td>
                     <td className="num">{invoice.invoice_date}</td>
@@ -349,6 +388,7 @@ export default function Invoices() {
                       </span>
                     </td>
                     <td>{invoice.warehouse_name}</td>
+                    <td>{invoice.cash_box_name ?? '—'}</td>
                     <td className="num">{money(invoice.total)}</td>
                     <td className="num strong">
                       {money(kind === 'waste' || kind === 'purchase' || kind === 'purchase_return' ? invoice.cost_total : invoice.profit_total)}
@@ -413,6 +453,10 @@ export default function Invoices() {
             <dd className="num">{viewing.invoice_date}</dd>
             <dt>المخزن</dt>
             <dd>{viewing.warehouse_name}</dd>
+            {viewing.cash_box_name && <>
+              <dt>الخزنة</dt>
+              <dd>{viewing.cash_box_name}</dd>
+            </>}
             <dt>{viewingIsWaste ? 'قيمة المستند' : 'الإجمالي'}</dt>
             <dd className="num strong">{money(viewing.total)}</dd>
             <dt>{viewingIsWaste ? 'الخسارة' : viewing.kind === 'sale' || viewing.kind === 'sale_return' ? 'الربح / الخسارة' : 'تكلفة الأصناف'}</dt>

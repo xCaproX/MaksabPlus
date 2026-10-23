@@ -194,6 +194,28 @@ p {
   gap: 8px;
 }
 
+.stock-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.stock-breakdown .chip {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.filter-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.filter-row label {
+  width: min(320px, 100%);
+}
+
 .chip {
   background: #fff;
   border: 1px solid var(--line);
@@ -271,6 +293,51 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.searchable-select {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-select-options {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  box-shadow: 0 10px 24px rgba(16, 24, 40, 0.16);
+}
+
+.searchable-select-option {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.searchable-select-option:last-child {
+  border-bottom: 0;
+}
+
+.searchable-select-option:hover,
+.searchable-select-option.active {
+  background: #eef6f5;
+}
+
+.searchable-select-empty {
+  padding: 12px;
+  color: var(--muted);
 }
 
 .actions {
@@ -384,6 +451,11 @@ textarea:focus {
   white-space: nowrap;
 }
 
+.table-input {
+  min-width: 120px;
+  padding: 7px 9px;
+}
+
 .table tbody tr:last-child td {
   border-bottom: none;
 }
@@ -488,11 +560,6 @@ select:disabled {
 }
 
 /* ---------- Invoice form ---------- */
-.invoice-form {
-  border: 1px solid #cfe3e0;
-  box-shadow: 0 6px 24px rgba(15, 118, 110, 0.08);
-}
-
 .lines {
   margin-top: 18px;
 }

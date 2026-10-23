@@ -2,7 +2,7 @@
 -- 006_receipt_direction.sql
 -- اتجاه الإيصال (استلام/صرف) مستقل عن نوع الحساب:
 --   - يمكن استلام من عميل أو مورد، وصرف لعميل أو مورد.
---   - الخزنة تتحرك حسب الاتجاه فقط، ورصيد الحساب ينقص في الحالتين.
+--   - الخزنة تتحرك حسب الاتجاه، وأثر الحساب حسب نوعه واتجاه الحركة.
 --   - ترقيم منفصل: RCP للاستلام و PAY للصرف.
 --   - إيصال الفاتورة يأخذ الاتجاه من نوع الفاتورة.
 -- =====================================================================
@@ -82,8 +82,8 @@ begin
     'in from supplier: cash +100'
   );
   perform public.test_expect(
-    (select balance from public.v_account_balances where id = 'bbbbbbbb-bbbb-4bbb-8bbb-0000000000d1') = -100,
-    'in from supplier: supplier balance -100'
+    (select balance from public.v_account_balances where id = 'bbbbbbbb-bbbb-4bbb-8bbb-0000000000d1') = 100,
+    'in from supplier: supplier balance +100'
   );
 
   -- صرف لعميل
@@ -102,8 +102,8 @@ begin
     'out to customer: cash 100 - 40'
   );
   perform public.test_expect(
-    (select balance from public.v_account_balances where id = 'bbbbbbbb-bbbb-4bbb-8bbb-0000000000c1') = -40,
-    'out to customer: customer balance -40'
+    (select balance from public.v_account_balances where id = 'bbbbbbbb-bbbb-4bbb-8bbb-0000000000c1') = 40,
+    'out to customer: customer balance +40'
   );
 
   -- استلام من عميل
@@ -225,14 +225,15 @@ begin
     'cash after invoices'
   );
 
-  -- الأرصدة: العميل 50 - (40 + 30 + 50) = -70 / المورد 60 - (110 + 20 + 60) = -130
+  -- أرصدة الحركات الحرة: استلام المورد +110، صرفه -20، صرف العميل +40، واستلامه -30.
+  -- الفاتورتان مدفوعتان بالكامل، فلا تتركان رصيدًا.
   perform public.test_expect(
-    (select balance from public.v_account_balances where id = 'bbbbbbbb-bbbb-4bbb-8bbb-0000000000c1') = -70,
-    'customer balance -70'
+    (select balance from public.v_account_balances where id = 'bbbbbbbb-bbbb-4bbb-8bbb-0000000000c1') = 10,
+    'customer balance +10'
   );
   perform public.test_expect(
-    (select balance from public.v_account_balances where id = 'bbbbbbbb-bbbb-4bbb-8bbb-0000000000d1') = -130,
-    'supplier balance -130'
+    (select balance from public.v_account_balances where id = 'bbbbbbbb-bbbb-4bbb-8bbb-0000000000d1') = 90,
+    'supplier balance +90'
   );
 
   -- عرض الاتجاه في القائمة

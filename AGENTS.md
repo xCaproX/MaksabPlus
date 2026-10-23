@@ -3,6 +3,9 @@
 Stack: Supabase (Postgres + Auth), React + Vite + TypeScript, deployed on Vercel.
 UI language: Arabic, RTL.
 
+## Product concept
+- The primary user is a small-business owner who may not know accounting and may have limited computer experience. Keep workflows simple, clear, and approachable in Arabic; let the system handle accounting complexity behind the scenes. Preserve accounting correctness without making users learn accounting terminology or procedures unless the task specifically requires it.
+
 ## Working rules
 1. Work in small steps. Implement ONLY what the current request asks. Do not add extra tables, columns, or features.
 2. Before coding: state the plan in a few lines and list the files you will touch. After coding: list what changed and how to test it manually.
