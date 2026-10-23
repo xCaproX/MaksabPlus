@@ -21,6 +21,11 @@ export function qty(value: number | string | null | undefined): string {
   return qtyFormat.format(n);
 }
 
+export function entityNumber(prefix: string, value: number | string | null | undefined): string {
+  const number = Number(value);
+  return `${prefix}-${Number.isFinite(number) ? String(number).padStart(5, '0') : '00000'}`;
+}
+
 export function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }

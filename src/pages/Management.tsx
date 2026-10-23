@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
-import { money, qty as formatQty } from '../lib/format';
+import { entityNumber, money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import type { AccountRow, CashBoxRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 
@@ -32,7 +32,7 @@ export default function Management() {
         supabase.from('v_account_balances').select('*').order('name'),
         supabase.from('v_cash_box_balances').select('*').order('name'),
         supabase.from('v_stock_opening_balances').select('*').order('warehouse_name').order('item_name'),
-        supabase.from('warehouses').select('id, name').eq('is_active', true).order('name'),
+        supabase.from('warehouses').select('id, serial_number, name').eq('is_active', true).order('name'),
       ]);
       if (!alive) return;
       const firstError = accountsRes.error ?? boxesRes.error ?? stockRes.error ?? warehousesRes.error;
@@ -117,28 +117,28 @@ export default function Management() {
         <>
           {(tab === 'customers' || tab === 'suppliers') && <div className="card">
             <p className="hint">{tab === 'customers' ? 'للعميل: الموجب يعني عليه، والسالب يعني له.' : 'للمورد: الموجب يعني له، والسالب يعني عليه.'} حفظ أي تعديل يسجل تصحيحًا يحافظ على الحركات السابقة.</p>
-            <div className="table-wrap"><table className="table"><thead><tr><th>الحساب</th><th>النوع</th><th>الرصيد الافتتاحي</th><th>الرصيد الحالي</th><th /></tr></thead><tbody>
-              {visibleAccounts.map((account) => <tr key={account.id}><td>{account.name}</td><td>{account.kind === 'customer' ? 'عميل' : 'مورد'}</td><td><input className="table-input num" type="number" step="0.0001" value={accountValues[account.id] ?? '0'} onChange={(event) => setAccountValues((values) => ({ ...values, [account.id]: event.target.value }))} /></td><td className="num">{money(account.balance)}</td><td><button type="button" className="btn" disabled={saving} onClick={() => void saveAccountOpening(account)}>حفظ</button></td></tr>)}
-              {visibleAccounts.length === 0 && <tr><td colSpan={5} className="empty">{tab === 'customers' ? 'لا توجد حسابات عملاء.' : 'لا توجد حسابات موردين.'}</td></tr>}
+            <div className="table-wrap"><table className="table"><thead><tr><th>الرقم</th><th>الحساب</th><th>النوع</th><th>الرصيد الافتتاحي</th><th>الرصيد الحالي</th><th /></tr></thead><tbody>
+              {visibleAccounts.map((account) => <tr key={account.id}><td className="num">{entityNumber('ACC', account.serial_number)}</td><td>{account.name}</td><td>{account.kind === 'customer' ? 'عميل' : 'مورد'}</td><td><input className="table-input num" type="number" step="0.0001" value={accountValues[account.id] ?? '0'} onChange={(event) => setAccountValues((values) => ({ ...values, [account.id]: event.target.value }))} /></td><td className="num">{money(account.balance)}</td><td><button type="button" className="btn" disabled={saving} onClick={() => void saveAccountOpening(account)}>حفظ</button></td></tr>)}
+              {visibleAccounts.length === 0 && <tr><td colSpan={6} className="empty">{tab === 'customers' ? 'لا توجد حسابات عملاء.' : 'لا توجد حسابات موردين.'}</td></tr>}
             </tbody></table></div>
           </div>}
           {tab === 'items' && <form className="stack" onSubmit={saveCashAndStock}>
             <div className="card"><p className="hint">اختر مخزنًا وابحث عن الصنف لإدخال كمية البداية وتكلفة الوحدة. عند وجود حركات لاحقة، يمكن تصحيح الكمية، بينما تُقفل تكلفة البداية لحماية أرباح الفواتير السابقة.</p>
               <div className="filter-row balance-filter-row">
-                <label>المخزن<select value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}><option value="">اختر المخزن</option>{warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select></label>
+                <label>المخزن<select value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}><option value="">اختر المخزن</option>{warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{entityNumber('WH', warehouse.serial_number)} — {warehouse.name}</option>)}</select></label>
                 <label>بحث عن صنف<input type="search" value={itemSearch} onChange={(event) => setItemSearch(event.target.value)} placeholder="اكتب اسم الصنف" disabled={!selectedWarehouseId} /></label>
               </div>
-              <div className="table-wrap"><table className="table"><thead><tr><th>الصنف</th><th>كمية البداية</th><th>تكلفة الوحدة</th><th>المتاح الآن</th></tr></thead><tbody>
-                {visibleStockRows.map((row) => { const key = `${row.warehouse_id}:${row.item_id}`; const value = stockValues[key] ?? { qty: '0', cost: '0' }; return <tr key={key}><td>{row.item_name}</td><td><input className="table-input num" type="number" min="0" step="0.0001" value={value.qty} onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, qty: event.target.value } }))} /></td><td><input className="table-input num" type="number" min="0" step="0.0001" value={value.cost} disabled={row.cost_locked} onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))} /></td><td className="num">{formatQty(row.current_qty)} {row.unit}</td></tr>; })}
-                {visibleStockRows.length === 0 && <tr><td colSpan={4} className="empty">{warehouses.length === 0 ? 'أضف المخازن والأصناف أولًا.' : !selectedWarehouseId ? 'اختر مخزنًا لعرض أصنافه.' : itemSearch.trim() ? 'لا توجد أصناف تطابق البحث في هذا المخزن.' : 'لا توجد أصناف في هذا المخزن.'}</td></tr>}
+              <div className="table-wrap"><table className="table"><thead><tr><th>رقم الصنف</th><th>الصنف</th><th>كمية البداية</th><th>تكلفة الوحدة</th><th>المتاح الآن</th></tr></thead><tbody>
+                {visibleStockRows.map((row) => { const key = `${row.warehouse_id}:${row.item_id}`; const value = stockValues[key] ?? { qty: '0', cost: '0' }; return <tr key={key}><td className="num">{entityNumber('ITM', row.item_number)}</td><td>{row.item_name}</td><td><input className="table-input num" type="number" min="0" step="0.0001" value={value.qty} onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, qty: event.target.value } }))} /></td><td><input className="table-input num" type="number" min="0" step="0.0001" value={value.cost} disabled={row.cost_locked} onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))} /></td><td className="num">{formatQty(row.current_qty)} {row.unit}</td></tr>; })}
+                {visibleStockRows.length === 0 && <tr><td colSpan={5} className="empty">{warehouses.length === 0 ? 'أضف المخازن والأصناف أولًا.' : !selectedWarehouseId ? 'اختر مخزنًا لعرض أصنافه.' : itemSearch.trim() ? 'لا توجد أصناف تطابق البحث في هذا المخزن.' : 'لا توجد أصناف في هذا المخزن.'}</td></tr>}
               </tbody></table></div>
             </div><div className="actions"><button type="submit" className="btn primary" disabled={saving || !selectedWarehouseId}>حفظ أرصدة المخزون</button></div>
           </form>}
           {tab === 'cashBoxes' && <form className="stack" onSubmit={saveCashAndStock}>
             <div className="card"><p className="hint">أدخل رصيد كل خزنة عند بداية العمل. التعديلات اللاحقة تُسجل كتصحيح محفوظ.</p>
-              <div className="table-wrap"><table className="table"><thead><tr><th>الخزنة</th><th>الرصيد الافتتاحي</th><th>الرصيد الحالي</th></tr></thead><tbody>
-                {cashBoxes.map((box) => <tr key={box.id}><td>{box.name}</td><td><input className="table-input num" type="number" step="0.0001" value={cashValues[box.id] ?? '0'} onChange={(event) => setCashValues((values) => ({ ...values, [box.id]: event.target.value }))} /></td><td className="num">{money(box.balance)}</td></tr>)}
-                {cashBoxes.length === 0 && <tr><td colSpan={3} className="empty">لا توجد خزن.</td></tr>}
+              <div className="table-wrap"><table className="table"><thead><tr><th>الرقم</th><th>الخزنة</th><th>الرصيد الافتتاحي</th><th>الرصيد الحالي</th></tr></thead><tbody>
+                {cashBoxes.map((box) => <tr key={box.id}><td className="num">{entityNumber('CBX', box.serial_number)}</td><td>{box.name}</td><td><input className="table-input num" type="number" step="0.0001" value={cashValues[box.id] ?? '0'} onChange={(event) => setCashValues((values) => ({ ...values, [box.id]: event.target.value }))} /></td><td className="num">{money(box.balance)}</td></tr>)}
+                {cashBoxes.length === 0 && <tr><td colSpan={4} className="empty">لا توجد خزن.</td></tr>}
               </tbody></table></div>
             </div><div className="actions"><button type="submit" className="btn primary" disabled={saving}>حفظ رصيد الخزن</button></div>
           </form>}

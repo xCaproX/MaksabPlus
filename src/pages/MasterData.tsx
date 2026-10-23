@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { getCompanyId } from '../lib/company';
-import { money } from '../lib/format';
+import { entityNumber, money } from '../lib/format';
 import { errorMessage, translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -9,7 +9,7 @@ import type { AccountKind, AccountRow, ItemRow, WarehouseOption } from '../lib/t
 
 type Tab = 'customers' | 'suppliers' | 'items';
 interface WarehouseRecord extends WarehouseOption { is_active: boolean; notes: string | null }
-interface CashBoxRecord { id: string; name: string; is_active: boolean; is_primary: boolean; notes: string | null }
+interface CashBoxRecord { id: string; serial_number: number; name: string; is_active: boolean; is_primary: boolean; notes: string | null }
 interface MasterItemRecord extends Omit<ItemRow, 'qty'> { notes: string | null }
 type LocationsTab = Tab | 'warehouses' | 'cashBoxes';
 type FormModal = 'account' | 'item' | 'warehouse' | 'cashBox' | null;
@@ -83,9 +83,9 @@ export default function MasterData() {
 
         const [accountsRes, itemsRes, warehousesRes, boxesRes] = await Promise.all([
           supabase.from('v_account_balances').select('*').order('name'),
-          supabase.from('items').select('id, name, unit, sale_price, purchase_price, is_active, notes').order('name'),
-          supabase.from('warehouses').select('id, name, notes, is_active, is_primary').order('name'),
-          supabase.from('cash_boxes').select('id, name, notes, is_active, is_primary').order('name'),
+          supabase.from('items').select('id, serial_number, name, unit, sale_price, purchase_price, is_active, notes').order('name'),
+          supabase.from('warehouses').select('id, serial_number, name, notes, is_active, is_primary').order('name'),
+          supabase.from('cash_boxes').select('id, serial_number, name, notes, is_active, is_primary').order('name'),
         ]);
 
         if (!alive) return;
@@ -546,6 +546,7 @@ export default function MasterData() {
               <table className="table">
                 <thead>
                   <tr>
+                    <th>الرقم</th>
                     <th>الاسم</th>
                     <th>النوع</th>
                     <th>الهاتف</th>
@@ -557,7 +558,7 @@ export default function MasterData() {
                 <tbody>
                   {loading && (
                     <tr>
-                      <td colSpan={6} className="empty">
+                      <td colSpan={7} className="empty">
                         جارٍ التحميل…
                       </td>
                     </tr>
@@ -565,7 +566,7 @@ export default function MasterData() {
 
                   {!loading && visibleAccountsByTab.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="empty">
+                      <td colSpan={7} className="empty">
                         {tab === 'customers' ? 'لا يوجد عملاء بعد.' : 'لا يوجد موردون بعد.'}
                       </td>
                     </tr>
@@ -574,6 +575,7 @@ export default function MasterData() {
                   {!loading &&
                     visibleAccountsByTab.map((account) => (
                       <tr key={account.id}>
+                        <td className="num">{entityNumber('ACC', account.serial_number)}</td>
                         <td>{account.name}</td>
                         <td>{account.kind === 'customer' ? 'عميل' : account.kind === 'supplier' ? 'مورد' : 'هالك'}</td>
                         <td className="num muted">{account.phone ?? '—'}</td>
@@ -619,6 +621,7 @@ export default function MasterData() {
               <table className="table">
                 <thead>
                   <tr>
+                    <th>الرقم</th>
                     <th>الاسم</th>
                     <th>الوحدة</th>
                     <th>سعر البيع</th>
@@ -631,7 +634,7 @@ export default function MasterData() {
                 <tbody>
                   {loading && (
                     <tr>
-                      <td colSpan={7} className="empty">
+                      <td colSpan={8} className="empty">
                         جارٍ التحميل…
                       </td>
                     </tr>
@@ -639,7 +642,7 @@ export default function MasterData() {
 
                   {!loading && items.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="empty">
+                      <td colSpan={8} className="empty">
                         لا توجد أصناف بعد.
                       </td>
                     </tr>
@@ -648,6 +651,7 @@ export default function MasterData() {
                   {!loading &&
                     items.map((item) => (
                       <tr key={item.id}>
+                        <td className="num">{entityNumber('ITM', item.serial_number)}</td>
                         <td>{item.name}</td>
                         <td>{item.unit}</td>
                         <td className="num">{money(item.sale_price)}</td>
@@ -691,10 +695,11 @@ export default function MasterData() {
           <section className="card">
             <div className="table-wrap">
               <table className="table">
-                <thead><tr><th>المخزن</th><th>ملاحظات</th><th>الحالة</th><th /></tr></thead>
+                <thead><tr><th>الرقم</th><th>المخزن</th><th>ملاحظات</th><th>الحالة</th><th /></tr></thead>
                 <tbody>
                   {warehouseRows.map((warehouse) => (
                     <tr key={warehouse.id}>
+                      <td className="num">{entityNumber('WH', warehouse.serial_number)}</td>
                       <td>{warehouse.name}{warehouse.is_primary && <span className="badge"> رئيسي</span>}</td>
                       <td>{warehouse.notes || '—'}</td>
                       <td>{warehouse.is_active ? <span className="badge ok">نشط</span> : <span className="badge">موقوف</span>}</td>
@@ -709,7 +714,7 @@ export default function MasterData() {
                       </td>
                     </tr>
                   ))}
-                  {!loading && warehouseRows.length === 0 && <tr><td colSpan={4} className="empty">لا توجد مخازن.</td></tr>}
+                  {!loading && warehouseRows.length === 0 && <tr><td colSpan={5} className="empty">لا توجد مخازن.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -723,10 +728,11 @@ export default function MasterData() {
           <section className="card">
             <div className="table-wrap">
               <table className="table">
-                <thead><tr><th>الخزنة</th><th>ملاحظات</th><th>الحالة</th><th /></tr></thead>
+                <thead><tr><th>الرقم</th><th>الخزنة</th><th>ملاحظات</th><th>الحالة</th><th /></tr></thead>
                 <tbody>
                   {cashBoxes.map((box) => (
                     <tr key={box.id}>
+                      <td className="num">{entityNumber('CBX', box.serial_number)}</td>
                       <td>{box.name}{box.is_primary && <span className="badge"> رئيسية</span>}</td>
                       <td>{box.notes || '—'}</td>
                       <td>{box.is_active ? <span className="badge ok">نشط</span> : <span className="badge">موقوف</span>}</td>
@@ -741,7 +747,7 @@ export default function MasterData() {
                       </td>
                     </tr>
                   ))}
-                  {!loading && cashBoxes.length === 0 && <tr><td colSpan={4} className="empty">لا توجد خزن.</td></tr>}
+                  {!loading && cashBoxes.length === 0 && <tr><td colSpan={5} className="empty">لا توجد خزن.</td></tr>}
                 </tbody>
               </table>
             </div>

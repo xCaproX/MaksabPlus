@@ -4,6 +4,7 @@ export type ReceiptDirection = 'in' | 'out';
 
 export interface AccountRow {
   id: string;
+  serial_number: number | null;
   name: string;
   kind: AccountKind;
   phone: string | null;
@@ -19,6 +20,7 @@ export interface AccountRow {
 
 export interface ItemRow {
   id: string;
+  serial_number: number;
   name: string;
   unit: string;
   sale_price: number;
@@ -31,6 +33,7 @@ export interface ItemRow {
 export interface WarehouseOption {
   id: string;
   name: string;
+  serial_number?: number;
   notes?: string | null;
   is_active?: boolean;
   is_primary?: boolean;
@@ -38,6 +41,7 @@ export interface WarehouseOption {
 
 export interface CashBoxRow {
   id: string;
+  serial_number: number;
   name: string;
   is_active: boolean;
   balance: number;
@@ -48,9 +52,11 @@ export interface CashBoxRow {
 
 export interface StockOpeningRow {
   item_id: string;
+  item_number: number;
   item_name: string;
   unit: string;
   warehouse_id: string;
+  warehouse_number: number;
   warehouse_name: string;
   warehouse_notes: string | null;
   opening_qty: number;
