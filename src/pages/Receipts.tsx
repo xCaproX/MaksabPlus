@@ -315,7 +315,7 @@ export default function Receipts() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>الإيصالات</h1>
+          <h1>الفلوس</h1>
           <p className="muted">
             {isCashBoxTransfer ? 'انقل النقد بين الخزن؛ لا يتغير مجموع النقد ولا أرصدة العملاء والموردين.' : 'إيصال الاستلام يدخّل نقدًا للخزنة، وإيصال الصرف يخرّج نقدًا. الحساب قد يكون عميلًا أو موردًا في أي اتجاه.'}
           </p>
@@ -356,7 +356,7 @@ export default function Receipts() {
       {error && <p className="alert error">{error}</p>}
       {showDeleted && (
         <p className="hint">
-          {isCashBoxTransfer ? 'التحويلات المحذوفة لا تؤثر على أرصدة الخزن.' : 'هذه الإيصالات محذوفة: لا تؤثر على الأرصدة أو الخزنة. إيصال الفاتورة يُستعاد من صفحة الفواتير مع فاتورته.'}
+          {isCashBoxTransfer ? 'التحويلات المحذوفة لا تؤثر على أرصدة الخزن.' : 'هذه الإيصالات محذوفة: لا تؤثر على الأرصدة أو الخزنة. إيصال الفاتورة يُستعاد من صفحة البضاعة مع فاتورته.'}
         </p>
       )}
 
@@ -562,7 +562,7 @@ export default function Receipts() {
                         ) : (
                           <span
                             className="badge"
-                            title={`يُستعاد من صفحة الفواتير مع ${
+                            title={`يُستعاد من صفحة البضاعة مع ${
                               linkKind(receipt.invoice_kind) === 'مرتجع' ? 'مرتجعه' : 'فاتورته'
                             }`}
                           >

@@ -19,10 +19,10 @@ export default function Layout() {
 
         <nav className="nav">
           <NavLink to="/invoices" className={({ isActive }) => (isActive ? 'active' : '')}>
-            الفواتير
+            البضاعة
           </NavLink>
           <NavLink to="/receipts" className={({ isActive }) => (isActive ? 'active' : '')}>
-            الإيصالات
+            الفلوس
           </NavLink>
           <NavLink to="/data" className={({ isActive }) => (isActive ? 'active' : '')}>
             البيانات

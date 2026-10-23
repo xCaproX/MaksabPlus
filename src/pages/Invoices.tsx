@@ -70,7 +70,7 @@ export default function Invoices() {
   const viewingIsReturn = Boolean(
     viewing && (viewing.kind === 'sale_return' || viewing.kind === 'purchase_return'),
   );
-  const newLabel = isWarehouseTransfer ? 'تحويل مخزني' :
+  const newLabel = isWarehouseTransfer ? 'تحويل بين مخازن' :
     kind === 'waste'
       ? 'فاتورة هالك'
       : kind === 'sale'
@@ -324,7 +324,7 @@ export default function Invoices() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>الفواتير</h1>
+          <h1>البضاعة</h1>
           <p className="muted">
             {isWarehouseTransfer
               ? 'انقل الأصناف بين المخازن. يتغير رصيد كل مخزن وتكلفة الوجهة من غير تأثير على الحسابات أو ربح الفواتير.'
@@ -351,7 +351,7 @@ export default function Invoices() {
             { value: 'sale_return', label: 'مرتجعات المبيعات' },
             { value: 'purchase_return', label: 'مرتجعات المشتريات' },
             { value: 'waste', label: 'الهالك' },
-            { value: 'warehouse_transfer', label: 'تحويل مخزني' },
+            { value: 'warehouse_transfer', label: 'تحويل بين مخازن' },
           ] as const
         ).map((tab) => (
           <button
@@ -534,7 +534,7 @@ export default function Invoices() {
         </div>
       </div>}
 
-      {viewingTransfer && <Modal title={`تحويل مخزني ${viewingTransfer.number}`} onClose={() => setViewingTransfer(null)}>
+      {viewingTransfer && <Modal title={`تحويل بين مخازن ${viewingTransfer.number}`} onClose={() => setViewingTransfer(null)}>
         <dl className="doc-meta-list">
           <dt>التاريخ</dt><dd>{viewingTransfer.transfer_date}</dd>
           <dt>من مخزن</dt><dd>{viewingTransfer.source_warehouse_name}</dd>
