@@ -11,6 +11,7 @@ UI language: Arabic, RTL.
 2. Before coding: state the plan in a few lines and list the files you will touch. After coding: list what changed and how to test it manually.
 3. If a business or accounting rule is unclear, ASK. Do not guess. The owner defines the rules.
 4. Do not delete or rewrite working code unless asked.
+- After completing work, create a commit and push it to GitHub; push a database migration if the change includes one.
 
 ## Database
 5. All schema changes go in timestamped files under supabase/migrations/. Never edit an existing migration; add a new one.
