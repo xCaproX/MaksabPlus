@@ -16,6 +16,7 @@ type CompanyUser = {
   email: string;
   full_name: string | null;
   is_active: boolean;
+  access_role: 'owner' | 'employee';
   permission_keys: PermissionKey[];
 };
 
@@ -116,32 +117,40 @@ export default function UserPermissions() {
       {loading ? <p className="empty">جارٍ التحميل…</p> : users.length === 0 ? <p className="empty">لا يوجد مستخدمون.</p> : users.map((user) => (
         <section className="user-permission-card" key={user.user_id}>
           <div className="page-head"><div><h3>{user.full_name || user.email}</h3><p className="muted" dir="ltr">{user.email}</p></div>
-            <span className="badge">{user.is_active ? 'نشط' : 'موقوف'}</span></div>
-          <PermissionChooser values={drafts[user.user_id] ?? []} onChange={(values) => setDrafts((current) => ({ ...current, [user.user_id]: values }))} toggle={toggle} />
-          <div className="actions">
-            <button className="btn primary" type="button" disabled={busy} onClick={() => void savePermissions(user)}>حفظ الصلاحيات</button>
-            <button className="btn" type="button" disabled={busy} onClick={() => void toggleActive(user)}>{user.is_active ? 'إيقاف الدخول' : 'تفعيل الدخول'}</button>
-          </div>
+            <span className="badge">{user.access_role === 'owner' ? 'مدير الشركة' : user.is_active ? 'نشط' : 'موقوف'}</span></div>
+          {user.access_role === 'owner' ? <>
+            <p className="hint">مدير الشركة لديه كل الصلاحيات تلقائيًا، ولا يحتاج إلى تحديدها أو حفظها.</p>
+            <PermissionChooser values={allPermissionKeys()} onChange={() => undefined} toggle={toggle} disabled />
+          </> : <>
+            <PermissionChooser values={drafts[user.user_id] ?? []} onChange={(values) => setDrafts((current) => ({ ...current, [user.user_id]: values }))} toggle={toggle} />
+            <div className="actions">
+              <button className="btn primary" type="button" disabled={busy} onClick={() => void savePermissions(user)}>حفظ الصلاحيات</button>
+              <button className="btn" type="button" disabled={busy} onClick={() => void toggleActive(user)}>{user.is_active ? 'إيقاف الدخول' : 'تفعيل الدخول'}</button>
+            </div>
+          </>}
         </section>
       ))}
     </div>
   </div>;
 }
 
-function PermissionChooser({ values, onChange, toggle }: {
+function PermissionChooser({ values, onChange, toggle, disabled = false }: {
   values: PermissionKey[];
   onChange: (values: PermissionKey[]) => void;
   toggle: (values: PermissionKey[], key: PermissionKey) => PermissionKey[];
+  disabled?: boolean;
 }) {
   return <div className="permission-groups">
     {groups.map((group) => <fieldset className="permission-group" key={group.module}>
       <legend>{group.label}</legend>
       {group.actions.map(([action, label]) => {
         const key = `${group.module}.${action}` as PermissionKey;
-        return <label className="permission-option" key={key}><input type="checkbox" checked={values.includes(key)} onChange={() => onChange(toggle(values, key))} />{label}</label>;
+        return <label className="permission-option" key={key}><input type="checkbox" disabled={disabled} checked={values.includes(key)} onChange={() => onChange(toggle(values, key))} />{label}</label>;
       })}
     </fieldset>)}
-    <button className="btn" type="button" onClick={() => onChange(allPermissionKeys())}>تحديد الكل</button>
-    <button className="btn" type="button" onClick={() => onChange([])}>إلغاء الكل</button>
+    {!disabled && <>
+      <button className="btn" type="button" onClick={() => onChange(allPermissionKeys())}>تحديد الكل</button>
+      <button className="btn" type="button" onClick={() => onChange([])}>إلغاء الكل</button>
+    </>}
   </div>;
 }
