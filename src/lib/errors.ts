@@ -1,5 +1,10 @@
 const MESSAGES: Record<string, string> = {
   paid_exceeds_total: 'المدفوع أكبر من إجمالي الفاتورة',
+  cash_account_requires_full_payment: 'الحساب نقدي ويجب سداد/استرداد إجمالي المستند كاملًا',
+  system_account_protected: 'هذا حساب ثابت لا يمكن تعديله أو حذفه',
+  insufficient_stock: 'الكمية المتاحة في المخزن لا تكفي لهذه الحركة',
+  waste_price_must_be_zero: 'فاتورة الهالك لا تحمل سعر بيع',
+  waste_cannot_be_paid: 'لا يمكن تسجيل مدفوعات على فاتورة الهالك',
   invoice_has_no_lines: 'أضف سطرًا واحدًا على الأقل',
   line_missing_item: 'اختر الصنف في كل السطور',
   invalid_line_qty: 'الكمية يجب أن تكون أكبر من صفر',

@@ -88,6 +88,7 @@ export default function MasterData() {
   }, [notice]);
 
   function startAccountEdit(account: AccountRow) {
+    if (account.system_key) return;
     setEditingAccount(account);
     setAccountName(account.name);
     setAccountKind(account.kind);
@@ -149,6 +150,7 @@ export default function MasterData() {
   }
 
   async function removeAccount(account: AccountRow) {
+    if (account.system_key) return;
     const confirmed = window.confirm(
       `حذف الحساب «${account.name}»؟\n` +
         'لو عليه فواتير أو إيصالات سيتم تعطيله بدل الحذف للحفاظ على المستندات.',
@@ -400,7 +402,7 @@ export default function MasterData() {
                     accounts.map((account) => (
                       <tr key={account.id}>
                         <td>{account.name}</td>
-                        <td>{account.kind === 'customer' ? 'عميل' : 'مورد'}</td>
+                        <td>{account.kind === 'customer' ? 'عميل' : account.kind === 'supplier' ? 'مورد' : 'هالك'}</td>
                         <td className="num muted">{account.phone ?? '—'}</td>
                         <td>
                           {account.is_active ? (
@@ -419,6 +421,7 @@ export default function MasterData() {
                             type="button"
                             className="link"
                             onClick={() => startAccountEdit(account)}
+                            disabled={Boolean(account.system_key)}
                           >
                             تعديل
                           </button>
@@ -426,6 +429,7 @@ export default function MasterData() {
                             type="button"
                             className="link danger"
                             onClick={() => removeAccount(account)}
+                            disabled={Boolean(account.system_key)}
                           >
                             حذف
                           </button>

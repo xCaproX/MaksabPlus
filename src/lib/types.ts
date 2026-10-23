@@ -1,5 +1,5 @@
-export type InvoiceKind = 'sale' | 'purchase';
-export type AccountKind = 'customer' | 'supplier';
+export type InvoiceKind = 'sale' | 'purchase' | 'sale_return' | 'purchase_return' | 'waste';
+export type AccountKind = 'customer' | 'supplier' | 'waste';
 export type ReceiptDirection = 'in' | 'out';
 
 export interface AccountRow {
@@ -12,6 +12,7 @@ export interface AccountRow {
   paid: number;
   balance: number;
   has_documents: boolean;
+  system_key: 'cash_customer' | 'cash_supplier' | 'waste' | null;
 }
 
 export interface ItemRow {
@@ -44,6 +45,8 @@ export interface InvoiceRow {
   account_id: string;
   account_name: string;
   account_kind: AccountKind;
+  cost_total: number;
+  profit_total: number;
   warehouse_id: string;
   warehouse_name: string;
   subtotal: number;
@@ -66,6 +69,9 @@ export interface InvoiceItemRow {
   qty: number;
   unit_price: number;
   line_total: number;
+  unit_cost: number;
+  line_cost: number;
+  line_profit: number;
 }
 
 export interface ReceiptRow {

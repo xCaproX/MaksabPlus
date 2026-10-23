@@ -9,6 +9,10 @@ import type {
   ReceiptRow,
 } from '../lib/types';
 
+function linkKind(kind: ReceiptRow['invoice_kind']) {
+  return kind === 'sale_return' || kind === 'purchase_return' ? 'مرتجع' : 'فاتورة';
+}
+
 export default function Receipts() {
   const [direction, setDirection] = useState<ReceiptDirection>('in');
   const [rows, setRows] = useState<ReceiptRow[]>([]);
@@ -287,7 +291,7 @@ export default function Receipts() {
               الحساب
               <select value={accountId} onChange={(e) => setAccountId(e.target.value)} required>
                 <option value="">اختر…</option>
-                {accounts.map((account) => (
+              {accounts.filter((account) => account.kind !== 'waste').map((account) => (
                   <option key={account.id} value={account.id}>
                     {account.name} — {account.kind === 'customer' ? 'عميل' : 'مورد'}
                   </option>
@@ -405,7 +409,7 @@ export default function Receipts() {
                     <td>
                       {receipt.account_name}{' '}
                       <span className="muted">
-                        ({receipt.account_kind === 'customer' ? 'عميل' : 'مورد'})
+                        ({receipt.account_kind === 'customer' ? 'عميل' : receipt.account_kind === 'supplier' ? 'مورد' : 'هالك'})
                       </span>
                     </td>
                     <td>{receipt.cash_box_name}</td>
@@ -423,8 +427,14 @@ export default function Receipts() {
                             استعادة
                           </button>
                         ) : (
-                          <span className="badge" title="يُستعاد من صفحة الفواتير مع فاتورته">
-                            محذوف مع فاتورته
+                          <span
+                            className="badge"
+                            title={`يُستعاد من صفحة الفواتير مع ${
+                              linkKind(receipt.invoice_kind) === 'مرتجع' ? 'مرتجعه' : 'فاتورته'
+                            }`}
+                          >
+                            محذوف مع{' '}
+                            {linkKind(receipt.invoice_kind) === 'مرتجع' ? 'مرتجعه' : 'فاتورته'}
                           </span>
                         )
                       ) : receipt.is_free ? (
@@ -445,8 +455,13 @@ export default function Receipts() {
                           </button>
                         </>
                       ) : (
-                        <span className="badge" title="يُعدَّل من داخل الفاتورة">
-                          مرتبط بفاتورة
+                        <span
+                          className="badge"
+                          title={`يُعدَّل من داخل ${
+                            linkKind(receipt.invoice_kind) === 'مرتجع' ? 'المرتجع' : 'الفاتورة'
+                          }`}
+                        >
+                          مرتبط بـ{linkKind(receipt.invoice_kind)}
                         </span>
                       )}
                     </td>

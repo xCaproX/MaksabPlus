@@ -36,7 +36,21 @@ export default function Invoices() {
   const [details, setDetails] = useState<InvoiceItemRow[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const isPurchase = kind === 'purchase';
+  const isReturn = kind === 'sale_return' || kind === 'purchase_return';
+  const viewingIsWaste = viewing?.kind === 'waste';
+  const viewingIsReturn = Boolean(
+    viewing && (viewing.kind === 'sale_return' || viewing.kind === 'purchase_return'),
+  );
+  const newLabel =
+    kind === 'waste'
+      ? 'فاتورة هالك'
+      : kind === 'sale'
+      ? 'فاتورة مبيعات'
+      : kind === 'purchase'
+        ? 'فاتورة مشتريات'
+        : kind === 'sale_return'
+          ? 'مرتجع مبيعات'
+          : 'مرتجع مشتريات';
 
   useEffect(() => {
     let alive = true;
@@ -86,7 +100,7 @@ export default function Invoices() {
     return () => {
       alive = false;
     };
-  }, [kind, isPurchase, version, showDeleted]);
+  }, [kind, version, showDeleted]);
 
   useEffect(() => {
     if (!notice) return;
@@ -164,9 +178,13 @@ export default function Invoices() {
   }
 
   async function remove(invoice: InvoiceRow) {
+    const label =
+      invoice.kind === 'sale_return' || invoice.kind === 'purchase_return'
+        ? 'المرتجع'
+        : invoice.kind === 'waste' ? 'فاتورة الهالك' : 'الفاتورة';
     const confirmed = window.confirm(
-      `حذف الفاتورة ${invoice.number}؟\n` +
-        'ستُستثنى هي وإيصالها المرتبط من الأرصدة والتقارير، ويمكن استعادتها من «عرض المحذوفات».',
+      `حذف ${label} ${invoice.number}؟\n` +
+        `سيُستثنى هو وإيصاله المرتبط من الأرصدة والتقارير، ويمكن استعادته من «عرض المحذوفات».`,
     );
     if (!confirmed) return;
 
@@ -178,15 +196,19 @@ export default function Invoices() {
       return;
     }
 
-    setNotice(`تم نقل الفاتورة ${invoice.number} إلى المحذوفات`);
+    setNotice(`تم نقل ${label} ${invoice.number} إلى المحذوفات`);
     setViewing(null);
     setVersion((current) => current + 1);
   }
 
   async function restore(invoice: InvoiceRow) {
+    const label =
+      invoice.kind === 'sale_return' || invoice.kind === 'purchase_return'
+        ? 'المرتجع'
+        : invoice.kind === 'waste' ? 'فاتورة الهالك' : 'الفاتورة';
     const confirmed = window.confirm(
-      `استعادة الفاتورة ${invoice.number}؟\n` +
-        'ستعود مع إيصالها المرتبط ويُعاد تأثيرها على المخزون والأرصدة.',
+      `استعادة ${label} ${invoice.number}؟\n` +
+        'سيعود مع إيصاله المرتبط ويُعاد تأثيره على المخزون والأرصدة.',
     );
     if (!confirmed) return;
 
@@ -200,7 +222,7 @@ export default function Invoices() {
       return;
     }
 
-    setNotice(`تم استعادة الفاتورة ${invoice.number}`);
+    setNotice(`تم استعادة ${label} ${invoice.number}`);
     setVersion((current) => current + 1);
   }
 
@@ -218,8 +240,8 @@ export default function Invoices() {
         <div>
           <h1>الفواتير</h1>
           <p className="muted">
-            كل فاتورة مدفوع منها جزء يُنشئ إيصالًا تلقائيًا بقيمة المدفوع. الحساب قد يكون عميلًا أو
-            موردًا في أي نوع.
+            الفاتورة تزيد رصيد الحساب، والمرتجع يخصمه ويعدّل المخزون. المدفوع/المسترد يُنشئ إيصالًا
+            تلقائيًا مربوطًا بالمستند. تُعرض تكلفة البيع وربحه، والهالك بتكلفته وخسارته.
           </p>
         </div>
         <div className="actions">
@@ -228,27 +250,31 @@ export default function Invoices() {
           </button>
           {!showDeleted && (
             <button type="button" className="btn primary" onClick={openNew}>
-              + فاتورة {isPurchase ? 'مشتريات' : 'مبيعات'}
+              + {newLabel}
             </button>
           )}
         </div>
       </div>
 
       <div className="tabs">
-        <button
-          type="button"
-          className={kind === 'sale' ? 'tab active' : 'tab'}
-          onClick={() => switchKind('sale')}
-        >
-          فواتير المبيعات
-        </button>
-        <button
-          type="button"
-          className={kind === 'purchase' ? 'tab active' : 'tab'}
-          onClick={() => switchKind('purchase')}
-        >
-          فواتير المشتريات
-        </button>
+        {(
+          [
+            { value: 'sale', label: 'فواتير المبيعات' },
+            { value: 'purchase', label: 'فواتير المشتريات' },
+            { value: 'sale_return', label: 'مرتجعات المبيعات' },
+            { value: 'purchase_return', label: 'مرتجعات المشتريات' },
+            { value: 'waste', label: 'الهالك' },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            className={kind === tab.value ? 'tab active' : 'tab'}
+            onClick={() => switchKind(tab.value)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {notice && <p className="alert success">{notice}</p>}
@@ -285,8 +311,9 @@ export default function Invoices() {
                 <th>الحساب</th>
                 <th>المخزن</th>
                 <th>الإجمالي</th>
-                <th>المدفوع</th>
-                <th>المتبقي</th>
+                <th>{kind === 'waste' ? 'الخسارة' : kind === 'sale' || kind === 'sale_return' ? 'الربح / الخسارة' : 'تكلفة الأصناف'}</th>
+                <th>{isReturn ? 'المسترد' : 'المدفوع'}</th>
+                <th>{isReturn ? 'غير المسترد' : 'المتبقي'}</th>
                 <th>الإيصال</th>
                 <th />
               </tr>
@@ -294,7 +321,7 @@ export default function Invoices() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={9} className="empty">
+                  <td colSpan={10} className="empty">
                     جارٍ التحميل…
                   </td>
                 </tr>
@@ -302,8 +329,10 @@ export default function Invoices() {
 
               {!loading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="empty">
-                    {showDeleted ? 'لا توجد فواتير محذوفة.' : 'لا توجد فواتير بعد.'}
+                  <td colSpan={10} className="empty">
+                    {showDeleted
+                      ? `لا توجد ${isReturn ? 'مرتجعات' : 'فواتير'} محذوفة.`
+                      : `لا توجد ${isReturn ? 'مرتجعات' : 'فواتير'} بعد.`}
                   </td>
                 </tr>
               )}
@@ -316,14 +345,17 @@ export default function Invoices() {
                     <td>
                       {invoice.account_name}{' '}
                       <span className="muted">
-                        ({invoice.account_kind === 'customer' ? 'عميل' : 'مورد'})
+                        ({invoice.account_kind === 'customer' ? 'عميل' : invoice.account_kind === 'supplier' ? 'مورد' : 'هالك'})
                       </span>
                     </td>
                     <td>{invoice.warehouse_name}</td>
                     <td className="num">{money(invoice.total)}</td>
-                    <td className="num">{money(invoice.paid)}</td>
-                    <td className={Number(invoice.remaining) > 0 ? 'num strong' : 'num'}>
-                      {money(invoice.remaining)}
+                    <td className="num strong">
+                      {money(kind === 'waste' || kind === 'purchase' || kind === 'purchase_return' ? invoice.cost_total : invoice.profit_total)}
+                    </td>
+                    <td className="num">{kind === 'waste' ? '—' : money(invoice.paid)}</td>
+                    <td className={Number(invoice.remaining) > 0 && kind !== 'waste' ? 'num strong' : 'num'}>
+                      {kind === 'waste' ? '—' : money(invoice.remaining)}
                     </td>
                     <td className="num muted">{invoice.receipt_number ?? '—'}</td>
                     <td className="row-actions">
@@ -365,25 +397,32 @@ export default function Invoices() {
       </div>
 
       {viewing && (
-        <Modal title={`فاتورة ${viewing.number}`} onClose={() => setViewing(null)}>
+        <Modal
+          title={`${viewingIsWaste ? 'فاتورة هالك' : viewingIsReturn ? 'مرتجع' : 'فاتورة'} ${viewing.number}`}
+          onClose={() => setViewing(null)}
+        >
           <dl className="doc-meta-list">
             <dt>الحساب</dt>
             <dd>
               {viewing.account_name}{' '}
               <span className="muted">
-                ({viewing.account_kind === 'customer' ? 'عميل' : 'مورد'})
+                ({viewing.account_kind === 'customer' ? 'عميل' : viewing.account_kind === 'supplier' ? 'مورد' : 'هالك'})
               </span>
             </dd>
             <dt>التاريخ</dt>
             <dd className="num">{viewing.invoice_date}</dd>
             <dt>المخزن</dt>
             <dd>{viewing.warehouse_name}</dd>
-            <dt>الإجمالي</dt>
+            <dt>{viewingIsWaste ? 'قيمة المستند' : 'الإجمالي'}</dt>
             <dd className="num strong">{money(viewing.total)}</dd>
-            <dt>المدفوع</dt>
-            <dd className="num">{money(viewing.paid)}</dd>
-            <dt>المتبقي</dt>
-            <dd className="num">{money(viewing.remaining)}</dd>
+            <dt>{viewingIsWaste ? 'الخسارة' : viewing.kind === 'sale' || viewing.kind === 'sale_return' ? 'الربح / الخسارة' : 'تكلفة الأصناف'}</dt>
+            <dd className="num strong">{money(viewingIsWaste || viewing.kind === 'purchase' || viewing.kind === 'purchase_return' ? viewing.cost_total : viewing.profit_total)}</dd>
+            {!viewingIsWaste && <>
+              <dt>{viewingIsReturn ? 'المسترد' : 'المدفوع'}</dt>
+              <dd className="num">{money(viewing.paid)}</dd>
+              <dt>{viewingIsReturn ? 'غير المسترد' : 'المتبقي'}</dt>
+              <dd className="num">{money(viewing.remaining)}</dd>
+            </>}
             <dt>الإيصال</dt>
             <dd className="num">
               {viewing.receipt_number
@@ -394,7 +433,7 @@ export default function Invoices() {
             <dd>{viewing.notes || '—'}</dd>
           </dl>
 
-          <h3 className="modal-section">أصناف الفاتورة</h3>
+          <h3 className="modal-section">أصناف {viewingIsWaste ? 'الهالك' : viewingIsReturn ? 'المرتجع' : 'الفاتورة'}</h3>
           {detailsLoading ? (
             <p className="muted">جارٍ التحميل…</p>
           ) : details.length === 0 ? (
@@ -407,7 +446,10 @@ export default function Invoices() {
                     <th>الصنف</th>
                     <th>الكمية</th>
                     <th>السعر</th>
+                    <th>تكلفة الوحدة</th>
                     <th>الإجمالي</th>
+                    <th>تكلفة السطر</th>
+                    <th>الربح / الخسارة</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -418,7 +460,10 @@ export default function Invoices() {
                         {formatQty(line.qty)} {line.unit}
                       </td>
                       <td className="num">{money(line.unit_price)}</td>
+                      <td className="num">{money(line.unit_cost)}</td>
                       <td className="num">{money(line.line_total)}</td>
+                      <td className="num">{money(line.line_cost)}</td>
+                      <td className="num">{money(line.line_profit)}</td>
                     </tr>
                   ))}
                 </tbody>

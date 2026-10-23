@@ -52,8 +52,9 @@ insert into public.items (id, company_id, name, sale_price, purchase_price) valu
   ('33333333-3333-4333-8333-0000000000e1', '33333333-3333-4333-8333-0000000000f1', 'صنف أ', 100, 60),
   ('44444444-4444-4444-8444-0000000000e2', '44444444-4444-4444-8444-0000000000f2', 'صنف ب', 50, 30);
 
-insert into public.item_stock (company_id, warehouse_id, item_id, qty) values
-  ('33333333-3333-4333-8333-0000000000f1', '33333333-3333-4333-8333-0000000000a1', '33333333-3333-4333-8333-0000000000e1', 10);
+insert into public.item_stock (company_id, warehouse_id, item_id, qty, avg_cost) values
+  ('33333333-3333-4333-8333-0000000000f1', '33333333-3333-4333-8333-0000000000a1', '33333333-3333-4333-8333-0000000000e1', 10, 60),
+  ('44444444-4444-4444-8444-0000000000f2', '44444444-4444-4444-8444-0000000000a2', '44444444-4444-4444-8444-0000000000e2', 10, 30);
 
 -- ---------------------------------------------------------------------
 -- (1) شركة أ تعمل فاتورة
@@ -113,10 +114,10 @@ begin
   perform public.test_expect((select count(*) from public.invoices) = 1, 'A: sees only its invoice');
   perform public.test_expect((select count(*) from public.receipts) = 1, 'A: sees only its receipt');
   perform public.test_expect((select count(*) from public.invoice_items) = 1, 'A: sees only its lines');
-  perform public.test_expect((select count(*) from public.accounts) = 2, 'A: sees only its accounts');
+  perform public.test_expect((select count(*) from public.accounts) = 5, 'A: sees only its accounts');
   perform public.test_expect((select count(*) from public.items) = 1, 'A: sees only its items');
   perform public.test_expect((select count(*) from public.item_stock) = 1, 'A: sees only its stock');
-  perform public.test_expect((select count(*) from public.v_account_balances) = 2, 'A: balances view filtered by company');
+  perform public.test_expect((select count(*) from public.v_account_balances) = 5, 'A: balances view filtered by company');
   perform public.test_expect((select count(*) from public.v_invoice_list) = 1, 'A: invoice list filtered by company');
   perform public.test_expect((select count(*) from public.invoices where id = v_b_invoice) = 0, 'A: cannot read B invoice by id');
 

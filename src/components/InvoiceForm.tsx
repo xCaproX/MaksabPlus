@@ -39,10 +39,30 @@ export default function InvoiceForm({
   onSaved,
   onCancel,
 }: InvoiceFormProps) {
-  const isPurchase = kind === 'purchase';
+  const isPurchase = kind === 'purchase' || kind === 'purchase_return';
+  const isReturn = kind === 'sale_return' || kind === 'purchase_return';
+  const isRefundIn = kind === 'purchase_return';
+  const isWaste = kind === 'waste';
+  const defaultSystemKey = isWaste
+    ? 'waste'
+    : kind === 'sale' || kind === 'sale_return'
+      ? 'cash_customer'
+      : 'cash_supplier';
+  const defaultAccountId = accounts.find((account) => account.system_key === defaultSystemKey)?.id ?? '';
+  const title = editing
+    ? `تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'} ${editing.invoice.number}`
+    : isWaste
+      ? 'فاتورة هالك جديدة'
+      : kind === 'sale'
+      ? 'فاتورة مبيعات جديدة'
+      : kind === 'purchase'
+        ? 'فاتورة مشتريات جديدة'
+        : kind === 'sale_return'
+          ? 'مرتجع مبيعات جديد'
+          : 'مرتجع مشتريات جديد';
 
   const [date, setDate] = useState(editing?.invoice.invoice_date ?? today());
-  const [accountId, setAccountId] = useState(editing?.invoice.account_id ?? '');
+  const [accountId, setAccountId] = useState(editing?.invoice.account_id ?? defaultAccountId);
   const [warehouseId, setWarehouseId] = useState(
     editing?.invoice.warehouse_id ?? warehouses[0]?.id ?? '',
   );
@@ -57,6 +77,9 @@ export default function InvoiceForm({
   );
   const paidNumber = Number(paid || 0);
   const remaining = round2(total - (Number.isFinite(paidNumber) ? paidNumber : 0));
+  const cashAccountSelected = accounts.some(
+    (account) => account.id === accountId && ['cash_customer', 'cash_supplier'].includes(account.system_key ?? ''),
+  );
 
   function updateLine(key: string, patch: Partial<LineDraft>) {
     setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
@@ -65,7 +88,9 @@ export default function InvoiceForm({
   function selectItem(key: string, itemId: string) {
     const item = items.find((candidate) => candidate.id === itemId);
     const price = item
-      ? isPurchase
+      ? isWaste
+        ? 0
+        : isPurchase
         ? Number(item.purchase_price)
         : Number(item.sale_price)
       : undefined;
@@ -95,7 +120,7 @@ export default function InvoiceForm({
     event.preventDefault();
     setError('');
 
-    if (!accountId) return setError('اختر الحساب');
+    if (!accountId) return setError(isWaste ? 'حساب الهالك الثابت غير موجود' : 'اختر الحساب');
     if (!warehouseId) return setError('اختر المخزن');
     if (!date) return setError('أدخل التاريخ');
     if (lines.length === 0) return setError('أضف سطرًا واحدًا على الأقل');
@@ -105,8 +130,11 @@ export default function InvoiceForm({
     );
     if (hasInvalidLine) return setError('أكمل بيانات كل السطور أو احذف السطور الفارغة');
 
-    if (!(paidNumber >= 0)) return setError('قيمة المدفوع غير صحيحة');
-    if (paidNumber > total) return setError('المدفوع أكبر من إجمالي الفاتورة');
+    if (!(paidNumber >= 0)) return setError(`قيمة ${isReturn ? 'المسترد' : 'المدفوع'} غير صحيحة`);
+    if (paidNumber > total)
+      return setError(`${isReturn ? 'المسترد' : 'المدفوع'} أكبر من إجمالي ${isReturn ? 'المرتجع' : 'الفاتورة'}`);
+    if (cashAccountSelected && paidNumber !== total)
+      return setError('عند استخدام حساب نقدي يجب أن يساوي المدفوع/المسترد إجمالي المستند');
 
     const args = {
       p_account_id: accountId,
@@ -132,15 +160,17 @@ export default function InvoiceForm({
       return;
     }
 
-    onSaved(editing ? 'تم تعديل الفاتورة وتحديث الإيصال' : 'تم حفظ الفاتورة وإنشاء الإيصال');
+    onSaved(
+      editing
+        ? `تم تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'}${paidNumber > 0 ? ' وتحديث الإيصال' : ''}`
+        : `تم حفظ ${isReturn ? 'المرتجع' : 'الفاتورة'}${paidNumber > 0 ? ' وإنشاء الإيصال' : ''}`,
+    );
   }
 
   return (
     <form className="card invoice-form" onSubmit={submit}>
       <div className="card-head">
-        <h2>
-          {editing ? `تعديل الفاتورة ${editing.invoice.number}` : isPurchase ? 'فاتورة مشتريات جديدة' : 'فاتورة مبيعات جديدة'}
-        </h2>
+        <h2>{title}</h2>
         {!editing && <span className="badge">ترقيم تلقائي</span>}
       </div>
 
@@ -152,27 +182,35 @@ export default function InvoiceForm({
 
         <label>
           الحساب
-          <select value={accountId} onChange={(e) => setAccountId(e.target.value)} required>
-            <option value="">اختر…</option>
-            <optgroup label="عملاء">
-              {accounts
-                .filter((account) => account.kind === 'customer')
-                .map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-            </optgroup>
-            <optgroup label="موردون">
-              {accounts
-                .filter((account) => account.kind === 'supplier')
-                .map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-            </optgroup>
-          </select>
+          {isWaste ? (
+            <select value={accountId} disabled required>
+              <option value={accountId}>
+                {accounts.find((account) => account.id === accountId)?.name ?? 'حساب الهالك الثابت غير موجود'}
+              </option>
+            </select>
+          ) : (
+            <select value={accountId} onChange={(e) => setAccountId(e.target.value)} required>
+              <option value="">اختر…</option>
+              <optgroup label="عملاء">
+                {accounts
+                  .filter((account) => account.kind === 'customer')
+                  .map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="موردون">
+                {accounts
+                  .filter((account) => account.kind === 'supplier')
+                  .map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+              </optgroup>
+            </select>
+          )}
         </label>
 
         <label>
@@ -212,7 +250,7 @@ export default function InvoiceForm({
               <tr>
                 <th>الصنف</th>
                 <th className="w-qty">الكمية</th>
-                <th className="w-price">السعر</th>
+                <th className="w-price">{isWaste ? 'سعر البيع' : 'السعر'}</th>
                 <th className="w-total">الإجمالي</th>
                 <th className="w-action" />
               </tr>
@@ -253,6 +291,7 @@ export default function InvoiceForm({
                         step="0.01"
                         value={line.unit_price}
                         onChange={(e) => updateLine(line.key, { unit_price: e.target.value })}
+                        disabled={isWaste}
                       />
                     </td>
                     <td className="num">{money(lineTotal)}</td>
@@ -281,12 +320,12 @@ export default function InvoiceForm({
             <span className="muted">الإجمالي</span>
             <strong className="num">{money(total)}</strong>
           </div>
-          <div>
-            <span className="muted">المتبقي</span>
+          {!isWaste && <div>
+            <span className="muted">{isReturn ? 'غير المسترد' : 'المتبقي'}</span>
             <strong className="num">{money(remaining)}</strong>
-          </div>
-          <label className="paid-field">
-            المدفوع
+          </div>}
+          {!isWaste && <label className="paid-field">
+            {isReturn ? 'المسترد' : 'المدفوع'}
             <input
               type="number"
               min="0"
@@ -294,13 +333,21 @@ export default function InvoiceForm({
               value={paid}
               onChange={(e) => setPaid(e.target.value)}
             />
-          </label>
+          </label>}
         </div>
 
         <p className="hint">
-          {paidNumber > 0
-            ? 'سيتم إنشاء إيصال تلقائي بقيمة المدفوع وربطه بالفاتورة.'
-            : 'لا يوجد مدفوع: لن يتم إنشاء إيصال.'}
+          {isWaste
+            ? 'تُحسب خسارة الهالك من متوسط تكلفة الصنف في هذا المخزن وقت الحفظ. لا يترتب عليه مبلغ أو إيصال.'
+            : cashAccountSelected
+            ? `الحساب نقدي: يجب أن يساوي ${isReturn ? 'المسترد' : 'المدفوع'} إجمالي المستند، وسيُنشأ الإيصال تلقائيًا.`
+            : isReturn
+            ? paidNumber > 0
+              ? `سيتم إنشاء إيصال ${isRefundIn ? 'استلام من' : 'صرف إلى'} الحساب بقيمة المسترد وربطه بالمرتجع.`
+              : 'لا يوجد مسترد: لن يتم إنشاء إيصال، وسيبقى المبلغ رصيدًا دائنًا للحساب.'
+            : paidNumber > 0
+              ? 'سيتم إنشاء إيصال تلقائي بقيمة المدفوع وربطه بالفاتورة.'
+              : 'لا يوجد مدفوع: لن يتم إنشاء إيصال.'}
         </p>
 
         {error && <p className="alert error">{error}</p>}
