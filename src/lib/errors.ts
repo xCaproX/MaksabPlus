@@ -72,6 +72,7 @@ export function translateDbError(message: string | undefined | null): string {
   if (text.includes('Could not find the function')) {
     return 'تعذّر تنفيذ العملية: دالة قاعدة البيانات غير موجودة أو مختلفة. راجع الـmigrations.';
   }
+  if (text.includes('items_company_code_ci_idx')) return 'كود الصنف مستخدم بالفعل لدى صنف آخر في شركتك';
   return text || 'حدث خطأ غير متوقع';
 }
 

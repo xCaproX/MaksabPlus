@@ -279,17 +279,17 @@ export default function InvoiceForm({
                 return (
                   <tr key={line.key}>
                     <td>
-                      <select
+                      <SearchableSelect
                         value={line.item_id}
-                        onChange={(e) => selectItem(line.key, e.target.value)}
-                      >
-                        <option value="">اختر صنفًا…</option>
-                        {items.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.name} — متاح: {formatQty(stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0)} {item.unit}
-                          </option>
-                        ))}
-                      </select>
+                        options={items.map((item) => ({
+                          value: item.id,
+                          label: `${item.code} — ${item.name} — متاح: ${formatQty(stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0)} ${item.unit}`,
+                        }))}
+                        onChange={(value) => selectItem(line.key, value)}
+                        placeholder="اختر صنفًا…"
+                        searchPlaceholder="ابحث باسم أو كود الصنف…"
+                        emptyMessage="لا توجد أصناف مطابقة"
+                      />
                     </td>
                     <td>
                       <input

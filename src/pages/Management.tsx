@@ -104,7 +104,8 @@ export default function Management() {
   const visibleAccounts = accounts.filter((account) => account.kind === (tab === 'customers' ? 'customer' : 'supplier'));
   const visibleStockRows = stockRows.filter((row) =>
     row.warehouse_id === selectedWarehouseId &&
-    row.item_name.toLocaleLowerCase().includes(itemSearch.trim().toLocaleLowerCase()),
+    row.item_name.toLocaleLowerCase().includes(itemSearch.trim().toLocaleLowerCase()) ||
+    row.item_code.toLocaleLowerCase().includes(itemSearch.trim().toLocaleLowerCase()),
   );
 
   return (
@@ -126,11 +127,11 @@ export default function Management() {
             <div className="card"><p className="hint">اختر مخزنًا وابحث عن الصنف لإدخال كمية البداية وتكلفة الوحدة. عند وجود حركات لاحقة، يمكن تصحيح الكمية، بينما تُقفل تكلفة البداية لحماية أرباح الفواتير السابقة.</p>
               <div className="filter-row balance-filter-row">
                 <label>المخزن<select value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}><option value="">اختر المخزن</option>{warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{entityNumber('WH', warehouse.serial_number)} — {warehouse.name}</option>)}</select></label>
-                <label>بحث عن صنف<input type="search" value={itemSearch} onChange={(event) => setItemSearch(event.target.value)} placeholder="اكتب اسم الصنف" disabled={!selectedWarehouseId} /></label>
+                <label>بحث عن صنف<input type="search" value={itemSearch} onChange={(event) => setItemSearch(event.target.value)} placeholder="اكتب اسم الصنف أو كوده" disabled={!selectedWarehouseId} /></label>
               </div>
-              <div className="table-wrap"><table className="table"><thead><tr><th>رقم الصنف</th><th>الصنف</th><th>كمية البداية</th><th>تكلفة الوحدة</th><th>المتاح الآن</th></tr></thead><tbody>
-                {visibleStockRows.map((row) => { const key = `${row.warehouse_id}:${row.item_id}`; const value = stockValues[key] ?? { qty: '0', cost: '0' }; return <tr key={key}><td className="num">{entityNumber('ITM', row.item_number)}</td><td>{row.item_name}</td><td><input className="table-input num" type="number" min="0" step="0.0001" value={value.qty} onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, qty: event.target.value } }))} /></td><td><input className="table-input num" type="number" min="0" step="0.0001" value={value.cost} disabled={row.cost_locked} onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))} /></td><td className="num">{formatQty(row.current_qty)} {row.unit}</td></tr>; })}
-                {visibleStockRows.length === 0 && <tr><td colSpan={5} className="empty">{warehouses.length === 0 ? 'أضف المخازن والأصناف أولًا.' : !selectedWarehouseId ? 'اختر مخزنًا لعرض أصنافه.' : itemSearch.trim() ? 'لا توجد أصناف تطابق البحث في هذا المخزن.' : 'لا توجد أصناف في هذا المخزن.'}</td></tr>}
+              <div className="table-wrap"><table className="table"><thead><tr><th>رقم الصنف</th><th>كود الصنف</th><th>الصنف</th><th>كمية البداية</th><th>تكلفة الوحدة</th><th>المتاح الآن</th></tr></thead><tbody>
+                {visibleStockRows.map((row) => { const key = `${row.warehouse_id}:${row.item_id}`; const value = stockValues[key] ?? { qty: '0', cost: '0' }; return <tr key={key}><td className="num">{entityNumber('ITM', row.item_number)}</td><td className="num">{row.item_code}</td><td>{row.item_name}</td><td><input className="table-input num" type="number" min="0" step="0.0001" value={value.qty} onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, qty: event.target.value } }))} /></td><td><input className="table-input num" type="number" min="0" step="0.0001" value={value.cost} disabled={row.cost_locked} onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))} /></td><td className="num">{formatQty(row.current_qty)} {row.unit}</td></tr>; })}
+                {visibleStockRows.length === 0 && <tr><td colSpan={6} className="empty">{warehouses.length === 0 ? 'أضف المخازن والأصناف أولًا.' : !selectedWarehouseId ? 'اختر مخزنًا لعرض أصنافه.' : itemSearch.trim() ? 'لا توجد أصناف تطابق البحث في هذا المخزن.' : 'لا توجد أصناف في هذا المخزن.'}</td></tr>}
               </tbody></table></div>
             </div><div className="actions"><button type="submit" className="btn primary" disabled={saving || !selectedWarehouseId}>حفظ أرصدة المخزون</button></div>
           </form>}

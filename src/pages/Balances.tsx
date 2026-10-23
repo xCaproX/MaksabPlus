@@ -75,9 +75,9 @@ export default function Balances() {
           </tbody></table>}
           {tab === 'items' && <>
             <div className="filter-row balance-filter-row"><label>المخزن<select value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}><option value="">اختر المخزن</option>{warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{entityNumber('WH', warehouse.serial_number)} — {warehouse.name}</option>)}</select></label><p className="filter-note"><strong>ملاحظات المخزن:</strong> {selectedWarehouse?.notes || '—'}</p></div>
-            <table className="table"><thead><tr><th>رقم الصنف</th><th>الصنف</th><th>ملاحظات الصنف</th><th>الكمية الحالية</th></tr></thead><tbody>
-              {selectedStockRows.map((row) => <tr key={`${row.warehouse_id}:${row.item_id}`}><td className="num">{entityNumber('ITM', row.item_number)}</td><td>{row.item_name}</td><td>{row.item_notes || '—'}</td><td className="num strong">{formatQty(row.current_qty)} {row.unit}</td></tr>)}
-              {selectedStockRows.length === 0 && <tr><td colSpan={4} className="empty">{warehouses.length === 0 ? 'لا توجد مخازن نشطة.' : selectedWarehouseId ? 'لا توجد أصناف لهذا المخزن.' : 'اختر مخزنًا لعرض أصنافه.'}</td></tr>}
+            <table className="table"><thead><tr><th>رقم الصنف</th><th>كود الصنف</th><th>الصنف</th><th>ملاحظات الصنف</th><th>الكمية الحالية</th></tr></thead><tbody>
+              {selectedStockRows.map((row) => <tr key={`${row.warehouse_id}:${row.item_id}`}><td className="num">{entityNumber('ITM', row.item_number)}</td><td className="num">{row.item_code}</td><td>{row.item_name}</td><td>{row.item_notes || '—'}</td><td className="num strong">{formatQty(row.current_qty)} {row.unit}</td></tr>)}
+              {selectedStockRows.length === 0 && <tr><td colSpan={5} className="empty">{warehouses.length === 0 ? 'لا توجد مخازن نشطة.' : selectedWarehouseId ? 'لا توجد أصناف لهذا المخزن.' : 'اختر مخزنًا لعرض أصنافه.'}</td></tr>}
             </tbody></table>
           </>}
           {tab === 'cashBoxes' && <table className="table"><thead><tr><th>الرقم</th><th>الخزنة</th><th>الرصيد الحالي</th><th>ملاحظات</th></tr></thead><tbody>

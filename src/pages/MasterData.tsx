@@ -55,6 +55,7 @@ export default function MasterData() {
   // حقول صنف (إضافة أو تعديل)
   const [editingItem, setEditingItem] = useState<MasterItemRecord | null>(null);
   const [itemName, setItemName] = useState('');
+  const [itemCode, setItemCode] = useState('');
   const [itemUnit, setItemUnit] = useState('قطعة');
   const [salePrice, setSalePrice] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
@@ -83,7 +84,7 @@ export default function MasterData() {
 
         const [accountsRes, itemsRes, warehousesRes, boxesRes] = await Promise.all([
           supabase.from('v_account_balances').select('*').order('name'),
-          supabase.from('items').select('id, serial_number, name, unit, sale_price, purchase_price, is_active, notes').order('name'),
+          supabase.from('items').select('id, serial_number, code, name, unit, sale_price, purchase_price, is_active, notes').order('name'),
           supabase.from('warehouses').select('id, serial_number, name, notes, is_active, is_primary').order('name'),
           supabase.from('cash_boxes').select('id, serial_number, name, notes, is_active, is_primary').order('name'),
         ]);
@@ -203,6 +204,7 @@ export default function MasterData() {
   function startItemEdit(item: MasterItemRecord) {
     setEditingItem(item);
     setItemName(item.name);
+    setItemCode(item.code ?? '');
     setItemUnit(item.unit);
     setSalePrice(String(Number(item.sale_price)));
     setPurchasePrice(String(Number(item.purchase_price)));
@@ -215,6 +217,7 @@ export default function MasterData() {
   function startItemAdd() {
     setEditingItem(null);
     setItemName('');
+    setItemCode('');
     setItemUnit('قطعة');
     setSalePrice('');
     setPurchasePrice('');
@@ -286,6 +289,7 @@ export default function MasterData() {
   function cancelItemEdit() {
     setEditingItem(null);
     setItemName('');
+    setItemCode('');
     setItemUnit('قطعة');
     setSalePrice('');
     setPurchasePrice('');
@@ -327,6 +331,7 @@ export default function MasterData() {
 
     const payload = {
       name: itemName.trim(),
+      code: itemCode.trim() || (editingItem ? entityNumber('ITM', editingItem.serial_number) : null),
       unit: itemUnit.trim() || 'قطعة',
       sale_price: sale,
       purchase_price: purchase,
@@ -336,7 +341,7 @@ export default function MasterData() {
 
     const { error: saveError } = editingItem
       ? await supabase.from('items').update(payload).eq('id', editingItem.id)
-      : await supabase.rpc('create_item_with_opening_stock_and_notes', {
+      : await supabase.rpc('create_item_with_opening_stock_and_notes_and_code', {
           p_name: payload.name,
           p_unit: payload.unit,
           p_sale_price: payload.sale_price,
@@ -346,6 +351,7 @@ export default function MasterData() {
           p_opening_qty: openingQty,
           p_unit_cost: openingCost,
           p_notes: payload.notes,
+          p_code: itemCode.trim() || null,
         });
 
     if (saveError) {
@@ -622,6 +628,7 @@ export default function MasterData() {
                 <thead>
                   <tr>
                     <th>الرقم</th>
+                    <th>كود الصنف</th>
                     <th>الاسم</th>
                     <th>الوحدة</th>
                     <th>سعر البيع</th>
@@ -634,7 +641,7 @@ export default function MasterData() {
                 <tbody>
                   {loading && (
                     <tr>
-                      <td colSpan={8} className="empty">
+                      <td colSpan={9} className="empty">
                         جارٍ التحميل…
                       </td>
                     </tr>
@@ -642,7 +649,7 @@ export default function MasterData() {
 
                   {!loading && items.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="empty">
+                      <td colSpan={9} className="empty">
                         لا توجد أصناف بعد.
                       </td>
                     </tr>
@@ -652,6 +659,7 @@ export default function MasterData() {
                     items.map((item) => (
                       <tr key={item.id}>
                         <td className="num">{entityNumber('ITM', item.serial_number)}</td>
+                        <td className="num">{item.code}</td>
                         <td>{item.name}</td>
                         <td>{item.unit}</td>
                         <td className="num">{money(item.sale_price)}</td>
@@ -780,6 +788,7 @@ export default function MasterData() {
           <form className="stack" onSubmit={saveItem}>
             <div className="form-grid">
               <label>الاسم<input type="text" value={itemName} onChange={(event) => setItemName(event.target.value)} placeholder="اسم الصنف" required /></label>
+              <label>كود الصنف<input type="text" value={itemCode} onChange={(event) => setItemCode(event.target.value)} placeholder={editingItem ? entityNumber('ITM', editingItem.serial_number) : 'يُحدد تلقائيًا عند تركه فارغًا'} /></label>
               <label>الوحدة<input type="text" value={itemUnit} onChange={(event) => setItemUnit(event.target.value)} placeholder="قطعة / كجم / علبة" /></label>
               <label>سعر البيع<input type="number" min="0" step="0.01" value={salePrice} onChange={(event) => setSalePrice(event.target.value)} placeholder="0.00" /></label>
               <label>سعر الشراء<input type="number" min="0" step="0.01" value={purchasePrice} onChange={(event) => setPurchasePrice(event.target.value)} placeholder="0.00" /></label>

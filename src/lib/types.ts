@@ -21,6 +21,7 @@ export interface AccountRow {
 export interface ItemRow {
   id: string;
   serial_number: number;
+  code: string;
   name: string;
   unit: string;
   sale_price: number;
@@ -53,6 +54,7 @@ export interface CashBoxRow {
 export interface StockOpeningRow {
   item_id: string;
   item_number: number;
+  item_code: string;
   item_name: string;
   unit: string;
   warehouse_id: string;
