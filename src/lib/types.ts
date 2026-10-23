@@ -18,6 +18,19 @@ export interface AccountRow {
   system_key: 'cash_customer' | 'cash_supplier' | 'waste' | null;
 }
 
+export interface AccountStatementRow {
+  row_type: 'opening' | 'movement';
+  transaction_date: string;
+  description: string;
+  invoice_number: string | null;
+  receipt_number: string | null;
+  debit: number;
+  credit: number;
+  running_balance: number;
+  total_debit: number;
+  total_credit: number;
+}
+
 export interface ItemRow {
   id: string;
   serial_number: number;

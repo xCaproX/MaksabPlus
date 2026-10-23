@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
-import { entityNumber, money, qty as formatQty } from '../lib/format';
+import { entityNumber, money, qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
-import type { AccountRow, CashBoxRow, StockOpeningRow, WarehouseOption } from '../lib/types';
+import Modal from '../components/Modal';
+import type { AccountRow, AccountStatementRow, CashBoxRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 
 type BalanceTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes';
 
@@ -15,6 +16,12 @@ export default function Balances() {
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [statementAccount, setStatementAccount] = useState<AccountRow | null>(null);
+  const [statementFrom, setStatementFrom] = useState(`${today().slice(0, 7)}-01`);
+  const [statementTo, setStatementTo] = useState(today());
+  const [statementRows, setStatementRows] = useState<AccountStatementRow[]>([]);
+  const [statementLoading, setStatementLoading] = useState(false);
+  const [statementError, setStatementError] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -49,6 +56,33 @@ export default function Balances() {
   const suppliers = visibleAccounts.filter((account) => account.kind === 'supplier');
   const selectedStockRows = stockRows.filter((row) => row.warehouse_id === selectedWarehouseId);
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === selectedWarehouseId);
+
+  function openStatement(account: AccountRow) {
+    setStatementAccount(account);
+    setStatementFrom(`${today().slice(0, 7)}-01`);
+    setStatementTo(today());
+    setStatementRows([]);
+    setStatementError('');
+  }
+
+  async function loadStatement(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!statementAccount) return;
+    setStatementLoading(true);
+    setStatementError('');
+    const { data, error: rpcError } = await supabase.rpc('get_account_statement', {
+      p_account_id: statementAccount.id,
+      p_from: statementFrom,
+      p_to: statementTo,
+    });
+    setStatementLoading(false);
+    if (rpcError) {
+      setStatementError(translateDbError(rpcError.message));
+      setStatementRows([]);
+    } else {
+      setStatementRows((data ?? []) as AccountStatementRow[]);
+    }
+  }
   const tabs: { id: BalanceTab; label: string }[] = [
     { id: 'customers', label: 'حسابات العملاء' },
     { id: 'suppliers', label: 'حسابات الموردين' },
@@ -65,13 +99,13 @@ export default function Balances() {
       {error && <p className="alert error">{error}</p>}
       {loading ? <div className="card empty">جارٍ التحميل…</div> : (
         <div className="card table-wrap">
-          {tab === 'customers' && <table className="table"><thead><tr><th>الرقم</th><th>العميل</th><th>الهاتف</th><th>الرصيد</th><th>ملاحظات</th></tr></thead><tbody>
-            {customers.map((account) => <tr key={account.id}><td className="num">{entityNumber('CUS', account.serial_number)}</td><td>{account.name}</td><td>{account.phone ?? '—'}</td><td className="num strong">{money(account.balance)}</td><td>{account.notes || '—'}</td></tr>)}
-            {customers.length === 0 && <tr><td colSpan={5} className="empty">لا توجد حسابات عملاء.</td></tr>}
+          {tab === 'customers' && <table className="table"><thead><tr><th>الرقم</th><th>العميل</th><th>الهاتف</th><th>الرصيد</th><th>ملاحظات</th><th /></tr></thead><tbody>
+            {customers.map((account) => <tr key={account.id}><td className="num">{entityNumber('CUS', account.serial_number)}</td><td>{account.name}</td><td>{account.phone ?? '—'}</td><td className="num strong">{money(account.balance)}</td><td>{account.notes || '—'}</td><td><button type="button" className="btn" onClick={() => openStatement(account)}>كشف حساب</button></td></tr>)}
+            {customers.length === 0 && <tr><td colSpan={6} className="empty">لا توجد حسابات عملاء.</td></tr>}
           </tbody></table>}
-          {tab === 'suppliers' && <table className="table"><thead><tr><th>الرقم</th><th>المورد</th><th>الهاتف</th><th>الرصيد</th><th>ملاحظات</th></tr></thead><tbody>
-            {suppliers.map((account) => <tr key={account.id}><td className="num">{entityNumber('SUP', account.serial_number)}</td><td>{account.name}</td><td>{account.phone ?? '—'}</td><td className="num strong">{money(account.balance)}</td><td>{account.notes || '—'}</td></tr>)}
-            {suppliers.length === 0 && <tr><td colSpan={5} className="empty">لا توجد حسابات موردين.</td></tr>}
+          {tab === 'suppliers' && <table className="table"><thead><tr><th>الرقم</th><th>المورد</th><th>الهاتف</th><th>الرصيد</th><th>ملاحظات</th><th /></tr></thead><tbody>
+            {suppliers.map((account) => <tr key={account.id}><td className="num">{entityNumber('SUP', account.serial_number)}</td><td>{account.name}</td><td>{account.phone ?? '—'}</td><td className="num strong">{money(account.balance)}</td><td>{account.notes || '—'}</td><td><button type="button" className="btn" onClick={() => openStatement(account)}>كشف حساب</button></td></tr>)}
+            {suppliers.length === 0 && <tr><td colSpan={6} className="empty">لا توجد حسابات موردين.</td></tr>}
           </tbody></table>}
           {tab === 'items' && <>
             <div className="filter-row balance-filter-row"><label>المخزن<select value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}><option value="">اختر المخزن</option>{warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{entityNumber('WH', warehouse.serial_number)} — {warehouse.name}</option>)}</select></label><p className="filter-note"><strong>ملاحظات المخزن:</strong> {selectedWarehouse?.notes || '—'}</p></div>
@@ -86,6 +120,26 @@ export default function Balances() {
           </tbody></table>}
         </div>
       )}
+      {statementAccount && <Modal title="كشف حساب" className="account-statement-modal" onClose={() => setStatementAccount(null)}>
+        <div className="account-statement-print">
+          <div className="account-statement-heading">
+            <div><h2>كشف حساب {statementAccount.kind === 'customer' ? 'عميل' : 'مورد'}</h2><strong>{statementAccount.name}</strong><p>{statementAccount.phone || '—'}</p></div>
+            <div className="account-statement-period"><label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label><label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label></div>
+          </div>
+          <div className="actions statement-actions print-hidden">
+            <form onSubmit={loadStatement}><button type="submit" className="btn primary" disabled={statementLoading || !statementFrom || !statementTo}>{statementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}</button></form>
+            {statementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
+          </div>
+          {statementError && <p className="alert error print-hidden">{statementError}</p>}
+          {statementRows.length > 0 && <>
+            <div className="table-wrap"><table className="table account-statement-table"><thead><tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead><tbody>
+              {statementRows.map((row, index) => <tr key={`${row.row_type}-${row.transaction_date}-${row.receipt_number ?? row.invoice_number ?? index}`} className={row.row_type === 'opening' ? 'statement-opening-row' : undefined}><td className="num">{row.transaction_date}</td><td>{row.description}</td><td className="num">{Number(row.debit) ? money(row.debit) : '—'}</td><td className="num">{Number(row.credit) ? money(row.credit) : '—'}</td><td className="num strong">{money(row.running_balance)}</td></tr>)}
+            </tbody></table></div>
+            <div className="account-statement-totals"><p><span>إجمالي المدين:</span><strong>{money(statementRows[0].total_debit)}</strong></p><p><span>إجمالي الدائن:</span><strong>{money(statementRows[0].total_credit)}</strong></p><p><span>رصيد آخر المدة:</span><strong>{money(statementRows[statementRows.length - 1].running_balance)}</strong></p></div>
+          </>}
+          {!statementRows.length && !statementLoading && !statementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
+        </div>
+      </Modal>}
     </div>
   );
 }

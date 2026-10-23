@@ -60,6 +60,7 @@ const MESSAGES: Record<string, string> = {
   not_authenticated: 'انتهت الجلسة، سجّل الدخول من جديد',
   no_cash_box: 'لا توجد خزنة معرّفة',
   forbidden_company: 'غير مسموح بالوصول لهذه الشركة',
+  invalid_statement_period: 'اختر فترة صحيحة لكشف الحساب',
 };
 
 export function translateDbError(message: string | undefined | null): string {

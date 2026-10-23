@@ -715,6 +715,105 @@ code {
   display: inline-block;
 }
 
+.account-statement-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.account-statement-heading h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.account-statement-heading p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.account-statement-period {
+  display: flex;
+  gap: 12px;
+}
+
+.account-statement-period label {
+  min-width: 155px;
+}
+
+.statement-actions {
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+
+.account-statement-totals {
+  width: min(100%, 390px);
+  margin: 20px 0 0 auto;
+}
+
+.account-statement-totals p {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.account-statement-totals p:last-child {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.statement-opening-row {
+  font-weight: 700;
+  background: #f8fafc;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .account-statement-modal,
+  .account-statement-modal * {
+    visibility: visible !important;
+  }
+
+  .account-statement-modal {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .account-statement-modal .modal-head,
+  .account-statement-modal .print-hidden {
+    display: none !important;
+  }
+
+  .account-statement-modal .modal-body,
+  .account-statement-modal .table-wrap {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .account-statement-modal .account-statement-heading {
+    border: 1px solid #222;
+    padding: 16px;
+  }
+
+  .account-statement-modal .table {
+    font-size: 12px;
+  }
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 760px) {
   .topbar {
@@ -746,5 +845,10 @@ code {
 
   .table {
     font-size: 13px;
+  }
+
+  .account-statement-heading,
+  .account-statement-period {
+    flex-direction: column;
   }
 }

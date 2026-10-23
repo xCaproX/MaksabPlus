@@ -4,9 +4,10 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  className?: string;
 }
 
-export default function Modal({ title, onClose, children }: ModalProps) {
+export default function Modal({ title, onClose, children, className }: ModalProps) {
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose();
@@ -19,7 +20,7 @@ export default function Modal({ title, onClose, children }: ModalProps) {
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <div
-        className="modal"
+        className={className ? `modal ${className}` : 'modal'}
         role="dialog"
         aria-modal="true"
         aria-label={title}
