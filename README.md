@@ -129,6 +129,29 @@ npm run dev
 
 ---
 
+## النشر على Vercel
+
+المشروع جاهز للنشر: `vercel.json` فيه rewrites للـSPA، والبناء `npm run build` ينتج `dist`.
+
+1. من [vercel.com](https://vercel.com) → **Add New… → Project → Import Git Repository**.
+   (لو الريبو مش ظاهر: **Adjust GitHub App Permissions** وامنح الوصول لريبو `MaksabPlus`.)
+2. الإعدادات تُكتشف تلقائيًا (Framework: **Vite**، Build: `npm run build`، Output: `dist`).
+3. أضف متغيرات البيئة (Production + Preview + Development):
+
+   ```
+   VITE_SUPABASE_URL=https://vnxoliuoxznlwfxalelm.supabase.co
+   VITE_SUPABASE_ANON_KEY=<نفس القيمة في .env.local>
+   ```
+
+4. **Deploy**. أول نشر بياخد دقيقة تقريبًا.
+5. بعد كده أي `git push` على `main` ينشر تلقائيًا (Production)، وأي Pull Request يعمل
+   Preview URL — من غير أي خطوة إضافية.
+
+> لو ربطت دومين مخصص، ضيفه في Supabase → **Authentication → URL Configuration**
+> كـSite URL. تسجيل الدخول الحالي (إيميل/باسورد) مش محتاج redirect URLs.
+
+---
+
 ## الاختبارات
 
 ```bash
