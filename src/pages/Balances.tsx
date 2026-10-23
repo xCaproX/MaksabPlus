@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
-import type { AccountRow, AccountStatementRow, CashBoxRow, StockOpeningRow, WarehouseOption } from '../lib/types';
+import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 
 type BalanceTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes';
 
@@ -22,6 +22,10 @@ export default function Balances() {
   const [statementRows, setStatementRows] = useState<AccountStatementRow[]>([]);
   const [statementLoading, setStatementLoading] = useState(false);
   const [statementError, setStatementError] = useState('');
+  const [cashStatementBox, setCashStatementBox] = useState<CashBoxRow | null>(null);
+  const [cashStatementRows, setCashStatementRows] = useState<CashBoxStatementRow[]>([]);
+  const [cashStatementLoading, setCashStatementLoading] = useState(false);
+  const [cashStatementError, setCashStatementError] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -83,6 +87,33 @@ export default function Balances() {
       setStatementRows((data ?? []) as AccountStatementRow[]);
     }
   }
+
+  function openCashBoxStatement(box: CashBoxRow) {
+    setCashStatementBox(box);
+    setStatementFrom(`${today().slice(0, 7)}-01`);
+    setStatementTo(today());
+    setCashStatementRows([]);
+    setCashStatementError('');
+  }
+
+  async function loadCashBoxStatement(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!cashStatementBox) return;
+    setCashStatementLoading(true);
+    setCashStatementError('');
+    const { data, error: rpcError } = await supabase.rpc('get_cash_box_statement', {
+      p_cash_box_id: cashStatementBox.id,
+      p_from: statementFrom,
+      p_to: statementTo,
+    });
+    setCashStatementLoading(false);
+    if (rpcError) {
+      setCashStatementError(translateDbError(rpcError.message));
+      setCashStatementRows([]);
+    } else {
+      setCashStatementRows((data ?? []) as CashBoxStatementRow[]);
+    }
+  }
   const tabs: { id: BalanceTab; label: string }[] = [
     { id: 'customers', label: 'حسابات العملاء' },
     { id: 'suppliers', label: 'حسابات الموردين' },
@@ -114,9 +145,9 @@ export default function Balances() {
               {selectedStockRows.length === 0 && <tr><td colSpan={5} className="empty">{warehouses.length === 0 ? 'لا توجد مخازن نشطة.' : selectedWarehouseId ? 'لا توجد أصناف لهذا المخزن.' : 'اختر مخزنًا لعرض أصنافه.'}</td></tr>}
             </tbody></table>
           </>}
-          {tab === 'cashBoxes' && <table className="table"><thead><tr><th>الرقم</th><th>الخزنة</th><th>الرصيد الحالي</th><th>ملاحظات</th></tr></thead><tbody>
-            {cashBoxes.map((box) => <tr key={box.id}><td className="num">{entityNumber('CBX', box.serial_number)}</td><td>{box.name}</td><td className="num strong">{money(box.balance)}</td><td>{box.notes || '—'}</td></tr>)}
-            {cashBoxes.length === 0 && <tr><td colSpan={4} className="empty">لا توجد خزن.</td></tr>}
+          {tab === 'cashBoxes' && <table className="table"><thead><tr><th>الرقم</th><th>الخزنة</th><th>الرصيد الحالي</th><th>ملاحظات</th><th /></tr></thead><tbody>
+            {cashBoxes.map((box) => <tr key={box.id}><td className="num">{entityNumber('CBX', box.serial_number)}</td><td>{box.name}</td><td className="num strong">{money(box.balance)}</td><td>{box.notes || '—'}</td><td><button type="button" className="btn" onClick={() => openCashBoxStatement(box)}>كشف حركة</button></td></tr>)}
+            {cashBoxes.length === 0 && <tr><td colSpan={5} className="empty">لا توجد خزن.</td></tr>}
           </tbody></table>}
         </div>
       )}
@@ -138,6 +169,26 @@ export default function Balances() {
             <div className="account-statement-totals"><p><span>إجمالي المدين:</span><strong>{money(statementRows[0].total_debit)}</strong></p><p><span>إجمالي الدائن:</span><strong>{money(statementRows[0].total_credit)}</strong></p><p><span>رصيد آخر المدة:</span><strong>{money(statementRows[statementRows.length - 1].running_balance)}</strong></p></div>
           </>}
           {!statementRows.length && !statementLoading && !statementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
+        </div>
+      </Modal>}
+      {cashStatementBox && <Modal title="كشف حركة خزنة" className="account-statement-modal" onClose={() => setCashStatementBox(null)}>
+        <div className="account-statement-print">
+          <div className="account-statement-heading">
+            <div><h2>كشف حركة خزنة</h2><strong>{cashStatementBox.name}</strong></div>
+            <div className="account-statement-period"><label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label><label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label></div>
+          </div>
+          <div className="actions statement-actions print-hidden">
+            <form onSubmit={loadCashBoxStatement}><button type="submit" className="btn primary" disabled={cashStatementLoading || !statementFrom || !statementTo}>{cashStatementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}</button></form>
+            {cashStatementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
+          </div>
+          {cashStatementError && <p className="alert error print-hidden">{cashStatementError}</p>}
+          {cashStatementRows.length > 0 && <>
+            <div className="table-wrap"><table className="table account-statement-table"><thead><tr><th>التاريخ</th><th>البيان</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody>
+              {cashStatementRows.map((row, index) => <tr key={`${row.row_type}-${row.transaction_date}-${row.receipt_number ?? row.transfer_number ?? index}`} className={row.row_type === 'opening' ? 'statement-opening-row' : undefined}><td className="num">{row.transaction_date}</td><td>{row.description}</td><td className="num">{Number(row.incoming) ? money(row.incoming) : '—'}</td><td className="num">{Number(row.outgoing) ? money(row.outgoing) : '—'}</td><td className="num strong">{money(row.running_balance)}</td></tr>)}
+            </tbody></table></div>
+            <div className="account-statement-totals"><p><span>إجمالي الوارد:</span><strong>{money(cashStatementRows[0].total_incoming)}</strong></p><p><span>إجمالي الصادر:</span><strong>{money(cashStatementRows[0].total_outgoing)}</strong></p><p><span>رصيد آخر المدة:</span><strong>{money(cashStatementRows[cashStatementRows.length - 1].running_balance)}</strong></p></div>
+          </>}
+          {!cashStatementRows.length && !cashStatementLoading && !cashStatementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
         </div>
       </Modal>}
     </div>

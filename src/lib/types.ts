@@ -31,6 +31,19 @@ export interface AccountStatementRow {
   total_credit: number;
 }
 
+export interface CashBoxStatementRow {
+  row_type: 'opening' | 'movement';
+  transaction_date: string;
+  description: string;
+  receipt_number: string | null;
+  transfer_number: string | null;
+  incoming: number;
+  outgoing: number;
+  running_balance: number;
+  total_incoming: number;
+  total_outgoing: number;
+}
+
 export interface ItemRow {
   id: string;
   serial_number: number;
