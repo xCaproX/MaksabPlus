@@ -6,6 +6,7 @@ import { errorMessage, translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import type { AccountKind, AccountRow, ItemRow, WarehouseOption } from '../lib/types';
+import { useAccess } from '../lib/access';
 
 type Tab = 'customers' | 'suppliers' | 'items';
 interface WarehouseRecord extends WarehouseOption { is_active: boolean; notes: string | null }
@@ -16,6 +17,7 @@ type FormModal = 'account' | 'item' | 'warehouse' | 'cashBox' | null;
 interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
 export default function MasterData() {
+  const { can } = useAccess();
   const [tab, setTab] = useState<LocationsTab>('customers');
   const [companyId, setCompanyId] = useState('');
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
@@ -493,7 +495,7 @@ export default function MasterData() {
           <h1>البيانات</h1>
           <p className="muted">إدارة الحسابات والأصناف والمخازن والخزن.</p>
         </div>
-        <button type="button" className="btn primary" onClick={() => {
+        {can('data.create') && <button type="button" className="btn primary" onClick={() => {
           if (tab === 'customers') startAccountAdd('customer');
           else if (tab === 'suppliers') startAccountAdd('supplier');
           else if (tab === 'items') startItemAdd();
@@ -501,7 +503,7 @@ export default function MasterData() {
           else startCashBoxForm();
         }}>
           + إضافة {tab === 'customers' ? 'عميل' : tab === 'suppliers' ? 'مورد' : tab === 'items' ? 'صنف' : tab === 'warehouses' ? 'مخزن' : 'خزنة'}
-        </button>
+        </button>}
       </div>
 
       <div className="tabs">
@@ -594,22 +596,22 @@ export default function MasterData() {
                           )}
                         </td>
                         <td className="row-actions">
-                          <button
+                          {can('data.edit') && <button
                             type="button"
                             className="link"
                             onClick={() => startAccountEdit(account)}
                             disabled={Boolean(account.system_key)}
                           >
                             تعديل
-                          </button>
-                          <button
+                          </button>}
+                          {can('data.delete') && <button
                             type="button"
                             className="link danger"
                             onClick={() => removeAccount(account)}
                             disabled={Boolean(account.system_key)}
                           >
                             حذف
-                          </button>
+                          </button>}
                         </td>
                       </tr>
                     ))}
@@ -673,20 +675,20 @@ export default function MasterData() {
                           )}
                         </td>
                         <td className="row-actions">
-                          <button
+                          {can('data.edit') && <button
                             type="button"
                             className="link"
                             onClick={() => startItemEdit(item)}
                           >
                             تعديل
-                          </button>
-                          <button
+                          </button>}
+                          {can('data.delete') && <button
                             type="button"
                             className="link danger"
                             onClick={() => removeItem(item)}
                           >
                             حذف
-                          </button>
+                          </button>}
                         </td>
                       </tr>
                     ))}
@@ -712,13 +714,13 @@ export default function MasterData() {
                       <td>{warehouse.notes || '—'}</td>
                       <td>{warehouse.is_active ? <span className="badge ok">نشط</span> : <span className="badge">موقوف</span>}</td>
                       <td className="row-actions">
-                        <button type="button" className="link" onClick={() => startWarehouseForm(warehouse)}>
+                        {can('data.edit') && <button type="button" className="link" onClick={() => startWarehouseForm(warehouse)}>
                           تعديل الاسم
-                        </button>
-                        <button type="button" className="link" onClick={() => void toggleWarehouse(warehouse)}>
+                        </button>}
+                        {can('data.edit') && <button type="button" className="link" onClick={() => void toggleWarehouse(warehouse)}>
                           {warehouse.is_active ? 'إيقاف' : 'تفعيل'}
-                        </button>
-                        {!warehouse.is_primary && <button type="button" className="link danger" onClick={() => void removeWarehouse(warehouse)}>حذف</button>}
+                        </button>}
+                        {can('data.delete') && !warehouse.is_primary && <button type="button" className="link danger" onClick={() => void removeWarehouse(warehouse)}>حذف</button>}
                       </td>
                     </tr>
                   ))}
@@ -745,13 +747,13 @@ export default function MasterData() {
                       <td>{box.notes || '—'}</td>
                       <td>{box.is_active ? <span className="badge ok">نشط</span> : <span className="badge">موقوف</span>}</td>
                       <td className="row-actions">
-                        <button type="button" className="link" onClick={() => startCashBoxForm(box)}>
+                        {can('data.edit') && <button type="button" className="link" onClick={() => startCashBoxForm(box)}>
                           تعديل الاسم
-                        </button>
-                        <button type="button" className="link" onClick={() => void toggleCashBox(box)}>
+                        </button>}
+                        {can('data.edit') && <button type="button" className="link" onClick={() => void toggleCashBox(box)}>
                           {box.is_active ? 'إيقاف' : 'تفعيل'}
-                        </button>
-                        {!box.is_primary && <button type="button" className="link danger" onClick={() => void removeCashBox(box)}>حذف</button>}
+                        </button>}
+                        {can('data.delete') && !box.is_primary && <button type="button" className="link danger" onClick={() => void removeCashBox(box)}>حذف</button>}
                       </td>
                     </tr>
                   ))}

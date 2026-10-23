@@ -19,6 +19,7 @@ import type {
   WarehouseTransferLine,
   WarehouseTransferRow,
 } from '../lib/types';
+import { useAccess } from '../lib/access';
 
 type InvoiceTab = InvoiceKind | 'warehouse_transfer';
 
@@ -30,6 +31,7 @@ interface EditingInvoice {
 interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
 export default function Invoices() {
+  const { can } = useAccess();
   const [kind, setKind] = useState<InvoiceTab>('sale');
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [transferRows, setTransferRows] = useState<WarehouseTransferRow[]>([]);
@@ -332,10 +334,10 @@ export default function Invoices() {
           </p>
         </div>
         <div className="actions">
-          <button type="button" className="btn" onClick={toggleDeleted}>
+          {can('goods.delete') && <button type="button" className="btn" onClick={toggleDeleted}>
             {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
-          </button>
-          {!showDeleted && (
+          </button>}
+          {!showDeleted && can('goods.create') && (
             <button type="button" className="btn primary" onClick={openNew}>
               + {newLabel}
             </button>
@@ -429,8 +431,8 @@ export default function Invoices() {
               <td>{transfer.items_summary} <span className="muted">({formatQty(transfer.total_qty)})</span></td>
               <td className="num">{money(transfer.total_value)}</td><td>{transfer.notes || '—'}</td>
               <td className="row-actions">{showDeleted
-                ? <button type="button" className="link" onClick={() => restoreTransfer(transfer)}>استعادة</button>
-                : <><button type="button" className="link" onClick={() => setViewingTransfer(transfer)}>عرض</button><button type="button" className="link" onClick={() => void startEditTransfer(transfer)}>تعديل</button><button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button></>}
+                ? can('goods.delete') && <button type="button" className="link" onClick={() => restoreTransfer(transfer)}>استعادة</button>
+                : <>{can('goods.view') && <button type="button" className="link" onClick={() => setViewingTransfer(transfer)}>عرض</button>}{can('goods.edit') && <button type="button" className="link" onClick={() => void startEditTransfer(transfer)}>تعديل</button>}{can('goods.delete') && <button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button>}</>}
               </td>
             </tr>)}
           </tbody>
@@ -497,7 +499,7 @@ export default function Invoices() {
                     </td>
                     <td className="num muted">{invoice.receipt_number ?? '—'}</td>
                     <td className="row-actions">
-                      {showDeleted ? (
+                      {showDeleted ? can('goods.delete') ? (
                         <button
                           type="button"
                           className="link"
@@ -505,25 +507,25 @@ export default function Invoices() {
                         >
                           استعادة
                         </button>
-                      ) : (
+                      ) : null : (
                         <>
-                          <button
+                          {can('goods.view') && <button
                             type="button"
                             className="link"
                             onClick={() => openDetails(invoice)}
                           >
                             عرض
-                          </button>
-                          <button type="button" className="link" onClick={() => startEdit(invoice)}>
+                          </button>}
+                          {can('goods.edit') && <button type="button" className="link" onClick={() => startEdit(invoice)}>
                             تعديل
-                          </button>
-                          <button
+                          </button>}
+                          {can('goods.delete') && <button
                             type="button"
                             className="link danger"
                             onClick={() => remove(invoice)}
                           >
                             حذف
-                          </button>
+                          </button>}
                         </>
                       )}
                     </td>

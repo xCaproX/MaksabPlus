@@ -14,6 +14,7 @@ import type {
   ReceiptRow,
   CashBoxTransferRow,
 } from '../lib/types';
+import { useAccess } from '../lib/access';
 
 function linkKind(kind: ReceiptRow['invoice_kind']) {
   return kind === 'sale_return' || kind === 'purchase_return' ? 'مرتجع' : 'فاتورة';
@@ -22,6 +23,7 @@ function linkKind(kind: ReceiptRow['invoice_kind']) {
 interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
 export default function Receipts() {
+  const { can } = useAccess();
   const [tab, setTab] = useState<ReceiptDirection | 'cash_box_transfer'>('in');
   const [direction, setDirection] = useState<ReceiptDirection>('in');
   const [rows, setRows] = useState<ReceiptRow[]>([]);
@@ -321,10 +323,10 @@ export default function Receipts() {
           </p>
         </div>
         <div className="actions">
-          <button type="button" className="btn" onClick={toggleDeleted}>
+          {can('money.delete') && <button type="button" className="btn" onClick={toggleDeleted}>
             {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
-          </button>
-          {!showDeleted && (
+          </button>}
+          {!showDeleted && can('money.create') && (
             <button type="button" className="btn primary" onClick={openNew}>
               {isCashBoxTransfer ? '+ تحويل بين الخزن' : `+ إيصال ${isIn ? 'استلام' : 'صرف'}`}
             </button>
@@ -493,8 +495,8 @@ export default function Receipts() {
             <td>{transfer.source_cash_box_name}</td><td>{transfer.destination_cash_box_name}</td>
             <td className="num strong">{money(transfer.amount)}</td><td>{transfer.notes || '—'}</td>
             <td className="row-actions">{showDeleted
-              ? <button type="button" className="link" onClick={() => restoreTransfer(transfer)}>استعادة</button>
-              : <><button type="button" className="link" onClick={() => { setEditingTransfer(transfer); setFormOpen(true); }}>تعديل</button><button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button></>}
+              ? can('money.delete') && <button type="button" className="link" onClick={() => restoreTransfer(transfer)}>استعادة</button>
+              : <>{can('money.edit') && <button type="button" className="link" onClick={() => { setEditingTransfer(transfer); setFormOpen(true); }}>تعديل</button>}{can('money.delete') && <button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button>}</>}
             </td>
           </tr>)}
         </tbody>
@@ -550,7 +552,7 @@ export default function Receipts() {
                     <td className="muted">{receipt.statement ?? '—'}</td>
                     <td className="muted">{receipt.notes ?? '—'}</td>
                     <td className="row-actions">
-                      {showDeleted ? (
+                      {showDeleted ? can('money.delete') ? (
                         receipt.is_free ? (
                           <button
                             type="button"
@@ -570,22 +572,22 @@ export default function Receipts() {
                             {linkKind(receipt.invoice_kind) === 'مرتجع' ? 'مرتجعه' : 'فاتورته'}
                           </span>
                         )
-                      ) : receipt.is_free ? (
+                      ) : null : receipt.is_free ? (
                         <>
-                          <button
+                          {can('money.edit') && <button
                             type="button"
                             className="link"
                             onClick={() => startEdit(receipt)}
                           >
                             تعديل
-                          </button>
-                          <button
+                          </button>}
+                          {can('money.delete') && <button
                             type="button"
                             className="link danger"
                             onClick={() => remove(receipt)}
                           >
                             حذف
-                          </button>
+                          </button>}
                         </>
                       ) : (
                         <span

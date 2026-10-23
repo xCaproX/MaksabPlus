@@ -9,6 +9,8 @@ import Receipts from './pages/Receipts';
 import MasterData from './pages/MasterData';
 import Balances from './pages/Balances';
 import Management from './pages/Management';
+import SetPassword from './pages/SetPassword';
+import { AccessProvider, AccessRoute, HomeRedirect } from './lib/access';
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -56,16 +58,19 @@ export default function App() {
       <Routes>
         <Route
           path="/login"
-          element={session ? <Navigate to="/invoices" replace /> : <Login />}
+          element={session ? <Navigate to="/" replace /> : <Login />}
         />
-        <Route element={session ? <Layout /> : <Navigate to="/login" replace />}>
-          <Route path="/invoices" element={<Invoices />} />
-          <Route path="/receipts" element={<Receipts />} />
-          <Route path="/data" element={<MasterData />} />
-          <Route path="/balances" element={<Balances />} />
-          <Route path="/management" element={<Management />} />
+        <Route path="/set-password" element={session ? <SetPassword /> : <Navigate to="/login" replace />} />
+        <Route element={session ? <AccessProvider key={session.user.id}><Layout /></AccessProvider> : <Navigate to="/login" replace />}>
+          <Route path="/" element={<HomeRedirect />} />
+          <Route path="/invoices" element={<AccessRoute permissions={['goods.view','goods.create','goods.edit','goods.delete']}><Invoices /></AccessRoute>} />
+          <Route path="/receipts" element={<AccessRoute permissions={['money.view','money.create','money.edit','money.delete']}><Receipts /></AccessRoute>} />
+          <Route path="/data" element={<AccessRoute permissions={['data.view','data.create','data.edit','data.delete']}><MasterData /></AccessRoute>} />
+          <Route path="/balances" element={<AccessRoute permissions={['balances.view']}><Balances /></AccessRoute>} />
+          <Route path="/management" element={<AccessRoute permissions={['management.view','management.edit']}><Management /></AccessRoute>} />
+          <Route path="/access-denied" element={<div className="card empty">هذا المستخدم غير نشط أو لا يملك صلاحية دخول أي صفحة. تواصل مع مدير الشركة.</div>} />
         </Route>
-        <Route path="*" element={<Navigate to={session ? '/invoices' : '/login'} replace />} />
+        <Route path="*" element={<Navigate to={session ? '/' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
   );

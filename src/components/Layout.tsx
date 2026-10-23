@@ -1,8 +1,10 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAccess } from '../lib/access';
 
 export default function Layout() {
   const navigate = useNavigate();
+  const { can } = useAccess();
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -18,21 +20,21 @@ export default function Layout() {
         </div>
 
         <nav className="nav">
-          <NavLink to="/invoices" className={({ isActive }) => (isActive ? 'active' : '')}>
+          {can('goods.view','goods.create','goods.edit','goods.delete') && <NavLink to="/invoices" className={({ isActive }) => (isActive ? 'active' : '')}>
             البضاعة
-          </NavLink>
-          <NavLink to="/receipts" className={({ isActive }) => (isActive ? 'active' : '')}>
+          </NavLink>}
+          {can('money.view','money.create','money.edit','money.delete') && <NavLink to="/receipts" className={({ isActive }) => (isActive ? 'active' : '')}>
             الفلوس
-          </NavLink>
-          <NavLink to="/data" className={({ isActive }) => (isActive ? 'active' : '')}>
+          </NavLink>}
+          {can('data.view','data.create','data.edit','data.delete') && <NavLink to="/data" className={({ isActive }) => (isActive ? 'active' : '')}>
             البيانات
-          </NavLink>
-          <NavLink to="/balances" className={({ isActive }) => (isActive ? 'active' : '')}>
+          </NavLink>}
+          {can('balances.view') && <NavLink to="/balances" className={({ isActive }) => (isActive ? 'active' : '')}>
             الأرصدة
-          </NavLink>
-          <NavLink to="/management" className={({ isActive }) => (isActive ? 'active' : '')}>
+          </NavLink>}
+          {can('management.view','management.edit') && <NavLink to="/management" className={({ isActive }) => (isActive ? 'active' : '')}>
             إدارة
-          </NavLink>
+          </NavLink>}
         </nav>
 
         <button type="button" className="btn ghost" onClick={signOut}>
