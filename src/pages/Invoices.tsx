@@ -47,6 +47,8 @@ export default function Invoices() {
   const [editing, setEditing] = useState<EditingInvoice | null>(null);
   const [editingTransfer, setEditingTransfer] = useState<(WarehouseTransferRow & { lines: WarehouseTransferLine[] }) | null>(null);
   const [viewingTransfer, setViewingTransfer] = useState<WarehouseTransferRow | null>(null);
+  const [viewingTransferLines, setViewingTransferLines] = useState<(WarehouseTransferLine & { unit: string })[]>([]);
+  const [transferDetailsLoading, setTransferDetailsLoading] = useState(false);
   const [version, setVersion] = useState(0);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -191,6 +193,36 @@ export default function Invoices() {
     setEditingTransfer({ ...transfer, lines: (data ?? []) as WarehouseTransferLine[] });
     setEditing(null);
     setFormOpen(true);
+  }
+
+  async function openTransferDetails(transfer: WarehouseTransferRow) {
+    setError('');
+    setViewingTransfer(transfer);
+    setViewingTransferLines([]);
+    setTransferDetailsLoading(true);
+    const { data: lines, error: linesError } = await supabase.from('warehouse_transfer_items')
+      .select('item_id, qty, unit_cost').eq('transfer_id', transfer.id).order('created_at');
+    if (linesError) {
+      setError(translateDbError(linesError.message));
+      setTransferDetailsLoading(false);
+      return;
+    }
+    const itemIds = (lines ?? []).map((line) => line.item_id);
+    const { data: itemRows, error: itemsError } = itemIds.length
+      ? await supabase.from('items').select('id, name, unit').in('id', itemIds)
+      : { data: [], error: null };
+    if (itemsError) {
+      setError(translateDbError(itemsError.message));
+      setTransferDetailsLoading(false);
+      return;
+    }
+    const itemById = new Map((itemRows ?? []).map((item) => [item.id, item]));
+    setViewingTransferLines((lines ?? []).map((line) => ({
+      ...line,
+      item_name: itemById.get(line.item_id)?.name ?? 'صنف غير متاح',
+      unit: itemById.get(line.item_id)?.unit ?? 'قطعة',
+    })));
+    setTransferDetailsLoading(false);
   }
 
   async function startEdit(invoice: InvoiceRow) {
@@ -420,19 +452,19 @@ export default function Invoices() {
 
       {isWarehouseTransfer ? <div className="card">
         <div className="table-wrap"><table className="table">
-          <thead><tr><th>الرقم</th><th>التاريخ</th><th>من مخزن</th><th>إلى مخزن</th><th>الأصناف والكميات</th><th>قيمة التكلفة المنقولة</th><th>ملاحظات</th><th /></tr></thead>
+          <thead><tr><th>الرقم</th><th>التاريخ</th><th>من مخزن</th><th>إلى مخزن</th><th>عدد الأصناف</th><th>إجمالي الكميات</th><th>قيمة التكلفة المنقولة</th><th>ملاحظات</th><th /></tr></thead>
           <tbody>
-            {loading && <tr><td colSpan={8} className="empty">جارٍ التحميل…</td></tr>}
+            {loading && <tr><td colSpan={9} className="empty">جارٍ التحميل…</td></tr>}
             {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).length === 0 &&
-              <tr><td colSpan={8} className="empty">{warehouseFilter !== 'all' ? 'لا توجد تحويلات للمخزن المحدد.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات مخزنية بعد.'}</td></tr>}
+              <tr><td colSpan={9} className="empty">{warehouseFilter !== 'all' ? 'لا توجد تحويلات للمخزن المحدد.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات مخزنية بعد.'}</td></tr>}
             {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).map((transfer) => <tr key={transfer.id}>
               <td className="num">{transfer.number}</td><td className="num">{transfer.transfer_date}</td>
               <td>{transfer.source_warehouse_name}</td><td>{transfer.destination_warehouse_name}</td>
-              <td>{transfer.items_summary} <span className="muted">({formatQty(transfer.total_qty)})</span></td>
+              <td className="num">{transfer.line_count}</td><td className="num">{formatQty(transfer.total_qty)}</td>
               <td className="num">{money(transfer.total_value)}</td><td>{transfer.notes || '—'}</td>
               <td className="row-actions">{showDeleted
                 ? can('goods.delete') && <button type="button" className="link" onClick={() => restoreTransfer(transfer)}>استعادة</button>
-                : <>{can('goods.view') && <button type="button" className="link" onClick={() => setViewingTransfer(transfer)}>عرض</button>}{can('goods.edit') && <button type="button" className="link" onClick={() => void startEditTransfer(transfer)}>تعديل</button>}{can('goods.delete') && <button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button>}</>}
+                : <>{can('goods.view') && <button type="button" className="link" onClick={() => void openTransferDetails(transfer)}>عرض</button>}{can('goods.edit') && <button type="button" className="link" onClick={() => void startEditTransfer(transfer)}>تعديل</button>}{can('goods.delete') && <button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button>}</>}
               </td>
             </tr>)}
           </tbody>
@@ -541,10 +573,22 @@ export default function Invoices() {
           <dt>التاريخ</dt><dd>{viewingTransfer.transfer_date}</dd>
           <dt>من مخزن</dt><dd>{viewingTransfer.source_warehouse_name}</dd>
           <dt>إلى مخزن</dt><dd>{viewingTransfer.destination_warehouse_name}</dd>
-          <dt>الأصناف</dt><dd>{viewingTransfer.items_summary || '—'}</dd>
           <dt>قيمة التكلفة المنقولة</dt><dd className="num">{money(viewingTransfer.total_value)}</dd>
           <dt>ملاحظات</dt><dd>{viewingTransfer.notes || '—'}</dd>
         </dl>
+        <h3 className="modal-section">أصناف التحويل</h3>
+        {transferDetailsLoading ? <p className="muted">جارٍ تحميل الأصناف…</p> : viewingTransferLines.length === 0 ? <p className="muted">لا توجد أصناف.</p> : (
+          <div className="table-wrap">
+            <table className="table subtable">
+              <thead><tr><th>الصنف</th><th>الكمية</th><th>تكلفة الوحدة</th></tr></thead>
+              <tbody>{viewingTransferLines.map((line) => <tr key={line.item_id}>
+                <td>{line.item_name}</td>
+                <td className="num">{formatQty(line.qty)} {line.unit}</td>
+                <td className="num">{money(line.unit_cost ?? 0)}</td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+        )}
       </Modal>}
 
       {viewing && (
