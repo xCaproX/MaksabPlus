@@ -46,14 +46,15 @@ do $$
 declare
   v_item_id uuid;
   v_new_account_id uuid;
+  v_new_supplier_id uuid;
   v_new_item_id uuid;
   v_new_cash_box_id uuid;
   v_failed boolean := false;
 begin
   perform public.test_expect(
-    (select count(*) = 2 and min(serial_number) = 1 and max(serial_number) = 2
+    (select count(*) = 2 and min(serial_number) = 1 and max(serial_number) = 1
      from public.accounts where company_id = public.current_company_id() and system_key is null),
-    'customer and supplier account numbers share one immutable sequence per company'
+    'customer and supplier account sequences both start at one'
   );
   perform public.test_expect(
     (select count(*) = 0 from public.accounts where company_id = '16161616-1616-4616-8616-0000000000a2'),
@@ -90,8 +91,13 @@ begin
 
   v_new_account_id := public.save_account(null, 'عميل جديد', 'customer', null, true, 0);
   perform public.test_expect(
-    (select serial_number = 3 from public.accounts where id = v_new_account_id),
-    'new accounts continue the company sequence'
+    (select serial_number = 2 from public.accounts where id = v_new_account_id),
+    'new customers continue the customer sequence'
+  );
+  v_new_supplier_id := public.save_account(null, 'مورد جديد', 'supplier', null, true, 0);
+  perform public.test_expect(
+    (select serial_number = 2 from public.accounts where id = v_new_supplier_id),
+    'new suppliers continue the supplier sequence'
   );
   v_new_item_id := public.create_item_with_opening_stock(
     'صنف جديد', 'قطعة', 0, 0, true, null, 0, 0

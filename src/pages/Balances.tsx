@@ -66,11 +66,11 @@ export default function Balances() {
       {loading ? <div className="card empty">جارٍ التحميل…</div> : (
         <div className="card table-wrap">
           {tab === 'customers' && <table className="table"><thead><tr><th>الرقم</th><th>العميل</th><th>الهاتف</th><th>الرصيد</th><th>ملاحظات</th></tr></thead><tbody>
-            {customers.map((account) => <tr key={account.id}><td className="num">{entityNumber('ACC', account.serial_number)}</td><td>{account.name}</td><td>{account.phone ?? '—'}</td><td className="num strong">{money(account.balance)}</td><td>{account.notes || '—'}</td></tr>)}
+            {customers.map((account) => <tr key={account.id}><td className="num">{entityNumber('CUS', account.serial_number)}</td><td>{account.name}</td><td>{account.phone ?? '—'}</td><td className="num strong">{money(account.balance)}</td><td>{account.notes || '—'}</td></tr>)}
             {customers.length === 0 && <tr><td colSpan={5} className="empty">لا توجد حسابات عملاء.</td></tr>}
           </tbody></table>}
           {tab === 'suppliers' && <table className="table"><thead><tr><th>الرقم</th><th>المورد</th><th>الهاتف</th><th>الرصيد</th><th>ملاحظات</th></tr></thead><tbody>
-            {suppliers.map((account) => <tr key={account.id}><td className="num">{entityNumber('ACC', account.serial_number)}</td><td>{account.name}</td><td>{account.phone ?? '—'}</td><td className="num strong">{money(account.balance)}</td><td>{account.notes || '—'}</td></tr>)}
+            {suppliers.map((account) => <tr key={account.id}><td className="num">{entityNumber('SUP', account.serial_number)}</td><td>{account.name}</td><td>{account.phone ?? '—'}</td><td className="num strong">{money(account.balance)}</td><td>{account.notes || '—'}</td></tr>)}
             {suppliers.length === 0 && <tr><td colSpan={5} className="empty">لا توجد حسابات موردين.</td></tr>}
           </tbody></table>}
           {tab === 'items' && <>

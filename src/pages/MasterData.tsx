@@ -575,7 +575,7 @@ export default function MasterData() {
                   {!loading &&
                     visibleAccountsByTab.map((account) => (
                       <tr key={account.id}>
-                        <td className="num">{entityNumber('ACC', account.serial_number)}</td>
+                        <td className="num">{entityNumber(account.kind === 'customer' ? 'CUS' : 'SUP', account.serial_number)}</td>
                         <td>{account.name}</td>
                         <td>{account.kind === 'customer' ? 'عميل' : account.kind === 'supplier' ? 'مورد' : 'هالك'}</td>
                         <td className="num muted">{account.phone ?? '—'}</td>
