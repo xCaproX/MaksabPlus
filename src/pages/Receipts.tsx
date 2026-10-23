@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
-import { money, today } from '../lib/format';
+import { creationTime, money, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
@@ -486,12 +486,12 @@ export default function Receipts() {
         </Modal>)}
 
       {isCashBoxTransfer ? <div className="card"><div className="table-wrap"><table className="table">
-        <thead><tr><th>الرقم</th><th>التاريخ</th><th>من خزنة</th><th>إلى خزنة</th><th>المبلغ</th><th>ملاحظات</th><th /></tr></thead>
+        <thead><tr><th>الرقم</th><th>التاريخ</th><th>وقت الإنشاء</th><th>من خزنة</th><th>إلى خزنة</th><th>المبلغ</th><th>ملاحظات</th><th /></tr></thead>
         <tbody>
-          {loading && <tr><td colSpan={7} className="empty">جارٍ التحميل…</td></tr>}
-          {!loading && filteredTransferRows.length === 0 && <tr><td colSpan={7} className="empty">{cashBoxFilter !== 'all' ? 'لا توجد تحويلات في الخزنة المحددة.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات بين الخزن بعد.'}</td></tr>}
+          {loading && <tr><td colSpan={8} className="empty">جارٍ التحميل…</td></tr>}
+          {!loading && filteredTransferRows.length === 0 && <tr><td colSpan={8} className="empty">{cashBoxFilter !== 'all' ? 'لا توجد تحويلات في الخزنة المحددة.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات بين الخزن بعد.'}</td></tr>}
           {!loading && filteredTransferRows.map((transfer) => <tr key={transfer.id}>
-            <td className="num">{transfer.number}</td><td className="num">{transfer.transfer_date}</td>
+            <td className="num">{transfer.number}</td><td className="num">{transfer.transfer_date}</td><td className="num">{creationTime(transfer.created_at)}</td>
             <td>{transfer.source_cash_box_name}</td><td>{transfer.destination_cash_box_name}</td>
             <td className="num strong">{money(transfer.amount)}</td><td>{transfer.notes || '—'}</td>
             <td className="row-actions">{showDeleted
@@ -507,6 +507,7 @@ export default function Receipts() {
               <tr>
                 <th>الرقم</th>
                 <th>التاريخ</th>
+                <th>وقت الإنشاء</th>
                 <th>الحساب</th>
                 <th>الخزنة</th>
                 <th>المبلغ</th>
@@ -518,7 +519,7 @@ export default function Receipts() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} className="empty">
+                  <td colSpan={9} className="empty">
                     جارٍ التحميل…
                   </td>
                 </tr>
@@ -526,7 +527,7 @@ export default function Receipts() {
 
               {!loading && filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="empty">
+                  <td colSpan={9} className="empty">
                     {cashBoxFilter !== 'all'
                       ? 'لا توجد إيصالات في الخزنة المحددة.'
                       : showDeleted
@@ -541,6 +542,7 @@ export default function Receipts() {
                   <tr key={receipt.id}>
                     <td className="num">{receipt.number}</td>
                     <td className="num">{receipt.receipt_date}</td>
+                    <td className="num">{creationTime(receipt.created_at)}</td>
                     <td>
                       {receipt.account_name}{' '}
                       <span className="muted">

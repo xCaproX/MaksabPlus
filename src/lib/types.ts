@@ -109,6 +109,7 @@ export interface StockOpeningRow {
 
 export interface InvoiceRow {
   id: string;
+  created_at: string;
   kind: InvoiceKind;
   number: string;
   invoice_date: string;
@@ -148,6 +149,7 @@ export interface InvoiceItemRow {
 
 export interface ReceiptRow {
   id: string;
+  created_at: string;
   number: string;
   receipt_date: string;
   amount: number;
@@ -169,6 +171,7 @@ export interface ReceiptRow {
 
 export interface WarehouseTransferRow {
   id: string;
+  created_at: string;
   number: string;
   transfer_date: string;
   source_warehouse_id: string;
@@ -192,6 +195,7 @@ export interface WarehouseTransferLine {
 
 export interface CashBoxTransferRow {
   id: string;
+  created_at: string;
   number: string;
   transfer_date: string;
   source_cash_box_id: string;

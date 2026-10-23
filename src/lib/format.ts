@@ -21,6 +21,18 @@ export function qty(value: number | string | null | undefined): string {
   return qtyFormat.format(n);
 }
 
+export function creationTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Cairo',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
+}
+
 export function entityNumber(prefix: string, value: number | string | null | undefined): string {
   const number = Number(value);
   return `${prefix}-${Number.isFinite(number) ? String(number).padStart(5, '0') : '00000'}`;

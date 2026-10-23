@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { money, qty as formatQty } from '../lib/format';
+import { creationTime, money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
@@ -452,13 +452,13 @@ export default function Invoices() {
 
       {isWarehouseTransfer ? <div className="card">
         <div className="table-wrap"><table className="table">
-          <thead><tr><th>الرقم</th><th>التاريخ</th><th>من مخزن</th><th>إلى مخزن</th><th>عدد الأصناف</th><th>إجمالي الكميات</th><th>قيمة التكلفة المنقولة</th><th>ملاحظات</th><th /></tr></thead>
+          <thead><tr><th>الرقم</th><th>التاريخ</th><th>وقت الإنشاء</th><th>من مخزن</th><th>إلى مخزن</th><th>عدد الأصناف</th><th>إجمالي الكميات</th><th>قيمة التكلفة المنقولة</th><th>ملاحظات</th><th /></tr></thead>
           <tbody>
-            {loading && <tr><td colSpan={9} className="empty">جارٍ التحميل…</td></tr>}
+            {loading && <tr><td colSpan={10} className="empty">جارٍ التحميل…</td></tr>}
             {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).length === 0 &&
-              <tr><td colSpan={9} className="empty">{warehouseFilter !== 'all' ? 'لا توجد تحويلات للمخزن المحدد.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات مخزنية بعد.'}</td></tr>}
+              <tr><td colSpan={10} className="empty">{warehouseFilter !== 'all' ? 'لا توجد تحويلات للمخزن المحدد.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات مخزنية بعد.'}</td></tr>}
             {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).map((transfer) => <tr key={transfer.id}>
-              <td className="num">{transfer.number}</td><td className="num">{transfer.transfer_date}</td>
+              <td className="num">{transfer.number}</td><td className="num">{transfer.transfer_date}</td><td className="num">{creationTime(transfer.created_at)}</td>
               <td>{transfer.source_warehouse_name}</td><td>{transfer.destination_warehouse_name}</td>
               <td className="num">{transfer.line_count}</td><td className="num">{formatQty(transfer.total_qty)}</td>
               <td className="num">{money(transfer.total_value)}</td><td>{transfer.notes || '—'}</td>
@@ -476,6 +476,7 @@ export default function Invoices() {
               <tr>
                 <th>الرقم</th>
                 <th>التاريخ</th>
+                <th>وقت الإنشاء</th>
                 <th>الحساب</th>
                 <th>المخزن</th>
                 <th>الخزنة</th>
@@ -490,7 +491,7 @@ export default function Invoices() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={11} className="empty">
+                  <td colSpan={12} className="empty">
                     جارٍ التحميل…
                   </td>
                 </tr>
@@ -498,7 +499,7 @@ export default function Invoices() {
 
               {!loading && filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="empty">
+                  <td colSpan={12} className="empty">
                     {warehouseFilter !== 'all'
                       ? 'لا توجد مستندات في المخزن المحدد.'
                       : showDeleted
@@ -513,6 +514,7 @@ export default function Invoices() {
                   <tr key={invoice.id}>
                     <td className="num">{invoice.number}</td>
                     <td className="num">{invoice.invoice_date}</td>
+                    <td className="num">{creationTime(invoice.created_at)}</td>
                     <td>
                       {invoice.account_name}{' '}
                       <span className="muted">
@@ -571,6 +573,7 @@ export default function Invoices() {
       {viewingTransfer && <Modal title={`تحويل بين مخازن ${viewingTransfer.number}`} onClose={() => setViewingTransfer(null)}>
         <dl className="doc-meta-list">
           <dt>التاريخ</dt><dd>{viewingTransfer.transfer_date}</dd>
+          <dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewingTransfer.created_at)}</dd>
           <dt>من مخزن</dt><dd>{viewingTransfer.source_warehouse_name}</dd>
           <dt>إلى مخزن</dt><dd>{viewingTransfer.destination_warehouse_name}</dd>
           <dt>قيمة التكلفة المنقولة</dt><dd className="num">{money(viewingTransfer.total_value)}</dd>
@@ -606,6 +609,8 @@ export default function Invoices() {
             </dd>
             <dt>التاريخ</dt>
             <dd className="num">{viewing.invoice_date}</dd>
+            <dt>وقت الإنشاء</dt>
+            <dd className="num">{creationTime(viewing.created_at)}</dd>
             <dt>المخزن</dt>
             <dd>{viewing.warehouse_name}</dd>
             {viewing.cash_box_name && <>
