@@ -1,0 +1,82 @@
+import { useState, type FormEvent } from 'react';
+import { supabase } from '../lib/supabase';
+import { money, today } from '../lib/format';
+import { translateDbError } from '../lib/errors';
+import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
+
+interface Props {
+  cashBoxes: CashBoxRow[];
+  editing: CashBoxTransferRow | null;
+  onSaved: (message: string) => void;
+  onCancel: () => void;
+}
+
+export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCancel }: Props) {
+  const activeBoxes = cashBoxes.filter((box) => box.is_active || box.id === editing?.source_cash_box_id || box.id === editing?.destination_cash_box_id);
+  const [sourceId, setSourceId] = useState(editing?.source_cash_box_id ?? activeBoxes.find((box) => box.is_primary)?.id ?? activeBoxes[0]?.id ?? '');
+  const [destinationId, setDestinationId] = useState(editing?.destination_cash_box_id ?? activeBoxes.find((box) => box.id !== sourceId)?.id ?? '');
+  const [date, setDate] = useState(editing?.transfer_date ?? today());
+  const [amount, setAmount] = useState(editing ? String(Number(editing.amount)) : '');
+  const [notes, setNotes] = useState(editing?.notes ?? '');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const sourceBalance = Number(cashBoxes.find((box) => box.id === sourceId)?.balance ?? 0);
+  const editBalanceAdjustment = editing?.source_cash_box_id === sourceId
+    ? Number(editing.amount)
+    : editing?.destination_cash_box_id === sourceId ? -Number(editing.amount) : 0;
+  const maxAmount = Math.max(0, sourceBalance + editBalanceAdjustment);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    const numericAmount = Number(amount);
+    if (!sourceId || !destinationId || sourceId === destinationId) return setError('اختر خزنتين مختلفتين');
+    if (!(numericAmount > 0)) return setError('أدخل مبلغًا أكبر من صفر');
+    setBusy(true);
+    const args = {
+      p_source_cash_box_id: sourceId,
+      p_destination_cash_box_id: destinationId,
+      p_transfer_date: date,
+      p_amount: numericAmount,
+      p_notes: notes.trim() || null,
+    };
+    const { error: rpcError } = editing
+      ? await supabase.rpc('update_cash_box_transfer', { p_transfer_id: editing.id, ...args })
+      : await supabase.rpc('create_cash_box_transfer', args);
+    setBusy(false);
+    if (rpcError) return setError(translateDbError(rpcError.message));
+    onSaved(editing ? `تم تعديل التحويل ${editing.number}` : 'تم حفظ التحويل بين الخزن');
+  }
+
+  return (
+    <form className="inline-form" onSubmit={submit}>
+      {error && <p className="alert error">{error}</p>}
+      <div className="form-grid">
+        <label>من خزنة
+          <select value={sourceId} onChange={(event) => {
+            const next = event.target.value;
+            setSourceId(next);
+            if (next === destinationId) setDestinationId(activeBoxes.find((box) => box.id !== next)?.id ?? '');
+          }} required>
+            <option value="">اختر خزنة المصدر…</option>
+            {activeBoxes.map((box) => <option key={box.id} value={box.id}>{box.name} — {money(box.balance)}</option>)}
+          </select>
+        </label>
+        <label>إلى خزنة
+          <select value={destinationId} onChange={(event) => setDestinationId(event.target.value)} required>
+            <option value="">اختر خزنة الوجهة…</option>
+            {activeBoxes.filter((box) => box.id !== sourceId).map((box) => <option key={box.id} value={box.id}>{box.name} — {money(box.balance)}</option>)}
+          </select>
+        </label>
+        <label>التاريخ<input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label>
+        <label>المبلغ<input type="number" min="0.0001" step="0.0001" max={maxAmount} value={amount} onChange={(event) => setAmount(event.target.value)} required /></label>
+        <label className="span-2">ملاحظات<input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="اختياري" /></label>
+      </div>
+      <p className="hint">ينقص المبلغ من رصيد خزنة المصدر ويضاف إلى الوجهة. لا يتغير مجموع الخزن أو رصيد أي عميل أو مورد.</p>
+      <div className="actions">
+        <button type="submit" className="btn primary" disabled={busy}>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل'}</button>
+        <button type="button" className="btn" onClick={onCancel} disabled={busy}>إلغاء</button>
+      </div>
+    </form>
+  );
+}

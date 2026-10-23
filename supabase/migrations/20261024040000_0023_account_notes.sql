@@ -1,0 +1,83 @@
+alter table public.accounts add column notes text;
+
+create or replace view public.v_account_balances
+with (security_invoker = true) as
+select
+  a.id,
+  a.company_id,
+  a.name,
+  a.kind,
+  a.phone,
+  a.is_active,
+  coalesce(inv.total, 0)::numeric(18,4) as invoiced,
+  coalesce(rec.amount, 0)::numeric(18,4) as paid,
+  (coalesce(a.opening_balance, 0) + coalesce(adj.amount, 0) + coalesce(inv.total, 0) - coalesce(rec.balance_effect, 0))::numeric(18,4) as balance,
+  ((coalesce(inv.cnt, 0) + coalesce(rec.cnt, 0)) > 0 or a.opening_balance <> 0 or coalesce(adj.cnt, 0) > 0) as has_documents,
+  a.system_key,
+  (coalesce(a.opening_balance, 0) + coalesce(adj.amount, 0))::numeric(18,4) as opening_balance,
+  a.notes
+from public.accounts a
+left join (
+  select account_id,
+    sum(case when kind in ('sale', 'purchase') then total else -total end) filter (where deleted_at is null) as total,
+    count(*) as cnt
+  from public.invoices group by account_id
+) inv on inv.account_id = a.id
+left join (
+  select r.account_id,
+    sum(case when r.invoice_id is null then r.amount
+      when i.kind in ('sale', 'purchase') then r.amount else -r.amount end)
+      filter (where r.deleted_at is null) as amount,
+    sum(case when r.invoice_id is null then
+        case when (a.kind = 'customer' and r.direction = 'in')
+                   or (a.kind = 'supplier' and r.direction = 'out')
+          then r.amount else -r.amount end
+      when i.kind in ('sale', 'purchase') then r.amount else -r.amount end)
+      filter (where r.deleted_at is null) as balance_effect,
+    count(*) as cnt
+  from public.receipts r
+  join public.accounts a on a.id = r.account_id
+  left join public.invoices i on i.id = r.invoice_id
+  group by r.account_id
+) rec on rec.account_id = a.id
+left join (
+  select account_id, sum(amount_delta) as amount, count(*) as cnt
+  from public.opening_balance_adjustments where account_id is not null group by account_id
+) adj on adj.account_id = a.id;
+grant select on public.v_account_balances to authenticated;
+
+create or replace function public.save_account_with_notes(
+  p_account_id uuid,
+  p_name text,
+  p_kind text,
+  p_phone text,
+  p_is_active boolean,
+  p_opening_balance numeric,
+  p_notes text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_company uuid := public.current_company_id();
+  v_account_id uuid;
+begin
+  if v_company is null then raise exception 'not_authenticated' using errcode = '28000'; end if;
+
+  v_account_id := public.save_account(
+    p_account_id, p_name, p_kind, p_phone, p_is_active, p_opening_balance
+  );
+
+  update public.accounts
+  set notes = nullif(btrim(p_notes), '')
+  where id = v_account_id and company_id = v_company;
+
+  if not found then raise exception 'account_not_found' using errcode = '22023'; end if;
+  return v_account_id;
+end;
+$$;
+
+revoke all on function public.save_account_with_notes(uuid, text, text, text, boolean, numeric, text) from public, anon;
+grant execute on function public.save_account_with_notes(uuid, text, text, text, boolean, numeric, text) to authenticated;

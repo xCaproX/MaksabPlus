@@ -27,6 +27,12 @@ export default function Layout() {
           <NavLink to="/data" className={({ isActive }) => (isActive ? 'active' : '')}>
             البيانات
           </NavLink>
+          <NavLink to="/balances" className={({ isActive }) => (isActive ? 'active' : '')}>
+            الأرصدة
+          </NavLink>
+          <NavLink to="/management" className={({ isActive }) => (isActive ? 'active' : '')}>
+            إدارة
+          </NavLink>
         </nav>
 
         <button type="button" className="btn ghost" onClick={signOut}>

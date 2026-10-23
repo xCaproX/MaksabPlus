@@ -7,6 +7,7 @@ export interface AccountRow {
   name: string;
   kind: AccountKind;
   phone: string | null;
+  notes: string | null;
   is_active: boolean;
   opening_balance: number;
   invoiced: number;
@@ -24,11 +25,13 @@ export interface ItemRow {
   purchase_price: number;
   is_active: boolean;
   qty: number;
+  notes?: string | null;
 }
 
 export interface WarehouseOption {
   id: string;
   name: string;
+  notes?: string | null;
   is_active?: boolean;
   is_primary?: boolean;
 }
@@ -40,6 +43,7 @@ export interface CashBoxRow {
   balance: number;
   opening_balance: number;
   is_primary: boolean;
+  notes: string | null;
 }
 
 export interface StockOpeningRow {
@@ -48,10 +52,12 @@ export interface StockOpeningRow {
   unit: string;
   warehouse_id: string;
   warehouse_name: string;
+  warehouse_notes: string | null;
   opening_qty: number;
   unit_cost: number;
   current_qty: number;
   cost_locked: boolean;
+  item_notes: string | null;
 }
 
 export interface InvoiceRow {
@@ -112,6 +118,42 @@ export interface ReceiptRow {
   is_free: boolean;
   deleted_at: string | null;
   direction: ReceiptDirection;
+}
+
+export interface WarehouseTransferRow {
+  id: string;
+  number: string;
+  transfer_date: string;
+  source_warehouse_id: string;
+  source_warehouse_name: string;
+  destination_warehouse_id: string;
+  destination_warehouse_name: string;
+  notes: string | null;
+  deleted_at: string | null;
+  line_count: number;
+  total_qty: number;
+  total_value: number;
+  items_summary: string;
+}
+
+export interface WarehouseTransferLine {
+  item_id: string;
+  item_name?: string;
+  qty: number;
+  unit_cost?: number;
+}
+
+export interface CashBoxTransferRow {
+  id: string;
+  number: string;
+  transfer_date: string;
+  source_cash_box_id: string;
+  source_cash_box_name: string;
+  destination_cash_box_id: string;
+  destination_cash_box_name: string;
+  amount: number;
+  notes: string | null;
+  deleted_at: string | null;
 }
 
 export interface LineDraft {

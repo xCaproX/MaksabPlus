@@ -7,6 +7,8 @@ import Login from './pages/Login';
 import Invoices from './pages/Invoices';
 import Receipts from './pages/Receipts';
 import MasterData from './pages/MasterData';
+import Balances from './pages/Balances';
+import Management from './pages/Management';
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -60,6 +62,8 @@ export default function App() {
           <Route path="/invoices" element={<Invoices />} />
           <Route path="/receipts" element={<Receipts />} />
           <Route path="/data" element={<MasterData />} />
+          <Route path="/balances" element={<Balances />} />
+          <Route path="/management" element={<Management />} />
         </Route>
         <Route path="*" element={<Navigate to={session ? '/invoices' : '/login'} replace />} />
       </Routes>

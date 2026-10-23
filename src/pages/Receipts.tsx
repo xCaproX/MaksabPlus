@@ -4,21 +4,28 @@ import { money, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
+import CashBoxTransferForm from '../components/CashBoxTransferForm';
+import ConfirmDialog from '../components/ConfirmDialog';
 import type {
   AccountRow,
   AccountKind,
   CashBoxRow,
   ReceiptDirection,
   ReceiptRow,
+  CashBoxTransferRow,
 } from '../lib/types';
 
 function linkKind(kind: ReceiptRow['invoice_kind']) {
   return kind === 'sale_return' || kind === 'purchase_return' ? 'مرتجع' : 'فاتورة';
 }
 
+interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
+
 export default function Receipts() {
+  const [tab, setTab] = useState<ReceiptDirection | 'cash_box_transfer'>('in');
   const [direction, setDirection] = useState<ReceiptDirection>('in');
   const [rows, setRows] = useState<ReceiptRow[]>([]);
+  const [transferRows, setTransferRows] = useState<CashBoxTransferRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,9 +33,11 @@ export default function Receipts() {
   const [notice, setNotice] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ReceiptRow | null>(null);
+  const [editingTransfer, setEditingTransfer] = useState<CashBoxTransferRow | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
   const [version, setVersion] = useState(0);
   const [cashBoxFilter, setCashBoxFilter] = useState('all');
+  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
 
   const [accountId, setAccountId] = useState('');
   const [accountKind, setAccountKind] = useState<AccountKind>('customer');
@@ -39,6 +48,17 @@ export default function Receipts() {
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
 
+  function askConfirmation(message: string, confirmLabel: string): Promise<boolean> {
+    return new Promise((resolve) => setConfirmation({ title: 'تأكيد العملية', message, confirmLabel, resolve }));
+  }
+
+  function finishConfirmation(confirmed: boolean) {
+    const request = confirmation;
+    setConfirmation(null);
+    request?.resolve(confirmed);
+  }
+
+  const isCashBoxTransfer = tab === 'cash_box_transfer';
   const isIn = direction === 'in';
   const selectableAccounts = accounts.filter(
     (account) => account.kind === accountKind && account.system_key === null,
@@ -47,6 +67,9 @@ export default function Receipts() {
   const filteredRows = cashBoxFilter === 'all'
     ? rows
     : rows.filter((receipt) => receipt.cash_box_id === cashBoxFilter);
+  const filteredTransferRows = cashBoxFilter === 'all'
+    ? transferRows
+    : transferRows.filter((transfer) => transfer.source_cash_box_id === cashBoxFilter || transfer.destination_cash_box_id === cashBoxFilter);
 
   useEffect(() => {
     let alive = true;
@@ -55,18 +78,7 @@ export default function Receipts() {
       setLoading(true);
       setError('');
 
-      let receiptsQuery = supabase
-        .from('v_receipt_list')
-        .select('*')
-        .eq('direction', direction);
-      receiptsQuery = showDeleted
-        ? receiptsQuery.not('deleted_at', 'is', null)
-        : receiptsQuery.is('deleted_at', null);
-
-      const [receiptsRes, accountsRes, boxesRes] = await Promise.all([
-        receiptsQuery
-          .order('receipt_date', { ascending: false })
-          .order('number', { ascending: false }),
+      const [accountsRes, boxesRes] = await Promise.all([
         supabase
           .from('v_account_balances')
           .select('*')
@@ -79,16 +91,36 @@ export default function Receipts() {
           .order('name'),
       ]);
 
+      let receiptData: ReceiptRow[] = [];
+      let transferData: CashBoxTransferRow[] = [];
+      let documentError: { message: string } | null = null;
+      if (isCashBoxTransfer) {
+        const query = supabase.from('v_cash_box_transfer_list').select('*');
+        const result = showDeleted
+          ? await query.not('deleted_at', 'is', null).order('transfer_date', { ascending: false }).order('number', { ascending: false })
+          : await query.is('deleted_at', null).order('transfer_date', { ascending: false }).order('number', { ascending: false });
+        documentError = result.error;
+        transferData = (result.data ?? []) as CashBoxTransferRow[];
+      } else {
+        const query = supabase.from('v_receipt_list').select('*').eq('direction', direction);
+        const result = showDeleted
+          ? await query.not('deleted_at', 'is', null).order('receipt_date', { ascending: false }).order('number', { ascending: false })
+          : await query.is('deleted_at', null).order('receipt_date', { ascending: false }).order('number', { ascending: false });
+        documentError = result.error;
+        receiptData = (result.data ?? []) as ReceiptRow[];
+      }
+
       if (!alive) return;
 
-      const firstError = receiptsRes.error ?? accountsRes.error ?? boxesRes.error;
+      const firstError = documentError ?? accountsRes.error ?? boxesRes.error;
       if (firstError) {
         setError(translateDbError(firstError.message));
         setLoading(false);
         return;
       }
 
-      setRows((receiptsRes.data ?? []) as ReceiptRow[]);
+      setRows(receiptData);
+      setTransferRows(transferData);
       setAccounts((accountsRes.data ?? []) as AccountRow[]);
       setCashBoxes((boxesRes.data ?? []) as CashBoxRow[]);
       setLoading(false);
@@ -98,7 +130,7 @@ export default function Receipts() {
     return () => {
       alive = false;
     };
-  }, [direction, version, showDeleted]);
+  }, [direction, tab, version, showDeleted]);
 
   useEffect(() => {
     if (!notice) return;
@@ -124,24 +156,42 @@ export default function Receipts() {
   }
 
   function switchDirection(next: ReceiptDirection) {
-    if (next === direction) return;
+    if (next === tab) return;
     setDirection(next);
+    setTab(next);
     setFormOpen(false);
+    setEditingTransfer(null);
     resetForm(next);
+  }
+
+  function switchToCashTransfer() {
+    setTab('cash_box_transfer');
+    setFormOpen(false);
+    setEditing(null);
+    setEditingTransfer(null);
+    setError('');
   }
 
   function toggleDeleted() {
     setShowDeleted((current) => !current);
     setFormOpen(false);
     resetForm();
+    setEditingTransfer(null);
   }
 
   function openNew() {
+    if (isCashBoxTransfer) {
+      setEditing(null);
+      setEditingTransfer(null);
+      setFormOpen(true);
+      return;
+    }
     resetForm();
     setFormOpen(true);
   }
 
   function startEdit(receipt: ReceiptRow) {
+    setEditingTransfer(null);
     setEditing(receipt);
     setAccountKind(receipt.account_kind);
     setAccountId(receipt.account_id);
@@ -156,7 +206,26 @@ export default function Receipts() {
 
   function closeForm() {
     setFormOpen(false);
+    setEditingTransfer(null);
     resetForm();
+  }
+
+  async function removeTransfer(transfer: CashBoxTransferRow) {
+    if (!(await askConfirmation(`حذف التحويل ${transfer.number}؟ سيُعاد المبلغ إلى خزنة المصدر.`, 'حذف'))) return;
+    setError('');
+    const { error: rpcError } = await supabase.rpc('delete_cash_box_transfer', { p_transfer_id: transfer.id });
+    if (rpcError) return setError(translateDbError(rpcError.message));
+    setNotice(`تم نقل التحويل ${transfer.number} إلى المحذوفات`);
+    setVersion((current) => current + 1);
+  }
+
+  async function restoreTransfer(transfer: CashBoxTransferRow) {
+    if (!(await askConfirmation(`استعادة التحويل ${transfer.number}؟ سيُخصم المبلغ من خزنة المصدر ويضاف للوجهة.`, 'استعادة'))) return;
+    setError('');
+    const { error: rpcError } = await supabase.rpc('restore_cash_box_transfer', { p_transfer_id: transfer.id });
+    if (rpcError) return setError(translateDbError(rpcError.message));
+    setNotice(`تم استعادة التحويل ${transfer.number}`);
+    setVersion((current) => current + 1);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -200,9 +269,10 @@ export default function Receipts() {
   }
 
   async function remove(receipt: ReceiptRow) {
-    const confirmed = window.confirm(
+    const confirmed = await askConfirmation(
       `حذف الإيصال ${receipt.number}؟\n` +
         'سيُستثنى من الأرصدة والتقارير، ويمكن استعادته من «عرض المحذوفات».',
+      'حذف',
     );
     if (!confirmed) return;
 
@@ -221,8 +291,9 @@ export default function Receipts() {
   }
 
   async function restore(receipt: ReceiptRow) {
-    const confirmed = window.confirm(
+    const confirmed = await askConfirmation(
       `استعادة الإيصال ${receipt.number}؟\nسيُعاد تأثيره على رصيد الحساب والخزنة.`,
+      'استعادة',
     );
     if (!confirmed) return;
 
@@ -246,8 +317,7 @@ export default function Receipts() {
         <div>
           <h1>الإيصالات</h1>
           <p className="muted">
-            إيصال الاستلام يدخّل نقدًا للخزنة، وإيصال الصرف يخرّج نقدًا. الحساب قد يكون عميلًا
-            أو موردًا في أي اتجاه.
+            {isCashBoxTransfer ? 'انقل النقد بين الخزن؛ لا يتغير مجموع النقد ولا أرصدة العملاء والموردين.' : 'إيصال الاستلام يدخّل نقدًا للخزنة، وإيصال الصرف يخرّج نقدًا. الحساب قد يكون عميلًا أو موردًا في أي اتجاه.'}
           </p>
         </div>
         <div className="actions">
@@ -256,7 +326,7 @@ export default function Receipts() {
           </button>
           {!showDeleted && (
             <button type="button" className="btn primary" onClick={openNew}>
-              + إيصال {isIn ? 'استلام' : 'صرف'}
+              {isCashBoxTransfer ? '+ تحويل بين الخزن' : `+ إيصال ${isIn ? 'استلام' : 'صرف'}`}
             </button>
           )}
         </div>
@@ -265,17 +335,20 @@ export default function Receipts() {
       <div className="tabs">
         <button
           type="button"
-          className={direction === 'in' ? 'tab active' : 'tab'}
+          className={tab === 'in' ? 'tab active' : 'tab'}
           onClick={() => switchDirection('in')}
         >
           إيصالات استلام
         </button>
         <button
           type="button"
-          className={direction === 'out' ? 'tab active' : 'tab'}
+          className={tab === 'out' ? 'tab active' : 'tab'}
           onClick={() => switchDirection('out')}
         >
           إيصالات صرف
+        </button>
+        <button type="button" className={tab === 'cash_box_transfer' ? 'tab active' : 'tab'} onClick={switchToCashTransfer}>
+          تحويل بين الخزن
         </button>
       </div>
 
@@ -283,8 +356,7 @@ export default function Receipts() {
       {error && <p className="alert error">{error}</p>}
       {showDeleted && (
         <p className="hint">
-          هذه الإيصالات محذوفة: لا تؤثر على الأرصدة أو الخزنة. إيصال الفاتورة يُستعاد من صفحة
-          الفواتير مع فاتورته.
+          {isCashBoxTransfer ? 'التحويلات المحذوفة لا تؤثر على أرصدة الخزن.' : 'هذه الإيصالات محذوفة: لا تؤثر على الأرصدة أو الخزنة. إيصال الفاتورة يُستعاد من صفحة الفواتير مع فاتورته.'}
         </p>
       )}
 
@@ -302,11 +374,17 @@ export default function Receipts() {
         </label>
       </div>
 
-      {formOpen && !showDeleted && (
-        <Modal
-          title={editing ? `تعديل الإيصال ${editing.number}` : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`}
-          onClose={closeForm}
-        >
+      {formOpen && !showDeleted && (isCashBoxTransfer ? <Modal
+        title={editingTransfer ? `تعديل التحويل ${editingTransfer.number}` : 'تحويل جديد بين الخزن'}
+        onClose={closeForm}
+      >
+        <CashBoxTransferForm cashBoxes={cashBoxes} editing={editingTransfer}
+          onSaved={(message) => { setNotice(message); setFormOpen(false); setEditingTransfer(null); setVersion((current) => current + 1); }}
+          onCancel={closeForm} />
+      </Modal> : <Modal
+        title={editing ? `تعديل الإيصال ${editing.number}` : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`}
+        onClose={closeForm}
+      >
         <form className="inline-form" onSubmit={submit}>
 
           <div className="form-grid">
@@ -403,10 +481,24 @@ export default function Receipts() {
             </button>
           </div>
         </form>
-        </Modal>
-      )}
+        </Modal>)}
 
-      <div className="card">
+      {isCashBoxTransfer ? <div className="card"><div className="table-wrap"><table className="table">
+        <thead><tr><th>الرقم</th><th>التاريخ</th><th>من خزنة</th><th>إلى خزنة</th><th>المبلغ</th><th>ملاحظات</th><th /></tr></thead>
+        <tbody>
+          {loading && <tr><td colSpan={7} className="empty">جارٍ التحميل…</td></tr>}
+          {!loading && filteredTransferRows.length === 0 && <tr><td colSpan={7} className="empty">{cashBoxFilter !== 'all' ? 'لا توجد تحويلات في الخزنة المحددة.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات بين الخزن بعد.'}</td></tr>}
+          {!loading && filteredTransferRows.map((transfer) => <tr key={transfer.id}>
+            <td className="num">{transfer.number}</td><td className="num">{transfer.transfer_date}</td>
+            <td>{transfer.source_cash_box_name}</td><td>{transfer.destination_cash_box_name}</td>
+            <td className="num strong">{money(transfer.amount)}</td><td>{transfer.notes || '—'}</td>
+            <td className="row-actions">{showDeleted
+              ? <button type="button" className="link" onClick={() => restoreTransfer(transfer)}>استعادة</button>
+              : <><button type="button" className="link" onClick={() => { setEditingTransfer(transfer); setFormOpen(true); }}>تعديل</button><button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button></>}
+            </td>
+          </tr>)}
+        </tbody>
+      </table></div></div> : <div className="card">
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -511,7 +603,17 @@ export default function Receipts() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
+      {confirmation && (
+        <ConfirmDialog
+          title={confirmation.title}
+          message={confirmation.message}
+          confirmLabel={confirmation.confirmLabel}
+          danger={confirmation.confirmLabel === 'حذف'}
+          onConfirm={() => finishConfirmation(true)}
+          onCancel={() => finishConfirmation(false)}
+        />
+      )}
     </div>
   );
 }

@@ -216,6 +216,17 @@ p {
   width: min(320px, 100%);
 }
 
+.balance-filter-row {
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.filter-note {
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+
 .chip {
   background: #fff;
   border: 1px solid var(--line);
@@ -376,6 +387,20 @@ textarea:focus {
 
 .btn.primary:hover {
   background: var(--primary-dark);
+}
+
+.btn.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.btn.danger:hover {
+  background: #8f1d14;
+}
+
+.confirm-message {
+  white-space: pre-line;
 }
 
 .btn.ghost {

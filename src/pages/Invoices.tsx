@@ -3,7 +3,9 @@ import { supabase } from '../lib/supabase';
 import { money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import InvoiceForm from '../components/InvoiceForm';
+import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ConfirmDialog';
 import type {
   AccountRow,
   CashBoxRow,
@@ -14,16 +16,23 @@ import type {
   LineDraft,
   StockOpeningRow,
   WarehouseOption,
+  WarehouseTransferLine,
+  WarehouseTransferRow,
 } from '../lib/types';
+
+type InvoiceTab = InvoiceKind | 'warehouse_transfer';
 
 interface EditingInvoice {
   invoice: InvoiceRow;
   lines: LineDraft[];
 }
 
+interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
+
 export default function Invoices() {
-  const [kind, setKind] = useState<InvoiceKind>('sale');
+  const [kind, setKind] = useState<InvoiceTab>('sale');
   const [rows, setRows] = useState<InvoiceRow[]>([]);
+  const [transferRows, setTransferRows] = useState<WarehouseTransferRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
@@ -34,19 +43,34 @@ export default function Invoices() {
   const [notice, setNotice] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<EditingInvoice | null>(null);
+  const [editingTransfer, setEditingTransfer] = useState<(WarehouseTransferRow & { lines: WarehouseTransferLine[] }) | null>(null);
+  const [viewingTransfer, setViewingTransfer] = useState<WarehouseTransferRow | null>(null);
   const [version, setVersion] = useState(0);
+  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
   const [viewing, setViewing] = useState<InvoiceRow | null>(null);
   const [details, setDetails] = useState<InvoiceItemRow[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [warehouseFilter, setWarehouseFilter] = useState('all');
 
+  const isWarehouseTransfer = kind === 'warehouse_transfer';
+
+  function askConfirmation(message: string, confirmLabel: string): Promise<boolean> {
+    return new Promise((resolve) => setConfirmation({ title: 'تأكيد العملية', message, confirmLabel, resolve }));
+  }
+
+  function finishConfirmation(confirmed: boolean) {
+    const request = confirmation;
+    setConfirmation(null);
+    request?.resolve(confirmed);
+  }
+  const invoiceKind = isWarehouseTransfer ? null : kind;
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
   const viewingIsWaste = viewing?.kind === 'waste';
   const viewingIsReturn = Boolean(
     viewing && (viewing.kind === 'sale_return' || viewing.kind === 'purchase_return'),
   );
-  const newLabel =
+  const newLabel = isWarehouseTransfer ? 'تحويل مخزني' :
     kind === 'waste'
       ? 'فاتورة هالك'
       : kind === 'sale'
@@ -56,9 +80,11 @@ export default function Invoices() {
         : kind === 'sale_return'
           ? 'مرتجع مبيعات'
           : 'مرتجع مشتريات';
-  const formTitle = editing
+  const formTitle = editingTransfer
+    ? `تعديل التحويل ${editingTransfer.number}`
+    : editing
     ? `تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'} ${editing.invoice.number}`
-    : `${newLabel} جديدة`;
+    : `${newLabel} ${isWarehouseTransfer ? 'جديد' : 'جديدة'}`;
   const filteredRows = warehouseFilter === 'all'
     ? rows
     : rows.filter((invoice) => invoice.warehouse_id === warehouseFilter);
@@ -69,16 +95,7 @@ export default function Invoices() {
     async function load() {
       setLoading(true);
       setError('');
-
-      let invoicesQuery = supabase.from('v_invoice_list').select('*').eq('kind', kind);
-      invoicesQuery = showDeleted
-        ? invoicesQuery.not('deleted_at', 'is', null)
-        : invoicesQuery.is('deleted_at', null);
-
-      const [invoicesRes, accountsRes, warehousesRes, itemsRes, cashBoxesRes, stockRowsRes] = await Promise.all([
-        invoicesQuery
-          .order('invoice_date', { ascending: false })
-          .order('number', { ascending: false }),
+      const [accountsRes, warehousesRes, itemsRes, cashBoxesRes, stockRowsRes] = await Promise.all([
         supabase
           .from('v_account_balances')
           .select('*')
@@ -91,10 +108,25 @@ export default function Invoices() {
         supabase.from('v_stock_opening_balances').select('*').order('warehouse_name').order('item_name'),
       ]);
 
+      const [documentsRes, transfersRes] = await Promise.all([
+        invoiceKind
+          ? (showDeleted
+              ? supabase.from('v_invoice_list').select('*').eq('kind', invoiceKind).not('deleted_at', 'is', null)
+              : supabase.from('v_invoice_list').select('*').eq('kind', invoiceKind).is('deleted_at', null))
+              .order('invoice_date', { ascending: false }).order('number', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        isWarehouseTransfer
+          ? (showDeleted
+              ? supabase.from('v_warehouse_transfer_list').select('*').not('deleted_at', 'is', null)
+              : supabase.from('v_warehouse_transfer_list').select('*').is('deleted_at', null))
+              .order('transfer_date', { ascending: false }).order('number', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
       if (!alive) return;
 
       const firstError =
-        invoicesRes.error ?? accountsRes.error ?? warehousesRes.error ?? itemsRes.error ?? cashBoxesRes.error ?? stockRowsRes.error;
+        documentsRes.error ?? transfersRes.error ?? accountsRes.error ?? warehousesRes.error ?? itemsRes.error ?? cashBoxesRes.error ?? stockRowsRes.error;
 
       if (firstError) {
         setError(translateDbError(firstError.message));
@@ -102,7 +134,8 @@ export default function Invoices() {
         return;
       }
 
-      setRows((invoicesRes.data ?? []) as InvoiceRow[]);
+      setRows((documentsRes.data ?? []) as InvoiceRow[]);
+      setTransferRows((transfersRes.data ?? []) as WarehouseTransferRow[]);
       setAccounts((accountsRes.data ?? []) as AccountRow[]);
       setWarehouses((warehousesRes.data ?? []) as WarehouseOption[]);
       setItems((itemsRes.data ?? []) as ItemRow[]);
@@ -123,22 +156,37 @@ export default function Invoices() {
     return () => clearTimeout(timer);
   }, [notice]);
 
-  function switchKind(next: InvoiceKind) {
+  function switchKind(next: InvoiceTab) {
     if (next === kind) return;
     setKind(next);
     setFormOpen(false);
     setEditing(null);
+    setEditingTransfer(null);
     setViewing(null);
+    setViewingTransfer(null);
   }
 
   function toggleDeleted() {
     setShowDeleted((current) => !current);
     setFormOpen(false);
     setEditing(null);
+    setEditingTransfer(null);
     setViewing(null);
+    setViewingTransfer(null);
   }
 
   function openNew() {
+    setEditing(null);
+    setEditingTransfer(null);
+    setFormOpen(true);
+  }
+
+  async function startEditTransfer(transfer: WarehouseTransferRow) {
+    setError('');
+    const { data, error: linesError } = await supabase.from('warehouse_transfer_items')
+      .select('item_id, qty, unit_cost').eq('transfer_id', transfer.id).order('item_id');
+    if (linesError) return setError(translateDbError(linesError.message));
+    setEditingTransfer({ ...transfer, lines: (data ?? []) as WarehouseTransferLine[] });
     setEditing(null);
     setFormOpen(true);
   }
@@ -197,9 +245,10 @@ export default function Invoices() {
       invoice.kind === 'sale_return' || invoice.kind === 'purchase_return'
         ? 'المرتجع'
         : invoice.kind === 'waste' ? 'فاتورة الهالك' : 'الفاتورة';
-    const confirmed = window.confirm(
+    const confirmed = await askConfirmation(
       `حذف ${label} ${invoice.number}؟\n` +
         `سيُستثنى هو وإيصاله المرتبط من الأرصدة والتقارير، ويمكن استعادته من «عرض المحذوفات».`,
+      'حذف',
     );
     if (!confirmed) return;
 
@@ -221,9 +270,10 @@ export default function Invoices() {
       invoice.kind === 'sale_return' || invoice.kind === 'purchase_return'
         ? 'المرتجع'
         : invoice.kind === 'waste' ? 'فاتورة الهالك' : 'الفاتورة';
-    const confirmed = window.confirm(
+    const confirmed = await askConfirmation(
       `استعادة ${label} ${invoice.number}؟\n` +
         'سيعود مع إيصاله المرتبط ويُعاد تأثيره على المخزون والأرصدة.',
+      'استعادة',
     );
     if (!confirmed) return;
 
@@ -241,11 +291,32 @@ export default function Invoices() {
     setVersion((current) => current + 1);
   }
 
+  async function removeTransfer(transfer: WarehouseTransferRow) {
+    if (!(await askConfirmation(`حذف التحويل ${transfer.number}؟ سيعود المخزون إلى أرصدته السابقة إذا لم توجد حركات لاحقة على هذه الأصناف.`, 'حذف'))) return;
+    setError('');
+    const { error: rpcError } = await supabase.rpc('delete_warehouse_transfer', { p_transfer_id: transfer.id });
+    if (rpcError) return setError(translateDbError(rpcError.message));
+    setNotice(`تم نقل التحويل ${transfer.number} إلى المحذوفات`);
+    setViewingTransfer(null);
+    setVersion((current) => current + 1);
+  }
+
+  async function restoreTransfer(transfer: WarehouseTransferRow) {
+    if (!(await askConfirmation(`استعادة التحويل ${transfer.number}؟ سيعاد تطبيق حركة المخزون.`, 'استعادة'))) return;
+    setError('');
+    const { error: rpcError } = await supabase.rpc('restore_warehouse_transfer', { p_transfer_id: transfer.id });
+    if (rpcError) return setError(translateDbError(rpcError.message));
+    setNotice(`تم استعادة التحويل ${transfer.number}`);
+    setVersion((current) => current + 1);
+  }
+
   function handleSaved(message: string) {
     setNotice(message);
     setFormOpen(false);
     setEditing(null);
+    setEditingTransfer(null);
     setViewing(null);
+    setViewingTransfer(null);
     setVersion((current) => current + 1);
   }
 
@@ -255,8 +326,9 @@ export default function Invoices() {
         <div>
           <h1>الفواتير</h1>
           <p className="muted">
-            الفاتورة تزيد رصيد الحساب، والمرتجع يخصمه ويعدّل المخزون. المدفوع/المسترد يُنشئ إيصالًا
-            تلقائيًا مربوطًا بالمستند. تُعرض تكلفة البيع وربحه، والهالك بتكلفته وخسارته.
+            {isWarehouseTransfer
+              ? 'انقل الأصناف بين المخازن. يتغير رصيد كل مخزن وتكلفة الوجهة من غير تأثير على الحسابات أو ربح الفواتير.'
+              : 'الفاتورة تزيد رصيد الحساب، والمرتجع يخصمه ويعدّل المخزون. المدفوع/المسترد يُنشئ إيصالًا تلقائيًا مربوطًا بالمستند. تُعرض تكلفة البيع وربحه، والهالك بتكلفته وخسارته.'}
           </p>
         </div>
         <div className="actions">
@@ -279,6 +351,7 @@ export default function Invoices() {
             { value: 'sale_return', label: 'مرتجعات المبيعات' },
             { value: 'purchase_return', label: 'مرتجعات المشتريات' },
             { value: 'waste', label: 'الهالك' },
+            { value: 'warehouse_transfer', label: 'تحويل مخزني' },
           ] as const
         ).map((tab) => (
           <button
@@ -296,11 +369,11 @@ export default function Invoices() {
       {error && <p className="alert error">{error}</p>}
       {showDeleted && (
         <p className="hint">
-          هذه المستندات محذوفة: لا تؤثر على الأرصدة أو المخزون، ويمكن استعادتها في أي وقت.
+          {isWarehouseTransfer ? 'التحويلات المحذوفة لا تؤثر على المخزون، ويمكن استعادتها ما لم توجد حركات لاحقة.' : 'هذه المستندات محذوفة: لا تؤثر على الأرصدة أو المخزون، ويمكن استعادتها في أي وقت.'}
         </p>
       )}
 
-      <div className="filter-row">
+      {isWarehouseTransfer && <div className="filter-row">
         <label>
           تصفية حسب المخزن
           <select value={warehouseFilter} onChange={(event) => setWarehouseFilter(event.target.value)}>
@@ -312,16 +385,25 @@ export default function Invoices() {
             ))}
           </select>
         </label>
-      </div>
+      </div>}
 
       {formOpen && (
         <Modal title={formTitle} onClose={() => {
           setFormOpen(false);
           setEditing(null);
+          setEditingTransfer(null);
         }}>
-          <InvoiceForm
-            key={editing?.invoice.id ?? 'new'}
-            kind={kind}
+          {isWarehouseTransfer ? <WarehouseTransferForm
+            key={editingTransfer?.id ?? 'new-transfer'}
+            warehouses={warehouses}
+            items={items}
+            stockRows={stockRows}
+            editing={editingTransfer}
+            onSaved={handleSaved}
+            onCancel={() => { setFormOpen(false); setEditingTransfer(null); }}
+          /> : <InvoiceForm
+            key={editing?.invoice.id ?? 'new-invoice'}
+            kind={kind as InvoiceKind}
             accounts={accounts}
             warehouses={warehouses}
             cashBoxes={cashBoxes}
@@ -329,15 +411,31 @@ export default function Invoices() {
             stockRows={stockRows}
             editing={editing}
             onSaved={handleSaved}
-            onCancel={() => {
-              setFormOpen(false);
-              setEditing(null);
-            }}
-          />
+            onCancel={() => { setFormOpen(false); setEditing(null); }}
+          />}
         </Modal>
       )}
 
-      <div className="card">
+      {isWarehouseTransfer ? <div className="card">
+        <div className="table-wrap"><table className="table">
+          <thead><tr><th>الرقم</th><th>التاريخ</th><th>من مخزن</th><th>إلى مخزن</th><th>الأصناف والكميات</th><th>قيمة التكلفة المنقولة</th><th>ملاحظات</th><th /></tr></thead>
+          <tbody>
+            {loading && <tr><td colSpan={8} className="empty">جارٍ التحميل…</td></tr>}
+            {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).length === 0 &&
+              <tr><td colSpan={8} className="empty">{warehouseFilter !== 'all' ? 'لا توجد تحويلات للمخزن المحدد.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات مخزنية بعد.'}</td></tr>}
+            {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).map((transfer) => <tr key={transfer.id}>
+              <td className="num">{transfer.number}</td><td className="num">{transfer.transfer_date}</td>
+              <td>{transfer.source_warehouse_name}</td><td>{transfer.destination_warehouse_name}</td>
+              <td>{transfer.items_summary} <span className="muted">({formatQty(transfer.total_qty)})</span></td>
+              <td className="num">{money(transfer.total_value)}</td><td>{transfer.notes || '—'}</td>
+              <td className="row-actions">{showDeleted
+                ? <button type="button" className="link" onClick={() => restoreTransfer(transfer)}>استعادة</button>
+                : <><button type="button" className="link" onClick={() => setViewingTransfer(transfer)}>عرض</button><button type="button" className="link" onClick={() => void startEditTransfer(transfer)}>تعديل</button><button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button></>}
+              </td>
+            </tr>)}
+          </tbody>
+        </table></div>
+      </div> : <div className="card">
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -434,7 +532,18 @@ export default function Invoices() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
+
+      {viewingTransfer && <Modal title={`تحويل مخزني ${viewingTransfer.number}`} onClose={() => setViewingTransfer(null)}>
+        <dl className="doc-meta-list">
+          <dt>التاريخ</dt><dd>{viewingTransfer.transfer_date}</dd>
+          <dt>من مخزن</dt><dd>{viewingTransfer.source_warehouse_name}</dd>
+          <dt>إلى مخزن</dt><dd>{viewingTransfer.destination_warehouse_name}</dd>
+          <dt>الأصناف</dt><dd>{viewingTransfer.items_summary || '—'}</dd>
+          <dt>قيمة التكلفة المنقولة</dt><dd className="num">{money(viewingTransfer.total_value)}</dd>
+          <dt>ملاحظات</dt><dd>{viewingTransfer.notes || '—'}</dd>
+        </dl>
+      </Modal>}
 
       {viewing && (
         <Modal
@@ -515,6 +624,16 @@ export default function Invoices() {
             </div>
           )}
         </Modal>
+      )}
+      {confirmation && (
+        <ConfirmDialog
+          title={confirmation.title}
+          message={confirmation.message}
+          confirmLabel={confirmation.confirmLabel}
+          danger={confirmation.confirmLabel === 'حذف'}
+          onConfirm={() => finishConfirmation(true)}
+          onCancel={() => finishConfirmation(false)}
+        />
       )}
     </div>
   );
