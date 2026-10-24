@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { X, Printer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { entityNumber, money, qty as formatQty, today } from '../lib/format';
+import { entityNumber, formatDate, money, qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import DateInput from '../components/DateInput';
@@ -676,7 +676,7 @@ export default function Balances() {
                     <tbody>
                       {statementRows.map((row, index) => (
                         <tr key={`${row.row_type}-${row.transaction_date}-${row.receipt_number ?? row.invoice_number ?? index}`} className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}>
-                          <td className="num" data-label="التاريخ">{row.transaction_date}</td>
+                          <td className="num" data-label="التاريخ">{formatDate(row.transaction_date)}</td>
                           <td className="card-wide-cell" data-label="البيان">{row.description}</td>
                           <td className="num" data-label="مدين">{Number(row.debit) ? money(row.debit) : '—'}</td>
                           <td className="num" data-label="دائن">{Number(row.credit) ? money(row.credit) : '—'}</td>
@@ -729,7 +729,7 @@ export default function Balances() {
                     <tbody>
                       {cashStatementRows.map((row, index) => (
                         <tr key={`${row.row_type}-${row.transaction_date}-${row.receipt_number ?? row.transfer_number ?? index}`} className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}>
-                          <td className="num" data-label="التاريخ">{row.transaction_date}</td>
+                          <td className="num" data-label="التاريخ">{formatDate(row.transaction_date)}</td>
                           <td className="card-wide-cell" data-label="البيان">{row.description}</td>
                           <td className="num" data-label="وارد">{Number(row.incoming) ? money(row.incoming) : '—'}</td>
                           <td className="num" data-label="صادر">{Number(row.outgoing) ? money(row.outgoing) : '—'}</td>
@@ -786,7 +786,7 @@ export default function Balances() {
                     <tbody>
                       {itemStatementRows.map((row, index) => (
                         <tr key={`${row.row_type}-${row.transaction_date}-${row.transfer_number ?? row.invoice_number ?? index}`} className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}>
-                          <td className="num" data-label="التاريخ">{row.transaction_date}</td>
+                          <td className="num" data-label="التاريخ">{formatDate(row.transaction_date)}</td>
                           <td className="card-wide-cell" data-label="البيان">{row.description}</td>
                           <td className="num" data-label="وارد">{Number(row.incoming) ? formatQty(row.incoming) : '—'}</td>
                           <td className="num" data-label="صادر">{Number(row.outgoing) ? formatQty(row.outgoing) : '—'}</td>

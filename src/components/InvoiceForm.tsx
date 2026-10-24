@@ -259,6 +259,11 @@ export default function InvoiceForm({
     );
     if (hasInvalidLine) return toast.error('أدخل كمية وسعرًا صحيحين لكل الأصناف (الكمية يجب أن تكون أكبر من صفر)');
 
+    const itemIds = activeLines.map((line) => line.item_id);
+    if (new Set(itemIds).size !== itemIds.length) {
+      return toast.error('لا يمكن تكرار نفس الصنف في أكثر من سطر بالفاتورة. يرجى تعديل الكمية في سطر واحد.');
+    }
+
     if (!(paidNumber >= 0)) return toast.error(`قيمة ${isReturn ? 'المسترد' : 'المدفوع'} غير صحيحة`);
     if (paidNumber > total)
       return toast.error(`${isReturn ? 'المسترد' : 'المدفوع'} أكبر من إجمالي ${isReturn ? 'المرتجع' : 'الفاتورة'}`);
@@ -360,7 +365,7 @@ export default function InvoiceForm({
                   const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
                   const isStockExceeded =
                     Boolean(line.item_id) &&
-                    (kind === 'sale' || kind === 'waste') &&
+                    (kind === 'sale' || kind === 'waste' || kind === 'purchase_return') &&
                     Number(line.qty) > availableStock;
 
                   const isEmptyLine = !line.item_id;

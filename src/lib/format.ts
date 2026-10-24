@@ -42,6 +42,17 @@ export function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+export function formatDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  const raw = value.slice(0, 10);
+  const parts = raw.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const [y, m, d] = parts;
+    return `${d}/${m}/${y}`;
+  }
+  return value;
+}
+
 export function today(): string {
   const d = new Date();
   const month = String(d.getMonth() + 1).padStart(2, '0');

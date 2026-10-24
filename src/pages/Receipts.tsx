@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { X, ExternalLink, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { creationTime, money, today } from '../lib/format';
+import { creationTime, formatDate, money, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
@@ -316,13 +316,13 @@ export default function Receipts() {
     setError('');
 
     if (editing) {
-      const { error: rpcError } = await supabase.rpc('update_receipt', {
+      const { error: rpcError } = await supabase.rpc('update_free_receipt', {
         p_receipt_id: editing.id,
         p_account_id: accountId,
         p_cash_box_id: cashBoxId,
         p_receipt_date: date,
         p_amount: Number(amount),
-        p_statement: description.trim() || null,
+        p_description: description.trim() || null,
         p_notes: notes.trim() || null,
       });
 
@@ -335,13 +335,13 @@ export default function Receipts() {
 
       setNotice(`تم تعديل الإيصال ${editing.number}`);
     } else {
-      const { data, error: rpcError } = await supabase.rpc('create_receipt', {
+      const { error: rpcError } = await supabase.rpc('create_free_receipt', {
         p_direction: direction,
         p_account_id: accountId,
         p_cash_box_id: cashBoxId,
         p_receipt_date: date,
         p_amount: Number(amount),
-        p_statement: description.trim() || null,
+        p_description: description.trim() || null,
         p_notes: notes.trim() || null,
       });
 
@@ -352,8 +352,7 @@ export default function Receipts() {
         return;
       }
 
-      const receiptNumber = (data as { number?: string })?.number ?? '';
-      setNotice(`تم إنشاء الإيصال ${receiptNumber}`);
+      setNotice(direction === 'in' ? 'تم إنشاء إيصال الاستلام بنجاح' : 'تم إنشاء إيصال الصرف بنجاح');
     }
 
     closeForm();
@@ -370,7 +369,7 @@ export default function Receipts() {
     if (!confirmed) return;
 
     setError('');
-    const { error: rpcError } = await supabase.rpc('delete_receipt', {
+    const { error: rpcError } = await supabase.rpc('delete_free_receipt', {
       p_receipt_id: receipt.id,
     });
 
@@ -554,7 +553,7 @@ export default function Receipts() {
                         }}
                       >
                         <td className="num strong">{transfer.number}</td>
-                        <td className="num">{transfer.transfer_date}</td>
+                        <td className="num">{formatDate(transfer.transfer_date)}</td>
                         <td>{transfer.source_cash_box_name}</td>
                         <td className="col-hide-on-detail">{transfer.destination_cash_box_name}</td>
                         <td className="num strong">{money(transfer.amount)}</td>
@@ -609,7 +608,7 @@ export default function Receipts() {
                         }}
                       >
                         <td className="num strong">{receipt.number}</td>
-                        <td className="num">{receipt.receipt_date}</td>
+                        <td className="num">{formatDate(receipt.receipt_date)}</td>
                         <td>
                           {receipt.account_name}{' '}
                           <span className="muted">
@@ -680,7 +679,7 @@ export default function Receipts() {
               <dl className="erp-detail-summary">
                 <div><dt>من خزنة</dt><dd>{viewingTransfer.source_cash_box_name}</dd></div>
                 <div><dt>إلى خزنة</dt><dd>{viewingTransfer.destination_cash_box_name}</dd></div>
-                <div><dt>التاريخ</dt><dd className="num">{viewingTransfer.transfer_date}</dd></div>
+                <div><dt>التاريخ</dt><dd className="num">{formatDate(viewingTransfer.transfer_date)}</dd></div>
                 <div><dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewingTransfer.created_at)}</dd></div>
               </dl>
 
@@ -713,7 +712,7 @@ export default function Receipts() {
               <dl className="erp-detail-summary">
                 <div><dt>الحساب</dt><dd>{viewing.account_name} ({viewing.account_kind === 'customer' ? 'عميل' : 'مورد'})</dd></div>
                 <div><dt>الخزنة</dt><dd>{viewing.cash_box_name}</dd></div>
-                <div><dt>التاريخ</dt><dd className="num">{viewing.receipt_date}</dd></div>
+                <div><dt>التاريخ</dt><dd className="num">{formatDate(viewing.receipt_date)}</dd></div>
                 <div><dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewing.created_at)}</dd></div>
                 <div>
                   <dt>الارتباط</dt>

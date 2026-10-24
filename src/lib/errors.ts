@@ -62,6 +62,7 @@ const MESSAGES: Record<string, string> = {
   not_authenticated: 'انتهت الجلسة، سجّل الدخول من جديد',
   no_cash_box: 'لا توجد خزنة معرّفة',
   forbidden_company: 'غير مسموح بالوصول لهذه الشركة',
+  permission_denied: 'ليس لديك صلاحية لتنفيذ هذه العملية',
   invalid_statement_period: 'اختر فترة صحيحة لكشف الحساب',
 };
 

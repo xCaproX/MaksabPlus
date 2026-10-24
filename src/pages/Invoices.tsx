@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { X, ExternalLink, Receipt as ReceiptIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { creationTime, money, qty as formatQty } from '../lib/format';
+import { creationTime, formatDate, money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
@@ -598,7 +598,7 @@ export default function Invoices() {
                         }}
                       >
                         <td className="num strong">{transfer.number}</td>
-                        <td className="num">{transfer.transfer_date}</td>
+                        <td className="num">{formatDate(transfer.transfer_date)}</td>
                         <td>{transfer.source_warehouse_name}</td>
                         <td className="col-hide-on-detail">{transfer.destination_warehouse_name}</td>
                         <td className="num">{transfer.line_count}</td>
@@ -658,7 +658,7 @@ export default function Invoices() {
                         }}
                       >
                         <td className="num strong">{invoice.number}</td>
-                        <td className="num">{invoice.invoice_date}</td>
+                        <td className="num">{formatDate(invoice.invoice_date)}</td>
                         <td>{invoice.account_name}</td>
                         <td className="col-hide-on-detail">{invoice.warehouse_name}</td>
                         <td className="num strong">{money(invoice.total)}</td>
@@ -726,7 +726,7 @@ export default function Invoices() {
                   <dl className="erp-detail-summary">
                     <div><dt>من مخزن</dt><dd>{viewingTransfer.source_warehouse_name}</dd></div>
                     <div><dt>إلى مخزن</dt><dd>{viewingTransfer.destination_warehouse_name}</dd></div>
-                    <div><dt>التاريخ</dt><dd className="num">{viewingTransfer.transfer_date}</dd></div>
+                    <div><dt>التاريخ</dt><dd className="num">{formatDate(viewingTransfer.transfer_date)}</dd></div>
                     <div><dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewingTransfer.created_at)}</dd></div>
                   </dl>
 
@@ -780,7 +780,7 @@ export default function Invoices() {
                 <>
                   <dl className="erp-detail-summary">
                     <div><dt>{partyHeader}</dt><dd>{viewing.account_name}</dd></div>
-                    <div><dt>التاريخ</dt><dd className="num">{viewing.invoice_date}</dd></div>
+                    <div><dt>التاريخ</dt><dd className="num">{formatDate(viewing.invoice_date)}</dd></div>
                     <div><dt>المخزن</dt><dd>{viewing.warehouse_name}</dd></div>
                     {viewing.cash_box_name && <div><dt>الخزنة</dt><dd>{viewing.cash_box_name}</dd></div>}
                     {kind !== 'waste' && (
