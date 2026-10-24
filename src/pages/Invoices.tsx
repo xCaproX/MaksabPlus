@@ -542,6 +542,12 @@ export default function Invoices() {
                   placeholder="بحث برقم الفاتورة أو العميل…"
                 />
               </label>
+              <select aria-label="ترتيب النتائج" value={salesSort} onChange={(event) => setSalesSort(event.target.value as SaleSort)}>
+                <option value="date-desc">الأحدث أولًا</option>
+                <option value="date-asc">الأقدم أولًا</option>
+                <option value="total-desc">الأعلى قيمة</option>
+                <option value="total-asc">الأقل قيمة</option>
+              </select>
               <select aria-label="حالة السداد" value={salesStatus} onChange={(event) => setSalesStatus(event.target.value as SaleStatus)}>
                 <option value="all">كل الحالات</option>
                 <option value="paid">مسددة</option>
@@ -550,12 +556,6 @@ export default function Invoices() {
               </select>
               <label className="erp-date"><span>من</span><input type="date" value={salesDateFrom} onChange={(event) => setSalesDateFrom(event.target.value)} /></label>
               <label className="erp-date"><span>إلى</span><input type="date" value={salesDateTo} onChange={(event) => setSalesDateTo(event.target.value)} /></label>
-              <select aria-label="ترتيب النتائج" value={salesSort} onChange={(event) => setSalesSort(event.target.value as SaleSort)}>
-                <option value="date-desc">الأحدث أولًا</option>
-                <option value="date-asc">الأقدم أولًا</option>
-                <option value="total-desc">الأعلى قيمة</option>
-                <option value="total-asc">الأقل قيمة</option>
-              </select>
             </div>
           </div>
           <div className="erp-table-wrap">
