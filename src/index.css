@@ -1757,17 +1757,27 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
   flex-shrink: 0;
 }
 
+/* Number inputs hide native spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 .form-account-balance-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 9px;
-  padding: 8px 14px;
-  min-width: 270px;
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 290px;
   font-size: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .form-account-balance-card .balance-card-row {
@@ -1776,43 +1786,46 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
   align-items: center;
   gap: 12px;
   color: #64748b;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
-.form-account-balance-card .balance-card-row.highlight {
-  padding-top: 5px;
-  margin-top: 2px;
-  border-top: 1px dashed #cbd5e1;
-  font-weight: 700;
-  color: #1e293b;
-  font-size: 12.5px;
+.form-account-balance-card .balance-val-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: flex-end;
 }
 
 .form-account-balance-card .balance-card-label {
   color: #475569;
+  font-weight: 600;
 }
 
 .form-account-balance-card .balance-card-val {
   font-weight: 700;
   font-family: inherit;
+  font-variant-numeric: tabular-nums;
   direction: ltr;
   text-align: left;
+  color: var(--ink);
 }
 
-.form-account-balance-card .balance-card-val.debit {
-  color: #b45309;
+.form-account-balance-card .balance-card-row.highlight {
+  padding-top: 8px;
+  margin-top: 4px;
+  border-top: 1px dashed #cbd5e1;
 }
 
-.form-account-balance-card .balance-card-val.credit {
-  color: #0369a1;
+.form-account-balance-card .highlight-label {
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--ink);
 }
 
-.form-account-balance-card .balance-card-val.neutral {
-  color: #0f766e;
-}
-
-.form-account-balance-card .balance-card-val.decrease {
-  color: #15803d;
+.form-account-balance-card .highlight-val {
+  font-size: 15.5px;
+  font-weight: 850;
+  color: var(--primary-dark);
 }
 
 /* Notes Row in Form Footer */
@@ -1934,10 +1947,10 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
 }
 
 .lines-table thead th.w-num { width: 44px; text-align: center; }
-.lines-table thead th.w-qty { width: 13%; }
-.lines-table thead th.w-price { width: 16%; }
-.lines-table thead th.w-total { width: 16%; text-align: left; padding-inline-end: 14px; }
-.lines-table thead th.w-action { width: 6%; }
+.lines-table thead th.w-qty { width: 140px; }
+.lines-table thead th.w-price { width: 130px; }
+.lines-table thead th.w-total { width: 140px; text-align: end; padding-inline-end: 14px; }
+.lines-table thead th.w-action { width: 44px; text-align: center; }
 
 .line-index-cell {
   color: #94a3b8;
@@ -1948,7 +1961,18 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
 
 .lines-table tbody tr {
   border-bottom: 1px solid #f1f5f9;
-  transition: background 0.12s ease;
+  transition: background 0.12s ease, opacity 0.15s ease;
+}
+
+.lines-table tbody tr.empty-line-row {
+  opacity: 0.58;
+  background: #fafbfc;
+}
+
+.lines-table tbody tr.empty-line-row:hover,
+.lines-table tbody tr.empty-line-row:focus-within {
+  opacity: 1;
+  background: #fff;
 }
 
 .lines-table tbody tr:last-child {
@@ -1975,24 +1999,66 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
 
 .lines-table .line-total {
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13.5px;
   color: #0f172a;
-  text-align: left;
+  text-align: end;
   padding-inline-end: 14px;
+  font-variant-numeric: tabular-nums;
 }
 
-.line-qty-cell {
-  position: relative;
+.line-qty-group {
   display: flex;
   align-items: center;
+  border: 1px solid var(--erp-border, #cbd5e1);
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+  height: 38px;
+  min-height: 38px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.line-unit-badge {
-  position: absolute;
-  inset-inline-end: 8px;
+.line-qty-group:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(46, 66, 92, 0.12);
+}
+
+.line-qty-group input {
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  flex: 1;
+  min-width: 0;
+  padding: 0 8px !important;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  border-radius: 0 !important;
+}
+
+.line-unit-suffix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
   font-size: 11px;
-  color: var(--erp-muted, #64748b);
-  pointer-events: none;
+  font-weight: 600;
+  color: var(--muted);
+  background: #f8fafc;
+  border-inline-start: 1px solid var(--line);
+  height: 100%;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.stock-warning-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger);
+  margin-top: 3px;
+  display: block;
+  line-height: 1.3;
 }
 
 .line-delete-btn {
