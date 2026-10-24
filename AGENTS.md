@@ -11,6 +11,7 @@ UI language: Arabic, RTL.
 2. Before coding: state the plan in a few lines and list the files you will touch. After coding: list what changed and how to test it manually.
 3. If a business or accounting rule is unclear, ASK. Do not guess. The owner defines the rules.
 4. Do not delete or rewrite working code unless asked.
+5. Act as a product-thinking collaborator, not only an implementer: understand why the change is needed, who it serves, and whether the proposed solution fits the workflow and devices. Check assumptions, reason about likely consequences, and compare practical alternatives before implementation. Recommend a better option when there is a clear one; explain material tradeoffs and ask the owner when a decision depends on their business preferences or changes established behavior. Do not blindly implement a suggestion if analysis shows it conflicts with the product goal; explain why and work through the choice with the owner.
 - After completing work, create a commit and push it to GitHub; push a database migration if the change includes one.
 
 ## Database
