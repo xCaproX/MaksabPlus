@@ -68,8 +68,9 @@ export default function Layout() {
         <nav className="nav" aria-label="التنقل الرئيسي">
           {can('goods.view','goods.create','goods.edit','goods.delete') && (
             <div className="nav-group">
-              <NavLink to="/invoices" className={({ isActive }) => (isActive ? 'active' : '')}>
-                البضاعة
+              <NavLink to="/invoices" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <span>البضاعة</span>
+                <span className="nav-chevron">{isGoods ? '▴' : '▾'}</span>
               </NavLink>
               {isGoods && (
                 <div className="subnav">
@@ -81,7 +82,8 @@ export default function Layout() {
                         to={`/invoices?tab=${item.id}`}
                         className={`subnav-link ${isActive ? 'active' : ''}`}
                       >
-                        {item.label}
+                        <span className="subnav-dot" />
+                        <span>{item.label}</span>
                       </Link>
                     );
                   })}
@@ -92,8 +94,9 @@ export default function Layout() {
 
           {can('money.view','money.create','money.edit','money.delete') && (
             <div className="nav-group">
-              <NavLink to="/receipts" className={({ isActive }) => (isActive ? 'active' : '')}>
-                الفلوس
+              <NavLink to="/receipts" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <span>الفلوس</span>
+                <span className="nav-chevron">{isMoney ? '▴' : '▾'}</span>
               </NavLink>
               {isMoney && (
                 <div className="subnav">
@@ -105,7 +108,8 @@ export default function Layout() {
                         to={`/receipts?tab=${item.id}`}
                         className={`subnav-link ${isActive ? 'active' : ''}`}
                       >
-                        {item.label}
+                        <span className="subnav-dot" />
+                        <span>{item.label}</span>
                       </Link>
                     );
                   })}
@@ -116,8 +120,9 @@ export default function Layout() {
 
           {can('data.view','data.create','data.edit','data.delete') && (
             <div className="nav-group">
-              <NavLink to="/data" className={({ isActive }) => (isActive ? 'active' : '')}>
-                البيانات
+              <NavLink to="/data" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <span>البيانات</span>
+                <span className="nav-chevron">{isData ? '▴' : '▾'}</span>
               </NavLink>
               {isData && (
                 <div className="subnav">
@@ -129,7 +134,8 @@ export default function Layout() {
                         to={`/data?tab=${item.id}`}
                         className={`subnav-link ${isActive ? 'active' : ''}`}
                       >
-                        {item.label}
+                        <span className="subnav-dot" />
+                        <span>{item.label}</span>
                       </Link>
                     );
                   })}
@@ -140,8 +146,9 @@ export default function Layout() {
 
           {can('balances.view') && (
             <div className="nav-group">
-              <NavLink to="/balances" className={({ isActive }) => (isActive ? 'active' : '')}>
-                الأرصدة
+              <NavLink to="/balances" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <span>الأرصدة</span>
+                <span className="nav-chevron">{isBalances ? '▴' : '▾'}</span>
               </NavLink>
               {isBalances && (
                 <div className="subnav">
@@ -153,7 +160,8 @@ export default function Layout() {
                         to={`/balances?tab=${item.id}`}
                         className={`subnav-link ${isActive ? 'active' : ''}`}
                       >
-                        {item.label}
+                        <span className="subnav-dot" />
+                        <span>{item.label}</span>
                       </Link>
                     );
                   })}
@@ -164,8 +172,9 @@ export default function Layout() {
 
           {can('management.view','management.edit') && (
             <div className="nav-group">
-              <NavLink to="/management" className={({ isActive }) => (isActive ? 'active' : '')}>
-                إدارة
+              <NavLink to="/management" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <span>إدارة</span>
+                <span className="nav-chevron">{isManagement ? '▴' : '▾'}</span>
               </NavLink>
               {isManagement && (
                 <div className="subnav">
@@ -177,7 +186,8 @@ export default function Layout() {
                         to={`/management?tab=${item.id}`}
                         className={`subnav-link ${isActive ? 'active' : ''}`}
                       >
-                        {item.label}
+                        <span className="subnav-dot" />
+                        <span>{item.label}</span>
                       </Link>
                     );
                   })}
