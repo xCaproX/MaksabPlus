@@ -16,9 +16,9 @@ export default function AccountBalanceCard({
   balanceBefore,
   delta,
   balanceAfter,
-  titleBefore = 'الرصيد قبل الفاتورة',
-  deltaLabel = 'صافي حركة الفاتورة',
-  titleAfter = 'الرصيد بعد الفاتورة',
+  titleBefore = 'الرصيد قبل',
+  deltaLabel = 'صافي مديونية',
+  titleAfter = 'الرصيد بعد',
 }: AccountBalanceCardProps) {
   const isCust = accountKind === 'customer';
 
@@ -75,7 +75,7 @@ export default function AccountBalanceCard({
   return (
     <div className="form-account-balance-card" aria-label="موقف حساب العميل/المورد">
       {/* 1. الرصيد قبل */}
-      <div className="balance-card-row">
+      <div className="balance-card-col">
         <span className="balance-card-label">{titleBefore}</span>
         <div className="balance-val-group">
           <span dir="ltr" className="balance-card-val num">
@@ -86,7 +86,7 @@ export default function AccountBalanceCard({
       </div>
 
       {/* 2. الصافي / الحركة */}
-      <div className="balance-card-row">
+      <div className="balance-card-col">
         <span className="balance-card-label">{deltaLabel}</span>
         <div className="balance-val-group">
           <span dir="ltr" className="balance-card-val num">
@@ -97,7 +97,7 @@ export default function AccountBalanceCard({
       </div>
 
       {/* 3. الرصيد بعد (الأبرز والأهم بصرياً) */}
-      <div className="balance-card-row highlight balance-after-row">
+      <div className="balance-card-col highlight balance-after-col">
         <span className="balance-card-label highlight-label">{titleAfter}</span>
         <div className="balance-val-group">
           <strong dir="ltr" className="balance-card-val highlight-val num">

@@ -113,9 +113,9 @@ export default function PreviewReceipt() {
                   balanceBefore={receiptBalanceBefore}
                   delta={currentDelta}
                   balanceAfter={receiptBalanceAfter}
-                  titleBefore="الرصيد قبل الإيصال"
+                  titleBefore="الرصيد قبل"
                   deltaLabel="صافي حركة الإيصال"
-                  titleAfter="الرصيد بعد الإيصال"
+                  titleAfter="الرصيد بعد"
                 />
               )}
             </div>

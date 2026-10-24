@@ -326,9 +326,9 @@ export default function InvoiceForm({
               balanceBefore={balanceBefore}
               delta={netInvoiceDebt}
               balanceAfter={balanceAfter}
-              titleBefore="الرصيد قبل الفاتورة"
-              deltaLabel="صافي مديونية الفاتورة"
-              titleAfter="الرصيد بعد الفاتورة"
+              titleBefore="الرصيد قبل"
+              deltaLabel="صافي مديونية"
+              titleAfter="الرصيد بعد"
             />
           )}
         </div>

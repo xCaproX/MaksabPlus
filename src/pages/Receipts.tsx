@@ -842,9 +842,9 @@ export default function Receipts() {
                         balanceBefore={receiptBalanceBefore}
                         delta={currentDelta}
                         balanceAfter={receiptBalanceAfter}
-                        titleBefore="الرصيد قبل الإيصال"
+                        titleBefore="الرصيد قبل"
                         deltaLabel="صافي حركة الإيصال"
-                        titleAfter="الرصيد بعد الإيصال"
+                        titleAfter="الرصيد بعد"
                       />
                     )}
                   </div>
