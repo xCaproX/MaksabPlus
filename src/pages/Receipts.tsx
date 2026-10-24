@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { X, ExternalLink, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { creationTime, money, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -10,6 +10,8 @@ import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AccountBalanceCard from '../components/AccountBalanceCard';
 import DateInput from '../components/DateInput';
+import StatusBadge from '../components/StatusBadge';
+import RowActions from '../components/RowActions';
 import { toast } from '../components/Toast';
 import type {
   AccountRow,
@@ -439,7 +441,7 @@ export default function Receipts() {
         </div>
         <div className="actions">
           {can(`money.${tab}.delete`) && (
-            <button type="button" className="btn" onClick={toggleDeleted}>
+            <button type="button" className="btn ghost" onClick={toggleDeleted}>
               {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
             </button>
           )}
@@ -487,7 +489,7 @@ export default function Receipts() {
       )}
 
       {/* الـ ERP Workspace لقسم الفلوس */}
-      <div className="erp-sales-workspace">
+      <div className={viewing || viewingTransfer ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
             <div className="erp-toolbar-title">
@@ -521,8 +523,8 @@ export default function Receipts() {
                 ))}
               </select>
 
-              <label className="erp-date"><span>من</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /></label>
-              <label className="erp-date"><span>إلى</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></label>
+              <div className="erp-date"><span>من</span><DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" /></div>
+              <div className="erp-date"><span>إلى</span><DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" /></div>
             </div>
           </div>
 
@@ -534,9 +536,9 @@ export default function Receipts() {
                     <th>الرقم</th>
                     <th>التاريخ</th>
                     <th>من خزنة</th>
-                    <th>إلى خزنة</th>
+                    <th className="col-hide-on-detail">إلى خزنة</th>
                     <th className="num">المبلغ</th>
-                    <th>ملاحظات</th>
+                    <th className="col-hide-on-detail">ملاحظات</th>
                     <th aria-label="الإجراءات" />
                   </tr>
                 </thead>
@@ -558,17 +560,22 @@ export default function Receipts() {
                         <td className="num strong">{transfer.number}</td>
                         <td className="num">{transfer.transfer_date}</td>
                         <td>{transfer.source_cash_box_name}</td>
-                        <td>{transfer.destination_cash_box_name}</td>
+                        <td className="col-hide-on-detail">{transfer.destination_cash_box_name}</td>
                         <td className="num strong">{money(transfer.amount)}</td>
-                        <td>{transfer.notes || '—'}</td>
+                        <td className="col-hide-on-detail">{transfer.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                           {showDeleted ? (
-                            can('money.delete') && <button type="button" className="link" onClick={() => void restoreTransfer(transfer)}>استعادة</button>
+                            can('money.delete') && (
+                              <RowActions
+                                onRestore={() => void restoreTransfer(transfer)}
+                                restoreLabel="استعادة التحويل"
+                              />
+                            )
                           ) : (
-                            <>
-                              {can('money.edit') && <button type="button" className="link" onClick={() => { setEditingTransfer(transfer); setFormOpen(true); }}>تعديل</button>}
-                              {can('money.delete') && <button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button>}
-                            </>
+                            <RowActions
+                              onEdit={can('money.edit') ? () => { setEditingTransfer(transfer); setFormOpen(true); } : undefined}
+                              onDelete={can('money.delete') ? () => void removeTransfer(transfer) : undefined}
+                            />
                           )}
                         </td>
                       </tr>
@@ -583,10 +590,10 @@ export default function Receipts() {
                     <th>الرقم</th>
                     <th>التاريخ</th>
                     <th>الحساب</th>
-                    <th>الخزنة</th>
+                    <th className="col-hide-on-detail">الخزنة</th>
                     <th className="num">المبلغ</th>
-                    <th>نوع الإيصال</th>
-                    <th>البيان</th>
+                    <th className="col-hide-on-detail">نوع الإيصال</th>
+                    <th className="col-hide-on-detail">البيان</th>
                     <th aria-label="الإجراءات" />
                   </tr>
                 </thead>
@@ -613,30 +620,33 @@ export default function Receipts() {
                             ({receipt.account_kind === 'customer' ? 'عميل' : receipt.account_kind === 'supplier' ? 'مورد' : 'هالك'})
                           </span>
                         </td>
-                        <td>{receipt.cash_box_name}</td>
+                        <td className="col-hide-on-detail">{receipt.cash_box_name}</td>
                         <td className="num strong">{money(receipt.amount)}</td>
-                        <td>
+                        <td className="col-hide-on-detail">
                           {receipt.is_free ? (
-                            <span className="status-badge paid">إيصال حر</span>
+                            <StatusBadge variant="free">إيصال حر</StatusBadge>
                           ) : (
-                            <span className="status-badge partial">مرتبط بـ{linkKind(receipt.invoice_kind)}</span>
+                            <StatusBadge variant="linked">مرتبط بـ{linkKind(receipt.invoice_kind)}</StatusBadge>
                           )}
                         </td>
-                        <td className="muted">{receipt.statement || '—'}</td>
+                        <td className="muted col-hide-on-detail">{receipt.statement || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                           {showDeleted ? (
                             can('money.delete') ? (
                               receipt.is_free ? (
-                                <button type="button" className="link" onClick={() => void restore(receipt)}>استعادة</button>
+                                <RowActions
+                                  onRestore={() => void restore(receipt)}
+                                  restoreLabel="استعادة الإيصال"
+                                />
                               ) : (
                                 <span className="muted" title="يُستعاد مع الفاتورة">مرتبط</span>
                               )
                             ) : null
                           ) : receipt.is_free ? (
-                            <>
-                              {can('money.edit') && <button type="button" className="link" onClick={() => startEdit(receipt)}>تعديل</button>}
-                              {can('money.delete') && <button type="button" className="link danger" onClick={() => void remove(receipt)}>حذف</button>}
-                            </>
+                            <RowActions
+                              onEdit={can('money.edit') ? () => startEdit(receipt) : undefined}
+                              onDelete={can('money.delete') ? () => void remove(receipt) : undefined}
+                            />
                           ) : (
                             <span className="muted" title={`يُعدَّل من داخل ${linkKind(receipt.invoice_kind)}`}>مرتبط</span>
                           )}
@@ -709,7 +719,23 @@ export default function Receipts() {
                 <div><dt>الخزنة</dt><dd>{viewing.cash_box_name}</dd></div>
                 <div><dt>التاريخ</dt><dd className="num">{viewing.receipt_date}</dd></div>
                 <div><dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewing.created_at)}</dd></div>
-                <div><dt>الارتباط</dt><dd>{viewing.is_free ? 'إيصال حر' : `مربوط بـ ${linkKind(viewing.invoice_kind)}`}</dd></div>
+                <div>
+                  <dt>الارتباط</dt>
+                  <dd>
+                    {viewing.is_free ? (
+                      <StatusBadge variant="free">إيصال حر</StatusBadge>
+                    ) : (
+                      <Link
+                        to={`/invoices?tab=${viewing.invoice_kind ?? 'sale'}&search=${encodeURIComponent(viewing.invoice_number ?? '')}`}
+                        className="receipt-linked-link"
+                      >
+                        <FileText size={15} />
+                        <span>{linkKind(viewing.invoice_kind)} {viewing.invoice_number}</span>
+                        <ExternalLink size={13} className="link-ext-icon" />
+                      </Link>
+                    )}
+                  </dd>
+                </div>
               </dl>
 
               <div className="erp-detail-totals">

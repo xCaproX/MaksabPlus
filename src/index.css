@@ -963,10 +963,128 @@ code {
 .erp-table tr.selected .erp-row-actions,
 .erp-table tr:focus-within .erp-row-actions { visibility: visible; }
 .erp-row-actions .link { font-size: 12px; }
-.status-badge { display: inline-flex; align-items: center; min-height: 21px; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700; white-space: nowrap; }
-.status-badge.paid { color: #166534; background: #dcfce7; }
-.status-badge.partial { color: #9a5b07; background: #fef3c7; }
-.status-badge.unpaid { color: #aa3a32; background: #fde9e7; }
+.status-badge { display: inline-flex; align-items: center; min-height: 22px; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.status-badge.paid, .status-badge-paid { color: #166534; background: #dcfce7; }
+.status-badge.partial, .status-badge-partial { color: #9a5b07; background: #fef3c7; }
+.status-badge.unpaid, .status-badge-unpaid { color: #aa3a32; background: #fde9e7; }
+
+/* Link type color family (Blue/Indigo - completely distinct from payment status) */
+.status-badge.linked, .status-badge-linked { color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe; }
+.status-badge.free, .status-badge-free { color: #475569; background: #f1f5f9; border: 1px solid #e2e8f0; }
+.status-badge.neutral, .status-badge-neutral { color: #334155; background: #f8fafc; }
+
+/* Row Actions dropdown menu */
+.row-actions-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.row-actions-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.row-actions-trigger-btn:hover,
+.row-actions-trigger-btn:focus-visible {
+  background: #f1f5f9;
+  color: var(--ink);
+  border-color: #e2e8f0;
+}
+
+.row-actions-dropdown {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 4px);
+  z-index: 50;
+  min-width: 125px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row-actions-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: pointer;
+  text-align: right;
+  transition: all 0.12s ease;
+}
+
+.row-actions-item:hover {
+  background: #f8fafc;
+  color: var(--primary);
+}
+
+.row-actions-item.danger {
+  color: var(--danger);
+}
+
+.row-actions-item.danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.action-item-icon {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* Gracefully degrade table when detail panel is open */
+.erp-sales-workspace.detail-open .col-hide-on-detail {
+  display: none !important;
+}
+
+/* Linked receipt link in detail panel */
+.receipt-linked-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  width: fit-content;
+  transition: all 0.15s ease;
+}
+
+.receipt-linked-link:hover {
+  background: #dbeafe;
+  color: #1e40af;
+  text-decoration: none;
+}
+
+.receipt-linked-link .link-ext-icon {
+  opacity: 0.7;
+}
 .erp-pagination { display: flex; align-items: center; justify-content: space-between; gap: var(--erp-space-2); min-height: 46px; padding: 6px var(--erp-space-3); border-top: 1px solid var(--erp-border); color: var(--erp-muted); font-size: 12px; }
 .erp-pagination > div { display: flex; align-items: center; gap: 7px; }
 .btn.compact { min-height: 29px; padding: 4px 9px; border-radius: 5px; font-size: 12px; }
@@ -1499,9 +1617,20 @@ body { color: var(--ink); }
 .nav-chevron {
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   color: var(--muted);
-  opacity: 0.7;
-  transition: transform .18s ease;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.nav a.nav-link:hover .nav-chevron {
+  color: var(--ink);
+}
+.nav-chevron:hover {
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--primary-dark) !important;
 }
 .nav-group { display: flex; flex-direction: column; width: 100%; }
 .subnav {
@@ -1554,8 +1683,41 @@ body { color: var(--ink); }
   box-shadow: 0 0 0 2px rgba(46, 66, 92, 0.2);
 }
 .tabs { display: none; }
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sidebar-user-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+}
+.sidebar-user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-company-name {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .sign-out {
-  min-height: 40px;
+  min-height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1613,6 +1775,15 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
   .nav-group { display: contents; }
   .subnav { display: none !important; }
   .tabs { display: flex; }
+  .sidebar-footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    padding-top: 4px;
+    margin-top: 0;
+    border-top: none;
+  }
+  .sidebar-user-block { display: none; }
   .sign-out { align-self: flex-end; min-height: 34px; padding: 3px 8px; font-size: 12px; }
   .content { width: 100%; padding: 16px 13px 28px; }
   .card { padding: 16px; }

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
+import DateInput from '../components/DateInput';
 import { toast } from '../components/Toast';
 import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, ItemMovementStatementRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 
@@ -648,8 +649,8 @@ export default function Balances() {
                 <p>{statementAccount.phone || '—'}</p>
               </div>
               <div className="account-statement-period">
-                <label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label>
-                <label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label>
+                <label><span>من تاريخ</span><DateInput value={statementFrom} onChange={setStatementFrom} ariaLabel="من تاريخ" required /></label>
+                <label><span>إلى تاريخ</span><DateInput value={statementTo} onChange={setStatementTo} ariaLabel="إلى تاريخ" required /></label>
               </div>
             </div>
             <div className="actions statement-actions print-hidden">
@@ -703,8 +704,8 @@ export default function Balances() {
             <div className="account-statement-heading">
               <div><h2>كشف حركة خزنة</h2><strong>{cashStatementBox.name}</strong></div>
               <div className="account-statement-period">
-                <label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label>
-                <label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label>
+                <label><span>من تاريخ</span><DateInput value={statementFrom} onChange={setStatementFrom} ariaLabel="من تاريخ" required /></label>
+                <label><span>إلى تاريخ</span><DateInput value={statementTo} onChange={setStatementTo} ariaLabel="إلى تاريخ" required /></label>
               </div>
             </div>
             <div className="actions statement-actions print-hidden">
@@ -760,8 +761,8 @@ export default function Balances() {
                 <p>{selectedWarehouse?.name ?? itemStatementRow.warehouse_name}</p>
               </div>
               <div className="account-statement-period">
-                <label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label>
-                <label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label>
+                <label><span>من تاريخ</span><DateInput value={statementFrom} onChange={setStatementFrom} ariaLabel="من تاريخ" required /></label>
+                <label><span>إلى تاريخ</span><DateInput value={statementTo} onChange={setStatementTo} ariaLabel="إلى تاريخ" required /></label>
               </div>
             </div>
             <div className="actions statement-actions print-hidden">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { X, ExternalLink, Receipt as ReceiptIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { creationTime, money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -8,6 +8,9 @@ import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import DateInput from '../components/DateInput';
+import StatusBadge from '../components/StatusBadge';
+import RowActions from '../components/RowActions';
 import { toast } from '../components/Toast';
 import type {
   AccountRow,
@@ -486,9 +489,11 @@ export default function Invoices() {
           </p>
         </div>
         <div className="actions">
-          {can(`goods.${kind}.delete`) && <button type="button" className="btn" onClick={toggleDeleted}>
-            {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
-          </button>}
+          {can(`goods.${kind}.delete`) && (
+            <button type="button" className="btn ghost" onClick={toggleDeleted}>
+              {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
+            </button>
+          )}
           {!showDeleted && can(`goods.${kind}.create`) && (
             <button type="button" className="btn primary" onClick={openNew}>
               + {newLabel}
@@ -526,7 +531,7 @@ export default function Invoices() {
       )}
 
       {/* الـ Workspace الموحد لكل تبويبات البضاعة */}
-      <div className="erp-sales-workspace">
+      <div className={viewing || viewingTransfer ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
             <div className="erp-toolbar-title">
@@ -560,8 +565,8 @@ export default function Invoices() {
                 </select>
               )}
 
-              <label className="erp-date"><span>من</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /></label>
-              <label className="erp-date"><span>إلى</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></label>
+              <div className="erp-date"><span>من</span><DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" /></div>
+              <div className="erp-date"><span>إلى</span><DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" /></div>
             </div>
           </div>
 
@@ -573,11 +578,11 @@ export default function Invoices() {
                     <th>الرقم</th>
                     <th>التاريخ</th>
                     <th>من مخزن</th>
-                    <th>إلى مخزن</th>
+                    <th className="col-hide-on-detail">إلى مخزن</th>
                     <th className="num">عدد الأصناف</th>
                     <th className="num">إجمالي الكميات</th>
                     <th className="num">قيمة التكلفة</th>
-                    <th>ملاحظات</th>
+                    <th className="col-hide-on-detail">ملاحظات</th>
                     <th aria-label="الإجراءات" />
                   </tr>
                 </thead>
@@ -599,19 +604,24 @@ export default function Invoices() {
                         <td className="num strong">{transfer.number}</td>
                         <td className="num">{transfer.transfer_date}</td>
                         <td>{transfer.source_warehouse_name}</td>
-                        <td>{transfer.destination_warehouse_name}</td>
+                        <td className="col-hide-on-detail">{transfer.destination_warehouse_name}</td>
                         <td className="num">{transfer.line_count}</td>
                         <td className="num">{formatQty(transfer.total_qty)}</td>
                         <td className="num strong">{money(transfer.total_value)}</td>
-                        <td>{transfer.notes || '—'}</td>
+                        <td className="col-hide-on-detail">{transfer.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                           {showDeleted ? (
-                            can('goods.delete') && <button type="button" className="link" onClick={() => void restoreTransfer(transfer)}>استعادة</button>
+                            can('goods.delete') && (
+                              <RowActions
+                                onRestore={() => void restoreTransfer(transfer)}
+                                restoreLabel="استعادة التحويل"
+                              />
+                            )
                           ) : (
-                            <>
-                              {can('goods.edit') && <button type="button" className="link" onClick={() => void startEditTransfer(transfer)}>تعديل</button>}
-                              {can('goods.delete') && <button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button>}
-                            </>
+                            <RowActions
+                              onEdit={can('goods.edit') ? () => void startEditTransfer(transfer) : undefined}
+                              onDelete={can('goods.delete') ? () => void removeTransfer(transfer) : undefined}
+                            />
                           )}
                         </td>
                       </tr>
@@ -626,11 +636,11 @@ export default function Invoices() {
                     <th>الرقم</th>
                     <th>التاريخ</th>
                     <th>{partyHeader}</th>
-                    <th>المخزن</th>
+                    <th className="col-hide-on-detail">المخزن</th>
                     <th className="num">الإجمالي</th>
-                    {(kind === 'sale' || kind === 'sale_return') && canViewProfit && <th className="num">الربح</th>}
-                    {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && <th className="num">{kind === 'waste' ? 'الخسارة' : 'التكلفة'}</th>}
-                    {kind !== 'waste' && <th>{isReturn ? 'الاسترداد' : 'السداد'}</th>}
+                    {(kind === 'sale' || kind === 'sale_return') && canViewProfit && <th className="num col-hide-on-detail">الربح</th>}
+                    {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && <th className="num col-hide-on-detail">{kind === 'waste' ? 'الخسارة' : 'التكلفة'}</th>}
+                    {kind !== 'waste' && <th className="col-hide-on-detail">{isReturn ? 'الاسترداد' : 'السداد'}</th>}
                     {kind !== 'waste' && <th className="num">{isReturn ? 'غير المسترد' : 'المتبقي'}</th>}
                     <th aria-label="الإجراءات" />
                   </tr>
@@ -654,17 +664,17 @@ export default function Invoices() {
                         <td className="num strong">{invoice.number}</td>
                         <td className="num">{invoice.invoice_date}</td>
                         <td>{invoice.account_name}</td>
-                        <td>{invoice.warehouse_name}</td>
+                        <td className="col-hide-on-detail">{invoice.warehouse_name}</td>
                         <td className="num strong">{money(invoice.total)}</td>
                         {(kind === 'sale' || kind === 'sale_return') && canViewProfit && (
-                          <td className="num">{money(invoice.profit_total)}</td>
+                          <td className="num col-hide-on-detail">{money(invoice.profit_total)}</td>
                         )}
                         {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && (
-                          <td className="num">{money(invoice.cost_total)}</td>
+                          <td className="num col-hide-on-detail">{money(invoice.cost_total)}</td>
                         )}
                         {kind !== 'waste' && (
-                          <td>
-                            <span className={`status-badge ${status}`}>{saleStatusLabel(status, isReturn)}</span>
+                          <td className="col-hide-on-detail">
+                            <StatusBadge variant={status}>{saleStatusLabel(status, isReturn)}</StatusBadge>
                           </td>
                         )}
                         {kind !== 'waste' && (
@@ -672,12 +682,17 @@ export default function Invoices() {
                         )}
                         <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                           {showDeleted ? (
-                            can('goods.delete') && <button type="button" className="link" onClick={() => void restore(invoice)}>استعادة</button>
+                            can('goods.delete') && (
+                              <RowActions
+                                onRestore={() => void restore(invoice)}
+                                restoreLabel={`استعادة ${newLabel}`}
+                              />
+                            )
                           ) : (
-                            <>
-                              {can('goods.edit') && <button type="button" className="link" onClick={() => void startEdit(invoice)}>تعديل</button>}
-                              {can('goods.delete') && <button type="button" className="link danger" onClick={() => void remove(invoice)}>حذف</button>}
-                            </>
+                            <RowActions
+                              onEdit={can('goods.edit') ? () => void startEdit(invoice) : undefined}
+                              onDelete={can('goods.delete') ? () => void remove(invoice) : undefined}
+                            />
                           )}
                         </td>
                       </tr>
@@ -817,7 +832,17 @@ export default function Invoices() {
                   </div>
 
                   {viewing.receipt_number && (
-                    <p className="erp-detail-notes"><span>الإيصال المرتبط</span>{viewing.receipt_number} — {money(viewing.receipt_amount ?? 0)}</p>
+                    <div className="erp-detail-notes">
+                      <span>الإيصال المرتبط</span>
+                      <Link
+                        to={`/receipts?search=${encodeURIComponent(viewing.receipt_number)}`}
+                        className="receipt-linked-link"
+                      >
+                        <ReceiptIcon size={15} />
+                        <span>إيصال {viewing.receipt_number} ({money(viewing.receipt_amount ?? 0)})</span>
+                        <ExternalLink size={13} className="link-ext-icon" />
+                      </Link>
+                    </div>
                   )}
 
                   {viewing.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewing.notes}</p>}

@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 
 const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-const port = 5199;
+const port = 5195;
 
 function checkUrl(url) {
   return new Promise((resolve) => {
@@ -27,7 +27,10 @@ async function waitForServer(url, timeoutMs = 20000) {
 }
 
 function runEdgeScreenshot(width, height, outputPath, targetUrl) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
+    if (fs.existsSync(outputPath)) {
+      try { fs.unlinkSync(outputPath); } catch {}
+    }
     const args = [
       '--headless',
       '--disable-gpu',
@@ -37,9 +40,16 @@ function runEdgeScreenshot(width, height, outputPath, targetUrl) {
       targetUrl,
     ];
     const proc = spawn(edgePath, args);
-    proc.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`Edge exited with code ${code}`));
+    proc.on('close', async () => {
+      // Wait for Edge worker to write the file
+      for (let i = 0; i < 20; i++) {
+        if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 1000) {
+          resolve(true);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      resolve(fs.existsSync(outputPath));
     });
   });
 }
@@ -54,7 +64,7 @@ async function main() {
   vite.stdout.on('data', (d) => console.log('vite:', d.toString().trim()));
   vite.stderr.on('data', (d) => console.error('vite err:', d.toString().trim()));
 
-  const targetUrl = `http://localhost:${port}/preview-receipt`;
+  const targetUrl = `http://localhost:${port}/preview-phase3-4`;
   const ready = await waitForServer(targetUrl);
   if (!ready) {
     console.error('Server did not become ready in time');
@@ -68,16 +78,28 @@ async function main() {
   const outDir = path.resolve('public', 'screenshots');
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
-  const shot1280 = path.join(outDir, 'phase2-receipt-modal-1280px.png');
-  const shot1920 = path.join(outDir, 'phase2-receipt-modal-1920px.png');
+  const shot1280 = path.join(outDir, 'phase3-4-verification-1280px.png');
+  const shot1920 = path.join(outDir, 'phase3-4-verification-1920px.png');
 
-  console.log('Taking 1280px screenshot of receipt modal...');
+  console.log('Taking 1280px screenshot of Phase 3 & 4...');
   await runEdgeScreenshot(1280, 920, shot1280, targetUrl);
-  console.log('Saved:', shot1280);
+  console.log('Saved 1280px exists:', fs.existsSync(shot1280));
 
-  console.log('Taking 1920px screenshot of receipt modal...');
+  console.log('Taking 1920px screenshot of Phase 3 & 4...');
   await runEdgeScreenshot(1920, 1080, shot1920, targetUrl);
-  console.log('Saved:', shot1920);
+  console.log('Saved 1920px exists:', fs.existsSync(shot1920));
+
+  // Copy to artifact directory
+  const artifactDir = path.resolve('C:\\Users\\cfcap\\.gemini\\antigravity\\brain\\1bdc31ed-3459-4258-8fcb-be1bf38958d0');
+  if (fs.existsSync(artifactDir)) {
+    if (fs.existsSync(shot1280)) {
+      fs.copyFileSync(shot1280, path.join(artifactDir, 'phase3-4-verification-1280px.png'));
+    }
+    if (fs.existsSync(shot1920)) {
+      fs.copyFileSync(shot1920, path.join(artifactDir, 'phase3-4-verification-1920px.png'));
+    }
+    console.log('Copied screenshots to artifact directory:', artifactDir);
+  }
 
   console.log('Cleaning up server...');
   vite.kill('SIGTERM');
