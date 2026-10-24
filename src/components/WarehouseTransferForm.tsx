@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
+import { toast } from './Toast';
 import type { ItemRow, StockOpeningRow, WarehouseOption, WarehouseTransferLine, WarehouseTransferRow } from '../lib/types';
 
 interface EditingWarehouseTransfer extends WarehouseTransferRow {
@@ -39,8 +40,6 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
       ? [...editing.lines.map((line) => ({ ...line, key: crypto.randomUUID(), qty: String(Number(line.qty)) })), emptyLine()]
       : [emptyLine()],
   );
-  const [error, setError] = useState('');
-  const [lineWarning, setLineWarning] = useState('');
   const [busy, setBusy] = useState(false);
   const quantityRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -91,12 +90,11 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError('');
-    if (!sourceId || !destinationId || sourceId === destinationId) return setError('اختر مخزنين مختلفين');
+    if (!sourceId || !destinationId || sourceId === destinationId) return toast.error('اختر مخزنين مختلفين');
 
     const validLines = lines.filter((line) => line.item_id);
-    if (validLines.length === 0) return setError('اختر صنفًا واحدًا على الأقل للتحويل');
-    if (validLines.some((line) => !(Number(line.qty) > 0))) return setError('أدخل كمية صحيحة لكل الأصناف');
+    if (validLines.length === 0) return toast.error('اختر صنفًا واحدًا على الأقل للتحويل');
+    if (validLines.some((line) => !(Number(line.qty) > 0))) return toast.error('أدخل كمية صحيحة لكل الأصناف');
 
     setBusy(true);
     const args = {
@@ -110,13 +108,12 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
       ? await supabase.rpc('update_warehouse_transfer', { p_transfer_id: editing.id, ...args })
       : await supabase.rpc('create_warehouse_transfer', args);
     setBusy(false);
-    if (rpcError) return setError(translateDbError(rpcError.message));
+    if (rpcError) return toast.error(translateDbError(rpcError.message));
     onSaved(editing ? `تم تعديل التحويل ${editing.number}` : 'تم حفظ التحويل المخزني');
   }
 
   return (
     <form className="inline-form" onSubmit={submit}>
-      {error && <p className="alert error">{error}</p>}
       <div className="form-grid">
         <label className="form-grid-col-4">
           من مخزن (المصدر)
@@ -173,8 +170,6 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
           </div>
         </div>
 
-        {lineWarning && <p className="alert warning" role="status" style={{ margin: '8px 0' }}>{lineWarning}</p>}
-
         <div className="lines-wrap">
           <table className="lines-table">
             <thead>
@@ -204,10 +199,9 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                         }))}
                         onChange={(item_id) => {
                           if (lines.some((candidate) => candidate.key !== line.key && candidate.item_id === item_id)) {
-                            setLineWarning('هذا الصنف موجود بالفعل في التحويل. اختَر صنفًا آخر.');
+                            toast.warning('هذا الصنف موجود بالفعل في التحويل. اختَر صنفًا آخر.');
                             return;
                           }
-                          setLineWarning('');
                           selectItem(line.key, item_id);
                           if (item_id) quantityRefs.current[line.key]?.focus();
                         }}

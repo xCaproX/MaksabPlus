@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
+import { toast } from '../components/Toast';
 import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, ItemMovementStatementRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 
 type BalanceTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes';
@@ -24,7 +25,10 @@ export default function Balances() {
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  function setError(msg: string) { if (msg) toast.error(msg); }
+  function setStatementError(msg: string) { if (msg) toast.error(msg); }
+  function setCashStatementError(msg: string) { if (msg) toast.error(msg); }
+  function setItemStatementError(msg: string) { if (msg) toast.error(msg); }
 
   // الفلاتر والبحث
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,17 +46,14 @@ export default function Balances() {
   const [statementTo, setStatementTo] = useState(today());
   const [statementRows, setStatementRows] = useState<AccountStatementRow[]>([]);
   const [statementLoading, setStatementLoading] = useState(false);
-  const [statementError, setStatementError] = useState('');
 
   const [cashStatementBox, setCashStatementBox] = useState<CashBoxRow | null>(null);
   const [cashStatementRows, setCashStatementRows] = useState<CashBoxStatementRow[]>([]);
   const [cashStatementLoading, setCashStatementLoading] = useState(false);
-  const [cashStatementError, setCashStatementError] = useState('');
 
   const [itemStatementRow, setItemStatementRow] = useState<StockOpeningRow | null>(null);
   const [itemStatementRows, setItemStatementRows] = useState<ItemMovementStatementRow[]>([]);
   const [itemStatementLoading, setItemStatementLoading] = useState(false);
-  const [itemStatementError, setItemStatementError] = useState('');
 
   useEffect(() => {
     const targetTab = (tabParam && VALID_BALANCE_TABS.includes(tabParam)) ? tabParam : 'customers';
@@ -299,8 +300,6 @@ export default function Balances() {
         <button type="button" className={tab === 'items' ? 'tab active' : 'tab'} onClick={() => switchTab('items')}>أرصدة الأصناف</button>
         <button type="button" className={tab === 'cashBoxes' ? 'tab active' : 'tab'} onClick={() => switchTab('cashBoxes')}>أرصدة الخزن</button>
       </div>
-
-      {error && <p className="alert error">{error}</p>}
 
       {/* الـ ERP Workspace لقسم الأرصدة */}
       <div className="erp-sales-workspace">
@@ -651,7 +650,6 @@ export default function Balances() {
               </form>
               {statementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
             </div>
-            {statementError && <p className="alert error print-hidden">{statementError}</p>}
             {statementRows.length > 0 && (
               <>
                 <div className="table-wrap responsive-table">
@@ -679,7 +677,7 @@ export default function Balances() {
                 </div>
               </>
             )}
-            {!statementRows.length && !statementLoading && !statementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
+            {!statementRows.length && !statementLoading && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
           </div>
         </Modal>
       )}
@@ -702,7 +700,6 @@ export default function Balances() {
               </form>
               {cashStatementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
             </div>
-            {cashStatementError && <p className="alert error print-hidden">{cashStatementError}</p>}
             {cashStatementRows.length > 0 && (
               <>
                 <div className="table-wrap responsive-table">
@@ -728,7 +725,7 @@ export default function Balances() {
                 </div>
               </>
             )}
-            {!cashStatementRows.length && !cashStatementLoading && !cashStatementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
+            {!cashStatementRows.length && !cashStatementLoading && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
           </div>
         </Modal>
       )}
@@ -755,7 +752,6 @@ export default function Balances() {
               </form>
               {itemStatementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
             </div>
-            {itemStatementError && <p className="alert error print-hidden">{itemStatementError}</p>}
             {itemStatementRows.length > 0 && (
               <>
                 <div className="table-wrap responsive-table">
@@ -781,7 +777,7 @@ export default function Balances() {
                 </div>
               </>
             )}
-            {!itemStatementRows.length && !itemStatementLoading && !itemStatementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
+            {!itemStatementRows.length && !itemStatementLoading && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
           </div>
         </Modal>
       )}

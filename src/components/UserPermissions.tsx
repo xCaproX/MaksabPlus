@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import Modal from './Modal';
+import { toast } from './Toast';
 
 type ActionKey = 'view' | 'create' | 'edit' | 'delete';
 
@@ -156,8 +157,8 @@ export default function UserPermissions() {
   const [drafts, setDrafts] = useState<Record<string, PermissionKey[]>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  function setError(msg: string) { if (msg) toast.error(msg); }
+  function setNotice(msg: string) { if (msg) toast.success(msg); }
 
   // الموظف المختار والبحث
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -390,9 +391,6 @@ export default function UserPermissions() {
 
   return (
     <div className="stack">
-      {error && <p className="alert error">{error}</p>}
-      {notice && <p className="alert success">{notice}</p>}
-
       {loading ? (
         <div className="card empty">جارٍ تحميل المستخدمين والصلاحيات…</div>
       ) : (

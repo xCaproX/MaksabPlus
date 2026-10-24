@@ -7,6 +7,7 @@ import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { toast } from '../components/Toast';
 import type {
   AccountRow,
   AccountKind,
@@ -42,8 +43,12 @@ export default function Receipts() {
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  function setError(msg: string) {
+    if (msg) toast.error(msg);
+  }
+  function setNotice(msg: string) {
+    if (msg) toast.success(msg);
+  }
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ReceiptRow | null>(null);
   const [editingTransfer, setEditingTransfer] = useState<CashBoxTransferRow | null>(null);
@@ -218,12 +223,6 @@ export default function Receipts() {
       alive = false;
     };
   }, [tab, direction, version, showDeleted, isCashBoxTransfer]);
-
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(''), 4000);
-    return () => clearTimeout(timer);
-  }, [notice]);
 
   useEffect(() => {
     setPage(1);
@@ -476,8 +475,6 @@ export default function Receipts() {
         </button>
       </div>
 
-      {notice && <p className="alert success">{notice}</p>}
-      {error && <p className="alert error">{error}</p>}
       {showDeleted && (
         <p className="hint">
           {isCashBoxTransfer

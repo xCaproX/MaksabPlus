@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
+import { toast } from './Toast';
 import type {
   AccountKind,
   AccountRow,
@@ -74,8 +75,6 @@ export default function InvoiceForm({
   const [lines, setLines] = useState<LineDraft[]>(
     editing ? [...editing.lines, emptyLine()] : [emptyLine()],
   );
-  const [error, setError] = useState('');
-  const [lineWarning, setLineWarning] = useState('');
   const [busy, setBusy] = useState(false);
   const itemSearchRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const quantityRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -169,26 +168,25 @@ export default function InvoiceForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError('');
 
     const activeLines = lines.filter((line) => line.item_id);
 
-    if (!accountId) return setError(isWaste ? 'حساب الهالك الثابت غير موجود' : 'اختر الحساب');
-    if (!warehouseId) return setError('اختر المخزن');
-    if (paidNumber > 0 && !effectiveCashBoxId) return setError('اختر الخزنة التي استلمت أو صرفت المبلغ');
-    if (!date) return setError('أدخل التاريخ');
-    if (activeLines.length === 0) return setError('اختر صنفًا واحدًا على الأقل في الفاتورة');
+    if (!accountId) return toast.error(isWaste ? 'حساب الهالك الثابت غير موجود' : 'اختر الحساب');
+    if (!warehouseId) return toast.error('اختر المخزن');
+    if (paidNumber > 0 && !effectiveCashBoxId) return toast.error('اختر الخزنة التي استلمت أو صرفت المبلغ');
+    if (!date) return toast.error('أدخل التاريخ');
+    if (activeLines.length === 0) return toast.error('اختر صنفًا واحدًا على الأقل في الفاتورة');
 
     const hasInvalidLine = activeLines.some(
       (line) => !(Number(line.qty) > 0) || !(Number(line.unit_price) >= 0),
     );
-    if (hasInvalidLine) return setError('أدخل كمية وسعرًا صحيحين لكل الأصناف');
+    if (hasInvalidLine) return toast.error('أدخل كمية وسعرًا صحيحين لكل الأصناف');
 
-    if (!(paidNumber >= 0)) return setError(`قيمة ${isReturn ? 'المسترد' : 'المدفوع'} غير صحيحة`);
+    if (!(paidNumber >= 0)) return toast.error(`قيمة ${isReturn ? 'المسترد' : 'المدفوع'} غير صحيحة`);
     if (paidNumber > total)
-      return setError(`${isReturn ? 'المسترد' : 'المدفوع'} أكبر من إجمالي ${isReturn ? 'المرتجع' : 'الفاتورة'}`);
+      return toast.error(`${isReturn ? 'المسترد' : 'المدفوع'} أكبر من إجمالي ${isReturn ? 'المرتجع' : 'الفاتورة'}`);
     if (cashAccountSelected && paidNumber !== total)
-      return setError('عند استخدام حساب نقدي يجب أن يساوي المدفوع/المسترد إجمالي المستند');
+      return toast.error('عند استخدام حساب نقدي يجب أن يساوي المدفوع/المسترد إجمالي المستند');
 
     const args = {
       p_account_id: accountId,
@@ -211,7 +209,7 @@ export default function InvoiceForm({
     setBusy(false);
 
     if (rpcError) {
-      setError(translateDbError(rpcError.message));
+      toast.error(translateDbError(rpcError.message));
       return;
     }
 
@@ -304,8 +302,6 @@ export default function InvoiceForm({
           </div>
         </div>
 
-        {lineWarning && <p className="alert warning" role="status" style={{ margin: '8px 0' }}>{lineWarning}</p>}
-
         <div className="lines-wrap">
           <table className="lines-table">
             <thead>
@@ -335,10 +331,9 @@ export default function InvoiceForm({
                         }))}
                         onChange={(value) => {
                           if (lines.some((candidate) => candidate.key !== line.key && candidate.item_id === value)) {
-                            setLineWarning('هذا الصنف موجود بالفعل في الفاتورة. اختَر صنفًا آخر.');
+                            toast.warning('هذا الصنف موجود بالفعل في الفاتورة. اختَر صنفًا آخر.');
                             return;
                           }
-                          setLineWarning('');
                           selectItem(line.key, value);
                           if (value) quantityRefs.current[line.key]?.focus();
                         }}
@@ -488,8 +483,6 @@ export default function InvoiceForm({
                 : 'فاتورة آجلة: لا يوجد مدفوع نقدي، وستضاف القيمة لحساب العميل/المورد.'}
           </span>
         </div>
-
-        {error && <p className="alert error">{error}</p>}
 
         <div className="form-modal-actions">
           <button type="submit" className="btn primary" disabled={busy}>

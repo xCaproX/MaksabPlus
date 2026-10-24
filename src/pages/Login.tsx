@@ -1,24 +1,23 @@
 import { useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
+import { toast } from '../components/Toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError('');
 
     const { error: authError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
 
-    if (authError) setError(errorMessage(authError));
+    if (authError) toast.error(errorMessage(authError));
     setBusy(false);
   }
 
@@ -54,8 +53,6 @@ export default function Login() {
             dir="ltr"
           />
         </label>
-
-        {error && <p className="alert error">{error}</p>}
 
         <button type="submit" className="btn primary block" disabled={busy}>
           {busy ? 'جارٍ تسجيل الدخول…' : 'تسجيل الدخول'}

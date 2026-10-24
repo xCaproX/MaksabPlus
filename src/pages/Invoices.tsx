@@ -7,6 +7,7 @@ import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { toast } from '../components/Toast';
 import type {
   AccountRow,
   CashBoxRow,
@@ -65,8 +66,12 @@ export default function Invoices() {
   const [items, setItems] = useState<ItemRow[]>([]);
   const [stockRows, setStockRows] = useState<StockOpeningRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  function setError(msg: string) {
+    if (msg) toast.error(msg);
+  }
+  function setNotice(msg: string) {
+    if (msg) toast.success(msg);
+  }
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<EditingInvoice | null>(null);
   const [editingTransfer, setEditingTransfer] = useState<(WarehouseTransferRow & { lines: WarehouseTransferLine[] }) | null>(null);
@@ -254,12 +259,6 @@ export default function Invoices() {
       alive = false;
     };
   }, [kind, version, showDeleted]);
-
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(''), 4000);
-    return () => clearTimeout(timer);
-  }, [notice]);
 
   useEffect(() => {
     setPage(1);
@@ -519,8 +518,6 @@ export default function Invoices() {
         ))}
       </div>
 
-      {notice && <p className="alert success">{notice}</p>}
-      {error && <p className="alert error">{error}</p>}
       {showDeleted && (
         <p className="hint">
           {isWarehouseTransfer ? 'التحويلات المحذوفة لا تؤثر على المخزون، ويمكن استعادتها ما لم توجد حركات لاحقة.' : 'هذه المستندات محذوفة: لا تؤثر على الأرصدة أو المخزون، ويمكن استعادتها في أي وقت.'}

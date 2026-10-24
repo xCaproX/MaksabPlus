@@ -4,6 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import Layout from './components/Layout';
 import { AccessProvider, AccessRoute, HomeRedirect } from './lib/access';
+import { ToastContainer } from './components/Toast';
 
 const Login = lazy(() => import('./pages/Login'));
 const Invoices = lazy(() => import('./pages/Invoices'));
@@ -64,6 +65,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ToastContainer />
       <Routes>
         <Route
           path="/login"

@@ -6,6 +6,7 @@ import { translateDbError } from '../lib/errors';
 import type { AccountRow, CashBoxRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 import { useAccess } from '../lib/access';
 import UserPermissions from '../components/UserPermissions';
+import { toast } from '../components/Toast';
 
 type ManagementTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes' | 'users';
 type ManagementSort = 'name-asc' | 'serial-desc' | 'serial-asc';
@@ -31,8 +32,8 @@ export default function Management() {
   const [stockValues, setStockValues] = useState<Record<string, { qty: string; cost: string }>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  function setError(msg: string) { if (msg) toast.error(msg); }
+  function setNotice(msg: string) { if (msg) toast.success(msg); }
   const [version, setVersion] = useState(0);
 
   // الفلاتر والبحث
@@ -250,9 +251,6 @@ export default function Management() {
           </button>
         ))}
       </div>
-
-      {error && <p className="alert error">{error}</p>}
-      {notice && <p className="alert success">{notice}</p>}
 
       {tab === 'users' && access?.role === 'owner' ? (
         <UserPermissions />

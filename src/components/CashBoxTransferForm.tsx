@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { money, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
+import { toast } from './Toast';
 import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
 
 interface Props {
@@ -18,7 +19,6 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
   const [date, setDate] = useState(editing?.transfer_date ?? today());
   const [amount, setAmount] = useState(editing ? String(Number(editing.amount)) : '');
   const [notes, setNotes] = useState(editing?.notes ?? '');
-  const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const sourceBalance = Number(cashBoxes.find((box) => box.id === sourceId)?.balance ?? 0);
   const editBalanceAdjustment = editing?.source_cash_box_id === sourceId
@@ -28,10 +28,9 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError('');
     const numericAmount = Number(amount);
-    if (!sourceId || !destinationId || sourceId === destinationId) return setError('اختر خزنتين مختلفتين');
-    if (!(numericAmount > 0)) return setError('أدخل مبلغًا أكبر من صفر');
+    if (!sourceId || !destinationId || sourceId === destinationId) return toast.error('اختر خزنتين مختلفتين');
+    if (!(numericAmount > 0)) return toast.error('أدخل مبلغًا أكبر من صفر');
     setBusy(true);
     const args = {
       p_source_cash_box_id: sourceId,
@@ -44,13 +43,12 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
       ? await supabase.rpc('update_cash_box_transfer', { p_transfer_id: editing.id, ...args })
       : await supabase.rpc('create_cash_box_transfer', args);
     setBusy(false);
-    if (rpcError) return setError(translateDbError(rpcError.message));
+    if (rpcError) return toast.error(translateDbError(rpcError.message));
     onSaved(editing ? `تم تعديل التحويل ${editing.number}` : 'تم حفظ التحويل بين الخزن');
   }
 
   return (
     <form className="inline-form" onSubmit={submit}>
-      {error && <p className="alert error">{error}</p>}
       <div className="form-grid">
         <label className="form-grid-col-4">
           من خزنة (المصدر)

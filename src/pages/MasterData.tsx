@@ -6,6 +6,7 @@ import { entityNumber, money } from '../lib/format';
 import { errorMessage, translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { toast } from '../components/Toast';
 import type { AccountKind, AccountRow, ItemRow, WarehouseOption } from '../lib/types';
 import { useAccess } from '../lib/access';
 
@@ -36,8 +37,12 @@ export default function MasterData() {
   const [cashBoxes, setCashBoxes] = useState<CashBoxRecord[]>([]);
   const [warehouseRows, setWarehouseRows] = useState<WarehouseRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  function setError(msg: string) {
+    if (msg) toast.error(msg);
+  }
+  function setNotice(msg: string) {
+    if (msg) toast.success(msg);
+  }
   const [version, setVersion] = useState(0);
   const [formModal, setFormModal] = useState<FormModal>(null);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
@@ -163,12 +168,6 @@ export default function MasterData() {
     void load();
     return () => { alive = false; };
   }, [version]);
-
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(''), 4000);
-    return () => clearTimeout(timer);
-  }, [notice]);
 
   const visibleAccounts = accounts.filter((account) => account.system_key === null);
   const customers = visibleAccounts.filter((account) => account.kind === 'customer');
@@ -585,9 +584,6 @@ export default function MasterData() {
         <button type="button" className={tab === 'warehouses' ? 'tab active' : 'tab'} onClick={() => switchTab('warehouses')}>المخازن</button>
         <button type="button" className={tab === 'cashBoxes' ? 'tab active' : 'tab'} onClick={() => switchTab('cashBoxes')}>الخزن</button>
       </div>
-
-      {notice && <p className="alert success">{notice}</p>}
-      {error && <p className="alert error">{error}</p>}
 
       {/* الـ ERP Workspace لقسم البيانات الأساسية */}
       <div className="erp-sales-workspace">
