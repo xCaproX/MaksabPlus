@@ -273,10 +273,6 @@ export default function PreviewPhase3And4() {
             <div className="erp-sales-workspace detail-open">
               <section className="erp-list-panel" aria-label="قائمة فواتير المبيعات">
                 <div className="erp-toolbar">
-                  <div className="erp-toolbar-title">
-                    <strong>فواتير المبيعات</strong>
-                    <span>3 نتيجة</span>
-                  </div>
                   <div className="erp-filters">
                     <label className="erp-search">
                       <span className="sr-only">البحث</span>
@@ -404,7 +400,6 @@ export default function PreviewPhase3And4() {
                 </dl>
 
                 <div className="erp-detail-lines">
-                  <h3>الأصناف</h3>
                   <table className="table subtable">
                     <thead>
                       <tr>

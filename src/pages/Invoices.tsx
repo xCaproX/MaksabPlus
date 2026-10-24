@@ -534,10 +534,6 @@ export default function Invoices() {
       <div className={viewing || viewingTransfer ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
-            <div className="erp-toolbar-title">
-              <strong>{tabTitle}</strong>
-              <span>{activeTotalCount} نتيجة</span>
-            </div>
             <div className="erp-filters">
               <label className="erp-search">
                 <span className="sr-only">البحث</span>
@@ -735,7 +731,6 @@ export default function Invoices() {
                   </dl>
 
                   <div className="erp-detail-lines">
-                    <h3>أصناف التحويل</h3>
                     {viewingTransferLines.length === 0 ? <p className="muted">لا توجد أصناف.</p> : (
                       <table className="table subtable">
                         <thead><tr><th>الصنف</th><th className="num">الكمية</th><th className="num">تكلفة الوحدة</th></tr></thead>
@@ -794,7 +789,6 @@ export default function Invoices() {
                   </dl>
 
                   <div className="erp-detail-lines">
-                    <h3>الأصناف</h3>
                     {details.length === 0 ? <p className="muted">لا توجد سطور.</p> : (
                       <table className="table subtable">
                         <thead>

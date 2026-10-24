@@ -492,10 +492,6 @@ export default function Receipts() {
       <div className={viewing || viewingTransfer ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
-            <div className="erp-toolbar-title">
-              <strong>{tabTitle}</strong>
-              <span>{activeTotalCount} نتيجة</span>
-            </div>
             <div className="erp-filters">
               <label className="erp-search">
                 <span className="sr-only">البحث</span>
