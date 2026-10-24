@@ -788,9 +788,9 @@ export default function Balances() {
                         <tr key={`${row.row_type}-${row.transaction_date}-${row.transfer_number ?? row.invoice_number ?? index}`} className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}>
                           <td className="num" data-label="التاريخ">{row.transaction_date}</td>
                           <td className="card-wide-cell" data-label="البيان">{row.description}</td>
-                          <td className="num" data-label="وارد">{Number(row.incoming) ? `${formatQty(row.incoming)} ${itemStatementRow.unit}` : '—'}</td>
-                          <td className="num" data-label="صادر">{Number(row.outgoing) ? `${formatQty(row.outgoing)} ${itemStatementRow.unit}` : '—'}</td>
-                          <td className="num strong" data-label="الرصيد">{formatQty(row.running_balance)} {itemStatementRow.unit}</td>
+                          <td className="num" data-label="وارد">{Number(row.incoming) ? formatQty(row.incoming) : '—'}</td>
+                          <td className="num" data-label="صادر">{Number(row.outgoing) ? formatQty(row.outgoing) : '—'}</td>
+                          <td className="num strong" data-label="الرصيد">{formatQty(row.running_balance)}</td>
                         </tr>
                       ))}
                     </tbody>
