@@ -881,8 +881,8 @@ code {
   --ink: #273a54;
   --muted: #738094;
   --line: #e7ebef;
-  --primary: #39a957;
-  --primary-dark: #278542;
+  --primary: #2e425c;
+  --primary-dark: #23364e;
   --danger: #c84c40;
   --success: #278542;
   --radius: 14px;
@@ -921,7 +921,7 @@ body { color: var(--ink); }
   font-weight: 650;
   transition: background-color .16s ease, color .16s ease;
 }
-.nav a.active { background: #eaf5ed; color: var(--primary-dark); }
+.nav a.active { background: #edf1f6; color: var(--primary-dark); }
 .sign-out { min-height: 44px; text-align: center; }
 .content { flex: 1; width: auto; max-width: 1440px; min-width: 0; padding: 30px clamp(18px, 3vw, 44px); }
 .card { border-color: #e9edf1; border-radius: 14px; box-shadow: var(--shadow); padding: 20px; }
