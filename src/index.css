@@ -31,6 +31,13 @@ body {
   line-height: 1.6;
 }
 
+button,
+input,
+select,
+textarea {
+  font-family: 'Cairo Variable', 'Segoe UI', Tahoma, sans-serif;
+}
+
 h1,
 h2,
 h3 {
@@ -1151,6 +1158,8 @@ code {
   background: transparent;
   text-align: right;
   cursor: pointer;
+  font: inherit;
+  font-family: inherit;
   transition: all 0.15s ease-in-out;
 }
 
@@ -1259,6 +1268,8 @@ code {
 }
 
 .preset-chip-btn {
+  font: inherit;
+  font-family: inherit;
   font-size: 11px;
   min-height: 26px;
   padding: 3px 12px;
@@ -1275,6 +1286,26 @@ code {
   border-color: #2e425c;
   background: #f8fafc;
   color: #0f172a;
+}
+
+.matrix-column-btn {
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0;
+}
+
+.matrix-column-btn:hover {
+  color: #1d4ed8;
 }
 
 .matrix-toolbar {

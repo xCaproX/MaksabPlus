@@ -763,17 +763,12 @@ function HierarchyMatrixTable({
               {!readOnly ? (
                 <button
                   type="button"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    color: 'inherit',
-                  }}
+                  className="matrix-column-btn"
                   title={`تبديل صلاحية "${action.label}" للجميع`}
                   onClick={() => onToggleColumnAction(action.key)}
                 >
-                  {action.label} ▾
+                  <span>{action.label}</span>
+                  <span style={{ fontSize: '10px' }}>▾</span>
                 </button>
               ) : (
                 action.label
