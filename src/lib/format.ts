@@ -48,3 +48,15 @@ export function today(): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${month}-${day}`;
 }
+
+export function formatAccountBalance(amount: number, accountKind?: 'customer' | 'supplier' | 'waste') {
+  const rounded = round2(amount);
+  if (rounded === 0) return { text: `${money(0)} (خالص)`, status: 'neutral' };
+  if (accountKind === 'customer') {
+    if (rounded > 0) return { text: `${money(rounded)} (عليه)`, status: 'debit' };
+    return { text: `${money(Math.abs(rounded))} (له)`, status: 'credit' };
+  } else {
+    if (rounded > 0) return { text: `${money(rounded)} (له)`, status: 'credit' };
+    return { text: `${money(Math.abs(rounded))} (عليه)`, status: 'debit' };
+  }
+}

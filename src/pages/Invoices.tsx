@@ -212,7 +212,7 @@ export default function Invoices() {
           .eq('is_active', true)
           .order('kind')
           .order('name'),
-        supabase.from('warehouses').select('id, name, is_active').order('name'),
+        supabase.from('warehouses').select('id, name, is_active, is_primary').order('name'),
         supabase.from('v_item_stock').select('*').eq('is_active', true).order('name'),
         supabase.from('v_cash_box_balances').select('*').order('name'),
         supabase.from('v_stock_opening_balances').select('*').order('warehouse_name').order('item_name'),

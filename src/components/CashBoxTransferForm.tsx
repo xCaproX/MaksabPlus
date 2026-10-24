@@ -16,7 +16,7 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
   const activeBoxes = cashBoxes.filter((box) => box.is_active || box.id === editing?.source_cash_box_id || box.id === editing?.destination_cash_box_id);
   const [sourceId, setSourceId] = useState(editing?.source_cash_box_id ?? activeBoxes.find((box) => box.is_primary)?.id ?? activeBoxes[0]?.id ?? '');
   const [destinationId, setDestinationId] = useState(editing?.destination_cash_box_id ?? activeBoxes.find((box) => box.id !== sourceId)?.id ?? '');
-  const [date, setDate] = useState(editing?.transfer_date ?? today());
+  const [date] = useState(editing?.transfer_date ?? today());
   const [amount, setAmount] = useState(editing ? String(Number(editing.amount)) : '');
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [busy, setBusy] = useState(false);
@@ -50,7 +50,7 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
   return (
     <form className="inline-form" onSubmit={submit}>
       <div className="form-grid">
-        <label className="form-grid-col-4">
+        <label className="form-grid-col-6">
           من خزنة (المصدر)
           <select value={sourceId} onChange={(event) => {
             const next = event.target.value;
@@ -61,16 +61,12 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
             {activeBoxes.map((box) => <option key={box.id} value={box.id}>{box.name} — رصيدها: {money(box.balance)}</option>)}
           </select>
         </label>
-        <label className="form-grid-col-4">
+        <label className="form-grid-col-6">
           إلى خزنة (الوجهة)
           <select value={destinationId} onChange={(event) => setDestinationId(event.target.value)} required>
             <option value="">اختر خزنة الوجهة…</option>
             {activeBoxes.filter((box) => box.id !== sourceId).map((box) => <option key={box.id} value={box.id}>{box.name} — رصيدها: {money(box.balance)}</option>)}
           </select>
-        </label>
-        <label className="form-grid-col-4">
-          التاريخ
-          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
         </label>
         <label className="form-grid-col-4">
           المبلغ المنقول
@@ -100,10 +96,6 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
           </div>
         </div>
       )}
-
-      <div className="form-footer-smart-hint">
-        <span>💡 ينقص المبلغ من رصيد خزنة المصدر ويضاف إلى الوجهة مباشرة. لا يتغير مجموع الخزن الكلي أو رصيد أي عميل أو مورد.</span>
-      </div>
 
       <div className="form-modal-actions">
         <button type="submit" className="btn primary" disabled={busy}>

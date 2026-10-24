@@ -1686,6 +1686,136 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
   outline: none;
 }
 
+/* Modern Unified Form Header with Balance Card */
+.form-header-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.form-header-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex: 1;
+  min-width: 320px;
+  flex-wrap: wrap;
+}
+
+.form-header-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #475569;
+}
+
+.form-header-fields .field-account-kind {
+  width: 130px;
+  flex-shrink: 0;
+}
+
+.form-header-fields .field-account-select {
+  flex: 1;
+  min-width: 220px;
+}
+
+.form-header-fields .field-warehouse-select,
+.form-header-fields .field-cashbox-select {
+  width: 210px;
+  flex-shrink: 0;
+}
+
+.form-account-balance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 8px 14px;
+  min-width: 270px;
+  font-size: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.form-account-balance-card .balance-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+  font-size: 11.5px;
+}
+
+.form-account-balance-card .balance-card-row.highlight {
+  padding-top: 5px;
+  margin-top: 2px;
+  border-top: 1px dashed #cbd5e1;
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 12.5px;
+}
+
+.form-account-balance-card .balance-card-label {
+  color: #475569;
+}
+
+.form-account-balance-card .balance-card-val {
+  font-weight: 700;
+  font-family: inherit;
+  direction: ltr;
+  text-align: left;
+}
+
+.form-account-balance-card .balance-card-val.debit {
+  color: #b45309;
+}
+
+.form-account-balance-card .balance-card-val.credit {
+  color: #0369a1;
+}
+
+.form-account-balance-card .balance-card-val.neutral {
+  color: #0f766e;
+}
+
+.form-account-balance-card .balance-card-val.decrease {
+  color: #15803d;
+}
+
+/* Notes Row in Form Footer */
+.invoice-notes-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.invoice-notes-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #475569;
+}
+
+.invoice-notes-row input {
+  min-height: 38px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--erp-border, #cbd5e1);
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--erp-text, #1e293b);
+  background: #fff;
+}
+
 /* Lines Section Header */
 .lines-head-bar {
   display: flex;

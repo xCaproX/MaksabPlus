@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { supabase } from '../lib/supabase';
-import { money, qty as formatQty, round2, today } from '../lib/format';
+import { formatAccountBalance, money, qty as formatQty, round2, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
 import { toast } from './Toast';
@@ -37,6 +37,18 @@ function emptyLine(): LineDraft {
   return { key: crypto.randomUUID(), item_id: '', qty: '1', unit_price: '' };
 }
 
+function formatDebtDelta(delta: number, accountKind?: AccountKind) {
+  const rounded = round2(delta);
+  if (rounded === 0) return { text: '0.00 (لا تغيير)', status: 'neutral' };
+  if (accountKind === 'customer') {
+    if (rounded > 0) return { text: `+${money(rounded)} (زيادة دين)`, status: 'debit' };
+    return { text: `-${money(Math.abs(rounded))} (تخفيض دين)`, status: 'decrease' };
+  } else {
+    if (rounded > 0) return { text: `+${money(rounded)} (مستحق له)`, status: 'debit' };
+    return { text: `-${money(Math.abs(rounded))} (خصم مستحق)`, status: 'decrease' };
+  }
+}
+
 export default function InvoiceForm({
   kind,
   accounts,
@@ -60,11 +72,15 @@ export default function InvoiceForm({
   const defaultAccountKind: AccountKind = editing?.invoice.account_kind ?? (
     isWaste ? 'waste' : kind === 'sale' || kind === 'sale_return' ? 'customer' : 'supplier'
   );
-  const [date, setDate] = useState(editing?.invoice.invoice_date ?? today());
+  const defaultWarehouse = warehouses.find((w) => w.is_primary && w.is_active !== false)
+    ?? warehouses.find((w) => w.name === 'المخزن الرئيسي' && w.is_active !== false)
+    ?? warehouses.find((w) => w.is_active !== false);
+
+  const [date] = useState(editing?.invoice.invoice_date ?? today());
   const [accountKind, setAccountKind] = useState<AccountKind>(defaultAccountKind);
   const [accountId, setAccountId] = useState(editing?.invoice.account_id ?? defaultAccountId);
   const [warehouseId, setWarehouseId] = useState(
-    editing?.invoice.warehouse_id ?? warehouses.find((warehouse) => warehouse.is_active !== false)?.id ?? '',
+    editing?.invoice.warehouse_id ?? defaultWarehouse?.id ?? '',
   );
   const [cashBoxId, setCashBoxId] = useState(
     editing?.invoice.cash_box_id ?? cashBoxes.find((box) => box.is_active)?.id ?? '',
@@ -94,6 +110,14 @@ export default function InvoiceForm({
   const cashAccountSelected = accounts.some(
     (account) => account.id === accountId && ['cash_customer', 'cash_supplier'].includes(account.system_key ?? ''),
   );
+
+  // السداد الكامل التلقائي للحسابات النقدية عند تغير الإجمالي
+  useEffect(() => {
+    if (cashAccountSelected && !editing) {
+      setPaid(String(total));
+    }
+  }, [total, cashAccountSelected, editing]);
+
   const selectableAccounts = accounts.filter((account) => account.kind === accountKind);
   const selectableWarehouses = warehouses.filter(
     (warehouse) => warehouse.is_active !== false || warehouse.id === editing?.invoice.warehouse_id,
@@ -102,6 +126,33 @@ export default function InvoiceForm({
     (box) => box.is_active || box.id === editing?.invoice.cash_box_id,
   );
   const effectiveCashBoxId = cashBoxId || editing?.invoice.cash_box_id || cashBoxes.find((box) => box.is_active)?.id || '';
+
+  const selectedAccount = accounts.find((account) => account.id === accountId);
+  const netInvoiceDebt = isReturn ? -(total - paidNumber) : (total - paidNumber);
+  const prevRemaining = editing ? (Number(editing.invoice.total) - Number(editing.invoice.paid)) : 0;
+  const prevDebt = editing ? (isReturn ? -prevRemaining : prevRemaining) : 0;
+  const balanceBefore = selectedAccount ? (Number(selectedAccount.balance) - prevDebt) : 0;
+  const balanceAfter = balanceBefore + netInvoiceDebt;
+
+  function handleAccountKindChange(nextKind: AccountKind) {
+    setAccountKind(nextKind);
+    const nextCashKey = nextKind === 'customer' ? 'cash_customer' : 'cash_supplier';
+    const nextAccountId = accounts.find((a) => a.system_key === nextCashKey)?.id ?? '';
+    setAccountId(nextAccountId);
+    if (!editing) {
+      setPaid(String(total));
+    }
+  }
+
+  function handleAccountChange(id: string) {
+    setAccountId(id);
+    const isCash = accounts.some(
+      (account) => account.id === id && ['cash_customer', 'cash_supplier'].includes(account.system_key ?? ''),
+    );
+    if (isCash && !editing) {
+      setPaid(String(total));
+    }
+  }
 
   function updateLine(key: string, patch: Partial<LineDraft>) {
     setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
@@ -221,74 +272,70 @@ export default function InvoiceForm({
 
   return (
     <form className="invoice-form" onSubmit={submit}>
-      <div className="form-grid">
-        <label className="form-grid-col-5">
-          {isWaste ? 'الحساب' : kind === 'sale' || kind === 'sale_return' ? 'العميل' : 'المورد'}
-          {isWaste ? (
-            <select value={accountId} disabled required>
-              <option value={accountId}>
-                {accounts.find((account) => account.id === accountId)?.name ?? 'حساب الهالك الثابت غير موجود'}
-              </option>
-            </select>
-          ) : (
-            <SearchableSelect
-              value={accountId}
-              options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
-              onChange={setAccountId}
-              placeholder="اختر الحساب…"
-              required
-            />
-          )}
-        </label>
-
-        <label className="form-grid-col-2">
-          نوع الحساب
-          <select
-            value={accountKind}
-            onChange={(e) => {
-              setAccountKind(e.target.value as AccountKind);
-              setAccountId('');
-            }}
-            disabled={isWaste}
-            required
-          >
-            {isWaste ? (
-              <option value="waste">هالك</option>
-            ) : (
-              <>
+      <div className="form-header-bar">
+        <div className="form-header-fields">
+          {!isWaste && (
+            <label className="field-account-kind">
+              نوع الحساب
+              <select
+                value={accountKind}
+                onChange={(e) => handleAccountKindChange(e.target.value as AccountKind)}
+                required
+              >
                 <option value="customer">عميل</option>
                 <option value="supplier">مورد</option>
-              </>
-            )}
-          </select>
-        </label>
+              </select>
+            </label>
+          )}
 
-        <label className="form-grid-col-2">
-          التاريخ
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-        </label>
+          {!isWaste && (
+            <label className="field-account-select">
+              {accountKind === 'customer' ? 'العميل' : 'المورد'}
+              <SearchableSelect
+                value={accountId}
+                options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
+                onChange={handleAccountChange}
+                placeholder="اختر الحساب…"
+                required
+              />
+            </label>
+          )}
 
-        <label className="form-grid-col-3">
-          المخزن
-          <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} required>
-            {selectableWarehouses.length === 0 && <option value="">لا يوجد مخزن نشط</option>}
-            {selectableWarehouses.map((warehouse) => (
-              <option key={warehouse.id} value={warehouse.id}>
-                {warehouse.name}{warehouse.is_active === false ? ' — موقوف (للفواتير القديمة)' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="field-warehouse-select">
+            المخزن
+            <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} required>
+              {selectableWarehouses.length === 0 && <option value="">لا يوجد مخزن نشط</option>}
+              {selectableWarehouses.map((warehouse) => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.name}{warehouse.is_active === false ? ' — موقوف (للفواتير القديمة)' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
-        <label className="form-grid-col-12">
-          ملاحظات
-          <input
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="ملاحظات إضافية على الفاتورة (اختياري)…"
-          />
-        </label>
+        {selectedAccount && !isWaste && (
+          <div className="form-account-balance-card" aria-label="موقف حساب العميل/المورد">
+            <div className="balance-card-row">
+              <span className="balance-card-label">الرصيد قبل الفاتورة</span>
+              <span className={`balance-card-val ${formatAccountBalance(balanceBefore, selectedAccount.kind).status}`}>
+                {formatAccountBalance(balanceBefore, selectedAccount.kind).text}
+              </span>
+            </div>
+            <div className="balance-card-row">
+              <span className="balance-card-label">صافي مديونية الفاتورة</span>
+              <span className={`balance-card-val ${formatDebtDelta(netInvoiceDebt, selectedAccount.kind).status}`}>
+                {formatDebtDelta(netInvoiceDebt, selectedAccount.kind).text}
+              </span>
+            </div>
+            <div className="balance-card-row highlight">
+              <span className="balance-card-label">الرصيد بعد الفاتورة</span>
+              <span className={`balance-card-val ${formatAccountBalance(balanceAfter, selectedAccount.kind).status}`}>
+                {formatAccountBalance(balanceAfter, selectedAccount.kind).text}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="lines">
@@ -460,6 +507,19 @@ export default function InvoiceForm({
               </label>
             </div>
           )}
+        </div>
+
+        {/* 10- ملاحظات */}
+        <div className="invoice-notes-row">
+          <label>
+            <span>ملاحظات الفاتورة</span>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="ملاحظات إضافية على الفاتورة (اختياري)…"
+            />
+          </label>
         </div>
 
         <div className="form-modal-actions">

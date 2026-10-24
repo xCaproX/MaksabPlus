@@ -33,7 +33,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
   const [destinationId, setDestinationId] = useState(
     editing?.destination_warehouse_id ?? activeWarehouses.find((warehouse) => warehouse.id !== sourceId)?.id ?? '',
   );
-  const [date, setDate] = useState(editing?.transfer_date ?? today());
+  const [date] = useState(editing?.transfer_date ?? today());
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [lines, setLines] = useState<DraftLine[]>(
     editing
@@ -113,7 +113,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
   return (
     <form className="inline-form" onSubmit={submit}>
       <div className="form-grid">
-        <label className="form-grid-col-4">
+        <label className="form-grid-col-6">
           من مخزن (المصدر)
           <select
             value={sourceId}
@@ -135,7 +135,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
             ))}
           </select>
         </label>
-        <label className="form-grid-col-4">
+        <label className="form-grid-col-6">
           إلى مخزن (الوجهة)
           <select value={destinationId} onChange={(event) => setDestinationId(event.target.value)} required>
             <option value="">اختر مخزن الوجهة…</option>
@@ -147,10 +147,6 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                 </option>
               ))}
           </select>
-        </label>
-        <label className="form-grid-col-4">
-          التاريخ
-          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
         </label>
         <label className="form-grid-col-12">
           ملاحظات

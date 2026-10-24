@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { creationTime, money, today } from '../lib/format';
+import { creationTime, formatAccountBalance, money, round2, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
@@ -758,111 +758,161 @@ export default function Receipts() {
             title={editing ? `تعديل الإيصال ${editing.number}` : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`}
             onClose={closeForm}
           >
-            <form className="inline-form" onSubmit={submit}>
-              <div className="form-grid">
-                <label className="form-grid-col-5">
-                  {isIn ? 'استلام من (العميل / الحساب)' : 'صرف إلى (المورد / الحساب)'}
-                  <SearchableSelect
-                    value={accountId}
-                    options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
-                    onChange={setAccountId}
-                    placeholder="اختر الحساب…"
-                    required
-                  />
-                </label>
+            {(() => {
+              const selectedReceiptAccount = accounts.find((a) => a.id === accountId);
+              const numAmount = Number(amount || 0);
+              const isCust = selectedReceiptAccount?.kind === 'customer';
+              const getReceiptEffect = (amt: number) => {
+                if (isCust) {
+                  return isIn ? -amt : amt;
+                } else {
+                  return isIn ? amt : -amt;
+                }
+              };
+              const prevAmount = editing ? Number(editing.amount) : 0;
+              const prevDelta = editing ? getReceiptEffect(prevAmount) : 0;
+              const currentDelta = getReceiptEffect(numAmount);
+              const receiptBalanceBefore = selectedReceiptAccount ? (Number(selectedReceiptAccount.balance) - prevDelta) : 0;
+              const receiptBalanceAfter = receiptBalanceBefore + currentDelta;
 
-                <label className="form-grid-col-3">
-                  نوع الحساب
-                  <select
-                    value={accountKind}
-                    onChange={(e) => {
-                      setAccountKind(e.target.value as AccountKind);
-                      setAccountId('');
-                    }}
-                    required
-                  >
-                    <option value="customer">عميل</option>
-                    <option value="supplier">مورد</option>
-                  </select>
-                </label>
+              const formatReceiptDelta = (delta: number) => {
+                const rounded = round2(delta);
+                if (rounded === 0) return { text: '0.00 (لا تغيير)', status: 'neutral' };
+                if (isCust) {
+                  if (rounded > 0) return { text: `+${money(rounded)} (زيادة دين)`, status: 'debit' };
+                  return { text: `-${money(Math.abs(rounded))} (تخفيض دين)`, status: 'decrease' };
+                } else {
+                  if (rounded > 0) return { text: `+${money(rounded)} (مستحق له)`, status: 'debit' };
+                  return { text: `-${money(Math.abs(rounded))} (خصم مستحق)`, status: 'decrease' };
+                }
+              };
 
-                <label className="form-grid-col-4">
-                  الخزنة {isIn ? 'المستلمة' : 'المنصرفة'}
-                  <select value={cashBoxId} onChange={(e) => setCashBoxId(e.target.value)} required>
-                    {selectableCashBoxes.map((box) => (
-                      <option key={box.id} value={box.id}>
-                        {box.name} ({money(box.balance)})
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              return (
+                <form className="inline-form" onSubmit={submit}>
+                  <div className="form-header-bar" style={{ marginBottom: '14px' }}>
+                    <div className="form-header-fields">
+                      {/* 1- نوع الحساب */}
+                      <label className="field-account-kind">
+                        نوع الحساب
+                        <select
+                          value={accountKind}
+                          onChange={(e) => {
+                            setAccountKind(e.target.value as AccountKind);
+                            setAccountId('');
+                          }}
+                          required
+                        >
+                          <option value="customer">عميل</option>
+                          <option value="supplier">مورد</option>
+                        </select>
+                      </label>
 
-                <label className="form-grid-col-4">
-                  المبلغ
-                  <input
-                    type="number"
-                    step="0.0001"
-                    min="0.0001"
-                    dir="ltr"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    required
-                  />
-                </label>
+                      {/* 2- الحساب (فاضي افتراضياً) */}
+                      <label className="field-account-select">
+                        {isIn ? 'استلام من (الحساب)' : 'صرف إلى (الحساب)'}
+                        <SearchableSelect
+                          value={accountId}
+                          options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
+                          onChange={setAccountId}
+                          placeholder="اختر الحساب…"
+                          required
+                        />
+                      </label>
 
-                <label className="form-grid-col-3">
-                  التاريخ
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-                </label>
+                      {/* 3- الخزنة */}
+                      <label className="field-cashbox-select">
+                        الخزنة {isIn ? 'المستلمة' : 'المنصرفة'}
+                        <select value={cashBoxId} onChange={(e) => setCashBoxId(e.target.value)} required>
+                          {selectableCashBoxes.map((box) => (
+                            <option key={box.id} value={box.id}>
+                              {box.name} ({money(box.balance)})
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
 
-                <label className="form-grid-col-5">
-                  البيان
-                  <input
-                    type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="سبب أو وصف المعاملة…"
-                  />
-                </label>
-
-                <label className="form-grid-col-12">
-                  ملاحظات
-                  <input
-                    type="text"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="أي ملاحظات إضافية على الإيصال (اختياري)…"
-                  />
-                </label>
-              </div>
-
-              {Number(amount) > 0 && (
-                <div className="invoice-totals-bar" style={{ marginTop: '4px' }}>
-                  <div className="total-stat-box grand-total">
-                    <span className="stat-box-title">قيمة الإيصال المحصلة / المنصرفة</span>
-                    <strong className="stat-box-num">{money(Number(amount))}</strong>
+                    {/* بوكس كشف الحساب المصغر أعلى الشمال */}
+                    {selectedReceiptAccount && (
+                      <div className="form-account-balance-card" aria-label="موقف حساب العميل/المورد">
+                        <div className="balance-card-row">
+                          <span className="balance-card-label">الرصيد قبل الإيصال</span>
+                          <span className={`balance-card-val ${formatAccountBalance(receiptBalanceBefore, selectedReceiptAccount.kind).status}`}>
+                            {formatAccountBalance(receiptBalanceBefore, selectedReceiptAccount.kind).text}
+                          </span>
+                        </div>
+                        <div className="balance-card-row">
+                          <span className="balance-card-label">صافي حركة الإيصال</span>
+                          <span className={`balance-card-val ${formatReceiptDelta(currentDelta).status}`}>
+                            {formatReceiptDelta(currentDelta).text}
+                          </span>
+                        </div>
+                        <div className="balance-card-row highlight">
+                          <span className="balance-card-label">الرصيد بعد الإيصال</span>
+                          <span className={`balance-card-val ${formatAccountBalance(receiptBalanceAfter, selectedReceiptAccount.kind).status}`}>
+                            {formatAccountBalance(receiptBalanceAfter, selectedReceiptAccount.kind).text}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
 
-              <div className="form-footer-smart-hint">
-                <span>
-                  {isIn
-                    ? '💡 استلام من عميل يقلّل رصيده، ومن مورد يزيد رصيده؛ ويزيد رصيد الخزنة.'
-                    : '💡 صرف لعميل يزيد رصيده، ولمورد يقلّل رصيده؛ وينقص رصيد الخزنة.'}
-                </span>
-              </div>
+                  <div className="form-grid">
+                    <label className="form-grid-col-4">
+                      المبلغ
+                      <input
+                        type="number"
+                        step="0.0001"
+                        min="0.0001"
+                        dir="ltr"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        required
+                      />
+                    </label>
 
-              <div className="form-modal-actions">
-                <button type="submit" className="btn primary" disabled={busy}>
-                  {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
-                </button>
-                <button type="button" className="btn" onClick={closeForm} disabled={busy}>
-                  إلغاء
-                </button>
-              </div>
-            </form>
+                    <label className="form-grid-col-8">
+                      البيان
+                      <input
+                        type="text"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="سبب أو وصف المعاملة…"
+                      />
+                    </label>
+
+                    <label className="form-grid-col-12">
+                      ملاحظات
+                      <input
+                        type="text"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="أي ملاحظات إضافية على الإيصال (اختياري)…"
+                      />
+                    </label>
+                  </div>
+
+                  {Number(amount) > 0 && (
+                    <div className="invoice-totals-bar" style={{ marginTop: '12px' }}>
+                      <div className="total-stat-box grand-total">
+                        <span className="stat-box-title">قيمة الإيصال المحصلة / المنصرفة</span>
+                        <strong className="stat-box-num">{money(Number(amount))}</strong>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="form-modal-actions">
+                    <button type="submit" className="btn primary" disabled={busy}>
+                      {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
+                    </button>
+                    <button type="button" className="btn" onClick={closeForm} disabled={busy}>
+                      إلغاء
+                    </button>
+                  </div>
+                </form>
+              );
+            })()}
           </Modal>
         )
       )}
