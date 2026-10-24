@@ -989,6 +989,17 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
 .form-footer { gap: 14px; }
 
 @media (max-width: 760px) {
+  .statement-modal-backdrop { padding: 0; align-items: stretch; }
+  .modal.account-statement-modal {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .account-statement-modal .modal-head { position: sticky; top: 0; z-index: 2; background: var(--card); }
+  .account-statement-modal .modal-body { padding: 14px 13px calc(20px + env(safe-area-inset-bottom)); }
+  .account-statement-modal .account-statement-period label { width: 100%; min-width: 0; }
+  .account-statement-modal .statement-actions { flex-wrap: wrap; }
   .master-data-backdrop { padding: 0; align-items: stretch; }
   .modal.master-data-modal {
     width: 100%;
@@ -1060,6 +1071,10 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
   }
   .responsive-table .table tr.responsive-row td.transfer-item-cell { grid-column: 1 / -1; display: block; }
   .responsive-table .table tr.responsive-row td.transfer-item-cell::before { display: block; margin-bottom: 4px; }
+  .responsive-table .table tr.responsive-row td.card-wide-cell { grid-column: 1 / -1; display: block; }
+  .responsive-table .table tr.responsive-row td.card-wide-cell::before { display: block; margin-bottom: 4px; }
+  .responsive-table .table tr.responsive-row td.mobile-field-cell { grid-column: 1 / -1; align-items: center; }
+  .responsive-table .table tr.responsive-row td.mobile-field-cell .table-input { width: min(58%, 220px); min-width: 0; margin-inline-start: auto; }
   .responsive-table .table tr.responsive-row td.row-actions { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 9px; }
   .responsive-table .table tr.responsive-row td.row-actions::before { flex: 1 0 100%; }
   .modal.invoice-entry-modal {
