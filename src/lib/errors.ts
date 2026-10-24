@@ -67,6 +67,9 @@ const MESSAGES: Record<string, string> = {
 
 export function translateDbError(message: string | undefined | null): string {
   const text = message ?? '';
+  if (text.includes('JSON object requested, multiple (or no) rows returned')) {
+    return 'تعذّر تحميل بيانات الصفحة. حدّثها، وإذا استمر الخطأ تواصل مع الدعم.';
+  }
   for (const key of Object.keys(MESSAGES)) {
     if (text.includes(key)) return MESSAGES[key];
   }

@@ -1,10 +1,16 @@
 import { supabase } from './supabase';
 
-/** الشركة المرتبطة بالمستخدم الحالي (RLS يسمح بقراءة صفّه فقط). */
+/** الشركة المرتبطة بالمستخدم الحالي؛ تقييد الاستعلام بالهوية مهم للمالكين أيضًا. */
 export async function getCompanyId(): Promise<string> {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  const userId = sessionData.session?.user.id;
+  if (!userId) throw new Error('انتهت الجلسة، سجّل الدخول من جديد');
+
   const { data, error } = await supabase
     .from('profiles')
     .select('company_id')
+    .eq('id', userId)
     .maybeSingle();
 
   if (error) throw error;
