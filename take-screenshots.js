@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 
 const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-const port = 5188;
+const port = 5199;
 
 function checkUrl(url) {
   return new Promise((resolve) => {
@@ -54,7 +54,7 @@ async function main() {
   vite.stdout.on('data', (d) => console.log('vite:', d.toString().trim()));
   vite.stderr.on('data', (d) => console.error('vite err:', d.toString().trim()));
 
-  const targetUrl = `http://localhost:${port}/preview-invoice`;
+  const targetUrl = `http://localhost:${port}/preview-receipt`;
   const ready = await waitForServer(targetUrl);
   if (!ready) {
     console.error('Server did not become ready in time');
@@ -68,20 +68,19 @@ async function main() {
   const outDir = path.resolve('public', 'screenshots');
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
-  const shot1280 = path.join(outDir, 'phase1-invoice-modal-1280px.png');
-  const shot1920 = path.join(outDir, 'phase1-invoice-modal-1920px.png');
+  const shot1280 = path.join(outDir, 'phase2-receipt-modal-1280px.png');
+  const shot1920 = path.join(outDir, 'phase2-receipt-modal-1920px.png');
 
-  console.log('Taking 1280px screenshot...');
+  console.log('Taking 1280px screenshot of receipt modal...');
   await runEdgeScreenshot(1280, 920, shot1280, targetUrl);
   console.log('Saved:', shot1280);
 
-  console.log('Taking 1920px screenshot...');
+  console.log('Taking 1920px screenshot of receipt modal...');
   await runEdgeScreenshot(1920, 1080, shot1920, targetUrl);
   console.log('Saved:', shot1920);
 
   console.log('Cleaning up server...');
   vite.kill('SIGTERM');
-  // force kill on windows if needed
   spawn('taskkill', ['/pid', String(vite.pid), '/f', '/t']);
   console.log('Done!');
 }

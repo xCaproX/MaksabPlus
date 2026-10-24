@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { creationTime, formatAccountBalance, money, round2, today } from '../lib/format';
+import { creationTime, money, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import ConfirmDialog from '../components/ConfirmDialog';
+import AccountBalanceCard from '../components/AccountBalanceCard';
+import DateInput from '../components/DateInput';
 import { toast } from '../components/Toast';
 import type {
   AccountRow,
@@ -780,23 +782,11 @@ export default function Receipts() {
               const receiptBalanceBefore = selectedReceiptAccount ? (Number(selectedReceiptAccount.balance) - prevDelta) : 0;
               const receiptBalanceAfter = receiptBalanceBefore + currentDelta;
 
-              const formatReceiptDelta = (delta: number) => {
-                const rounded = round2(delta);
-                if (rounded === 0) return { text: '0.00 (لا تغيير)', status: 'neutral' };
-                if (isCust) {
-                  if (rounded > 0) return { text: `+${money(rounded)} (زيادة دين)`, status: 'debit' };
-                  return { text: `-${money(Math.abs(rounded))} (تخفيض دين)`, status: 'decrease' };
-                } else {
-                  if (rounded > 0) return { text: `+${money(rounded)} (مستحق له)`, status: 'debit' };
-                  return { text: `-${money(Math.abs(rounded))} (خصم مستحق)`, status: 'decrease' };
-                }
-              };
-
               return (
                 <form className="inline-form" onSubmit={submit}>
-                  <div className="form-header-bar" style={{ marginBottom: '14px' }}>
+                  {/* المجموعة الأولى: الحساب والنوع وموقف الرصيد */}
+                  <div className="form-header-bar" style={{ marginBottom: '16px' }}>
                     <div className="form-header-fields">
-                      {/* 1- نوع الحساب */}
                       <label className="field-account-kind">
                         نوع الحساب
                         <select
@@ -812,7 +802,6 @@ export default function Receipts() {
                         </select>
                       </label>
 
-                      {/* 2- الحساب (فاضي افتراضياً) */}
                       <label className="field-account-select">
                         {isIn ? 'استلام من (الحساب)' : 'صرف إلى (الحساب)'}
                         <SearchableSelect
@@ -823,61 +812,62 @@ export default function Receipts() {
                           required
                         />
                       </label>
-
-                      {/* 3- الخزنة */}
-                      <label className="field-cashbox-select">
-                        الخزنة {isIn ? 'المستلمة' : 'المنصرفة'}
-                        <select value={cashBoxId} onChange={(e) => setCashBoxId(e.target.value)} required>
-                          {selectableCashBoxes.map((box) => (
-                            <option key={box.id} value={box.id}>
-                              {box.name} ({money(box.balance)})
-                            </option>
-                          ))}
-                        </select>
-                      </label>
                     </div>
 
-                    {/* بوكس كشف الحساب المصغر أعلى الشمال */}
                     {selectedReceiptAccount && (
-                      <div className="form-account-balance-card" aria-label="موقف حساب العميل/المورد">
-                        <div className="balance-card-row">
-                          <span className="balance-card-label">الرصيد قبل الإيصال</span>
-                          <span className={`balance-card-val ${formatAccountBalance(receiptBalanceBefore, selectedReceiptAccount.kind).status}`}>
-                            {formatAccountBalance(receiptBalanceBefore, selectedReceiptAccount.kind).text}
-                          </span>
-                        </div>
-                        <div className="balance-card-row">
-                          <span className="balance-card-label">صافي حركة الإيصال</span>
-                          <span className={`balance-card-val ${formatReceiptDelta(currentDelta).status}`}>
-                            {formatReceiptDelta(currentDelta).text}
-                          </span>
-                        </div>
-                        <div className="balance-card-row highlight">
-                          <span className="balance-card-label">الرصيد بعد الإيصال</span>
-                          <span className={`balance-card-val ${formatAccountBalance(receiptBalanceAfter, selectedReceiptAccount.kind).status}`}>
-                            {formatAccountBalance(receiptBalanceAfter, selectedReceiptAccount.kind).text}
-                          </span>
-                        </div>
-                      </div>
+                      <AccountBalanceCard
+                        accountKind={selectedReceiptAccount.kind}
+                        balanceBefore={receiptBalanceBefore}
+                        delta={currentDelta}
+                        balanceAfter={receiptBalanceAfter}
+                        titleBefore="الرصيد قبل الإيصال"
+                        deltaLabel="صافي حركة الإيصال"
+                        titleAfter="الرصيد بعد الإيصال"
+                      />
                     )}
                   </div>
 
+                  {/* المجموعة الثانية: الخزنة، المبلغ، والتاريخ */}
                   <div className="form-grid">
+                    <label className="form-grid-col-4">
+                      الخزنة {isIn ? 'المستلمة' : 'المنصرفة'}
+                      <select value={cashBoxId} onChange={(e) => setCashBoxId(e.target.value)} required>
+                        {selectableCashBoxes.map((box) => (
+                          <option key={box.id} value={box.id}>
+                            {box.name} ({money(box.balance)})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
                     <label className="form-grid-col-4">
                       المبلغ
                       <input
                         type="number"
+                        inputMode="decimal"
                         step="0.0001"
                         min="0.0001"
                         dir="ltr"
                         value={amount}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) => setAmount(e.target.value)}
                         placeholder="0.00"
+                        className="no-spinner num"
                         required
                       />
                     </label>
 
-                    <label className="form-grid-col-8">
+                    <label className="form-grid-col-4">
+                      تاريخ الإيصال
+                      <DateInput
+                        value={date}
+                        onChange={setDate}
+                        required
+                      />
+                    </label>
+
+                    {/* المجموعة الثالثة: البيان والملاحظات بعرض كامل */}
+                    <label className="form-grid-col-12">
                       البيان
                       <input
                         type="text"
@@ -899,10 +889,10 @@ export default function Receipts() {
                   </div>
 
                   {Number(amount) > 0 && (
-                    <div className="invoice-totals-bar" style={{ marginTop: '12px' }}>
+                    <div className="invoice-totals-bar" style={{ marginTop: '14px' }}>
                       <div className="total-stat-box grand-total">
                         <span className="stat-box-title">قيمة الإيصال المحصلة / المنصرفة</span>
-                        <strong className="stat-box-num">{money(Number(amount))}</strong>
+                        <strong dir="ltr" className="stat-box-num num">{money(Number(amount))}</strong>
                       </div>
                     </div>
                   )}

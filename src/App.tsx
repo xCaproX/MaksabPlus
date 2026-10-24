@@ -14,6 +14,7 @@ const Balances = lazy(() => import('./pages/Balances'));
 const Management = lazy(() => import('./pages/Management'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
 import PreviewInvoice from './pages/PreviewInvoice';
+import PreviewReceipt from './pages/PreviewReceipt';
 
 function PageSuspense({ children, fullScreen = false }: { children: ReactNode; fullScreen?: boolean }) {
   return (
@@ -45,6 +46,14 @@ export default function App() {
     return (
       <PageSuspense fullScreen>
         <PreviewInvoice />
+      </PageSuspense>
+    );
+  }
+
+  if (window.location.pathname === '/preview-receipt') {
+    return (
+      <PageSuspense fullScreen>
+        <PreviewReceipt />
       </PageSuspense>
     );
   }
