@@ -520,35 +520,29 @@ export default function UserPermissions() {
                   </div>
                 ) : (
                   <>
-                    {/* شريط الأدوار الجاهزة */}
-                    <div className="presets-container">
-                      <span className="presets-title">
-                        <span>أدوار جاهزة:</span>
-                      </span>
-                      <div className="presets-list">
-                        {PRESETS.map((preset) => (
-                          <button
-                            key={preset.id}
-                            type="button"
-                            className="preset-chip-btn"
-                            disabled={busy}
-                            onClick={() => applyPreset(preset.keys)}
-                          >
-                            <span>{preset.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* شريط الإجراءات والتحكم بالطي والفتح */}
+                    {/* شريط الأدوار والتحكم الموحد */}
                     <div className="matrix-toolbar">
-                      <div>
-                        <strong>الصلاحيات المحددة:</strong>{' '}
-                        <span>
-                          {currentDraftKeys.length} من أصل {allKeys.length}
-                        </span>
+                      <div className="matrix-toolbar-presets">
+                        <span className="presets-title">أدوار جاهزة:</span>
+                        <div className="presets-list">
+                          {PRESETS.map((preset) => (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              className="preset-chip-btn"
+                              disabled={busy}
+                              onClick={() => applyPreset(preset.keys)}
+                            >
+                              <span>{preset.label}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
+
                       <div className="matrix-toolbar-actions">
+                        <span className="matrix-toolbar-count">
+                          <strong>{currentDraftKeys.length}</strong> من <strong>{allKeys.length}</strong>
+                        </span>
                         <button
                           type="button"
                           className="btn compact"
@@ -569,10 +563,10 @@ export default function UserPermissions() {
                         </button>
                         <span style={{ color: '#cbd5e1' }}>|</span>
                         <button type="button" className="btn compact" onClick={expandAll}>
-                          توسيع الكل
+                          توسيع
                         </button>
                         <button type="button" className="btn compact" onClick={collapseAll}>
-                          طي الكل
+                          طي
                         </button>
                       </div>
                     </div>
@@ -636,29 +630,29 @@ export default function UserPermissions() {
               </label>
             </div>
 
-            <div className="presets-container" style={{ marginTop: '8px', padding: '6px 8px' }}>
-              <span className="presets-title" style={{ fontSize: '11px' }}>
-                أدوار جاهزة:
-              </span>
-              <div className="presets-list">
-                {PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    className="preset-chip-btn"
-                    onClick={() => setInvitePermissions(preset.keys)}
-                  >
-                    <span>{preset.label}</span>
-                  </button>
-                ))}
+            <div className="matrix-toolbar" style={{ marginTop: '8px', padding: '6px 10px' }}>
+              <div className="matrix-toolbar-presets">
+                <span className="presets-title" style={{ fontSize: '11px' }}>
+                  أدوار جاهزة:
+                </span>
+                <div className="presets-list">
+                  {PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className="preset-chip-btn"
+                      onClick={() => setInvitePermissions(preset.keys)}
+                    >
+                      <span>{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="matrix-toolbar" style={{ padding: '6px 8px' }}>
-              <span style={{ fontSize: '12px' }}>
-                الصلاحيات المبدئية ({invitePermissions.length} من {allKeys.length})
-              </span>
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div className="matrix-toolbar-actions">
+                <span className="matrix-toolbar-count" style={{ fontSize: '11px' }}>
+                  ({invitePermissions.length} من {allKeys.length})
+                </span>
                 <button
                   type="button"
                   className="btn compact"
@@ -868,9 +862,9 @@ function SectionGroupRows({
 }) {
   return (
     <>
-      {/* صف رأس القسم القابل للطي والفتح مع تكرار عناوين الأعمدة لتسهيل القراءة عند التمرير */}
+      {/* صف رأس القسم القابل للطي والفتح */}
       <tr className="matrix-section-row">
-        <td>
+        <td colSpan={5}>
           <button
             type="button"
             className="matrix-section-btn"
@@ -883,18 +877,6 @@ function SectionGroupRows({
             </span>
           </button>
         </td>
-        {actionsList.map((action) => {
-          const isActionAvailable = section.items.some((item) => item.actions.includes(action.key));
-          return (
-            <td key={action.key} className="center matrix-section-action-header">
-              {isActionAvailable ? (
-                <span>{action.label}</span>
-              ) : (
-                <span className="matrix-cell-disabled">—</span>
-              )}
-            </td>
-          );
-        })}
         <td className="center">
           {!readOnly && (
             <button
