@@ -550,7 +550,7 @@ export default function MasterData() {
       {(tab === 'customers' || tab === 'suppliers') && (
         <>
           <div className="card">
-            <div className="table-wrap">
+            <div className="table-wrap responsive-table">
               <table className="table">
                 <thead>
                   <tr>
@@ -582,20 +582,20 @@ export default function MasterData() {
 
                   {!loading &&
                     visibleAccountsByTab.map((account) => (
-                      <tr key={account.id}>
-                        <td className="num">{entityNumber(account.kind === 'customer' ? 'CUS' : 'SUP', account.serial_number)}</td>
-                        <td>{account.name}</td>
-                        <td>{account.kind === 'customer' ? 'عميل' : account.kind === 'supplier' ? 'مورد' : 'هالك'}</td>
-                        <td className="num muted">{account.phone ?? '—'}</td>
-                        <td>{account.notes || '—'}</td>
-                        <td>
+                      <tr key={account.id} className="responsive-row">
+                        <td className="num" data-label="الرقم">{entityNumber(account.kind === 'customer' ? 'CUS' : 'SUP', account.serial_number)}</td>
+                        <td data-label="الاسم">{account.name}</td>
+                        <td data-label="النوع">{account.kind === 'customer' ? 'عميل' : account.kind === 'supplier' ? 'مورد' : 'هالك'}</td>
+                        <td className="num muted" data-label="الهاتف">{account.phone ?? '—'}</td>
+                        <td data-label="ملاحظات">{account.notes || '—'}</td>
+                        <td data-label="الحالة">
                           {account.is_active ? (
                             <span className="badge ok">نشط</span>
                           ) : (
                             <span className="badge">موقوف</span>
                           )}
                         </td>
-                        <td className="row-actions">
+                        <td className="row-actions" data-label="الإجراءات">
                           {can('data.edit') && <button
                             type="button"
                             className="link"
@@ -625,7 +625,7 @@ export default function MasterData() {
       {tab === 'items' && (
         <>
           <div className="card">
-            <div className="table-wrap">
+            <div className="table-wrap responsive-table">
               <table className="table">
                 <thead>
                   <tr>
@@ -659,22 +659,22 @@ export default function MasterData() {
 
                   {!loading &&
                     items.map((item) => (
-                      <tr key={item.id}>
-                        <td className="num">{entityNumber('ITM', item.serial_number)}</td>
-                        <td className="num">{item.code}</td>
-                        <td>{item.name}</td>
-                        <td>{item.unit}</td>
-                        <td className="num">{money(item.sale_price)}</td>
-                        <td className="num">{money(item.purchase_price)}</td>
-                        <td>{item.notes || '—'}</td>
-                        <td>
+                      <tr key={item.id} className="responsive-row">
+                        <td className="num" data-label="الرقم">{entityNumber('ITM', item.serial_number)}</td>
+                        <td className="num" data-label="الكود">{item.code}</td>
+                        <td data-label="الاسم">{item.name}</td>
+                        <td data-label="الوحدة">{item.unit}</td>
+                        <td className="num" data-label="سعر البيع">{money(item.sale_price)}</td>
+                        <td className="num" data-label="سعر الشراء">{money(item.purchase_price)}</td>
+                        <td data-label="ملاحظات">{item.notes || '—'}</td>
+                        <td data-label="الحالة">
                           {item.is_active ? (
                             <span className="badge ok">نشط</span>
                           ) : (
                             <span className="badge">موقوف</span>
                           )}
                         </td>
-                        <td className="row-actions">
+                        <td className="row-actions" data-label="الإجراءات">
                           {can('data.edit') && <button
                             type="button"
                             className="link"
@@ -703,17 +703,17 @@ export default function MasterData() {
         <div className="stack">
           <p className="hint">إيقاف المخزن يخفيه من الاختيارات الجديدة، مع الاحتفاظ بكمياته وحركاته السابقة. لا يمكن إيقاف مخزن ما زال به رصيد.</p>
           <section className="card">
-            <div className="table-wrap">
+            <div className="table-wrap responsive-table">
               <table className="table">
                 <thead><tr><th>الرقم</th><th>المخزن</th><th>ملاحظات</th><th>الحالة</th><th /></tr></thead>
                 <tbody>
                   {warehouseRows.map((warehouse) => (
-                    <tr key={warehouse.id}>
-                      <td className="num">{entityNumber('WH', warehouse.serial_number)}</td>
-                      <td>{warehouse.name}{warehouse.is_primary && <span className="badge"> رئيسي</span>}</td>
-                      <td>{warehouse.notes || '—'}</td>
-                      <td>{warehouse.is_active ? <span className="badge ok">نشط</span> : <span className="badge">موقوف</span>}</td>
-                      <td className="row-actions">
+                    <tr key={warehouse.id} className="responsive-row">
+                      <td className="num" data-label="الرقم">{entityNumber('WH', warehouse.serial_number)}</td>
+                      <td data-label="المخزن">{warehouse.name}{warehouse.is_primary && <span className="badge"> رئيسي</span>}</td>
+                      <td data-label="ملاحظات">{warehouse.notes || '—'}</td>
+                      <td data-label="الحالة">{warehouse.is_active ? <span className="badge ok">نشط</span> : <span className="badge">موقوف</span>}</td>
+                      <td className="row-actions" data-label="الإجراءات">
                         {can('data.edit') && <button type="button" className="link" onClick={() => startWarehouseForm(warehouse)}>
                           تعديل الاسم
                         </button>}
@@ -736,17 +736,17 @@ export default function MasterData() {
         <div className="stack">
           <p className="hint">إيقاف الخزنة يخفيها من الاختيارات الجديدة، مع الاحتفاظ برصيدها وحركاتها السابقة.</p>
           <section className="card">
-            <div className="table-wrap">
+            <div className="table-wrap responsive-table">
               <table className="table">
                 <thead><tr><th>الرقم</th><th>الخزنة</th><th>ملاحظات</th><th>الحالة</th><th /></tr></thead>
                 <tbody>
                   {cashBoxes.map((box) => (
-                    <tr key={box.id}>
-                      <td className="num">{entityNumber('CBX', box.serial_number)}</td>
-                      <td>{box.name}{box.is_primary && <span className="badge"> رئيسية</span>}</td>
-                      <td>{box.notes || '—'}</td>
-                      <td>{box.is_active ? <span className="badge ok">نشط</span> : <span className="badge">موقوف</span>}</td>
-                      <td className="row-actions">
+                    <tr key={box.id} className="responsive-row">
+                      <td className="num" data-label="الرقم">{entityNumber('CBX', box.serial_number)}</td>
+                      <td data-label="الخزنة">{box.name}{box.is_primary && <span className="badge"> رئيسية</span>}</td>
+                      <td data-label="ملاحظات">{box.notes || '—'}</td>
+                      <td data-label="الحالة">{box.is_active ? <span className="badge ok">نشط</span> : <span className="badge">موقوف</span>}</td>
+                      <td className="row-actions" data-label="الإجراءات">
                         {can('data.edit') && <button type="button" className="link" onClick={() => startCashBoxForm(box)}>
                           تعديل الاسم
                         </button>}
@@ -766,7 +766,7 @@ export default function MasterData() {
       )}
 
       {formModal === 'account' && (
-        <Modal title={editingAccount ? 'تعديل حساب' : accountKind === 'customer' ? 'إضافة عميل' : 'إضافة مورد'} onClose={cancelAccountEdit}>
+        <Modal title={editingAccount ? 'تعديل حساب' : accountKind === 'customer' ? 'إضافة عميل' : 'إضافة مورد'} className="master-data-modal" backdropClassName="master-data-backdrop" onClose={cancelAccountEdit}>
           <form className="stack" onSubmit={saveAccount}>
             {editingAccount?.has_documents && <span className="badge">نوع الحساب مقفل لوجود مستندات</span>}
             <div className="form-grid">
@@ -786,7 +786,7 @@ export default function MasterData() {
       )}
 
       {formModal === 'item' && (
-        <Modal title={editingItem ? 'تعديل صنف' : 'إضافة صنف'} onClose={cancelItemEdit}>
+        <Modal title={editingItem ? 'تعديل صنف' : 'إضافة صنف'} className="master-data-modal" backdropClassName="master-data-backdrop" onClose={cancelItemEdit}>
           <form className="stack" onSubmit={saveItem}>
             <div className="form-grid">
               <label>الاسم<input type="text" value={itemName} onChange={(event) => setItemName(event.target.value)} placeholder="اسم الصنف" required /></label>
@@ -810,7 +810,7 @@ export default function MasterData() {
       )}
 
       {formModal === 'warehouse' && (
-        <Modal title={editingWarehouseId ? 'تعديل مخزن' : 'إضافة مخزن'} onClose={closeWarehouseForm}>
+        <Modal title={editingWarehouseId ? 'تعديل مخزن' : 'إضافة مخزن'} className="master-data-modal" backdropClassName="master-data-backdrop" onClose={closeWarehouseForm}>
           <form className="stack" onSubmit={saveWarehouse}>
             <div className="form-grid">
               <label>اسم المخزن<input value={warehouseName} onChange={(event) => setWarehouseName(event.target.value)} required /></label>
@@ -823,7 +823,7 @@ export default function MasterData() {
       )}
 
       {formModal === 'cashBox' && (
-        <Modal title={editingCashBoxId ? 'تعديل خزنة' : 'إضافة خزنة'} onClose={closeCashBoxForm}>
+        <Modal title={editingCashBoxId ? 'تعديل خزنة' : 'إضافة خزنة'} className="master-data-modal" backdropClassName="master-data-backdrop" onClose={closeCashBoxForm}>
           <form className="stack" onSubmit={saveCashBox}>
             <div className="form-grid">
               <label>اسم الخزنة<input value={cashBoxName} onChange={(event) => setCashBoxName(event.target.value)} required /></label>
