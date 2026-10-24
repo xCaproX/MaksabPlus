@@ -6,12 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const permissionKeys = new Set([
-  'goods.view', 'goods.create', 'goods.edit', 'goods.delete',
-  'money.view', 'money.create', 'money.edit', 'money.delete',
-  'data.view', 'data.create', 'data.edit', 'data.delete',
-  'balances.view', 'management.view', 'management.edit',
-]);
+const isValidPermissionKey = (key: unknown): boolean =>
+  typeof key === 'string' && /^[a-z_]+(\.[a-z_]+)+$/.test(key);
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -42,7 +38,7 @@ Deno.serve(async (request) => {
       const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
       const fullName = typeof body.full_name === 'string' ? body.full_name.trim() : '';
       const keys = Array.isArray(body.permission_keys) ? body.permission_keys : [];
-      if (!email || !fullName || keys.some((key: unknown) => typeof key !== 'string' || !permissionKeys.has(key))) {
+      if (!email || !fullName || keys.some((key: unknown) => !isValidPermissionKey(key))) {
         return json({ error: 'invalid_invitation' }, 400);
       }
       const { data: companyId, error: companyError } = await caller.rpc('current_company_id');
@@ -80,7 +76,7 @@ Deno.serve(async (request) => {
     if (body.action === 'permissions') {
       const userId = typeof body.user_id === 'string' ? body.user_id : '';
       const keys = Array.isArray(body.permission_keys) ? body.permission_keys : [];
-      if (!userId || keys.some((key: unknown) => typeof key !== 'string' || !permissionKeys.has(key))) {
+      if (!userId || keys.some((key: unknown) => !isValidPermissionKey(key))) {
         return json({ error: 'invalid_permissions' }, 400);
       }
       const { error } = await caller.rpc('set_user_permissions', { p_user_id: userId, p_permission_keys: [...new Set(keys)] });

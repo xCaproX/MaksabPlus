@@ -436,12 +436,12 @@ export default function Receipts() {
           </p>
         </div>
         <div className="actions">
-          {can('money.delete') && (
+          {can(`money.${tab}.delete`) && (
             <button type="button" className="btn" onClick={toggleDeleted}>
               {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
             </button>
           )}
-          {!showDeleted && can('money.create') && (
+          {!showDeleted && can(`money.${tab}.create`) && (
             <button type="button" className="btn primary" onClick={openNew}>
               {isCashBoxTransfer ? '+ تحويل بين الخزن' : `+ إيصال ${isIn ? 'استلام' : 'صرف'}`}
             </button>

@@ -23,7 +23,19 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AccessContextValue>(() => ({
     access,
     loading,
-    can: (...keys) => Boolean(access && (access.role === 'owner' || keys.some((key) => access.permissions.includes(key)))),
+    can: (...keys) => {
+      if (!access) return false;
+      if (access.role === 'owner' || access.permissions.includes('*')) return true;
+      return keys.some((key) => {
+        if (access.permissions.includes(key)) return true;
+        const parts = key.split('.');
+        if (parts.length === 3) {
+          const parentKey = `${parts[0]}.${parts[2]}`;
+          if (access.permissions.includes(parentKey)) return true;
+        }
+        return false;
+      });
+    },
   }), [access, loading]);
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
@@ -38,12 +50,12 @@ export function AccessRoute({ permissions, children }: { permissions: string[]; 
 }
 
 export function HomeRedirect() {
-  const { loading, can } = useAccess();
+  const { access, loading, can } = useAccess();
   if (loading) return <div className="card empty">جارٍ تحميل الصلاحيات…</div>;
-  if (can('goods.view','goods.create','goods.edit','goods.delete')) return <Navigate to="/invoices" replace />;
-  if (can('money.view','money.create','money.edit','money.delete')) return <Navigate to="/receipts" replace />;
-  if (can('data.view','data.create','data.edit','data.delete')) return <Navigate to="/data" replace />;
-  if (can('balances.view')) return <Navigate to="/balances" replace />;
-  if (can('management.view','management.edit')) return <Navigate to="/management" replace />;
+  if (can('goods.view') || access?.permissions.some((p) => p.startsWith('goods.'))) return <Navigate to="/invoices" replace />;
+  if (can('money.view') || access?.permissions.some((p) => p.startsWith('money.'))) return <Navigate to="/receipts" replace />;
+  if (can('data.view') || access?.permissions.some((p) => p.startsWith('data.'))) return <Navigate to="/data" replace />;
+  if (can('balances.view') || access?.permissions.some((p) => p.startsWith('balances.'))) return <Navigate to="/balances" replace />;
+  if (can('management.view', 'management.edit') || access?.permissions.some((p) => p.startsWith('management.'))) return <Navigate to="/management" replace />;
   return <Navigate to="/access-denied" replace />;
 }

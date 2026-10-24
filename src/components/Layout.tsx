@@ -21,42 +21,49 @@ export default function Layout() {
   const currentTab = new URLSearchParams(location.search).get('tab');
 
   const goodsTabs = [
-    { id: 'sale', label: 'فواتير المبيعات' },
-    { id: 'purchase', label: 'فواتير المشتريات' },
-    { id: 'sale_return', label: 'مرتجعات المبيعات' },
-    { id: 'purchase_return', label: 'مرتجعات المشتريات' },
-    { id: 'waste', label: 'الهالك' },
-    { id: 'warehouse_transfer', label: 'تحويل بين مخازن' },
+    { id: 'sale', label: 'فواتير المبيعات', permission: 'goods.sale.view' },
+    { id: 'purchase', label: 'فواتير المشتريات', permission: 'goods.purchase.view' },
+    { id: 'sale_return', label: 'مرتجعات المبيعات', permission: 'goods.sale_return.view' },
+    { id: 'purchase_return', label: 'مرتجعات المشتريات', permission: 'goods.purchase_return.view' },
+    { id: 'waste', label: 'الهالك', permission: 'goods.waste.view' },
+    { id: 'warehouse_transfer', label: 'تحويل بين مخازن', permission: 'goods.warehouse_transfer.view' },
   ];
+  const visibleGoodsTabs = goodsTabs.filter((t) => can(t.permission, 'goods.view'));
 
   const moneyTabs = [
-    { id: 'in', label: 'إيصالات استلام' },
-    { id: 'out', label: 'إيصالات صرف' },
-    { id: 'cash_box_transfer', label: 'تحويل بين الخزن' },
+    { id: 'in', label: 'إيصالات استلام', permission: 'money.in.view' },
+    { id: 'out', label: 'إيصالات صرف', permission: 'money.out.view' },
+    { id: 'cash_box_transfer', label: 'تحويل بين الخزن', permission: 'money.cash_box_transfer.view' },
   ];
+  const visibleMoneyTabs = moneyTabs.filter((t) => can(t.permission, 'money.view'));
 
   const dataTabs = [
-    { id: 'customers', label: 'العملاء' },
-    { id: 'suppliers', label: 'الموردون' },
-    { id: 'items', label: 'الأصناف' },
-    { id: 'warehouses', label: 'المخازن' },
-    { id: 'cashBoxes', label: 'الخزن' },
+    { id: 'customers', label: 'العملاء', permission: 'data.customers.view' },
+    { id: 'suppliers', label: 'الموردون', permission: 'data.suppliers.view' },
+    { id: 'items', label: 'الأصناف', permission: 'data.items.view' },
+    { id: 'warehouses', label: 'المخازن', permission: 'data.warehouses.view' },
+    { id: 'cashBoxes', label: 'الخزن', permission: 'data.cashBoxes.view' },
   ];
+  const visibleDataTabs = dataTabs.filter((t) => can(t.permission, 'data.view'));
 
   const balanceTabs = [
-    { id: 'customers', label: 'حسابات العملاء' },
-    { id: 'suppliers', label: 'حسابات الموردين' },
-    { id: 'items', label: 'أرصدة الأصناف' },
-    { id: 'cashBoxes', label: 'أرصدة الخزن' },
+    { id: 'customers', label: 'حسابات العملاء', permission: 'balances.customers.view' },
+    { id: 'suppliers', label: 'حسابات الموردين', permission: 'balances.suppliers.view' },
+    { id: 'items', label: 'أرصدة الأصناف', permission: 'balances.items.view' },
+    { id: 'cashBoxes', label: 'أرصدة الخزن', permission: 'balances.cashBoxes.view' },
   ];
+  const visibleBalanceTabs = balanceTabs.filter((t) => can(t.permission, 'balances.view'));
 
   const managementTabs = [
-    { id: 'customers', label: 'افتتاحيات العملاء' },
-    { id: 'suppliers', label: 'افتتاحيات الموردين' },
-    { id: 'items', label: 'افتتاحيات المخزون' },
-    { id: 'cashBoxes', label: 'افتتاحيات الخزن' },
-    ...(access?.role === 'owner' ? [{ id: 'users', label: 'المستخدمون والصلاحيات' }] : []),
+    { id: 'customers', label: 'افتتاحيات العملاء', permission: 'management.customers.view' },
+    { id: 'suppliers', label: 'افتتاحيات الموردين', permission: 'management.suppliers.view' },
+    { id: 'items', label: 'افتتاحيات المخزون', permission: 'management.items.view' },
+    { id: 'cashBoxes', label: 'افتتاحيات الخزن', permission: 'management.cashBoxes.view' },
+    ...(access?.role === 'owner' ? [{ id: 'users', label: 'المستخدمون والصلاحيات', permission: 'management.users.view' }] : []),
   ];
+  const visibleManagementTabs = managementTabs.filter((t) =>
+    t.id === 'users' ? access?.role === 'owner' : can(t.permission, 'management.view'),
+  );
 
   return (
     <div className="app">
@@ -66,16 +73,16 @@ export default function Layout() {
         </Link>
 
         <nav className="nav" aria-label="التنقل الرئيسي">
-          {can('goods.view','goods.create','goods.edit','goods.delete') && (
+          {visibleGoodsTabs.length > 0 && (
             <div className="nav-group">
-              <NavLink to="/invoices" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <NavLink to={`/invoices?tab=${visibleGoodsTabs[0].id}`} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 <span>البضاعة</span>
                 <span className="nav-chevron">{isGoods ? '▴' : '▾'}</span>
               </NavLink>
               {isGoods && (
                 <div className="subnav">
-                  {goodsTabs.map((item) => {
-                    const isActive = currentTab === item.id || (!currentTab && item.id === 'sale');
+                  {visibleGoodsTabs.map((item) => {
+                    const isActive = currentTab === item.id || (!currentTab && item.id === visibleGoodsTabs[0].id);
                     return (
                       <Link
                         key={item.id}
@@ -92,16 +99,16 @@ export default function Layout() {
             </div>
           )}
 
-          {can('money.view','money.create','money.edit','money.delete') && (
+          {visibleMoneyTabs.length > 0 && (
             <div className="nav-group">
-              <NavLink to="/receipts" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <NavLink to={`/receipts?tab=${visibleMoneyTabs[0].id}`} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 <span>الفلوس</span>
                 <span className="nav-chevron">{isMoney ? '▴' : '▾'}</span>
               </NavLink>
               {isMoney && (
                 <div className="subnav">
-                  {moneyTabs.map((item) => {
-                    const isActive = currentTab === item.id || (!currentTab && item.id === 'in');
+                  {visibleMoneyTabs.map((item) => {
+                    const isActive = currentTab === item.id || (!currentTab && item.id === visibleMoneyTabs[0].id);
                     return (
                       <Link
                         key={item.id}
@@ -118,16 +125,16 @@ export default function Layout() {
             </div>
           )}
 
-          {can('data.view','data.create','data.edit','data.delete') && (
+          {visibleDataTabs.length > 0 && (
             <div className="nav-group">
-              <NavLink to="/data" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <NavLink to={`/data?tab=${visibleDataTabs[0].id}`} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 <span>البيانات</span>
                 <span className="nav-chevron">{isData ? '▴' : '▾'}</span>
               </NavLink>
               {isData && (
                 <div className="subnav">
-                  {dataTabs.map((item) => {
-                    const isActive = currentTab === item.id || (!currentTab && item.id === 'customers');
+                  {visibleDataTabs.map((item) => {
+                    const isActive = currentTab === item.id || (!currentTab && item.id === visibleDataTabs[0].id);
                     return (
                       <Link
                         key={item.id}
@@ -144,16 +151,16 @@ export default function Layout() {
             </div>
           )}
 
-          {can('balances.view') && (
+          {visibleBalanceTabs.length > 0 && (
             <div className="nav-group">
-              <NavLink to="/balances" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <NavLink to={`/balances?tab=${visibleBalanceTabs[0].id}`} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 <span>الأرصدة</span>
                 <span className="nav-chevron">{isBalances ? '▴' : '▾'}</span>
               </NavLink>
               {isBalances && (
                 <div className="subnav">
-                  {balanceTabs.map((item) => {
-                    const isActive = currentTab === item.id || (!currentTab && item.id === 'customers');
+                  {visibleBalanceTabs.map((item) => {
+                    const isActive = currentTab === item.id || (!currentTab && item.id === visibleBalanceTabs[0].id);
                     return (
                       <Link
                         key={item.id}
@@ -170,16 +177,16 @@ export default function Layout() {
             </div>
           )}
 
-          {can('management.view','management.edit') && (
+          {visibleManagementTabs.length > 0 && (
             <div className="nav-group">
-              <NavLink to="/management" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+              <NavLink to={`/management?tab=${visibleManagementTabs[0].id}`} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 <span>إدارة</span>
                 <span className="nav-chevron">{isManagement ? '▴' : '▾'}</span>
               </NavLink>
               {isManagement && (
                 <div className="subnav">
-                  {managementTabs.map((item) => {
-                    const isActive = currentTab === item.id || (!currentTab && item.id === 'customers');
+                  {visibleManagementTabs.map((item) => {
+                    const isActive = currentTab === item.id || (!currentTab && item.id === visibleManagementTabs[0].id);
                     return (
                       <Link
                         key={item.id}

@@ -486,10 +486,10 @@ export default function Invoices() {
           </p>
         </div>
         <div className="actions">
-          {can('goods.delete') && <button type="button" className="btn" onClick={toggleDeleted}>
+          {can(`goods.${kind}.delete`) && <button type="button" className="btn" onClick={toggleDeleted}>
             {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
           </button>}
-          {!showDeleted && can('goods.create') && (
+          {!showDeleted && can(`goods.${kind}.create`) && (
             <button type="button" className="btn primary" onClick={openNew}>
               + {newLabel}
             </button>
