@@ -71,7 +71,9 @@ export default function InvoiceForm({
   );
   const [paid, setPaid] = useState(editing ? String(Number(editing.invoice.paid)) : '0');
   const [notes, setNotes] = useState(editing?.invoice.notes ?? '');
-  const [lines, setLines] = useState<LineDraft[]>(editing ? editing.lines : [emptyLine()]);
+  const [lines, setLines] = useState<LineDraft[]>(
+    editing ? [...editing.lines, emptyLine()] : [emptyLine()],
+  );
   const [error, setError] = useState('');
   const [lineWarning, setLineWarning] = useState('');
   const [busy, setBusy] = useState(false);
@@ -85,8 +87,9 @@ export default function InvoiceForm({
     setFocusSearchKey(null);
   }, [focusSearchKey, lines]);
 
+  const activeLines = lines.filter((line) => line.item_id);
   const total = round2(
-    lines.reduce((sum, line) => sum + Number(line.qty || 0) * Number(line.unit_price || 0), 0),
+    activeLines.reduce((sum, line) => sum + Number(line.qty || 0) * Number(line.unit_price || 0), 0),
   );
   const paidNumber = Number(paid || 0);
   const remaining = round2(total - (Number.isFinite(paidNumber) ? paidNumber : 0));
@@ -116,8 +119,8 @@ export default function InvoiceForm({
         : Number(item.sale_price)
       : undefined;
 
-    setLines((current) =>
-      current.map((line) =>
+    setLines((current) => {
+      const updated = current.map((line) =>
         line.key === key
           ? {
               ...line,
@@ -125,15 +128,15 @@ export default function InvoiceForm({
               unit_price: price === undefined ? line.unit_price : String(price),
             }
           : line,
-      ),
-    );
-  }
+      );
 
-  function addLine() {
-    const line = emptyLine();
-    setLines((current) => [...current, line]);
-    setLineWarning('');
-    setFocusSearchKey(line.key);
+      // Auto-append a new empty row if the last row now has an item selected
+      const lastLine = updated[updated.length - 1];
+      if (itemId && lastLine && lastLine.item_id) {
+        return [...updated, emptyLine()];
+      }
+      return updated;
+    });
   }
 
   function moveFromQuantity(event: KeyboardEvent<HTMLInputElement>) {
@@ -146,27 +149,40 @@ export default function InvoiceForm({
   function addLineFromPrice(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== 'Enter') return;
     event.preventDefault();
-    addLine();
+    const row = event.currentTarget.closest('tr');
+    const nextRow = row?.nextElementSibling;
+    const nextSearch = nextRow?.querySelector<HTMLInputElement>('input[role="combobox"]');
+    if (nextSearch) {
+      nextSearch.focus();
+    }
   }
 
   function removeLine(key: string) {
-    setLines((current) => current.filter((line) => line.key !== key));
+    setLines((current) => {
+      const remaining = current.filter((line) => line.key !== key);
+      if (remaining.length === 0 || remaining[remaining.length - 1].item_id) {
+        return [...remaining, emptyLine()];
+      }
+      return remaining;
+    });
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
 
+    const activeLines = lines.filter((line) => line.item_id);
+
     if (!accountId) return setError(isWaste ? 'حساب الهالك الثابت غير موجود' : 'اختر الحساب');
     if (!warehouseId) return setError('اختر المخزن');
     if (paidNumber > 0 && !effectiveCashBoxId) return setError('اختر الخزنة التي استلمت أو صرفت المبلغ');
     if (!date) return setError('أدخل التاريخ');
-    if (lines.length === 0) return setError('أضف سطرًا واحدًا على الأقل');
+    if (activeLines.length === 0) return setError('اختر صنفًا واحدًا على الأقل في الفاتورة');
 
-    const hasInvalidLine = lines.some(
-      (line) => !line.item_id || !(Number(line.qty) > 0) || !(Number(line.unit_price) >= 0),
+    const hasInvalidLine = activeLines.some(
+      (line) => !(Number(line.qty) > 0) || !(Number(line.unit_price) >= 0),
     );
-    if (hasInvalidLine) return setError('أكمل بيانات كل السطور أو احذف السطور الفارغة');
+    if (hasInvalidLine) return setError('أدخل كمية وسعرًا صحيحين لكل الأصناف');
 
     if (!(paidNumber >= 0)) return setError(`قيمة ${isReturn ? 'المسترد' : 'المدفوع'} غير صحيحة`);
     if (paidNumber > total)
@@ -181,7 +197,7 @@ export default function InvoiceForm({
       p_paid: round2(paidNumber),
       p_cash_box_id: paidNumber > 0 ? effectiveCashBoxId : null,
       p_notes: notes.trim() || null,
-      p_lines: lines.map((line) => ({
+      p_lines: activeLines.map((line) => ({
         item_id: line.item_id,
         qty: Number(line.qty),
         unit_price: Number(line.unit_price || 0),
@@ -282,12 +298,10 @@ export default function InvoiceForm({
         <div className="lines-head-bar">
           <div className="lines-head-title">
             <h3>الأصناف</h3>
-            <span className="lines-count-badge">{lines.length} {lines.length === 1 ? 'صنف' : 'أصناف'}</span>
+            <span className="lines-count-badge">
+              {activeLines.length} {activeLines.length === 1 ? 'صنف' : 'أصناف'}
+            </span>
           </div>
-          <button type="button" className="add-line-btn" onClick={addLine}>
-            <span>+</span>
-            <span>إضافة صنف</span>
-          </button>
         </div>
 
         {lineWarning && <p className="alert warning" role="status" style={{ margin: '8px 0' }}>{lineWarning}</p>}
@@ -370,7 +384,7 @@ export default function InvoiceForm({
                         title="حذف هذا الصنف"
                         aria-label="حذف سطر الصنف"
                         onClick={() => removeLine(line.key)}
-                        disabled={lines.length === 1}
+                        disabled={lines.length === 1 && !line.item_id}
                       >
                         ✕
                       </button>
@@ -430,11 +444,23 @@ export default function InvoiceForm({
             </div>
           )}
 
-          {!isWaste && paidNumber > 0 && (
-            <div className="total-input-box">
+          {!isWaste && (
+            <div className={`total-input-box ${paidNumber <= 0 ? 'disabled' : ''}`}>
               <label>
-                <span className="stat-box-title">الخزنة المستلمة / المنصرفة</span>
-                <select value={effectiveCashBoxId} onChange={(event) => setCashBoxId(event.target.value)} required>
+                <span className="stat-box-title">
+                  {isReturn ? 'الخزنة المنصرف منها' : 'الخزنة المستلمة'}
+                  {paidNumber <= 0 && (
+                    <span className="muted-text" style={{ fontSize: '10px', fontWeight: 'normal', marginInlineStart: '4px' }}>
+                      (مُعطلة — لا يوجد مدفوع)
+                    </span>
+                  )}
+                </span>
+                <select
+                  value={effectiveCashBoxId}
+                  onChange={(event) => setCashBoxId(event.target.value)}
+                  disabled={paidNumber <= 0}
+                  required={paidNumber > 0}
+                >
                   <option value="">اختر الخزنة…</option>
                   {selectableCashBoxes.map((box) => (
                     <option key={box.id} value={box.id}>

@@ -1945,6 +1945,25 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
   border-radius: 8px;
 }
 
+.total-input-box.disabled {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  opacity: 0.75;
+}
+
+.total-input-box.disabled label {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.total-input-box.disabled select,
+.total-input-box.disabled input {
+  background: #f8fafc;
+  color: #94a3b8;
+  border-color: #e2e8f0;
+  cursor: not-allowed;
+}
+
 .total-input-box label {
   display: flex;
   flex-direction: column;
