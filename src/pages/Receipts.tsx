@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { creationTime, money, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -22,10 +23,32 @@ function linkKind(kind: ReceiptRow['invoice_kind']) {
 
 interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
+const VALID_RECEIPT_TABS = ['in', 'out', 'cash_box_transfer'] as const;
+type ReceiptTab = typeof VALID_RECEIPT_TABS[number];
+
 export default function Receipts() {
   const { can } = useAccess();
-  const [tab, setTab] = useState<ReceiptDirection | 'cash_box_transfer'>('in');
-  const [direction, setDirection] = useState<ReceiptDirection>('in');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as ReceiptTab | null;
+  const initialTab: ReceiptTab = (tabParam && VALID_RECEIPT_TABS.includes(tabParam)) ? tabParam : 'in';
+  const [tab, setTab] = useState<ReceiptDirection | 'cash_box_transfer'>(initialTab);
+  const [direction, setDirection] = useState<ReceiptDirection>(initialTab === 'cash_box_transfer' ? 'in' : initialTab);
+
+  useEffect(() => {
+    const targetTab = (tabParam && VALID_RECEIPT_TABS.includes(tabParam)) ? tabParam : 'in';
+    if (targetTab !== tab) {
+      setTab(targetTab);
+      if (targetTab === 'in' || targetTab === 'out') {
+        setDirection(targetTab);
+        resetForm(targetTab);
+      } else {
+        resetForm();
+      }
+      setFormOpen(false);
+      setEditing(null);
+      setEditingTransfer(null);
+    }
+  }, [tabParam]);
   const [rows, setRows] = useState<ReceiptRow[]>([]);
   const [transferRows, setTransferRows] = useState<CashBoxTransferRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
@@ -161,6 +184,7 @@ export default function Receipts() {
     if (next === tab) return;
     setDirection(next);
     setTab(next);
+    setSearchParams({ tab: next });
     setFormOpen(false);
     setEditingTransfer(null);
     resetForm(next);
@@ -168,6 +192,7 @@ export default function Receipts() {
 
   function switchToCashTransfer() {
     setTab('cash_box_transfer');
+    setSearchParams({ tab: 'cash_box_transfer' });
     setFormOpen(false);
     setEditing(null);
     setEditingTransfer(null);

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -7,8 +8,31 @@ import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, 
 
 type BalanceTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes';
 
+const VALID_BALANCE_TABS: BalanceTab[] = ['customers', 'suppliers', 'items', 'cashBoxes'];
+
 export default function Balances() {
-  const [tab, setTab] = useState<BalanceTab>('customers');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as BalanceTab | null;
+  const initialTab = (tabParam && VALID_BALANCE_TABS.includes(tabParam)) ? tabParam : 'customers';
+  const [tab, setTab] = useState<BalanceTab>(initialTab);
+
+  useEffect(() => {
+    const targetTab = (tabParam && VALID_BALANCE_TABS.includes(tabParam)) ? tabParam : 'customers';
+    if (targetTab !== tab) {
+      setTab(targetTab);
+      setStatementAccount(null);
+      setCashStatementBox(null);
+      setItemStatementRow(null);
+    }
+  }, [tabParam]);
+
+  function switchTab(next: BalanceTab) {
+    setTab(next);
+    setSearchParams({ tab: next });
+    setStatementAccount(null);
+    setCashStatementBox(null);
+    setItemStatementRow(null);
+  }
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
   const [stockRows, setStockRows] = useState<StockOpeningRow[]>([]);
@@ -157,7 +181,7 @@ export default function Balances() {
     <div className="stack">
       <div className="page-head"><div><h1>الأرصدة</h1><p className="muted">عرض أرصدة الحسابات والمخزون والخزن.</p></div></div>
       <div className="tabs">
-        {tabs.map((entry) => <button key={entry.id} type="button" className={tab === entry.id ? 'tab active' : 'tab'} onClick={() => setTab(entry.id)}>{entry.label}</button>)}
+        {tabs.map((entry) => <button key={entry.id} type="button" className={tab === entry.id ? 'tab active' : 'tab'} onClick={() => switchTab(entry.id)}>{entry.label}</button>)}
       </div>
       {error && <p className="alert error">{error}</p>}
       {loading ? <div className="card empty">جارٍ التحميل…</div> : (

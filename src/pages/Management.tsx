@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -8,10 +9,27 @@ import UserPermissions from '../components/UserPermissions';
 
 type ManagementTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes' | 'users';
 
+const VALID_MANAGEMENT_TABS: ManagementTab[] = ['customers', 'suppliers', 'items', 'cashBoxes', 'users'];
+
 export default function Management() {
   const { access, can } = useAccess();
   const canEditOpening = can('management.edit');
-  const [tab, setTab] = useState<ManagementTab>('customers');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as ManagementTab | null;
+  const initialTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
+  const [tab, setTab] = useState<ManagementTab>(initialTab);
+
+  useEffect(() => {
+    const targetTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
+    if (targetTab !== tab) {
+      setTab(targetTab);
+    }
+  }, [tabParam]);
+
+  function switchTab(next: ManagementTab) {
+    setTab(next);
+    setSearchParams({ tab: next });
+  }
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
   const [stockRows, setStockRows] = useState<StockOpeningRow[]>([]);
@@ -116,7 +134,7 @@ export default function Management() {
   return (
     <div className="stack">
       <div className="page-head"><div><h1>إدارة</h1><p className="muted">إدخال وتعديل الأرصدة الافتتاحية.</p></div></div>
-      <div className="tabs">{tabs.map((entry) => <button key={entry.id} type="button" className={tab === entry.id ? 'tab active' : 'tab'} onClick={() => setTab(entry.id)}>{entry.label}</button>)}</div>
+      <div className="tabs">{tabs.map((entry) => <button key={entry.id} type="button" className={tab === entry.id ? 'tab active' : 'tab'} onClick={() => switchTab(entry.id)}>{entry.label}</button>)}</div>
       {error && <p className="alert error">{error}</p>}
       {notice && <p className="alert success">{notice}</p>}
       {tab === 'users' && access?.role === 'owner' ? <UserPermissions /> : loading ? <div className="card empty">جارٍ التحميل…</div> : (

@@ -1,15 +1,62 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 
 export default function Layout() {
   const navigate = useNavigate();
-  const { can } = useAccess();
+  const location = useLocation();
+  const { can, access } = useAccess();
 
   async function signOut() {
     await supabase.auth.signOut();
     navigate('/login', { replace: true });
   }
+
+  const isGoods = location.pathname.startsWith('/invoices');
+  const isMoney = location.pathname.startsWith('/receipts');
+  const isData = location.pathname.startsWith('/data');
+  const isBalances = location.pathname.startsWith('/balances');
+  const isManagement = location.pathname.startsWith('/management');
+
+  const currentTab = new URLSearchParams(location.search).get('tab');
+
+  const goodsTabs = [
+    { id: 'sale', label: 'فواتير المبيعات' },
+    { id: 'purchase', label: 'فواتير المشتريات' },
+    { id: 'sale_return', label: 'مرتجعات المبيعات' },
+    { id: 'purchase_return', label: 'مرتجعات المشتريات' },
+    { id: 'waste', label: 'الهالك' },
+    { id: 'warehouse_transfer', label: 'تحويل بين مخازن' },
+  ];
+
+  const moneyTabs = [
+    { id: 'in', label: 'إيصالات استلام' },
+    { id: 'out', label: 'إيصالات صرف' },
+    { id: 'cash_box_transfer', label: 'تحويل بين الخزن' },
+  ];
+
+  const dataTabs = [
+    { id: 'customers', label: 'العملاء' },
+    { id: 'suppliers', label: 'الموردون' },
+    { id: 'items', label: 'الأصناف' },
+    { id: 'warehouses', label: 'المخازن' },
+    { id: 'cashBoxes', label: 'الخزن' },
+  ];
+
+  const balanceTabs = [
+    { id: 'customers', label: 'حسابات العملاء' },
+    { id: 'suppliers', label: 'حسابات الموردين' },
+    { id: 'items', label: 'أرصدة الأصناف' },
+    { id: 'cashBoxes', label: 'أرصدة الخزن' },
+  ];
+
+  const managementTabs = [
+    { id: 'customers', label: 'افتتاحيات العملاء' },
+    { id: 'suppliers', label: 'افتتاحيات الموردين' },
+    { id: 'items', label: 'افتتاحيات المخزون' },
+    { id: 'cashBoxes', label: 'افتتاحيات الخزن' },
+    ...(access?.role === 'owner' ? [{ id: 'users', label: 'المستخدمون والصلاحيات' }] : []),
+  ];
 
   return (
     <div className="app">
@@ -19,21 +66,125 @@ export default function Layout() {
         </Link>
 
         <nav className="nav" aria-label="التنقل الرئيسي">
-          {can('goods.view','goods.create','goods.edit','goods.delete') && <NavLink to="/invoices" className={({ isActive }) => (isActive ? 'active' : '')}>
-            البضاعة
-          </NavLink>}
-          {can('money.view','money.create','money.edit','money.delete') && <NavLink to="/receipts" className={({ isActive }) => (isActive ? 'active' : '')}>
-            الفلوس
-          </NavLink>}
-          {can('data.view','data.create','data.edit','data.delete') && <NavLink to="/data" className={({ isActive }) => (isActive ? 'active' : '')}>
-            البيانات
-          </NavLink>}
-          {can('balances.view') && <NavLink to="/balances" className={({ isActive }) => (isActive ? 'active' : '')}>
-            الأرصدة
-          </NavLink>}
-          {can('management.view','management.edit') && <NavLink to="/management" className={({ isActive }) => (isActive ? 'active' : '')}>
-            إدارة
-          </NavLink>}
+          {can('goods.view','goods.create','goods.edit','goods.delete') && (
+            <div className="nav-group">
+              <NavLink to="/invoices" className={({ isActive }) => (isActive ? 'active' : '')}>
+                البضاعة
+              </NavLink>
+              {isGoods && (
+                <div className="subnav">
+                  {goodsTabs.map((item) => {
+                    const isActive = currentTab === item.id || (!currentTab && item.id === 'sale');
+                    return (
+                      <Link
+                        key={item.id}
+                        to={`/invoices?tab=${item.id}`}
+                        className={`subnav-link ${isActive ? 'active' : ''}`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {can('money.view','money.create','money.edit','money.delete') && (
+            <div className="nav-group">
+              <NavLink to="/receipts" className={({ isActive }) => (isActive ? 'active' : '')}>
+                الفلوس
+              </NavLink>
+              {isMoney && (
+                <div className="subnav">
+                  {moneyTabs.map((item) => {
+                    const isActive = currentTab === item.id || (!currentTab && item.id === 'in');
+                    return (
+                      <Link
+                        key={item.id}
+                        to={`/receipts?tab=${item.id}`}
+                        className={`subnav-link ${isActive ? 'active' : ''}`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {can('data.view','data.create','data.edit','data.delete') && (
+            <div className="nav-group">
+              <NavLink to="/data" className={({ isActive }) => (isActive ? 'active' : '')}>
+                البيانات
+              </NavLink>
+              {isData && (
+                <div className="subnav">
+                  {dataTabs.map((item) => {
+                    const isActive = currentTab === item.id || (!currentTab && item.id === 'customers');
+                    return (
+                      <Link
+                        key={item.id}
+                        to={`/data?tab=${item.id}`}
+                        className={`subnav-link ${isActive ? 'active' : ''}`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {can('balances.view') && (
+            <div className="nav-group">
+              <NavLink to="/balances" className={({ isActive }) => (isActive ? 'active' : '')}>
+                الأرصدة
+              </NavLink>
+              {isBalances && (
+                <div className="subnav">
+                  {balanceTabs.map((item) => {
+                    const isActive = currentTab === item.id || (!currentTab && item.id === 'customers');
+                    return (
+                      <Link
+                        key={item.id}
+                        to={`/balances?tab=${item.id}`}
+                        className={`subnav-link ${isActive ? 'active' : ''}`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {can('management.view','management.edit') && (
+            <div className="nav-group">
+              <NavLink to="/management" className={({ isActive }) => (isActive ? 'active' : '')}>
+                إدارة
+              </NavLink>
+              {isManagement && (
+                <div className="subnav">
+                  {managementTabs.map((item) => {
+                    const isActive = currentTab === item.id || (!currentTab && item.id === 'customers');
+                    return (
+                      <Link
+                        key={item.id}
+                        to={`/management?tab=${item.id}`}
+                        className={`subnav-link ${isActive ? 'active' : ''}`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
         <button type="button" className="btn ghost sign-out" onClick={signOut}>

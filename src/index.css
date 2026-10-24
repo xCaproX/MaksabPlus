@@ -1099,7 +1099,7 @@ body { color: var(--ink); }
 }
 .brand { display: flex; justify-content: center; padding: 4px 10px 16px; }
 .brand img { display: block; width: 100%; max-width: 200px; height: 76px; object-fit: contain; }
-.nav { width: 100%; flex: 1; flex-direction: column; gap: 6px; }
+.nav { width: 100%; flex: 1; flex-direction: column; gap: 6px; overflow-y: auto; scrollbar-width: thin; }
 .nav a {
   display: flex;
   align-items: center;
@@ -1110,6 +1110,37 @@ body { color: var(--ink); }
   transition: background-color .16s ease, color .16s ease;
 }
 .nav a.active { background: #edf1f6; color: var(--primary-dark); }
+.nav-group { display: flex; flex-direction: column; width: 100%; }
+.subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-inline-start: 14px;
+  margin: 4px 0 8px;
+  border-inline-start: 2px solid #e2e8f0;
+}
+.subnav-link {
+  display: flex !important;
+  align-items: center;
+  min-height: 34px !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 550 !important;
+  color: var(--muted) !important;
+  text-decoration: none;
+  transition: background-color .15s ease, color .15s ease;
+}
+.subnav-link:hover {
+  color: var(--ink) !important;
+  background: #f0f4f4 !important;
+}
+.subnav-link.active {
+  color: var(--primary-dark) !important;
+  background: #e6f4f2 !important;
+  font-weight: 700 !important;
+}
+.tabs { display: none; }
 .sign-out { min-height: 44px; text-align: center; }
 .content { flex: 1; width: auto; max-width: 1440px; min-width: 0; padding: 30px clamp(18px, 3vw, 44px); }
 .card { border-color: #e9edf1; border-radius: 14px; box-shadow: var(--shadow); padding: 20px; }
@@ -1149,6 +1180,9 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
     scrollbar-width: thin;
   }
   .nav a { justify-content: center; min-height: 42px; padding: 8px 12px; font-size: 13px; }
+  .nav-group { display: contents; }
+  .subnav { display: none !important; }
+  .tabs { display: flex; }
   .sign-out { align-self: flex-end; min-height: 34px; padding: 3px 8px; font-size: 12px; }
   .content { width: 100%; padding: 16px 13px 28px; }
   .card { padding: 16px; }

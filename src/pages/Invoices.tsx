@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { creationTime, money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -44,9 +45,26 @@ function saleStatusLabel(status: Exclude<SaleStatus, 'all'>): string {
   return status === 'paid' ? 'مسددة' : status === 'partial' ? 'جزئية' : 'غير مسددة';
 }
 
+const VALID_INVOICE_TABS: InvoiceTab[] = ['sale', 'purchase', 'sale_return', 'purchase_return', 'waste', 'warehouse_transfer'];
+
 export default function Invoices() {
   const { can, access } = useAccess();
-  const [kind, setKind] = useState<InvoiceTab>('sale');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as InvoiceTab | null;
+  const initialKind = (tabParam && VALID_INVOICE_TABS.includes(tabParam)) ? tabParam : 'sale';
+  const [kind, setKind] = useState<InvoiceTab>(initialKind);
+
+  useEffect(() => {
+    const targetKind = (tabParam && VALID_INVOICE_TABS.includes(tabParam)) ? tabParam : 'sale';
+    if (targetKind !== kind) {
+      setKind(targetKind);
+      setFormOpen(false);
+      setEditing(null);
+      setEditingTransfer(null);
+      setViewing(null);
+      setViewingTransfer(null);
+    }
+  }, [tabParam]);
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [transferRows, setTransferRows] = useState<WarehouseTransferRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
@@ -212,6 +230,7 @@ export default function Invoices() {
   function switchKind(next: InvoiceTab) {
     if (next === kind) return;
     setKind(next);
+    setSearchParams({ tab: next });
     setFormOpen(false);
     setEditing(null);
     setEditingTransfer(null);

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCompanyId } from '../lib/company';
 import { entityNumber, money } from '../lib/format';
@@ -16,9 +17,28 @@ type LocationsTab = Tab | 'warehouses' | 'cashBoxes';
 type FormModal = 'account' | 'item' | 'warehouse' | 'cashBox' | null;
 interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
+const VALID_DATA_TABS: LocationsTab[] = ['customers', 'suppliers', 'items', 'warehouses', 'cashBoxes'];
+
 export default function MasterData() {
   const { can } = useAccess();
-  const [tab, setTab] = useState<LocationsTab>('customers');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as LocationsTab | null;
+  const initialTab = (tabParam && VALID_DATA_TABS.includes(tabParam)) ? tabParam : 'customers';
+  const [tab, setTab] = useState<LocationsTab>(initialTab);
+
+  useEffect(() => {
+    const targetTab = (tabParam && VALID_DATA_TABS.includes(tabParam)) ? tabParam : 'customers';
+    if (targetTab !== tab) {
+      setTab(targetTab);
+      setFormModal(null);
+    }
+  }, [tabParam]);
+
+  function switchTab(next: LocationsTab) {
+    setTab(next);
+    setSearchParams({ tab: next });
+    setFormModal(null);
+  }
   const [companyId, setCompanyId] = useState('');
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [items, setItems] = useState<MasterItemRecord[]>([]);
@@ -510,35 +530,35 @@ export default function MasterData() {
         <button
           type="button"
           className={tab === 'customers' ? 'tab active' : 'tab'}
-          onClick={() => setTab('customers')}
+          onClick={() => switchTab('customers')}
         >
           العملاء
         </button>
         <button
           type="button"
           className={tab === 'suppliers' ? 'tab active' : 'tab'}
-          onClick={() => setTab('suppliers')}
+          onClick={() => switchTab('suppliers')}
         >
           الموردون
         </button>
         <button
           type="button"
           className={tab === 'items' ? 'tab active' : 'tab'}
-          onClick={() => setTab('items')}
+          onClick={() => switchTab('items')}
         >
           الأصناف
         </button>
         <button
           type="button"
           className={tab === 'warehouses' ? 'tab active' : 'tab'}
-          onClick={() => setTab('warehouses')}
+          onClick={() => switchTab('warehouses')}
         >
           المخازن
         </button>
         <button
           type="button"
           className={tab === 'cashBoxes' ? 'tab active' : 'tab'}
-          onClick={() => setTab('cashBoxes')}
+          onClick={() => switchTab('cashBoxes')}
         >
           الخزن
         </button>
