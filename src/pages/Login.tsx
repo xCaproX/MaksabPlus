@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { LogIn, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import { toast } from '../components/Toast';
@@ -39,6 +40,7 @@ export default function Login() {
             required
             autoComplete="username"
             dir="ltr"
+            placeholder="name@company.com"
           />
         </label>
 
@@ -51,11 +53,27 @@ export default function Login() {
             required
             autoComplete="current-password"
             dir="ltr"
+            placeholder="••••••••"
           />
         </label>
 
-        <button type="submit" className="btn primary block" disabled={busy}>
-          {busy ? 'جارٍ تسجيل الدخول…' : 'تسجيل الدخول'}
+        <button
+          type="submit"
+          className="btn primary block"
+          disabled={busy}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+        >
+          {busy ? (
+            <>
+              <Loader2 size={18} className="spin" />
+              <span>جارٍ تسجيل الدخول…</span>
+            </>
+          ) : (
+            <>
+              <LogIn size={18} />
+              <span>تسجيل الدخول</span>
+            </>
+          )}
         </button>
       </form>
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { creationTime, formatAccountBalance, money, round2, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -664,7 +665,9 @@ export default function Receipts() {
             <>
               <div className="erp-detail-head">
                 <div><span>تحويل بين الخزن</span><h2 className="num">{viewingTransfer.number}</h2></div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewingTransfer(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewingTransfer(null)}>
+                  <X size={18} />
+                </button>
               </div>
               <dl className="erp-detail-summary">
                 <div><dt>من خزنة</dt><dd>{viewingTransfer.source_cash_box_name}</dd></div>
@@ -694,7 +697,9 @@ export default function Receipts() {
             <>
               <div className="erp-detail-head">
                 <div><span>{viewing.direction === 'in' ? 'إيصال استلام' : 'إيصال صرف'}</span><h2 className="num">{viewing.number}</h2></div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewing(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewing(null)}>
+                  <X size={18} />
+                </button>
               </div>
 
               <dl className="erp-detail-summary">

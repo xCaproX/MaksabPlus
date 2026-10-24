@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { X, Printer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -531,7 +532,9 @@ export default function Balances() {
                   <span>{selectedAccount.kind === 'customer' ? 'حساب عميل' : 'حساب مورد'}</span>
                   <h2>{selectedAccount.name}</h2>
                 </div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedAccount(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedAccount(null)}>
+                  <X size={18} />
+                </button>
               </div>
 
               <dl className="erp-detail-summary">
@@ -554,8 +557,9 @@ export default function Balances() {
               {selectedAccount.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedAccount.notes}</p>}
 
               <div className="erp-detail-actions">
-                <button type="button" className="btn primary" onClick={() => openStatement(selectedAccount)}>
-                  عرض وطباعة كشف الحساب 🖨️
+                <button type="button" className="btn primary" onClick={() => openStatement(selectedAccount)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <Printer size={16} />
+                  <span>عرض وطباعة كشف الحساب</span>
                 </button>
               </div>
             </>
@@ -566,7 +570,9 @@ export default function Balances() {
                   <span>بيانات الصنف والمخزون</span>
                   <h2>{selectedItem.item_name}</h2>
                 </div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedItem(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedItem(null)}>
+                  <X size={18} />
+                </button>
               </div>
 
               <dl className="erp-detail-summary">
@@ -584,8 +590,9 @@ export default function Balances() {
               {selectedItem.item_notes && <p className="erp-detail-notes"><span>ملاحظات الصنف</span>{selectedItem.item_notes}</p>}
 
               <div className="erp-detail-actions">
-                <button type="button" className="btn primary" onClick={() => openItemStatement(selectedItem)}>
-                  عرض وطباعة كشف حركة الصنف 🖨️
+                <button type="button" className="btn primary" onClick={() => openItemStatement(selectedItem)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <Printer size={16} />
+                  <span>عرض وطباعة كشف حركة الصنف</span>
                 </button>
               </div>
             </>
@@ -596,7 +603,9 @@ export default function Balances() {
                   <span>بيانات الخزنة</span>
                   <h2>{selectedBox.name}</h2>
                 </div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedBox(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedBox(null)}>
+                  <X size={18} />
+                </button>
               </div>
 
               <dl className="erp-detail-summary">
@@ -613,8 +622,9 @@ export default function Balances() {
               {selectedBox.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedBox.notes}</p>}
 
               <div className="erp-detail-actions">
-                <button type="button" className="btn primary" onClick={() => openCashBoxStatement(selectedBox)}>
-                  عرض وطباعة حركة الخزنة 🖨️
+                <button type="button" className="btn primary" onClick={() => openCashBoxStatement(selectedBox)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <Printer size={16} />
+                  <span>عرض وطباعة حركة الخزنة</span>
                 </button>
               </div>
             </>
@@ -648,7 +658,12 @@ export default function Balances() {
                   {statementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}
                 </button>
               </form>
-              {statementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
+              {statementRows.length > 0 && (
+                <button type="button" className="btn" onClick={() => window.print()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Printer size={15} />
+                  <span>طباعة / حفظ PDF</span>
+                </button>
+              )}
             </div>
             {statementRows.length > 0 && (
               <>
@@ -698,7 +713,12 @@ export default function Balances() {
                   {cashStatementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}
                 </button>
               </form>
-              {cashStatementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
+              {cashStatementRows.length > 0 && (
+                <button type="button" className="btn" onClick={() => window.print()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Printer size={15} />
+                  <span>طباعة / حفظ PDF</span>
+                </button>
+              )}
             </div>
             {cashStatementRows.length > 0 && (
               <>
@@ -750,7 +770,12 @@ export default function Balances() {
                   {itemStatementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}
                 </button>
               </form>
-              {itemStatementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
+              {itemStatementRows.length > 0 && (
+                <button type="button" className="btn" onClick={() => window.print()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Printer size={15} />
+                  <span>طباعة / حفظ PDF</span>
+                </button>
+              )}
             </div>
             {itemStatementRows.length > 0 && (
               <>

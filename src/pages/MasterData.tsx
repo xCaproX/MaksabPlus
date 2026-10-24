@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getCompanyId } from '../lib/company';
 import { entityNumber, money } from '../lib/format';
@@ -880,7 +881,9 @@ export default function MasterData() {
                   <span>{selectedAccount.kind === 'customer' ? 'بيانات عميل' : 'بيانات مورد'}</span>
                   <h2>{selectedAccount.name}</h2>
                 </div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedAccount(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedAccount(null)}>
+                  <X size={18} />
+                </button>
               </div>
 
               <dl className="erp-detail-summary">
@@ -911,7 +914,9 @@ export default function MasterData() {
                   <span>بيانات الصنف</span>
                   <h2>{selectedItem.name}</h2>
                 </div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedItem(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedItem(null)}>
+                  <X size={18} />
+                </button>
               </div>
 
               <dl className="erp-detail-summary">
@@ -948,7 +953,9 @@ export default function MasterData() {
                   <span>بيانات المخزن</span>
                   <h2>{selectedWarehouse.name}</h2>
                 </div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedWarehouse(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedWarehouse(null)}>
+                  <X size={18} />
+                </button>
               </div>
 
               <dl className="erp-detail-summary">
@@ -984,7 +991,9 @@ export default function MasterData() {
                   <span>بيانات الخزنة</span>
                   <h2>{selectedBox.name}</h2>
                 </div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedBox(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedBox(null)}>
+                  <X size={18} />
+                </button>
               </div>
 
               <dl className="erp-detail-summary">

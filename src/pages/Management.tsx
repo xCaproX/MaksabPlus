@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -480,7 +481,9 @@ export default function Management() {
                     <span>{selectedAccount.kind === 'customer' ? 'افتتاحي عميل' : 'افتتاحي مورد'}</span>
                     <h2>{selectedAccount.name}</h2>
                   </div>
-                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedAccount(null)}>×</button>
+                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedAccount(null)}>
+                    <X size={18} />
+                  </button>
                 </div>
 
                 <dl className="erp-detail-summary">
@@ -517,7 +520,9 @@ export default function Management() {
                     <span>افتتاحي المخزون</span>
                     <h2>{selectedItemRow.item_name}</h2>
                   </div>
-                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedItemRow(null)}>×</button>
+                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedItemRow(null)}>
+                    <X size={18} />
+                  </button>
                 </div>
 
                 <dl className="erp-detail-summary">
@@ -555,7 +560,9 @@ export default function Management() {
                     <span>افتتاحي الخزنة</span>
                     <h2>{selectedBox.name}</h2>
                   </div>
-                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedBox(null)}>×</button>
+                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedBox(null)}>
+                    <X size={18} />
+                  </button>
                 </div>
 
                 <dl className="erp-detail-summary">

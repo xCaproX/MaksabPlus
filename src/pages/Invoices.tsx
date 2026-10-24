@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { creationTime, money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -705,7 +706,9 @@ export default function Invoices() {
             <>
               <div className="erp-detail-head">
                 <div><span>تحويل بين مخازن</span><h2 className="num">{viewingTransfer.number}</h2></div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewingTransfer(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewingTransfer(null)}>
+                  <X size={18} />
+                </button>
               </div>
               {transferDetailsLoading ? <p className="erp-detail-empty">جارٍ تحميل الأصناف…</p> : (
                 <>
@@ -759,7 +762,9 @@ export default function Invoices() {
             <>
               <div className="erp-detail-head">
                 <div><span>{newLabel}</span><h2 className="num">{viewing.number}</h2></div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewing(null)}>×</button>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewing(null)}>
+                  <X size={18} />
+                </button>
               </div>
               {detailsLoading ? <p className="erp-detail-empty">جارٍ تحميل التفاصيل…</p> : (
                 <>

@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 
@@ -76,8 +77,11 @@ export default function Layout() {
           {visibleGoodsTabs.length > 0 && (
             <div className="nav-group">
               <NavLink to={`/invoices?tab=${visibleGoodsTabs[0].id}`} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                <span>البضاعة</span>
-                <span className="nav-chevron">{isGoods ? '▴' : '▾'}</span>
+                <span className="nav-link-main">
+                  <Package size={17} className="nav-icon" />
+                  <span>البضاعة</span>
+                </span>
+                <span className="nav-chevron">{isGoods ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
               </NavLink>
               {isGoods && (
                 <div className="subnav">
@@ -102,8 +106,11 @@ export default function Layout() {
           {visibleMoneyTabs.length > 0 && (
             <div className="nav-group">
               <NavLink to={`/receipts?tab=${visibleMoneyTabs[0].id}`} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                <span>الفلوس</span>
-                <span className="nav-chevron">{isMoney ? '▴' : '▾'}</span>
+                <span className="nav-link-main">
+                  <Wallet size={17} className="nav-icon" />
+                  <span>الفلوس</span>
+                </span>
+                <span className="nav-chevron">{isMoney ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
               </NavLink>
               {isMoney && (
                 <div className="subnav">
@@ -128,8 +135,11 @@ export default function Layout() {
           {visibleDataTabs.length > 0 && (
             <div className="nav-group">
               <NavLink to={`/data?tab=${visibleDataTabs[0].id}`} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                <span>البيانات</span>
-                <span className="nav-chevron">{isData ? '▴' : '▾'}</span>
+                <span className="nav-link-main">
+                  <Database size={17} className="nav-icon" />
+                  <span>البيانات</span>
+                </span>
+                <span className="nav-chevron">{isData ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
               </NavLink>
               {isData && (
                 <div className="subnav">
@@ -154,8 +164,11 @@ export default function Layout() {
           {visibleBalanceTabs.length > 0 && (
             <div className="nav-group">
               <NavLink to={`/balances?tab=${visibleBalanceTabs[0].id}`} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                <span>الأرصدة</span>
-                <span className="nav-chevron">{isBalances ? '▴' : '▾'}</span>
+                <span className="nav-link-main">
+                  <Scale size={17} className="nav-icon" />
+                  <span>الأرصدة</span>
+                </span>
+                <span className="nav-chevron">{isBalances ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
               </NavLink>
               {isBalances && (
                 <div className="subnav">
@@ -180,8 +193,11 @@ export default function Layout() {
           {visibleManagementTabs.length > 0 && (
             <div className="nav-group">
               <NavLink to={`/management?tab=${visibleManagementTabs[0].id}`} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                <span>إدارة</span>
-                <span className="nav-chevron">{isManagement ? '▴' : '▾'}</span>
+                <span className="nav-link-main">
+                  <ShieldCheck size={17} className="nav-icon" />
+                  <span>إدارة</span>
+                </span>
+                <span className="nav-chevron">{isManagement ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
               </NavLink>
               {isManagement && (
                 <div className="subnav">
@@ -205,7 +221,8 @@ export default function Layout() {
         </nav>
 
         <button type="button" className="btn ghost sign-out" onClick={signOut}>
-          تسجيل الخروج
+          <LogOut size={16} />
+          <span>تسجيل الخروج</span>
         </button>
       </header>
 
