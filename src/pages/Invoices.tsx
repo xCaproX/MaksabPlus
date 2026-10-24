@@ -33,7 +33,7 @@ interface ConfirmationRequest { title: string; message: string; confirmLabel: st
 
 type SaleStatus = 'all' | 'paid' | 'partial' | 'unpaid';
 type SaleSort = 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc';
-const SALES_PAGE_SIZE = 20;
+const PAGE_SIZE = 20;
 
 function saleStatus(invoice: InvoiceRow): Exclude<SaleStatus, 'all'> {
   if (Number(invoice.remaining) <= 0) return 'paid';
@@ -41,7 +41,10 @@ function saleStatus(invoice: InvoiceRow): Exclude<SaleStatus, 'all'> {
   return 'unpaid';
 }
 
-function saleStatusLabel(status: Exclude<SaleStatus, 'all'>): string {
+function saleStatusLabel(status: Exclude<SaleStatus, 'all'>, isReturn = false): string {
+  if (isReturn) {
+    return status === 'paid' ? 'مستردة بالكامل' : status === 'partial' ? 'مستردة جزئيًا' : 'غير مستردة';
+  }
   return status === 'paid' ? 'مسددة' : status === 'partial' ? 'جزئية' : 'غير مسددة';
 }
 
@@ -54,17 +57,6 @@ export default function Invoices() {
   const initialKind = (tabParam && VALID_INVOICE_TABS.includes(tabParam)) ? tabParam : 'sale';
   const [kind, setKind] = useState<InvoiceTab>(initialKind);
 
-  useEffect(() => {
-    const targetKind = (tabParam && VALID_INVOICE_TABS.includes(tabParam)) ? tabParam : 'sale';
-    if (targetKind !== kind) {
-      setKind(targetKind);
-      setFormOpen(false);
-      setEditing(null);
-      setEditingTransfer(null);
-      setViewing(null);
-      setViewingTransfer(null);
-    }
-  }, [tabParam]);
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [transferRows, setTransferRows] = useState<WarehouseTransferRow[]>([]);
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
@@ -87,15 +79,36 @@ export default function Invoices() {
   const [viewing, setViewing] = useState<InvoiceRow | null>(null);
   const [details, setDetails] = useState<InvoiceItemRow[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  const [warehouseFilter, setWarehouseFilter] = useState('all');
-  const [salesSearch, setSalesSearch] = useState('');
-  const [salesStatus, setSalesStatus] = useState<SaleStatus>('all');
-  const [salesDateFrom, setSalesDateFrom] = useState('');
-  const [salesDateTo, setSalesDateTo] = useState('');
-  const [salesSort, setSalesSort] = useState<SaleSort>('date-desc');
-  const [salesPage, setSalesPage] = useState(1);
+
+  // الفلاتر الموحدة
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<SaleStatus>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortOrder, setSortOrder] = useState<SaleSort>('date-desc');
+  const [page, setPage] = useState(1);
 
   const isWarehouseTransfer = kind === 'warehouse_transfer';
+  const invoiceKind = isWarehouseTransfer ? null : kind;
+  const isReturn = kind === 'sale_return' || kind === 'purchase_return';
+  const canViewProfit = access?.role === 'owner';
+
+  useEffect(() => {
+    const targetKind = (tabParam && VALID_INVOICE_TABS.includes(tabParam)) ? tabParam : 'sale';
+    if (targetKind !== kind) {
+      setKind(targetKind);
+      setFormOpen(false);
+      setEditing(null);
+      setEditingTransfer(null);
+      setViewing(null);
+      setViewingTransfer(null);
+      setSearchTerm('');
+      setStatusFilter('all');
+      setDateFrom('');
+      setDateTo('');
+      setPage(1);
+    }
+  }, [tabParam]);
 
   function askConfirmation(message: string, confirmLabel: string): Promise<boolean> {
     return new Promise((resolve) => setConfirmation({ title: 'تأكيد العملية', message, confirmLabel, resolve }));
@@ -106,12 +119,7 @@ export default function Invoices() {
     setConfirmation(null);
     request?.resolve(confirmed);
   }
-  const invoiceKind = isWarehouseTransfer ? null : kind;
-  const isReturn = kind === 'sale_return' || kind === 'purchase_return';
-  const viewingIsWaste = viewing?.kind === 'waste';
-  const viewingIsReturn = Boolean(
-    viewing && (viewing.kind === 'sale_return' || viewing.kind === 'purchase_return'),
-  );
+
   const newLabel = isWarehouseTransfer ? 'تحويل بين مخازن' :
     kind === 'waste'
       ? 'فاتورة هالك'
@@ -122,35 +130,69 @@ export default function Invoices() {
         : kind === 'sale_return'
           ? 'مرتجع مبيعات'
           : 'مرتجع مشتريات';
+
+  const tabTitle = isWarehouseTransfer ? 'تحويلات المخازن' :
+    kind === 'waste'
+      ? 'فواتير الهالك'
+      : kind === 'sale'
+      ? 'فواتير المبيعات'
+      : kind === 'purchase'
+        ? 'فواتير المشتريات'
+        : kind === 'sale_return'
+          ? 'مرتجعات المبيعات'
+          : 'مرتجعات المشتريات';
+
+  const partyHeader = kind === 'sale' || kind === 'sale_return' ? 'العميل' : kind === 'purchase' || kind === 'purchase_return' ? 'المورد' : 'الحساب';
+
   const formTitle = editingTransfer
     ? `تعديل التحويل ${editingTransfer.number}`
     : editing
     ? `تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'} ${editing.invoice.number}`
     : `${newLabel} ${isWarehouseTransfer ? 'جديد' : 'جديدة'}`;
-  const filteredRows = warehouseFilter === 'all'
-    ? rows
-    : rows.filter((invoice) => invoice.warehouse_id === warehouseFilter);
-  const isSalesWorkspace = kind === 'sale' && !showDeleted;
-  const canViewProfit = access?.role === 'owner';
-  const salesRows = useMemo(() => {
-    const query = salesSearch.trim().toLocaleLowerCase('ar');
+
+  // تصفية الفواتير
+  const filteredInvoiceRows = useMemo(() => {
+    if (isWarehouseTransfer) return [];
+    const query = searchTerm.trim().toLocaleLowerCase('ar');
     const next = rows.filter((invoice) => {
       const matchesText = !query || [invoice.number, invoice.account_name, invoice.warehouse_name]
         .some((value) => value.toLocaleLowerCase('ar').includes(query));
-      const matchesStatus = salesStatus === 'all' || saleStatus(invoice) === salesStatus;
-      const matchesFrom = !salesDateFrom || invoice.invoice_date >= salesDateFrom;
-      const matchesTo = !salesDateTo || invoice.invoice_date <= salesDateTo;
+      const matchesStatus = kind === 'waste' || statusFilter === 'all' || saleStatus(invoice) === statusFilter;
+      const matchesFrom = !dateFrom || invoice.invoice_date >= dateFrom;
+      const matchesTo = !dateTo || invoice.invoice_date <= dateTo;
       return matchesText && matchesStatus && matchesFrom && matchesTo;
     });
     return next.sort((a, b) => {
-      if (salesSort === 'total-desc') return Number(b.total) - Number(a.total);
-      if (salesSort === 'total-asc') return Number(a.total) - Number(b.total);
+      if (sortOrder === 'total-desc') return Number(b.total) - Number(a.total);
+      if (sortOrder === 'total-asc') return Number(a.total) - Number(b.total);
       const comparison = a.invoice_date.localeCompare(b.invoice_date) || a.number.localeCompare(b.number);
-      return salesSort === 'date-asc' ? comparison : -comparison;
+      return sortOrder === 'date-asc' ? comparison : -comparison;
     });
-  }, [rows, salesDateFrom, salesDateTo, salesSearch, salesSort, salesStatus]);
-  const salesPageCount = Math.max(1, Math.ceil(salesRows.length / SALES_PAGE_SIZE));
-  const salesPageRows = salesRows.slice((salesPage - 1) * SALES_PAGE_SIZE, salesPage * SALES_PAGE_SIZE);
+  }, [rows, isWarehouseTransfer, searchTerm, statusFilter, dateFrom, dateTo, sortOrder, kind]);
+
+  // تصفية التحويلات المخزنية
+  const filteredTransferRows = useMemo(() => {
+    if (!isWarehouseTransfer) return [];
+    const query = searchTerm.trim().toLocaleLowerCase('ar');
+    const next = transferRows.filter((transfer) => {
+      const matchesText = !query || [transfer.number, transfer.source_warehouse_name, transfer.destination_warehouse_name, transfer.notes || '']
+        .some((value) => value.toLocaleLowerCase('ar').includes(query));
+      const matchesFrom = !dateFrom || transfer.transfer_date >= dateFrom;
+      const matchesTo = !dateTo || transfer.transfer_date <= dateTo;
+      return matchesText && matchesFrom && matchesTo;
+    });
+    return next.sort((a, b) => {
+      if (sortOrder === 'total-desc') return Number(b.total_value) - Number(a.total_value);
+      if (sortOrder === 'total-asc') return Number(a.total_value) - Number(b.total_value);
+      const comparison = a.transfer_date.localeCompare(b.transfer_date) || a.number.localeCompare(b.number);
+      return sortOrder === 'date-asc' ? comparison : -comparison;
+    });
+  }, [transferRows, isWarehouseTransfer, searchTerm, dateFrom, dateTo, sortOrder]);
+
+  const activeTotalCount = isWarehouseTransfer ? filteredTransferRows.length : filteredInvoiceRows.length;
+  const pageCount = Math.max(1, Math.ceil(activeTotalCount / PAGE_SIZE));
+  const pageInvoices = filteredInvoiceRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageTransfers = filteredTransferRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     let alive = true;
@@ -220,12 +262,12 @@ export default function Invoices() {
   }, [notice]);
 
   useEffect(() => {
-    setSalesPage(1);
-  }, [salesSearch, salesStatus, salesDateFrom, salesDateTo, salesSort]);
+    setPage(1);
+  }, [searchTerm, statusFilter, dateFrom, dateTo, sortOrder, kind]);
 
   useEffect(() => {
-    if (salesPage > salesPageCount) setSalesPage(salesPageCount);
-  }, [salesPage, salesPageCount]);
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   function switchKind(next: InvoiceTab) {
     if (next === kind) return;
@@ -265,6 +307,7 @@ export default function Invoices() {
 
   async function openTransferDetails(transfer: WarehouseTransferRow) {
     setError('');
+    setViewing(null);
     setViewingTransfer(transfer);
     setViewingTransferLines([]);
     setTransferDetailsLoading(true);
@@ -321,6 +364,7 @@ export default function Invoices() {
 
   async function openDetails(invoice: InvoiceRow) {
     setError('');
+    setViewingTransfer(null);
     setViewing(invoice);
     setDetails([]);
     setDetailsLoading(true);
@@ -426,13 +470,19 @@ export default function Invoices() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>{isSalesWorkspace ? 'فواتير المبيعات' : 'البضاعة'}</h1>
+          <h1>{showDeleted ? `المحذوفات — ${tabTitle}` : tabTitle}</h1>
           <p className="muted">
-            {isSalesWorkspace
-              ? 'إدارة المبيعات والتحصيل من قائمة واحدة.'
-              : isWarehouseTransfer
+            {isWarehouseTransfer
               ? 'انقل الأصناف بين المخازن. يتغير رصيد كل مخزن وتكلفة الوجهة من غير تأثير على الحسابات أو ربح الفواتير.'
-              : 'الفاتورة تزيد رصيد الحساب، والمرتجع يخصمه ويعدّل المخزون. المدفوع/المسترد يُنشئ إيصالًا تلقائيًا مربوطًا بالمستند. تُعرض تكلفة البيع وربحه، والهالك بتكلفته وخسارته.'}
+              : kind === 'sale'
+              ? 'إدارة المبيعات والتحصيل من قائمة واحدة.'
+              : kind === 'purchase'
+              ? 'إدارة فواتير المشتريات وتكاليف البضاعة الواردة ومتابعة سداد الموردين.'
+              : kind === 'sale_return'
+              ? 'إدارة مرتجعات المبيعات واسترداد البضاعة إلى المخزون وتعديل حسابات العملاء.'
+              : kind === 'purchase_return'
+              ? 'إدارة مرتجعات المشتريات ورد البضاعة إلى الموردين واسترداد المستحقات.'
+              : 'إثبات هالك وتالف الأصناف وتأثيرها على المخزون وحساب تكلفة الخسائر.'}
           </p>
         </div>
         <div className="actions">
@@ -477,20 +527,322 @@ export default function Invoices() {
         </p>
       )}
 
-      {isWarehouseTransfer && <div className="filter-row">
-        <label>
-          تصفية حسب المخزن
-          <select value={warehouseFilter} onChange={(event) => setWarehouseFilter(event.target.value)}>
-            <option value="all">كل المخازن</option>
-            {warehouses.map((warehouse) => (
-              <option key={warehouse.id} value={warehouse.id}>
-                {warehouse.name}{warehouse.is_active === false ? ' — موقوف' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>}
+      {/* الـ Workspace الموحد لكل تبويبات البضاعة */}
+      <div className="erp-sales-workspace">
+        <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
+          <div className="erp-toolbar">
+            <div className="erp-toolbar-title">
+              <strong>{tabTitle}</strong>
+              <span>{activeTotalCount} نتيجة</span>
+            </div>
+            <div className="erp-filters">
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={isWarehouseTransfer ? 'بحث بالرقم أو المخزن…' : `بحث بالرقم أو ${partyHeader}…`}
+                />
+              </label>
 
+              <select aria-label="ترتيب النتائج" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as SaleSort)}>
+                <option value="date-desc">الأحدث أولًا</option>
+                <option value="date-asc">الأقدم أولًا</option>
+                <option value="total-desc">الأعلى قيمة</option>
+                <option value="total-asc">الأقل قيمة</option>
+              </select>
+
+              {!isWarehouseTransfer && kind !== 'waste' && (
+                <select aria-label="حالة السداد" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as SaleStatus)}>
+                  <option value="all">كل الحالات</option>
+                  <option value="paid">{isReturn ? 'مستردة' : 'مسددة'}</option>
+                  <option value="partial">{isReturn ? 'مستردة جزئيًا' : 'مسددة جزئيًا'}</option>
+                  <option value="unpaid">{isReturn ? 'غير مستردة' : 'غير مسددة'}</option>
+                </select>
+              )}
+
+              <label className="erp-date"><span>من</span><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /></label>
+              <label className="erp-date"><span>إلى</span><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></label>
+            </div>
+          </div>
+
+          <div className="erp-table-wrap">
+            {isWarehouseTransfer ? (
+              <table className="table erp-table">
+                <thead>
+                  <tr>
+                    <th>الرقم</th>
+                    <th>التاريخ</th>
+                    <th>من مخزن</th>
+                    <th>إلى مخزن</th>
+                    <th className="num">عدد الأصناف</th>
+                    <th className="num">إجمالي الكميات</th>
+                    <th className="num">قيمة التكلفة</th>
+                    <th>ملاحظات</th>
+                    <th aria-label="الإجراءات" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && <tr><td colSpan={9} className="empty">جارٍ التحميل…</td></tr>}
+                  {!loading && pageTransfers.length === 0 && <tr><td colSpan={9} className="empty">لا توجد تحويلات تطابق البحث أو الفلاتر.</td></tr>}
+                  {!loading && pageTransfers.map((transfer) => {
+                    const isSelected = viewingTransfer?.id === transfer.id;
+                    return (
+                      <tr
+                        key={transfer.id}
+                        className={isSelected ? 'selected' : ''}
+                        tabIndex={0}
+                        onClick={() => void openTransferDetails(transfer)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void openTransferDetails(transfer); }
+                        }}
+                      >
+                        <td className="num strong">{transfer.number}</td>
+                        <td className="num">{transfer.transfer_date}</td>
+                        <td>{transfer.source_warehouse_name}</td>
+                        <td>{transfer.destination_warehouse_name}</td>
+                        <td className="num">{transfer.line_count}</td>
+                        <td className="num">{formatQty(transfer.total_qty)}</td>
+                        <td className="num strong">{money(transfer.total_value)}</td>
+                        <td>{transfer.notes || '—'}</td>
+                        <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
+                          {showDeleted ? (
+                            can('goods.delete') && <button type="button" className="link" onClick={() => void restoreTransfer(transfer)}>استعادة</button>
+                          ) : (
+                            <>
+                              {can('goods.edit') && <button type="button" className="link" onClick={() => void startEditTransfer(transfer)}>تعديل</button>}
+                              {can('goods.delete') && <button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button>}
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <table className="table erp-table">
+                <thead>
+                  <tr>
+                    <th>الرقم</th>
+                    <th>التاريخ</th>
+                    <th>{partyHeader}</th>
+                    <th>المخزن</th>
+                    <th className="num">الإجمالي</th>
+                    {(kind === 'sale' || kind === 'sale_return') && canViewProfit && <th className="num">الربح</th>}
+                    {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && <th className="num">{kind === 'waste' ? 'الخسارة' : 'التكلفة'}</th>}
+                    {kind !== 'waste' && <th>{isReturn ? 'الاسترداد' : 'السداد'}</th>}
+                    {kind !== 'waste' && <th className="num">{isReturn ? 'غير المسترد' : 'المتبقي'}</th>}
+                    <th aria-label="الإجراءات" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && <tr><td colSpan={10} className="empty">جارٍ التحميل…</td></tr>}
+                  {!loading && pageInvoices.length === 0 && <tr><td colSpan={10} className="empty">لا توجد فواتير تطابق البحث أو الفلاتر.</td></tr>}
+                  {!loading && pageInvoices.map((invoice) => {
+                    const status = saleStatus(invoice);
+                    const isSelected = viewing?.id === invoice.id;
+                    return (
+                      <tr
+                        key={invoice.id}
+                        className={isSelected ? 'selected' : ''}
+                        tabIndex={0}
+                        onClick={() => void openDetails(invoice)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void openDetails(invoice); }
+                        }}
+                      >
+                        <td className="num strong">{invoice.number}</td>
+                        <td className="num">{invoice.invoice_date}</td>
+                        <td>{invoice.account_name}</td>
+                        <td>{invoice.warehouse_name}</td>
+                        <td className="num strong">{money(invoice.total)}</td>
+                        {(kind === 'sale' || kind === 'sale_return') && canViewProfit && (
+                          <td className="num">{money(invoice.profit_total)}</td>
+                        )}
+                        {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && (
+                          <td className="num">{money(invoice.cost_total)}</td>
+                        )}
+                        {kind !== 'waste' && (
+                          <td>
+                            <span className={`status-badge ${status}`}>{saleStatusLabel(status, isReturn)}</span>
+                          </td>
+                        )}
+                        {kind !== 'waste' && (
+                          <td className={Number(invoice.remaining) > 0 ? 'num strong remaining' : 'num'}>{money(invoice.remaining)}</td>
+                        )}
+                        <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
+                          {showDeleted ? (
+                            can('goods.delete') && <button type="button" className="link" onClick={() => void restore(invoice)}>استعادة</button>
+                          ) : (
+                            <>
+                              {can('goods.edit') && <button type="button" className="link" onClick={() => void startEdit(invoice)}>تعديل</button>}
+                              {can('goods.delete') && <button type="button" className="link danger" onClick={() => void remove(invoice)}>حذف</button>}
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="erp-pagination">
+            <span>
+              عرض {activeTotalCount ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, activeTotalCount)} من {activeTotalCount}
+            </span>
+            <div>
+              <button type="button" className="btn compact" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>السابق</button>
+              <span>{page} / {pageCount}</span>
+              <button type="button" className="btn compact" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>التالي</button>
+            </div>
+          </div>
+        </section>
+
+        {/* اللوحة الجانبية للتفاصيل */}
+        <aside className={viewing || viewingTransfer ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل المستند">
+          {viewingTransfer ? (
+            <>
+              <div className="erp-detail-head">
+                <div><span>تحويل بين مخازن</span><h2 className="num">{viewingTransfer.number}</h2></div>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewingTransfer(null)}>×</button>
+              </div>
+              {transferDetailsLoading ? <p className="erp-detail-empty">جارٍ تحميل الأصناف…</p> : (
+                <>
+                  <dl className="erp-detail-summary">
+                    <div><dt>من مخزن</dt><dd>{viewingTransfer.source_warehouse_name}</dd></div>
+                    <div><dt>إلى مخزن</dt><dd>{viewingTransfer.destination_warehouse_name}</dd></div>
+                    <div><dt>التاريخ</dt><dd className="num">{viewingTransfer.transfer_date}</dd></div>
+                    <div><dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewingTransfer.created_at)}</dd></div>
+                  </dl>
+
+                  <div className="erp-detail-lines">
+                    <h3>أصناف التحويل</h3>
+                    {viewingTransferLines.length === 0 ? <p className="muted">لا توجد أصناف.</p> : (
+                      <table className="table subtable">
+                        <thead><tr><th>الصنف</th><th className="num">الكمية</th><th className="num">تكلفة الوحدة</th></tr></thead>
+                        <tbody>
+                          {viewingTransferLines.map((line) => (
+                            <tr key={line.item_id}>
+                              <td>{line.item_name}</td>
+                              <td className="num">{formatQty(line.qty)} {line.unit}</td>
+                              <td className="num">{money(line.unit_cost ?? 0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+
+                  <div className="erp-detail-totals">
+                    <span>عدد الأصناف</span><strong className="num">{viewingTransfer.line_count}</strong>
+                    <span>إجمالي الكميات</span><strong className="num">{formatQty(viewingTransfer.total_qty)}</strong>
+                    <span>قيمة التكلفة</span><strong className="num">{money(viewingTransfer.total_value)}</strong>
+                  </div>
+
+                  {viewingTransfer.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewingTransfer.notes}</p>}
+
+                  <div className="erp-detail-actions">
+                    {showDeleted ? (
+                      can('goods.delete') && <button type="button" className="btn" onClick={() => void restoreTransfer(viewingTransfer)}>استعادة التحويل</button>
+                    ) : (
+                      <>
+                        {can('goods.edit') && <button type="button" className="btn" onClick={() => void startEditTransfer(viewingTransfer)}>تعديل التحويل</button>}
+                        {can('goods.delete') && <button type="button" className="btn danger" onClick={() => void removeTransfer(viewingTransfer)}>حذف</button>}
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          ) : viewing ? (
+            <>
+              <div className="erp-detail-head">
+                <div><span>{newLabel}</span><h2 className="num">{viewing.number}</h2></div>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewing(null)}>×</button>
+              </div>
+              {detailsLoading ? <p className="erp-detail-empty">جارٍ تحميل التفاصيل…</p> : (
+                <>
+                  <dl className="erp-detail-summary">
+                    <div><dt>{partyHeader}</dt><dd>{viewing.account_name}</dd></div>
+                    <div><dt>التاريخ</dt><dd className="num">{viewing.invoice_date}</dd></div>
+                    <div><dt>المخزن</dt><dd>{viewing.warehouse_name}</dd></div>
+                    {viewing.cash_box_name && <div><dt>الخزنة</dt><dd>{viewing.cash_box_name}</dd></div>}
+                    {kind !== 'waste' && (
+                      <div><dt>{isReturn ? 'الاسترداد' : 'السداد'}</dt><dd><span className={`status-badge ${saleStatus(viewing)}`}>{saleStatusLabel(saleStatus(viewing), isReturn)}</span></dd></div>
+                    )}
+                  </dl>
+
+                  <div className="erp-detail-lines">
+                    <h3>الأصناف</h3>
+                    {details.length === 0 ? <p className="muted">لا توجد سطور.</p> : (
+                      <table className="table subtable">
+                        <thead>
+                          <tr>
+                            <th>الصنف</th>
+                            <th className="num">الكمية</th>
+                            <th className="num">السعر</th>
+                            <th className="num">الإجمالي</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {details.map((line) => (
+                            <tr key={line.id}>
+                              <td>{line.item_name}</td>
+                              <td className="num">{formatQty(line.qty)} {line.unit}</td>
+                              <td className="num">{money(line.unit_price)}</td>
+                              <td className="num strong">{money(line.line_total)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+
+                  <div className="erp-detail-totals">
+                    <span>الإجمالي</span><strong className="num">{money(viewing.total)}</strong>
+                    {kind === 'waste' ? (
+                      <><span>الخسارة</span><strong className="num">{money(viewing.cost_total)}</strong></>
+                    ) : (
+                      <>
+                        <span>{isReturn ? 'المسترد' : 'المدفوع'}</span><strong className="num">{money(viewing.paid)}</strong>
+                        <span>{isReturn ? 'غير المسترد' : 'المتبقي'}</span><strong className="num remaining">{money(viewing.remaining)}</strong>
+                      </>
+                    )}
+                  </div>
+
+                  {viewing.receipt_number && (
+                    <p className="erp-detail-notes"><span>الإيصال المرتبط</span>{viewing.receipt_number} — {money(viewing.receipt_amount ?? 0)}</p>
+                  )}
+
+                  {viewing.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewing.notes}</p>}
+
+                  <div className="erp-detail-actions">
+                    {showDeleted ? (
+                      can('goods.delete') && <button type="button" className="btn" onClick={() => void restore(viewing)}>استعادة {newLabel}</button>
+                    ) : (
+                      <>
+                        {can('goods.edit') && <button type="button" className="btn" onClick={() => void startEdit(viewing)}>تعديل {newLabel}</button>}
+                        {can('goods.delete') && <button type="button" className="btn danger" onClick={() => void remove(viewing)}>حذف</button>}
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="erp-detail-empty">
+              <strong>اختر {isWarehouseTransfer ? 'تحويلًا' : 'مستندًا'}</strong>
+              <span>ستظهر تفاصيله هنا من دون مغادرة القائمة.</span>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      {/* نموذج الإضافة أو التعديل */}
       {formOpen && (
         <Modal
           className={isWarehouseTransfer ? 'transaction-entry-modal' : 'transaction-entry-modal invoice-entry-modal'}
@@ -502,358 +854,33 @@ export default function Invoices() {
             setEditingTransfer(null);
           }}
         >
-          {isWarehouseTransfer ? <WarehouseTransferForm
-            key={editingTransfer?.id ?? 'new-transfer'}
-            warehouses={warehouses}
-            items={items}
-            stockRows={stockRows}
-            editing={editingTransfer}
-            onSaved={handleSaved}
-            onCancel={() => { setFormOpen(false); setEditingTransfer(null); }}
-          /> : <InvoiceForm
-            key={editing?.invoice.id ?? 'new-invoice'}
-            kind={kind as InvoiceKind}
-            accounts={accounts}
-            warehouses={warehouses}
-            cashBoxes={cashBoxes}
-            items={items}
-            stockRows={stockRows}
-            editing={editing}
-            onSaved={handleSaved}
-            onCancel={() => { setFormOpen(false); setEditing(null); }}
-          />}
-        </Modal>
-      )}
-
-      {isWarehouseTransfer ? <div className="card">
-        <div className="table-wrap responsive-table"><table className="table">
-          <thead><tr><th>الرقم</th><th>التاريخ</th><th>وقت الإنشاء</th><th>من مخزن</th><th>إلى مخزن</th><th>عدد الأصناف</th><th>إجمالي الكميات</th><th>قيمة التكلفة المنقولة</th><th>ملاحظات</th><th /></tr></thead>
-          <tbody>
-            {loading && <tr><td colSpan={10} className="empty">جارٍ التحميل…</td></tr>}
-            {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).length === 0 &&
-              <tr><td colSpan={10} className="empty">{warehouseFilter !== 'all' ? 'لا توجد تحويلات للمخزن المحدد.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات مخزنية بعد.'}</td></tr>}
-            {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).map((transfer) => <tr className="responsive-row" key={transfer.id}>
-              <td className="num" data-label="الرقم">{transfer.number}</td><td className="num" data-label="التاريخ">{transfer.transfer_date}</td><td className="num" data-label="وقت الإنشاء">{creationTime(transfer.created_at)}</td>
-              <td data-label="من مخزن">{transfer.source_warehouse_name}</td><td data-label="إلى مخزن">{transfer.destination_warehouse_name}</td>
-              <td className="num" data-label="عدد الأصناف">{transfer.line_count}</td><td className="num" data-label="إجمالي الكميات">{formatQty(transfer.total_qty)}</td>
-              <td className="num" data-label="قيمة التكلفة المنقولة">{money(transfer.total_value)}</td><td data-label="ملاحظات">{transfer.notes || '—'}</td>
-              <td className="row-actions" data-label="الإجراءات">{showDeleted
-                ? can('goods.delete') && <button type="button" className="link" onClick={() => restoreTransfer(transfer)}>استعادة</button>
-                : <>{can('goods.view') && <button type="button" className="link" onClick={() => void openTransferDetails(transfer)}>عرض</button>}{can('goods.edit') && <button type="button" className="link" onClick={() => void startEditTransfer(transfer)}>تعديل</button>}{can('goods.delete') && <button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button>}</>}
-              </td>
-            </tr>)}
-          </tbody>
-        </table></div>
-      </div> : isSalesWorkspace ? <div className="erp-sales-workspace">
-        <section className="erp-list-panel" aria-label="قائمة فواتير المبيعات">
-          <div className="erp-toolbar">
-            <div className="erp-toolbar-title">
-              <strong>فواتير المبيعات</strong>
-              <span>{salesRows.length} نتيجة</span>
-            </div>
-            <div className="erp-filters">
-              <label className="erp-search">
-                <span className="sr-only">البحث في الفواتير</span>
-                <input
-                  type="search"
-                  value={salesSearch}
-                  onChange={(event) => setSalesSearch(event.target.value)}
-                  placeholder="بحث برقم الفاتورة أو العميل…"
-                />
-              </label>
-              <select aria-label="ترتيب النتائج" value={salesSort} onChange={(event) => setSalesSort(event.target.value as SaleSort)}>
-                <option value="date-desc">الأحدث أولًا</option>
-                <option value="date-asc">الأقدم أولًا</option>
-                <option value="total-desc">الأعلى قيمة</option>
-                <option value="total-asc">الأقل قيمة</option>
-              </select>
-              <select aria-label="حالة السداد" value={salesStatus} onChange={(event) => setSalesStatus(event.target.value as SaleStatus)}>
-                <option value="all">كل الحالات</option>
-                <option value="paid">مسددة</option>
-                <option value="partial">مسددة جزئيًا</option>
-                <option value="unpaid">غير مسددة</option>
-              </select>
-              <label className="erp-date"><span>من</span><input type="date" value={salesDateFrom} onChange={(event) => setSalesDateFrom(event.target.value)} /></label>
-              <label className="erp-date"><span>إلى</span><input type="date" value={salesDateTo} onChange={(event) => setSalesDateTo(event.target.value)} /></label>
-            </div>
-          </div>
-          <div className="erp-table-wrap">
-            <table className="table erp-table">
-              <thead><tr><th>الرقم</th><th>التاريخ</th><th>العميل</th><th>المخزن</th><th className="num">الإجمالي</th>{canViewProfit && <th className="num">الربح</th>}<th>السداد</th><th className="num">المتبقي</th><th aria-label="الإجراءات" /></tr></thead>
-              <tbody>
-                {loading && <tr><td colSpan={canViewProfit ? 9 : 8} className="empty">جارٍ التحميل…</td></tr>}
-                {!loading && salesPageRows.length === 0 && <tr><td colSpan={canViewProfit ? 9 : 8} className="empty">لا توجد فواتير تطابق البحث أو الفلاتر.</td></tr>}
-                {!loading && salesPageRows.map((invoice) => {
-                  const status = saleStatus(invoice);
-                  const isSelected = viewing?.id === invoice.id;
-                  return <tr
-                    key={invoice.id}
-                    className={isSelected ? 'selected' : ''}
-                    tabIndex={0}
-                    onClick={() => void openDetails(invoice)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void openDetails(invoice); }
-                    }}
-                  >
-                    <td className="num strong">{invoice.number}</td>
-                    <td className="num">{invoice.invoice_date}</td>
-                    <td>{invoice.account_name}</td>
-                    <td>{invoice.warehouse_name}</td>
-                    <td className="num strong">{money(invoice.total)}</td>
-                    {canViewProfit && <td className="num">{money(invoice.profit_total)}</td>}
-                    <td><span className={`status-badge ${status}`}>{saleStatusLabel(status)}</span></td>
-                    <td className={Number(invoice.remaining) > 0 ? 'num strong remaining' : 'num'}>{money(invoice.remaining)}</td>
-                    <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
-                      {can('goods.edit') && <button type="button" className="link" onClick={() => void startEdit(invoice)}>تعديل</button>}
-                      {can('goods.delete') && <button type="button" className="link danger" onClick={() => void remove(invoice)}>حذف</button>}
-                    </td>
-                  </tr>;
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="erp-pagination">
-            <span>عرض {salesRows.length ? (salesPage - 1) * SALES_PAGE_SIZE + 1 : 0}–{Math.min(salesPage * SALES_PAGE_SIZE, salesRows.length)} من {salesRows.length}</span>
-            <div>
-              <button type="button" className="btn compact" disabled={salesPage === 1} onClick={() => setSalesPage((page) => page - 1)}>السابق</button>
-              <span>{salesPage} / {salesPageCount}</span>
-              <button type="button" className="btn compact" disabled={salesPage === salesPageCount} onClick={() => setSalesPage((page) => page + 1)}>التالي</button>
-            </div>
-          </div>
-        </section>
-        <aside className={viewing ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل الفاتورة">
-          {viewing ? <>
-            <div className="erp-detail-head">
-              <div><span>فاتورة مبيعات</span><h2 className="num">{viewing.number}</h2></div>
-              <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewing(null)}>×</button>
-            </div>
-            {detailsLoading ? <p className="erp-detail-empty">جارٍ تحميل التفاصيل…</p> : <>
-              <dl className="erp-detail-summary">
-                <div><dt>العميل</dt><dd>{viewing.account_name}</dd></div>
-                <div><dt>التاريخ</dt><dd className="num">{viewing.invoice_date}</dd></div>
-                <div><dt>المخزن</dt><dd>{viewing.warehouse_name}</dd></div>
-                <div><dt>السداد</dt><dd><span className={`status-badge ${saleStatus(viewing)}`}>{saleStatusLabel(saleStatus(viewing))}</span></dd></div>
-              </dl>
-              <div className="erp-detail-lines">
-                <h3>الأصناف</h3>
-                {details.length === 0 ? <p className="muted">لا توجد سطور.</p> : <table className="table subtable"><thead><tr><th>الصنف</th><th className="num">الكمية</th><th className="num">السعر</th><th className="num">الإجمالي</th></tr></thead><tbody>{details.map((line) => <tr key={line.id}><td>{line.item_name}</td><td className="num">{formatQty(line.qty)} {line.unit}</td><td className="num">{money(line.unit_price)}</td><td className="num strong">{money(line.line_total)}</td></tr>)}</tbody></table>}
-              </div>
-              <div className="erp-detail-totals"><span>الإجمالي</span><strong className="num">{money(viewing.total)}</strong><span>المدفوع</span><strong className="num">{money(viewing.paid)}</strong><span>المتبقي</span><strong className="num remaining">{money(viewing.remaining)}</strong></div>
-              {viewing.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewing.notes}</p>}
-              <div className="erp-detail-actions">
-                {can('goods.edit') && <button type="button" className="btn" onClick={() => void startEdit(viewing)}>تعديل الفاتورة</button>}
-                {can('goods.delete') && <button type="button" className="btn danger" onClick={() => void remove(viewing)}>حذف</button>}
-              </div>
-            </>}
-          </> : <div className="erp-detail-empty"><strong>اختر فاتورة</strong><span>ستظهر تفاصيلها هنا من دون مغادرة القائمة.</span></div>}
-        </aside>
-      </div> : <div className="card">
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>الرقم</th>
-                <th>التاريخ</th>
-                <th>وقت الإنشاء</th>
-                <th>الحساب</th>
-                <th>المخزن</th>
-                <th>الخزنة</th>
-                <th>الإجمالي</th>
-                <th>{kind === 'waste' ? 'الخسارة' : kind === 'sale' || kind === 'sale_return' ? 'الربح / الخسارة' : 'تكلفة الأصناف'}</th>
-                <th>{isReturn ? 'المسترد' : 'المدفوع'}</th>
-                <th>{isReturn ? 'غير المسترد' : 'المتبقي'}</th>
-                <th>الإيصال</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
-                <tr>
-                  <td colSpan={12} className="empty">
-                    جارٍ التحميل…
-                  </td>
-                </tr>
-              )}
-
-              {!loading && filteredRows.length === 0 && (
-                <tr>
-                  <td colSpan={12} className="empty">
-                    {warehouseFilter !== 'all'
-                      ? 'لا توجد مستندات في المخزن المحدد.'
-                      : showDeleted
-                      ? `لا توجد ${isReturn ? 'مرتجعات' : 'فواتير'} محذوفة.`
-                      : `لا توجد ${isReturn ? 'مرتجعات' : 'فواتير'} بعد.`}
-                  </td>
-                </tr>
-              )}
-
-              {!loading &&
-                filteredRows.map((invoice) => (
-                  <tr key={invoice.id}>
-                    <td className="num">{invoice.number}</td>
-                    <td className="num">{invoice.invoice_date}</td>
-                    <td className="num">{creationTime(invoice.created_at)}</td>
-                    <td>
-                      {invoice.account_name}{' '}
-                      <span className="muted">
-                        ({invoice.account_kind === 'customer' ? 'عميل' : invoice.account_kind === 'supplier' ? 'مورد' : 'هالك'})
-                      </span>
-                    </td>
-                    <td>{invoice.warehouse_name}</td>
-                    <td>{invoice.cash_box_name ?? '—'}</td>
-                    <td className="num">{money(invoice.total)}</td>
-                    <td className="num strong">
-                      {money(kind === 'waste' || kind === 'purchase' || kind === 'purchase_return' ? invoice.cost_total : invoice.profit_total)}
-                    </td>
-                    <td className="num">{kind === 'waste' ? '—' : money(invoice.paid)}</td>
-                    <td className={Number(invoice.remaining) > 0 && kind !== 'waste' ? 'num strong' : 'num'}>
-                      {kind === 'waste' ? '—' : money(invoice.remaining)}
-                    </td>
-                    <td className="num muted">{invoice.receipt_number ?? '—'}</td>
-                    <td className="row-actions">
-                      {showDeleted ? can('goods.delete') ? (
-                        <button
-                          type="button"
-                          className="link"
-                          onClick={() => restore(invoice)}
-                        >
-                          استعادة
-                        </button>
-                      ) : null : (
-                        <>
-                          {can('goods.view') && <button
-                            type="button"
-                            className="link"
-                            onClick={() => openDetails(invoice)}
-                          >
-                            عرض
-                          </button>}
-                          {can('goods.edit') && <button type="button" className="link" onClick={() => startEdit(invoice)}>
-                            تعديل
-                          </button>}
-                          {can('goods.delete') && <button
-                            type="button"
-                            className="link danger"
-                            onClick={() => remove(invoice)}
-                          >
-                            حذف
-                          </button>}
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      </div>}
-
-      {viewingTransfer && <Modal title={`تحويل بين مخازن ${viewingTransfer.number}`} onClose={() => setViewingTransfer(null)}>
-        <dl className="doc-meta-list">
-          <dt>التاريخ</dt><dd>{viewingTransfer.transfer_date}</dd>
-          <dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewingTransfer.created_at)}</dd>
-          <dt>من مخزن</dt><dd>{viewingTransfer.source_warehouse_name}</dd>
-          <dt>إلى مخزن</dt><dd>{viewingTransfer.destination_warehouse_name}</dd>
-          <dt>قيمة التكلفة المنقولة</dt><dd className="num">{money(viewingTransfer.total_value)}</dd>
-          <dt>ملاحظات</dt><dd>{viewingTransfer.notes || '—'}</dd>
-        </dl>
-        <h3 className="modal-section">أصناف التحويل</h3>
-        {transferDetailsLoading ? <p className="muted">جارٍ تحميل الأصناف…</p> : viewingTransferLines.length === 0 ? <p className="muted">لا توجد أصناف.</p> : (
-          <div className="table-wrap">
-            <table className="table subtable">
-              <thead><tr><th>الصنف</th><th>الكمية</th><th>تكلفة الوحدة</th></tr></thead>
-              <tbody>{viewingTransferLines.map((line) => <tr key={line.item_id}>
-                <td>{line.item_name}</td>
-                <td className="num">{formatQty(line.qty)} {line.unit}</td>
-                <td className="num">{money(line.unit_cost ?? 0)}</td>
-              </tr>)}</tbody>
-            </table>
-          </div>
-        )}
-      </Modal>}
-
-      {viewing && !isSalesWorkspace && (
-        <Modal
-          title={`${viewingIsWaste ? 'فاتورة هالك' : viewingIsReturn ? 'مرتجع' : 'فاتورة'} ${viewing.number}`}
-          onClose={() => setViewing(null)}
-        >
-          <dl className="doc-meta-list">
-            <dt>الحساب</dt>
-            <dd>
-              {viewing.account_name}{' '}
-              <span className="muted">
-                ({viewing.account_kind === 'customer' ? 'عميل' : viewing.account_kind === 'supplier' ? 'مورد' : 'هالك'})
-              </span>
-            </dd>
-            <dt>التاريخ</dt>
-            <dd className="num">{viewing.invoice_date}</dd>
-            <dt>وقت الإنشاء</dt>
-            <dd className="num">{creationTime(viewing.created_at)}</dd>
-            <dt>المخزن</dt>
-            <dd>{viewing.warehouse_name}</dd>
-            {viewing.cash_box_name && <>
-              <dt>الخزنة</dt>
-              <dd>{viewing.cash_box_name}</dd>
-            </>}
-            <dt>{viewingIsWaste ? 'قيمة المستند' : 'الإجمالي'}</dt>
-            <dd className="num strong">{money(viewing.total)}</dd>
-            <dt>{viewingIsWaste ? 'الخسارة' : viewing.kind === 'sale' || viewing.kind === 'sale_return' ? 'الربح / الخسارة' : 'تكلفة الأصناف'}</dt>
-            <dd className="num strong">{money(viewingIsWaste || viewing.kind === 'purchase' || viewing.kind === 'purchase_return' ? viewing.cost_total : viewing.profit_total)}</dd>
-            {!viewingIsWaste && <>
-              <dt>{viewingIsReturn ? 'المسترد' : 'المدفوع'}</dt>
-              <dd className="num">{money(viewing.paid)}</dd>
-              <dt>{viewingIsReturn ? 'غير المسترد' : 'المتبقي'}</dt>
-              <dd className="num">{money(viewing.remaining)}</dd>
-            </>}
-            <dt>الإيصال</dt>
-            <dd className="num">
-              {viewing.receipt_number
-                ? `${viewing.receipt_number} — ${money(viewing.receipt_amount ?? 0)}`
-                : 'لا يوجد إيصال'}
-            </dd>
-            <dt>ملاحظات</dt>
-            <dd>{viewing.notes || '—'}</dd>
-          </dl>
-
-          <h3 className="modal-section">أصناف {viewingIsWaste ? 'الهالك' : viewingIsReturn ? 'المرتجع' : 'الفاتورة'}</h3>
-          {detailsLoading ? (
-            <p className="muted">جارٍ التحميل…</p>
-          ) : details.length === 0 ? (
-            <p className="muted">لا توجد سطور.</p>
+          {isWarehouseTransfer ? (
+            <WarehouseTransferForm
+              key={editingTransfer?.id ?? 'new-transfer'}
+              warehouses={warehouses}
+              items={items}
+              stockRows={stockRows}
+              editing={editingTransfer}
+              onSaved={handleSaved}
+              onCancel={() => { setFormOpen(false); setEditingTransfer(null); }}
+            />
           ) : (
-            <div className="table-wrap">
-              <table className="table subtable">
-                <thead>
-                  <tr>
-                    <th>الصنف</th>
-                    <th>الكمية</th>
-                    <th>السعر</th>
-                    <th>تكلفة الوحدة</th>
-                    <th>الإجمالي</th>
-                    <th>تكلفة السطر</th>
-                    <th>الربح / الخسارة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {details.map((line) => (
-                    <tr key={line.id}>
-                      <td>{line.item_name}</td>
-                      <td className="num">
-                        {formatQty(line.qty)} {line.unit}
-                      </td>
-                      <td className="num">{money(line.unit_price)}</td>
-                      <td className="num">{money(line.unit_cost)}</td>
-                      <td className="num">{money(line.line_total)}</td>
-                      <td className="num">{money(line.line_cost)}</td>
-                      <td className="num">{money(line.line_profit)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <InvoiceForm
+              key={editing?.invoice.id ?? 'new-invoice'}
+              kind={kind as InvoiceKind}
+              accounts={accounts}
+              warehouses={warehouses}
+              cashBoxes={cashBoxes}
+              items={items}
+              stockRows={stockRows}
+              editing={editing}
+              onSaved={handleSaved}
+              onCancel={() => { setFormOpen(false); setEditing(null); }}
+            />
           )}
         </Modal>
       )}
+
       {confirmation && (
         <ConfirmDialog
           title={confirmation.title}
