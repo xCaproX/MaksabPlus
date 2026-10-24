@@ -14,7 +14,6 @@ interface PermissionItemDef {
 interface SectionDef {
   id: string;
   label: string;
-  icon: string;
   items: PermissionItemDef[];
 }
 
@@ -22,8 +21,7 @@ interface SectionDef {
 const sections: SectionDef[] = [
   {
     id: 'goods',
-    label: 'البضاعة',
-    icon: '📦',
+    label: 'قسم البضاعة',
     items: [
       {
         id: 'goods',
@@ -34,8 +32,7 @@ const sections: SectionDef[] = [
   },
   {
     id: 'money',
-    label: 'الفلوس',
-    icon: '💰',
+    label: 'قسم الفلوس',
     items: [
       {
         id: 'money',
@@ -46,8 +43,7 @@ const sections: SectionDef[] = [
   },
   {
     id: 'data',
-    label: 'البيانات الأساسية',
-    icon: '📑',
+    label: 'قسم البيانات الأساسية',
     items: [
       {
         id: 'data',
@@ -58,8 +54,7 @@ const sections: SectionDef[] = [
   },
   {
     id: 'balances',
-    label: 'الأرصدة والتقارير',
-    icon: '📊',
+    label: 'قسم الأرصدة والتقارير',
     items: [
       {
         id: 'balances',
@@ -70,8 +65,7 @@ const sections: SectionDef[] = [
   },
   {
     id: 'management',
-    label: 'إدارة الأرصدة الافتتاحية',
-    icon: '⚙️',
+    label: 'قسم إدارة الأرصدة الافتتاحية',
     items: [
       {
         id: 'management',
@@ -105,23 +99,20 @@ function getAllPermissionKeys(): PermissionKey[] {
 }
 
 // قوالب الصلاحيات السريعة لتوفير الوقت
-const PRESETS: { id: string; label: string; icon: string; keys: PermissionKey[] }[] = [
+const PRESETS: { id: string; label: string; keys: PermissionKey[] }[] = [
   {
     id: 'cashier',
     label: 'كاشير / مبيعات',
-    icon: '🛒',
     keys: ['goods.view', 'goods.create', 'money.view', 'money.create'],
   },
   {
     id: 'warehouse',
     label: 'أمين مخزن',
-    icon: '📦',
     keys: ['goods.view', 'goods.create', 'goods.edit', 'data.view', 'data.create', 'data.edit'],
   },
   {
     id: 'accountant',
     label: 'محاسب مالي',
-    icon: '💼',
     keys: [
       'goods.view', 'goods.create', 'goods.edit',
       'money.view', 'money.create', 'money.edit',
@@ -132,7 +123,6 @@ const PRESETS: { id: string; label: string; icon: string; keys: PermissionKey[] 
   {
     id: 'viewer',
     label: 'مشاهد فقط',
-    icon: '👁️',
     keys: ['goods.view', 'money.view', 'data.view', 'balances.view', 'management.view'],
   },
 ];
@@ -506,10 +496,10 @@ export default function UserPermissions() {
                   </div>
                 ) : (
                   <>
-                    {/* شريط القوالب السريعة */}
+                    {/* شريط الأدوار الجاهزة */}
                     <div className="presets-container">
                       <span className="presets-title">
-                        <span>⚡ قوالب سريعة:</span>
+                        <span>أدوار جاهزة:</span>
                       </span>
                       <div className="presets-list">
                         {PRESETS.map((preset) => (
@@ -520,7 +510,7 @@ export default function UserPermissions() {
                             disabled={busy}
                             onClick={() => applyPreset(preset.keys)}
                           >
-                            <span>{preset.icon}</span> <span>{preset.label}</span>
+                            <span>{preset.label}</span>
                           </button>
                         ))}
                       </div>
@@ -624,7 +614,7 @@ export default function UserPermissions() {
 
             <div className="presets-container" style={{ marginTop: '8px', padding: '6px 8px' }}>
               <span className="presets-title" style={{ fontSize: '11px' }}>
-                ⚡ قوالب سريعة:
+                أدوار جاهزة:
               </span>
               <div className="presets-list">
                 {PRESETS.map((preset) => (
@@ -634,7 +624,7 @@ export default function UserPermissions() {
                     className="preset-chip-btn"
                     onClick={() => setInvitePermissions(preset.keys)}
                   >
-                    <span>{preset.icon}</span> <span>{preset.label}</span>
+                    <span>{preset.label}</span>
                   </button>
                 ))}
               </div>
@@ -868,7 +858,6 @@ function SectionGroupRows({
             onClick={() => onToggleSectionCollapse(section.id)}
           >
             <span className="matrix-section-chevron">{isExpanded ? '▾' : '▸'}</span>
-            <span>{section.icon}</span>
             <span>{section.label}</span>
             <span className="muted" style={{ fontSize: '11px', fontWeight: 'normal' }}>
               ({checkedCount} من {totalCount})
@@ -900,7 +889,7 @@ function SectionGroupRows({
             <tr className="matrix-item-row" key={item.id}>
               <td>
                 <div className="matrix-item-title">
-                  <span style={{ color: '#94a3b8' }}>↳</span>
+                  <span className="matrix-item-bullet" />
                   <span>{item.label}</span>
                 </div>
               </td>
