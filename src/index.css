@@ -886,7 +886,7 @@ code {
   box-shadow: 0 1px 3px rgba(25, 45, 68, .08);
 }
 
-.erp-list-panel { min-width: 0; display: flex; flex-direction: column; }
+.erp-list-panel { min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
 .erp-toolbar {
   display: flex;
   align-items: flex-end;
@@ -1024,6 +1024,21 @@ code {
   .erp-row-actions { visibility: visible; }
   .invoice-entry-modal .modal-body { padding: 12px 13px calc(18px + env(safe-area-inset-bottom)); }
   .invoice-form .form-footer { bottom: calc(-18px - env(safe-area-inset-bottom)); margin-inline: -13px; padding-inline: 13px; }
+}
+
+/* The list loses width when its details panel is open, even on a wide browser.
+   Respond to the list itself so the filters never fall into arbitrary wrapping. */
+@container (max-width: 950px) {
+  .erp-toolbar { align-items: flex-start; flex-direction: column; }
+  .erp-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: 100%;
+  }
+  .erp-search { grid-column: 1 / -1; }
+  .erp-search input, .erp-filters select { width: 100%; }
+  .erp-date { display: grid; grid-template-columns: 1fr; gap: 3px; }
+  .erp-date input { width: 100%; }
 }
 .permission-groups {
   display: flex;
