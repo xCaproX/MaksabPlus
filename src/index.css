@@ -26,7 +26,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: 'Segoe UI', Tahoma, 'Noto Kufi Arabic', system-ui, sans-serif;
+  font-family: 'Cairo Variable', 'Segoe UI', Tahoma, sans-serif;
   font-size: 15px;
   line-height: 1.6;
 }

@@ -10,6 +10,7 @@
     "test:db": "node supabase/tests/run-local.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/cairo": "^5.3.0",
     "@supabase/supabase-js": "^2.45.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
