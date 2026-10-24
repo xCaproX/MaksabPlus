@@ -194,8 +194,14 @@ export default function UserPermissions() {
     setLoading(true);
     setError('');
     try {
-      const data = await request('list');
-      const loaded = (data.users ?? []) as CompanyUser[];
+      const { data, error: rpcError } = await supabase.rpc('list_company_users');
+      let loaded: CompanyUser[] = [];
+      if (!rpcError && data) {
+        loaded = data as CompanyUser[];
+      } else {
+        const edgeData = await request('list');
+        loaded = (edgeData.users ?? []) as CompanyUser[];
+      }
       setUsers(loaded);
       setDrafts(Object.fromEntries(loaded.map((user) => [user.user_id, user.permission_keys ?? []])));
       setSelectedUserId((current) => {
@@ -339,7 +345,14 @@ export default function UserPermissions() {
     setNotice('');
     try {
       const keysToSave = drafts[user.user_id] ?? [];
-      await request('permissions', { user_id: user.user_id, permission_keys: keysToSave });
+      const { error: rpcError } = await supabase.rpc('set_user_permissions', {
+        p_user_id: user.user_id,
+        p_permission_keys: keysToSave,
+      });
+      if (rpcError) {
+        // بديل تلقائي عبر الدالة السحابية
+        await request('permissions', { user_id: user.user_id, permission_keys: keysToSave });
+      }
       setNotice(`تم حفظ صلاحيات «${user.full_name || user.email}» بنجاح.`);
       await loadUsers();
     } catch (saveError) {
@@ -354,7 +367,14 @@ export default function UserPermissions() {
     setError('');
     setNotice('');
     try {
-      await request('active', { user_id: user.user_id, is_active: !user.is_active });
+      const { error: rpcError } = await supabase.rpc('set_company_user_active', {
+        p_user_id: user.user_id,
+        p_is_active: !user.is_active,
+      });
+      if (rpcError) {
+        // بديل تلقائي عبر الدالة السحابية
+        await request('active', { user_id: user.user_id, is_active: !user.is_active });
+      }
       setNotice(
         user.is_active
           ? `تم إيقاف دخول ${user.full_name || user.email}.`
