@@ -100,7 +100,6 @@ export default function SearchableSelect({
           setQuery(event.target.value);
           setActiveIndex(-1);
           setOpen(true);
-          onChange('');
         }}
         onKeyDown={handleKeyDown}
         required={required}

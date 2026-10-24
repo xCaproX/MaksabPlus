@@ -979,6 +979,7 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
 .modal.invoice-entry-modal { width: min(1080px, 100%); max-height: min(92dvh, 940px); }
 .invoice-entry-modal .modal-body { padding: 20px 24px 24px; }
 .lines-hint { margin: -2px 0 10px; }
+.alert.warning { margin: 0 0 10px; border: 1px solid #efdf9f; background: #fff9df; color: #685310; }
 .lines-table { table-layout: fixed; }
 .lines-table th:first-child, .lines-table td:first-child { width: 42%; }
 .lines-table td { padding: 9px 8px; }

@@ -73,6 +73,7 @@ export default function InvoiceForm({
   const [notes, setNotes] = useState(editing?.invoice.notes ?? '');
   const [lines, setLines] = useState<LineDraft[]>(editing ? editing.lines : [emptyLine()]);
   const [error, setError] = useState('');
+  const [lineWarning, setLineWarning] = useState('');
   const [busy, setBusy] = useState(false);
   const itemSearchRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const quantityRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -131,6 +132,7 @@ export default function InvoiceForm({
   function addLine() {
     const line = emptyLine();
     setLines((current) => [...current, line]);
+    setLineWarning('');
     setFocusSearchKey(line.key);
   }
 
@@ -272,6 +274,7 @@ export default function InvoiceForm({
         </div>
 
         <p className="hint lines-hint">ابحث عن الصنف بالاسم أو الكود، وبعد اختياره أدخل الكمية.</p>
+        {lineWarning && <p className="alert warning" role="status">{lineWarning}</p>}
         <div className="table-wrap lines-wrap">
           <table className="table lines-table">
             <thead>
@@ -300,6 +303,11 @@ export default function InvoiceForm({
                           label: `${item.code} — ${item.name} — متاح: ${formatQty(stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0)} ${item.unit}`,
                         }))}
                         onChange={(value) => {
+                          if (lines.some((candidate) => candidate.key !== line.key && candidate.item_id === value)) {
+                            setLineWarning('هذا الصنف موجود بالفعل في الفاتورة. اختَر صنفًا آخر.');
+                            return;
+                          }
+                          setLineWarning('');
                           selectItem(line.key, value);
                           if (value) quantityRefs.current[line.key]?.focus();
                         }}

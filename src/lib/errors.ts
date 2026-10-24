@@ -12,6 +12,7 @@ const MESSAGES: Record<string, string> = {
   waste_price_must_be_zero: 'فاتورة الهالك لا تحمل سعر بيع',
   waste_cannot_be_paid: 'لا يمكن تسجيل مدفوعات على فاتورة الهالك',
   invoice_has_no_lines: 'أضف سطرًا واحدًا على الأقل',
+  invoice_item_duplicate: 'هذا الصنف موجود بالفعل في الفاتورة. اختَر صنفًا آخر.',
   line_missing_item: 'اختر الصنف في كل السطور',
   invalid_line_qty: 'الكمية يجب أن تكون أكبر من صفر',
   invalid_line_price: 'السعر غير صحيح',
