@@ -22,7 +22,6 @@ type CompanyUser = {
 };
 
 type UserFilterStatus = 'all' | 'active' | 'suspended' | 'owner';
-const PAGE_SIZE = 20;
 
 function allPermissionKeys(): PermissionKey[] {
   return groups.flatMap((group) => group.actions.map(([action]) => `${group.module}.${action}` as PermissionKey));
@@ -36,11 +35,10 @@ export default function UserPermissions() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  // مساحة العمل: التحديد والتصفية والصفحات
+  // مساحة العمل: الموظف المحدد والتصفية
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<UserFilterStatus>('all');
-  const [page, setPage] = useState(1);
 
   // نافذة دعوة موظف جديد
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -80,7 +78,7 @@ export default function UserPermissions() {
     void loadUsers();
   }, []);
 
-  // تصفية المستخدمين
+  // تصفية المستخدمين للقائمة الجانبية
   const filteredUsers = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     return users.filter((user) => {
@@ -100,21 +98,33 @@ export default function UserPermissions() {
     });
   }, [users, searchTerm, statusFilter]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
-  const pageUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
+  // ضمان تحديد أول موظف يطابق التصفية إذا لم يكن هناك تحديد
   useEffect(() => {
-    setPage(1);
-  }, [searchTerm, statusFilter]);
-
-  useEffect(() => {
-    if (page > pageCount) setPage(pageCount);
-  }, [page, pageCount]);
+    if (filteredUsers.length > 0 && (!selectedUserId || !filteredUsers.some((u) => u.user_id === selectedUserId))) {
+      setSelectedUserId(filteredUsers[0].user_id);
+    }
+  }, [filteredUsers, selectedUserId]);
 
   const selectedUser = users.find((u) => u.user_id === selectedUserId) ?? null;
   const currentDraftKeys = selectedUser
     ? drafts[selectedUser.user_id] ?? selectedUser.permission_keys ?? []
     : [];
+
+  function togglePermission(key: PermissionKey) {
+    if (!selectedUser || selectedUser.access_role === 'owner') return;
+    const exists = currentDraftKeys.includes(key);
+    const updated = exists ? currentDraftKeys.filter((k) => k !== key) : [...currentDraftKeys, key];
+    setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: updated }));
+  }
+
+  function toggleGroup(moduleKeys: PermissionKey[]) {
+    if (!selectedUser || selectedUser.access_role === 'owner') return;
+    const allChecked = moduleKeys.every((k) => currentDraftKeys.includes(k));
+    const updated = allChecked
+      ? currentDraftKeys.filter((k) => !moduleKeys.includes(k))
+      : [...currentDraftKeys, ...moduleKeys.filter((k) => !currentDraftKeys.includes(k))];
+    setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: updated }));
+  }
 
   async function invite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -147,7 +157,7 @@ export default function UserPermissions() {
     try {
       const keysToSave = drafts[user.user_id] ?? [];
       await request('permissions', { user_id: user.user_id, permission_keys: keysToSave });
-      setNotice(`تم حفظ صلاحيات ${user.full_name || user.email} بنجاح.`);
+      setNotice(`تم حفظ صلاحيات «${user.full_name || user.email}» بنجاح.`);
       await loadUsers();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'تعذر حفظ الصلاحيات');
@@ -183,296 +193,251 @@ export default function UserPermissions() {
       {loading ? (
         <div className="card empty">جارٍ تحميل المستخدمين والصلاحيات…</div>
       ) : (
-        <div className="erp-sales-workspace">
-          {/* الشق الأيمن: شريط الأدوات وجدول المستخدمين */}
-          <section className="erp-list-panel" aria-label="قائمة المستخدمين">
-            <div className="erp-toolbar">
-              <div className="erp-toolbar-title">
-                <strong>المستخدمون والصلاحيات</strong>
-                <span>{filteredUsers.length} مستخدم</span>
-              </div>
-
-              <div className="erp-filters">
+        <div className="erp-users-workspace">
+          {/* الجانب الأيمن (Master List): قائمة الموظفين مدمجة وأنيقة (320px) */}
+          <aside className="users-sidebar-panel" aria-label="قائمة الموظفين">
+            <div className="users-sidebar-head">
+              <div className="head-row">
+                <strong>المستخدمون ({filteredUsers.length})</strong>
                 <button
                   type="button"
-                  className="btn primary compact erp-create-btn"
+                  className="btn primary compact"
                   onClick={() => setIsInviteOpen(true)}
                 >
-                  + دعوة موظف جديد
+                  + دعوة موظف
                 </button>
+              </div>
 
-                <label className="erp-search">
-                  <span className="sr-only">البحث</span>
-                  <input
-                    type="search"
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder="بحث بالاسم أو البريد…"
-                  />
-                </label>
-
+              <div className="users-sidebar-filters">
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="بحث بالاسم أو البريد…"
+                />
                 <select
-                  aria-label="تصفية حسب الحالة"
+                  aria-label="تصفية الموظفين"
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value as UserFilterStatus)}
                 >
                   <option value="all">كل المستخدمين</option>
-                  <option value="active">الموظفون النشطون</option>
-                  <option value="suspended">الموظفون الموقوفون</option>
+                  <option value="active">النشطون فقط</option>
+                  <option value="suspended">الموقوفون فقط</option>
                   <option value="owner">مديرو المنشأة</option>
                 </select>
               </div>
             </div>
 
-            <div className="erp-table-wrap">
-              <table className="table erp-table">
-                <thead>
-                  <tr>
-                    <th>الموظف</th>
-                    <th>الدور</th>
-                    <th>الحالة</th>
-                    <th className="num">الصلاحيات الممنوحة</th>
-                    <th aria-label="الإجراءات السريعة" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageUsers.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="empty">
-                        لا يوجد مستخدمون يطابقون خيارات البحث.
-                      </td>
-                    </tr>
-                  )}
-                  {pageUsers.map((user) => {
-                    const isSelected = selectedUserId === user.user_id;
-                    const isOwner = user.access_role === 'owner';
-                    const userKeys = drafts[user.user_id] ?? user.permission_keys ?? [];
-                    return (
-                      <tr
-                        key={user.user_id}
-                        className={isSelected ? 'selected' : ''}
-                        tabIndex={0}
-                        onClick={() => setSelectedUserId(user.user_id)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            setSelectedUserId(user.user_id);
-                          }
-                        }}
-                      >
-                        <td>
-                          <div className="strong">{user.full_name || 'بدون اسم'}</div>
-                          <div className="muted" dir="ltr" style={{ fontSize: '11px' }}>
-                            {user.email}
-                          </div>
-                        </td>
-                        <td>
-                          {isOwner ? (
-                            <span className="badge info">مدير المنشأة</span>
-                          ) : (
-                            <span className="badge">موظف</span>
-                          )}
-                        </td>
-                        <td>
-                          {isOwner || user.is_active ? (
-                            <span className="badge ok">نشط</span>
-                          ) : (
-                            <span className="badge danger">موقوف</span>
-                          )}
-                        </td>
-                        <td className="num">
-                          {isOwner ? (
-                            <span className="strong">كامل الصلاحيات</span>
-                          ) : (
-                            <span className="num">
-                              {userKeys.length} من {allKeys.length}
-                            </span>
-                          )}
-                        </td>
-                        <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {!isOwner && (
-                            <button
-                              type="button"
-                              className="btn compact"
-                              disabled={busy}
-                              onClick={() => void toggleActive(user)}
-                            >
-                              {user.is_active ? 'إيقاف' : 'تفعيل'}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="erp-pagination">
-              <span>
-                عرض {filteredUsers.length ? (page - 1) * PAGE_SIZE + 1 : 0}–
-                {Math.min(page * PAGE_SIZE, filteredUsers.length)} من {filteredUsers.length}
-              </span>
-              <div>
-                <button
-                  type="button"
-                  className="btn compact"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  السابق
-                </button>
-                <span>
-                  {page} / {pageCount}
-                </span>
-                <button
-                  type="button"
-                  className="btn compact"
-                  disabled={page === pageCount}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  التالي
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* الشق الأيسر: اللوحة الجانبية لتعديل الصلاحيات */}
-          <aside
-            className={selectedUser ? 'erp-detail-panel open' : 'erp-detail-panel'}
-            aria-label="تفاصيل صلاحيات المستخدم"
-          >
-            {selectedUser ? (
-              <>
-                <div className="erp-detail-head">
-                  <div>
-                    <span>{selectedUser.access_role === 'owner' ? 'مدير المنشأة' : 'صلاحيات الموظف'}</span>
-                    <h2>{selectedUser.full_name || selectedUser.email}</h2>
-                  </div>
+            <div className="users-list-scroll">
+              {filteredUsers.length === 0 && (
+                <p className="empty" style={{ padding: '16px', fontSize: '12px' }}>
+                  لا يوجد مستخدمون يطابقون البحث.
+                </p>
+              )}
+              {filteredUsers.map((user) => {
+                const isSelected = selectedUserId === user.user_id;
+                const isOwner = user.access_role === 'owner';
+                const userKeys = drafts[user.user_id] ?? user.permission_keys ?? [];
+                return (
                   <button
+                    key={user.user_id}
                     type="button"
-                    className="icon-btn"
-                    aria-label="إغلاق التفاصيل"
-                    onClick={() => setSelectedUserId(null)}
+                    className={`user-item-card ${isSelected ? 'active' : ''}`}
+                    onClick={() => setSelectedUserId(user.user_id)}
                   >
-                    ×
-                  </button>
-                </div>
-
-                <dl className="erp-detail-summary">
-                  <div>
-                    <dt>البريد الإلكتروني</dt>
-                    <dd dir="ltr">{selectedUser.email}</dd>
-                  </div>
-                  <div>
-                    <dt>الدور</dt>
-                    <dd>{selectedUser.access_role === 'owner' ? 'مدير المنشأة' : 'موظف'}</dd>
-                  </div>
-                  <div>
-                    <dt>حالة الحساب</dt>
-                    <dd>
-                      {selectedUser.access_role === 'owner' ? (
-                        <span className="badge ok">نشط دائمًا</span>
-                      ) : selectedUser.is_active ? (
+                    <div className="card-top">
+                      <span className="user-name">{user.full_name || 'بدون اسم'}</span>
+                      {isOwner ? (
+                        <span className="badge info">مدير المنشأة</span>
+                      ) : (
+                        <span className="badge">موظف</span>
+                      )}
+                    </div>
+                    <span className="user-email">{user.email}</span>
+                    <div className="card-bottom">
+                      {isOwner || user.is_active ? (
                         <span className="badge ok">نشط</span>
                       ) : (
                         <span className="badge danger">موقوف</span>
                       )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>الصلاحيات المفعلة</dt>
-                    <dd className="num">
-                      {selectedUser.access_role === 'owner'
-                        ? 'كاملة (15)'
-                        : `${currentDraftKeys.length} من ${allKeys.length}`}
-                    </dd>
-                  </div>
-                </dl>
-
-                <div className="erp-detail-lines">
-                  {selectedUser.access_role === 'owner' ? (
-                    <div className="card empty">
-                      <p className="hint">
-                        مدير المنشأة يمتلك كافة الصلاحيات تلقائيًا بحكم دوره، ولا يحتاج إلى تحديدها أو تعديلها.
-                      </p>
-                      <div style={{ marginTop: '12px' }}>
-                        <PermissionChooser values={allKeys} onChange={() => undefined} disabled />
-                      </div>
+                      <span className="muted">
+                        {isOwner ? 'كامل الصلاحيات' : `${userKeys.length} من ${allKeys.length} صلاحية`}
+                      </span>
                     </div>
-                  ) : (
-                    <>
-                      <div className="permission-toolbar-helpers">
-                        <span className="muted" style={{ fontSize: '12px' }}>
-                          المحدد حالياً ({currentDraftKeys.length} من {allKeys.length})
-                        </span>
-                        <div>
-                          <button
-                            type="button"
-                            className="btn compact"
-                            disabled={busy}
-                            onClick={() =>
-                              setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: allKeys }))
-                            }
-                          >
-                            تحديد الكل
-                          </button>
-                          <button
-                            type="button"
-                            className="btn compact"
-                            disabled={busy}
-                            onClick={() =>
-                              setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: [] }))
-                            }
-                          >
-                            إلغاء الكل
-                          </button>
-                        </div>
-                      </div>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
 
-                      <PermissionChooser
-                        values={currentDraftKeys}
-                        onChange={(keys) =>
-                          setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: keys }))
-                        }
+          {/* الجانب الأيسر (Detail Workspace): المساحة الواسعة لإدارة الصلاحيات (70%+) */}
+          <main className="permissions-main-panel" aria-label="مساحة إدارة الصلاحيات">
+            {selectedUser ? (
+              <>
+                <div className="permissions-main-head">
+                  <div className="user-details">
+                    <h2>{selectedUser.full_name || selectedUser.email}</h2>
+                    <div className="user-meta">
+                      <span dir="ltr">{selectedUser.email}</span>
+                      <span>•</span>
+                      {selectedUser.access_role === 'owner' ? (
+                        <span className="badge info">مدير المنشأة (مالك)</span>
+                      ) : (
+                        <span className="badge">موظف</span>
+                      )}
+                      <span>•</span>
+                      {selectedUser.access_role === 'owner' ? (
+                        <span className="badge ok">نشط دائمًا</span>
+                      ) : selectedUser.is_active ? (
+                        <span className="badge ok">الحساب نشط</span>
+                      ) : (
+                        <span className="badge danger">الحساب موقوف</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedUser.access_role === 'employee' && (
+                    <div className="head-actions">
+                      <button
+                        type="button"
+                        className={selectedUser.is_active ? 'btn' : 'btn primary'}
                         disabled={busy}
-                      />
-                    </>
+                        onClick={() => void toggleActive(selectedUser)}
+                      >
+                        {selectedUser.is_active ? 'إيقاف الدخول' : 'تفعيل الدخول'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn primary"
+                        disabled={busy}
+                        onClick={() => void savePermissions(selectedUser)}
+                      >
+                        {busy ? 'جارٍ الحفظ…' : 'حفظ الصلاحيات'}
+                      </button>
+                    </div>
                   )}
                 </div>
 
-                {selectedUser.access_role === 'employee' && (
-                  <div className="erp-detail-actions">
-                    <button
-                      type="button"
-                      className="btn primary"
-                      disabled={busy}
-                      onClick={() => void savePermissions(selectedUser)}
-                    >
-                      {busy ? 'جارٍ الحفظ…' : 'حفظ الصلاحيات'}
-                    </button>
-                    <button
-                      type="button"
-                      className={selectedUser.is_active ? 'btn' : 'btn primary'}
-                      disabled={busy}
-                      onClick={() => void toggleActive(selectedUser)}
-                    >
-                      {selectedUser.is_active ? 'إيقاف الدخول' : 'تفعيل الدخول'}
-                    </button>
+                {selectedUser.access_role === 'owner' ? (
+                  <div style={{ padding: '24px' }}>
+                    <div className="alert success" style={{ marginBottom: '20px' }}>
+                      <strong>مدير المنشأة:</strong> يمتلك كافة صلاحيات النظام تلقائيًا بحكم دوره المالي والإداري، ولا يحتاج لتحديد أو تعديل.
+                    </div>
+                    <div className="permissions-cards-grid" style={{ padding: 0 }}>
+                      {groups.map((group) => (
+                        <div className="permission-card" key={group.module}>
+                          <div className="permission-card-head">
+                            <strong>قسم {group.label}</strong>
+                            <span className="badge ok">مفعل بالكامل</span>
+                          </div>
+                          <div className="permission-card-body">
+                            {group.actions.map(([action, label]) => (
+                              <label className="permission-card-item" key={action} style={{ opacity: 0.85 }}>
+                                <input type="checkbox" checked disabled />
+                                <span>صلاحية {label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="permissions-bulk-bar">
+                      <span className="summary-text">
+                        الصلاحيات الممنوحة حالياً: {currentDraftKeys.length} من أصل {allKeys.length}
+                      </span>
+                      <div className="bulk-buttons">
+                        <button
+                          type="button"
+                          className="btn compact"
+                          disabled={busy}
+                          onClick={() =>
+                            setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: allKeys }))
+                          }
+                        >
+                          تحديد كامل الصلاحيات
+                        </button>
+                        <button
+                          type="button"
+                          className="btn compact"
+                          disabled={busy}
+                          onClick={() =>
+                            setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: [] }))
+                          }
+                        >
+                          إلغاء تحديد الكل
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="permissions-cards-grid">
+                      {groups.map((group) => {
+                        const moduleKeys = group.actions.map(
+                          ([action]) => `${group.module}.${action}` as PermissionKey,
+                        );
+                        const allGroupChecked = moduleKeys.every((key) =>
+                          currentDraftKeys.includes(key),
+                        );
+                        const groupSelectedCount = moduleKeys.filter((key) =>
+                          currentDraftKeys.includes(key),
+                        ).length;
+
+                        return (
+                          <div className="permission-card" key={group.module}>
+                            <div className="permission-card-head">
+                              <strong>
+                                قسم {group.label}{' '}
+                                <span className="muted" style={{ fontSize: '11px', fontWeight: 'normal' }}>
+                                  ({groupSelectedCount}/{moduleKeys.length})
+                                </span>
+                              </strong>
+                              <button
+                                type="button"
+                                className="btn compact"
+                                style={{ fontSize: '11px', minHeight: '22px', padding: '1px 8px' }}
+                                disabled={busy}
+                                onClick={() => toggleGroup(moduleKeys)}
+                              >
+                                {allGroupChecked ? 'إلغاء القسم' : 'تحديد القسم'}
+                              </button>
+                            </div>
+                            <div className="permission-card-body">
+                              {group.actions.map(([action, label]) => {
+                                const key = `${group.module}.${action}` as PermissionKey;
+                                const isChecked = currentDraftKeys.includes(key);
+                                return (
+                                  <label className="permission-card-item" key={key}>
+                                    <input
+                                      type="checkbox"
+                                      disabled={busy}
+                                      checked={isChecked}
+                                      onChange={() => togglePermission(key)}
+                                    />
+                                    <span>صلاحية {label}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </>
             ) : (
-              <div className="erp-detail-empty">
-                <strong>اختر مستخدمًا</strong>
-                <span>اضغط على أي مستخدم في الجدول لعرض وتعديل صلاحياته أو تفعيل/إيقاف حسابه.</span>
+              <div className="erp-detail-empty" style={{ minHeight: '350px' }}>
+                <strong>اختر موظفًا من القائمة</strong>
+                <span>اضغط على أي موظف من القائمة الجانبية لإدارة وتعديل صلاحياته بكل سهولة.</span>
               </div>
             )}
-          </aside>
+          </main>
         </div>
       )}
 
-      {/* نافذة منبثقة: دعوة موظف جديد */}
+      {/* نافذة دعوة موظف جديد */}
       {isInviteOpen && (
         <Modal title="دعوة موظف جديد" onClose={() => setIsInviteOpen(false)}>
           <form className="stack invoice-form" onSubmit={invite}>
@@ -504,11 +469,11 @@ export default function UserPermissions() {
               </label>
             </div>
 
-            <div className="permission-toolbar-helpers" style={{ marginTop: '8px' }}>
-              <span className="muted" style={{ fontSize: '12px' }}>
-                تحديد الصلاحيات الأولية ({invitePermissions.length} من {allKeys.length})
+            <div className="permissions-bulk-bar" style={{ marginTop: '8px', padding: '8px 4px' }}>
+              <span className="summary-text" style={{ fontSize: '12px' }}>
+                الصلاحيات المبدئية ({invitePermissions.length} من {allKeys.length})
               </span>
-              <div>
+              <div className="bulk-buttons">
                 <button
                   type="button"
                   className="btn compact"
@@ -526,12 +491,63 @@ export default function UserPermissions() {
               </div>
             </div>
 
-            <div style={{ maxHeight: '280px', overflowY: 'auto', padding: '4px 2px' }}>
-              <PermissionChooser
-                values={invitePermissions}
-                onChange={setInvitePermissions}
-                disabled={busy}
-              />
+            <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '6px' }}>
+              <div className="permissions-cards-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', padding: '4px', gap: '10px' }}>
+                {groups.map((group) => {
+                  const moduleKeys = group.actions.map(
+                    ([action]) => `${group.module}.${action}` as PermissionKey,
+                  );
+                  const allGroupChecked = moduleKeys.every((key) =>
+                    invitePermissions.includes(key),
+                  );
+                  function toggleInviteGroup() {
+                    if (allGroupChecked) {
+                      setInvitePermissions((prev) => prev.filter((k) => !moduleKeys.includes(k)));
+                    } else {
+                      setInvitePermissions((prev) => [
+                        ...prev,
+                        ...moduleKeys.filter((k) => !prev.includes(k)),
+                      ]);
+                    }
+                  }
+                  return (
+                    <div className="permission-card" key={group.module}>
+                      <div className="permission-card-head" style={{ padding: '6px 10px' }}>
+                        <strong style={{ fontSize: '12px' }}>{group.label}</strong>
+                        <button
+                          type="button"
+                          className="btn compact"
+                          style={{ fontSize: '10px', minHeight: '19px', padding: '1px 6px' }}
+                          onClick={toggleInviteGroup}
+                        >
+                          {allGroupChecked ? 'إلغاء' : 'تحديد'}
+                        </button>
+                      </div>
+                      <div className="permission-card-body" style={{ padding: '8px 10px' }}>
+                        {group.actions.map(([action, label]) => {
+                          const key = `${group.module}.${action}` as PermissionKey;
+                          const isChecked = invitePermissions.includes(key);
+                          function toggleInviteKey() {
+                            setInvitePermissions((prev) =>
+                              isChecked ? prev.filter((k) => k !== key) : [...prev, key],
+                            );
+                          }
+                          return (
+                            <label className="permission-card-item" key={key} style={{ fontSize: '12px' }}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={toggleInviteKey}
+                              />
+                              <span>{label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="actions" style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
@@ -550,73 +566,6 @@ export default function UserPermissions() {
           </form>
         </Modal>
       )}
-    </div>
-  );
-}
-
-function PermissionChooser({
-  values,
-  onChange,
-  disabled = false,
-}: {
-  values: PermissionKey[];
-  onChange: (values: PermissionKey[]) => void;
-  disabled?: boolean;
-}) {
-  function toggle(key: PermissionKey) {
-    if (disabled) return;
-    const next = values.includes(key) ? values.filter((val) => val !== key) : [...values, key];
-    onChange(next);
-  }
-
-  return (
-    <div className="permission-groups">
-      {groups.map((group) => {
-        const groupKeys = group.actions.map(([action]) => `${group.module}.${action}` as PermissionKey);
-        const allGroupChecked = groupKeys.every((key) => values.includes(key));
-
-        function toggleGroup() {
-          if (disabled) return;
-          if (allGroupChecked) {
-            onChange(values.filter((key) => !groupKeys.includes(key)));
-          } else {
-            const missing = groupKeys.filter((key) => !values.includes(key));
-            onChange([...values, ...missing]);
-          }
-        }
-
-        return (
-          <fieldset className="permission-group" key={group.module}>
-            <legend style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-              <span>{group.label}</span>
-              {!disabled && (
-                <button
-                  type="button"
-                  className="btn compact"
-                  style={{ fontSize: '10px', minHeight: '19px', padding: '1px 6px', marginInlineStart: 'auto' }}
-                  onClick={toggleGroup}
-                >
-                  {allGroupChecked ? 'إلغاء القسم' : 'تحديد القسم'}
-                </button>
-              )}
-            </legend>
-            {group.actions.map(([action, label]) => {
-              const key = `${group.module}.${action}` as PermissionKey;
-              return (
-                <label className="permission-option" key={key}>
-                  <input
-                    type="checkbox"
-                    disabled={disabled}
-                    checked={values.includes(key)}
-                    onChange={() => toggle(key)}
-                  />
-                  <span>{label}</span>
-                </label>
-              );
-            })}
-          </fieldset>
-        );
-      })}
     </div>
   );
 }
