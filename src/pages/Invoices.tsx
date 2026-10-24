@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { creationTime, money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -30,8 +30,22 @@ interface EditingInvoice {
 
 interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
+type SaleStatus = 'all' | 'paid' | 'partial' | 'unpaid';
+type SaleSort = 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc';
+const SALES_PAGE_SIZE = 20;
+
+function saleStatus(invoice: InvoiceRow): Exclude<SaleStatus, 'all'> {
+  if (Number(invoice.remaining) <= 0) return 'paid';
+  if (Number(invoice.paid) > 0) return 'partial';
+  return 'unpaid';
+}
+
+function saleStatusLabel(status: Exclude<SaleStatus, 'all'>): string {
+  return status === 'paid' ? 'مسددة' : status === 'partial' ? 'جزئية' : 'غير مسددة';
+}
+
 export default function Invoices() {
-  const { can } = useAccess();
+  const { can, access } = useAccess();
   const [kind, setKind] = useState<InvoiceTab>('sale');
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [transferRows, setTransferRows] = useState<WarehouseTransferRow[]>([]);
@@ -56,6 +70,12 @@ export default function Invoices() {
   const [details, setDetails] = useState<InvoiceItemRow[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [warehouseFilter, setWarehouseFilter] = useState('all');
+  const [salesSearch, setSalesSearch] = useState('');
+  const [salesStatus, setSalesStatus] = useState<SaleStatus>('all');
+  const [salesDateFrom, setSalesDateFrom] = useState('');
+  const [salesDateTo, setSalesDateTo] = useState('');
+  const [salesSort, setSalesSort] = useState<SaleSort>('date-desc');
+  const [salesPage, setSalesPage] = useState(1);
 
   const isWarehouseTransfer = kind === 'warehouse_transfer';
 
@@ -92,6 +112,27 @@ export default function Invoices() {
   const filteredRows = warehouseFilter === 'all'
     ? rows
     : rows.filter((invoice) => invoice.warehouse_id === warehouseFilter);
+  const isSalesWorkspace = kind === 'sale' && !showDeleted;
+  const canViewProfit = access?.role === 'owner';
+  const salesRows = useMemo(() => {
+    const query = salesSearch.trim().toLocaleLowerCase('ar');
+    const next = rows.filter((invoice) => {
+      const matchesText = !query || [invoice.number, invoice.account_name, invoice.warehouse_name]
+        .some((value) => value.toLocaleLowerCase('ar').includes(query));
+      const matchesStatus = salesStatus === 'all' || saleStatus(invoice) === salesStatus;
+      const matchesFrom = !salesDateFrom || invoice.invoice_date >= salesDateFrom;
+      const matchesTo = !salesDateTo || invoice.invoice_date <= salesDateTo;
+      return matchesText && matchesStatus && matchesFrom && matchesTo;
+    });
+    return next.sort((a, b) => {
+      if (salesSort === 'total-desc') return Number(b.total) - Number(a.total);
+      if (salesSort === 'total-asc') return Number(a.total) - Number(b.total);
+      const comparison = a.invoice_date.localeCompare(b.invoice_date) || a.number.localeCompare(b.number);
+      return salesSort === 'date-asc' ? comparison : -comparison;
+    });
+  }, [rows, salesDateFrom, salesDateTo, salesSearch, salesSort, salesStatus]);
+  const salesPageCount = Math.max(1, Math.ceil(salesRows.length / SALES_PAGE_SIZE));
+  const salesPageRows = salesRows.slice((salesPage - 1) * SALES_PAGE_SIZE, salesPage * SALES_PAGE_SIZE);
 
   useEffect(() => {
     let alive = true;
@@ -159,6 +200,14 @@ export default function Invoices() {
     const timer = setTimeout(() => setNotice(''), 4000);
     return () => clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+    setSalesPage(1);
+  }, [salesSearch, salesStatus, salesDateFrom, salesDateTo, salesSort]);
+
+  useEffect(() => {
+    if (salesPage > salesPageCount) setSalesPage(salesPageCount);
+  }, [salesPage, salesPageCount]);
 
   function switchKind(next: InvoiceTab) {
     if (next === kind) return;
@@ -358,9 +407,11 @@ export default function Invoices() {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>البضاعة</h1>
+          <h1>{isSalesWorkspace ? 'فواتير المبيعات' : 'البضاعة'}</h1>
           <p className="muted">
-            {isWarehouseTransfer
+            {isSalesWorkspace
+              ? 'إدارة المبيعات والتحصيل من قائمة واحدة.'
+              : isWarehouseTransfer
               ? 'انقل الأصناف بين المخازن. يتغير رصيد كل مخزن وتكلفة الوجهة من غير تأثير على الحسابات أو ربح الفواتير.'
               : 'الفاتورة تزيد رصيد الحساب، والمرتجع يخصمه ويعدّل المخزون. المدفوع/المسترد يُنشئ إيصالًا تلقائيًا مربوطًا بالمستند. تُعرض تكلفة البيع وربحه، والهالك بتكلفته وخسارته.'}
           </p>
@@ -474,6 +525,109 @@ export default function Invoices() {
             </tr>)}
           </tbody>
         </table></div>
+      </div> : isSalesWorkspace ? <div className="erp-sales-workspace">
+        <section className="erp-list-panel" aria-label="قائمة فواتير المبيعات">
+          <div className="erp-toolbar">
+            <div className="erp-toolbar-title">
+              <strong>فواتير المبيعات</strong>
+              <span>{salesRows.length} نتيجة</span>
+            </div>
+            <div className="erp-filters">
+              <label className="erp-search">
+                <span className="sr-only">البحث في الفواتير</span>
+                <input
+                  type="search"
+                  value={salesSearch}
+                  onChange={(event) => setSalesSearch(event.target.value)}
+                  placeholder="بحث برقم الفاتورة أو العميل…"
+                />
+              </label>
+              <select aria-label="حالة السداد" value={salesStatus} onChange={(event) => setSalesStatus(event.target.value as SaleStatus)}>
+                <option value="all">كل الحالات</option>
+                <option value="paid">مسددة</option>
+                <option value="partial">مسددة جزئيًا</option>
+                <option value="unpaid">غير مسددة</option>
+              </select>
+              <label className="erp-date"><span>من</span><input type="date" value={salesDateFrom} onChange={(event) => setSalesDateFrom(event.target.value)} /></label>
+              <label className="erp-date"><span>إلى</span><input type="date" value={salesDateTo} onChange={(event) => setSalesDateTo(event.target.value)} /></label>
+              <select aria-label="ترتيب النتائج" value={salesSort} onChange={(event) => setSalesSort(event.target.value as SaleSort)}>
+                <option value="date-desc">الأحدث أولًا</option>
+                <option value="date-asc">الأقدم أولًا</option>
+                <option value="total-desc">الأعلى قيمة</option>
+                <option value="total-asc">الأقل قيمة</option>
+              </select>
+            </div>
+          </div>
+          <div className="erp-table-wrap">
+            <table className="table erp-table">
+              <thead><tr><th>الرقم</th><th>التاريخ</th><th>العميل</th><th>المخزن</th><th className="num">الإجمالي</th>{canViewProfit && <th className="num">الربح</th>}<th>السداد</th><th className="num">المتبقي</th><th aria-label="الإجراءات" /></tr></thead>
+              <tbody>
+                {loading && <tr><td colSpan={canViewProfit ? 9 : 8} className="empty">جارٍ التحميل…</td></tr>}
+                {!loading && salesPageRows.length === 0 && <tr><td colSpan={canViewProfit ? 9 : 8} className="empty">لا توجد فواتير تطابق البحث أو الفلاتر.</td></tr>}
+                {!loading && salesPageRows.map((invoice) => {
+                  const status = saleStatus(invoice);
+                  const isSelected = viewing?.id === invoice.id;
+                  return <tr
+                    key={invoice.id}
+                    className={isSelected ? 'selected' : ''}
+                    tabIndex={0}
+                    onClick={() => void openDetails(invoice)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void openDetails(invoice); }
+                    }}
+                  >
+                    <td className="num strong">{invoice.number}</td>
+                    <td className="num">{invoice.invoice_date}</td>
+                    <td>{invoice.account_name}</td>
+                    <td>{invoice.warehouse_name}</td>
+                    <td className="num strong">{money(invoice.total)}</td>
+                    {canViewProfit && <td className="num">{money(invoice.profit_total)}</td>}
+                    <td><span className={`status-badge ${status}`}>{saleStatusLabel(status)}</span></td>
+                    <td className={Number(invoice.remaining) > 0 ? 'num strong remaining' : 'num'}>{money(invoice.remaining)}</td>
+                    <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
+                      {can('goods.edit') && <button type="button" className="link" onClick={() => void startEdit(invoice)}>تعديل</button>}
+                      {can('goods.delete') && <button type="button" className="link danger" onClick={() => void remove(invoice)}>حذف</button>}
+                    </td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="erp-pagination">
+            <span>عرض {salesRows.length ? (salesPage - 1) * SALES_PAGE_SIZE + 1 : 0}–{Math.min(salesPage * SALES_PAGE_SIZE, salesRows.length)} من {salesRows.length}</span>
+            <div>
+              <button type="button" className="btn compact" disabled={salesPage === 1} onClick={() => setSalesPage((page) => page - 1)}>السابق</button>
+              <span>{salesPage} / {salesPageCount}</span>
+              <button type="button" className="btn compact" disabled={salesPage === salesPageCount} onClick={() => setSalesPage((page) => page + 1)}>التالي</button>
+            </div>
+          </div>
+        </section>
+        <aside className={viewing ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل الفاتورة">
+          {viewing ? <>
+            <div className="erp-detail-head">
+              <div><span>فاتورة مبيعات</span><h2 className="num">{viewing.number}</h2></div>
+              <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewing(null)}>×</button>
+            </div>
+            {detailsLoading ? <p className="erp-detail-empty">جارٍ تحميل التفاصيل…</p> : <>
+              <dl className="erp-detail-summary">
+                <div><dt>العميل</dt><dd>{viewing.account_name}</dd></div>
+                <div><dt>التاريخ</dt><dd className="num">{viewing.invoice_date}</dd></div>
+                <div><dt>المخزن</dt><dd>{viewing.warehouse_name}</dd></div>
+                <div><dt>السداد</dt><dd><span className={`status-badge ${saleStatus(viewing)}`}>{saleStatusLabel(saleStatus(viewing))}</span></dd></div>
+              </dl>
+              <div className="erp-detail-lines">
+                <h3>الأصناف</h3>
+                {details.length === 0 ? <p className="muted">لا توجد سطور.</p> : <table className="table subtable"><thead><tr><th>الصنف</th><th className="num">الكمية</th><th className="num">السعر</th><th className="num">الإجمالي</th></tr></thead><tbody>{details.map((line) => <tr key={line.id}><td>{line.item_name}</td><td className="num">{formatQty(line.qty)} {line.unit}</td><td className="num">{money(line.unit_price)}</td><td className="num strong">{money(line.line_total)}</td></tr>)}</tbody></table>}
+              </div>
+              <div className="erp-detail-totals"><span>الإجمالي</span><strong className="num">{money(viewing.total)}</strong><span>المدفوع</span><strong className="num">{money(viewing.paid)}</strong><span>المتبقي</span><strong className="num remaining">{money(viewing.remaining)}</strong></div>
+              {viewing.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewing.notes}</p>}
+              <div className="erp-detail-actions">
+                {can('goods.edit') && <button type="button" className="btn" onClick={() => void startEdit(viewing)}>تعديل الفاتورة</button>}
+                {can('goods.delete') && <button type="button" className="btn danger" onClick={() => void remove(viewing)}>حذف</button>}
+              </div>
+            </>}
+          </> : <div className="erp-detail-empty"><strong>اختر فاتورة</strong><span>ستظهر تفاصيلها هنا من دون مغادرة القائمة.</span></div>}
+        </aside>
       </div> : <div className="card">
         <div className="table-wrap">
           <table className="table">
@@ -599,7 +753,7 @@ export default function Invoices() {
         )}
       </Modal>}
 
-      {viewing && (
+      {viewing && !isSalesWorkspace && (
         <Modal
           title={`${viewingIsWaste ? 'فاتورة هالك' : viewingIsReturn ? 'مرتجع' : 'فاتورة'} ${viewing.number}`}
           onClose={() => setViewing(null)}

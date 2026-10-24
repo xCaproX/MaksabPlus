@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -134,6 +134,19 @@ export default function InvoiceForm({
     setLines((current) => [...current, line]);
     setLineWarning('');
     setFocusSearchKey(line.key);
+  }
+
+  function moveFromQuantity(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const row = event.currentTarget.closest('tr');
+    row?.querySelector<HTMLInputElement>('input[aria-label="سعر الوحدة"]')?.focus();
+  }
+
+  function addLineFromPrice(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    addLine();
   }
 
   function removeLine(key: string) {
@@ -325,6 +338,7 @@ export default function InvoiceForm({
                         step="0.0001"
                         value={line.qty}
                         onChange={(e) => updateLine(line.key, { qty: e.target.value })}
+                        onKeyDown={moveFromQuantity}
                       />
                     </td>
                     <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
@@ -335,6 +349,7 @@ export default function InvoiceForm({
                         step="0.01"
                         value={line.unit_price}
                         onChange={(e) => updateLine(line.key, { unit_price: e.target.value })}
+                        onKeyDown={addLineFromPrice}
                         disabled={isWaste}
                       />
                     </td>
