@@ -322,12 +322,14 @@ export default function MasterData() {
       if (updateError) return setError(translateDbError(updateError.message));
       setNotice(`تم تعديل الحساب «${accountName.trim()}»`);
     } else {
-      const { error: rpcError } = await supabase.rpc('create_account_with_opening', {
+      const { error: rpcError } = await supabase.rpc('save_account_with_notes', {
+        p_account_id: null,
         p_name: accountName.trim(),
         p_kind: accountKind,
         p_phone: accountPhone.trim() || null,
-        p_notes: accountNotes.trim() || null,
+        p_is_active: accountActive,
         p_opening_balance: Number(accountOpeningBalance) || 0,
+        p_notes: accountNotes.trim() || null,
       });
 
       if (rpcError) return setError(translateDbError(rpcError.message));
@@ -403,16 +405,17 @@ export default function MasterData() {
       if (updateError) return setError(translateDbError(updateError.message));
       setNotice(`تم تعديل الصنف «${itemName.trim()}»`);
     } else {
-      const { error: rpcError } = await supabase.rpc('create_item_with_opening', {
+      const { error: rpcError } = await supabase.rpc('create_item_with_opening_stock_and_notes_and_code', {
         p_name: itemName.trim(),
-        p_code: itemCode.trim() || null,
         p_unit: itemUnit.trim() || 'قطعة',
         p_sale_price: Number(salePrice),
         p_purchase_price: Number(purchasePrice),
-        p_notes: itemNotes.trim() || null,
+        p_is_active: itemActive,
         p_warehouse_id: itemOpeningWarehouseId || null,
         p_opening_qty: Number(itemOpeningQty) || 0,
-        p_opening_cost: Number(itemOpeningCost) || 0,
+        p_unit_cost: Number(itemOpeningCost) || 0,
+        p_notes: itemNotes.trim() || null,
+        p_code: itemCode.trim() || null,
       });
 
       if (rpcError) return setError(translateDbError(rpcError.message));
@@ -505,10 +508,10 @@ export default function MasterData() {
       if (updateError) return setError(translateDbError(updateError.message));
       setNotice(`تم تعديل اسم الخزنة إلى «${cashBoxName.trim()}»`);
     } else {
-      const { error: rpcError } = await supabase.rpc('create_cash_box_with_opening', {
+      const { error: rpcError } = await supabase.rpc('create_cash_box_with_opening_balance_and_notes', {
         p_name: cashBoxName.trim(),
-        p_notes: cashBoxNotes.trim() || null,
         p_opening_balance: Number(cashBoxOpeningBalance) || 0,
+        p_notes: cashBoxNotes.trim() || null,
       });
       if (rpcError) return setError(translateDbError(rpcError.message));
       setNotice(`تمت إضافة الخزنة «${cashBoxName.trim()}»`);
