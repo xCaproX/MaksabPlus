@@ -50,7 +50,6 @@ export default function InvoiceForm({
 }: InvoiceFormProps) {
   const isPurchase = kind === 'purchase' || kind === 'purchase_return';
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
-  const isRefundIn = kind === 'purchase_return';
   const isWaste = kind === 'waste';
   const defaultSystemKey = isWaste
     ? 'waste'
@@ -186,7 +185,7 @@ export default function InvoiceForm({
     if (paidNumber > total)
       return toast.error(`${isReturn ? 'المسترد' : 'المدفوع'} أكبر من إجمالي ${isReturn ? 'المرتجع' : 'الفاتورة'}`);
     if (cashAccountSelected && paidNumber !== total)
-      return toast.error('عند استخدام حساب نقدي يجب أن يساوي المدفوع/المسترد إجمالي المستند');
+      return toast.error(`الحساب نقدي: يجب أن يساوي ${isReturn ? 'المسترد' : 'المدفوع'} إجمالي المستند (${money(total)})`);
 
     const args = {
       p_account_id: accountId,
@@ -293,19 +292,11 @@ export default function InvoiceForm({
       </div>
 
       <div className="lines">
-        <div className="lines-head-bar">
-          <div className="lines-head-title">
-            <h3>الأصناف</h3>
-            <span className="lines-count-badge">
-              {activeLines.length} {activeLines.length === 1 ? 'صنف' : 'أصناف'}
-            </span>
-          </div>
-        </div>
-
         <div className="lines-wrap">
           <table className="lines-table">
             <thead>
               <tr>
+                <th className="w-num center">#</th>
                 <th>الصنف</th>
                 <th className="w-qty">الكمية</th>
                 <th className="w-price">{isWaste ? 'سعر البيع' : 'السعر'}</th>
@@ -314,13 +305,16 @@ export default function InvoiceForm({
               </tr>
             </thead>
             <tbody>
-              {lines.map((line) => {
+              {lines.map((line, index) => {
                 const selectedItem = items.find((item) => item.id === line.item_id);
                 const lineTotal = round2(
                   Number(line.qty || 0) * Number(line.unit_price || 0),
                 );
                 return (
                   <tr key={line.key}>
+                    <td className="w-num center line-index-cell" data-label="#">
+                      {index + 1}
+                    </td>
                     <td data-label="الصنف">
                       <SearchableSelect
                         inputRef={(element) => { itemSearchRefs.current[line.key] = element; }}
@@ -466,22 +460,6 @@ export default function InvoiceForm({
               </label>
             </div>
           )}
-        </div>
-
-        <div className={`form-footer-smart-hint ${cashAccountSelected ? 'notice-cash' : ''}`}>
-          <span>
-            {isWaste
-              ? 'تُحسب خسارة الهالك من متوسط تكلفة الصنف في هذا المخزن وقت الحفظ. لا يترتب عليه مبلغ أو إيصال.'
-              : cashAccountSelected
-              ? `💡 الحساب نقدي: يجب أن يساوي ${isReturn ? 'المسترد' : 'المدفوع'} إجمالي المستند (${money(total)})، وسينشأ الإيصال آليًا.`
-              : isReturn
-              ? paidNumber > 0
-                ? `سيتم إنشاء إيصال ${isRefundIn ? 'استلام من' : 'صرف إلى'} الحساب بقيمة المسترد (${money(paidNumber)}) وربطه بالمرتجع.`
-                : 'لا يوجد مسترد: لن يتم إنشاء إيصال، وسيبقى المبلغ رصيدًا دائنًا للحساب.'
-              : paidNumber > 0
-                ? `سيتم إنشاء إيصال نقدية تلقائي بقيمة المدفوع (${money(paidNumber)}) وربطه بالفاتورة.`
-                : 'فاتورة آجلة: لا يوجد مدفوع نقدي، وستضاف القيمة لحساب العميل/المورد.'}
-          </span>
         </div>
 
         <div className="form-modal-actions">

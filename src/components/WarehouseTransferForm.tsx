@@ -50,8 +50,6 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
     stockRows.some((stock) => stock.item_id === item.id && stock.warehouse_id === sourceId && Number(stock.current_qty) > 0),
   );
 
-  const activeLines = lines.filter((line) => line.item_id);
-
   function updateLine(key: string, patch: Partial<DraftLine>) {
     setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
   }
@@ -161,27 +159,19 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
       </div>
 
       <div className="lines">
-        <div className="lines-head-bar">
-          <div className="lines-head-title">
-            <h3>الأصناف المنقولة</h3>
-            <span className="lines-count-badge">
-              {activeLines.length} {activeLines.length === 1 ? 'صنف' : 'أصناف'}
-            </span>
-          </div>
-        </div>
-
         <div className="lines-wrap">
           <table className="lines-table">
             <thead>
               <tr>
-                <th style={{ width: '48%' }}>الصنف</th>
-                <th style={{ width: '22%' }}>المتاح في المصدر</th>
-                <th style={{ width: '22%' }}>الكمية المنقولة</th>
+                <th className="w-num center" style={{ width: '5%' }}>#</th>
+                <th style={{ width: '45%' }}>الصنف</th>
+                <th style={{ width: '21%' }}>المتاح في المصدر</th>
+                <th style={{ width: '21%' }}>الكمية المنقولة</th>
                 <th style={{ width: '8%' }} className="center">حذف</th>
               </tr>
             </thead>
             <tbody>
-              {lines.map((line) => {
+              {lines.map((line, index) => {
                 const stock = stockRows.find((row) => row.item_id === line.item_id && row.warehouse_id === sourceId);
                 const item = items.find((entry) => entry.id === line.item_id);
                 const itemChoices =
@@ -190,6 +180,9 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                     : [...selectableItems, ...items.filter((entry) => entry.id === line.item_id)];
                 return (
                   <tr key={line.key}>
+                    <td className="w-num center line-index-cell" data-label="#">
+                      {index + 1}
+                    </td>
                     <td data-label="الصنف">
                       <SearchableSelect
                         value={line.item_id}
@@ -247,10 +240,6 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div className="form-footer-smart-hint">
-        <span>💡 تُنقل الكمية من مخزن المصدر إلى الوجهة بتكلفة متوسط المصدر. لا يتغير إجمالي المخزون أو رصيد الحسابات.</span>
       </div>
 
       <div className="form-modal-actions">
