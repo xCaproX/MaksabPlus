@@ -188,6 +188,16 @@ p {
   color: var(--success);
 }
 
+.badge.danger {
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+.badge.info {
+  background: #eff8ff;
+  color: #175cd3;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -1058,9 +1068,44 @@ code {
 }
 
 .permission-group legend { padding: 0 0.35rem; font-weight: 700; }
-.permission-option { display: inline-flex; align-items: center; gap: 0.35rem; }
-.permission-option input { width: auto; }
+.permission-option { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+.permission-option input { width: auto; cursor: pointer; }
 .user-permission-card { padding: 1rem 0; border-top: 1px solid var(--border, #dbe2ea); }
+
+.permission-toolbar-helpers {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--erp-border, #e5e9f0);
+}
+.permission-toolbar-helpers > div {
+  display: flex;
+  gap: 6px;
+}
+
+.erp-detail-lines .permission-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.erp-detail-lines .permission-group {
+  min-width: 0;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--erp-surface, #fff);
+  border: 1px solid var(--erp-border, #e5e9f0);
+  border-radius: 6px;
+}
+.erp-detail-lines .permission-group legend {
+  font-size: 12px;
+  color: var(--erp-text, #1e293b);
+}
+.erp-detail-lines .permission-option {
+  font-size: 12px;
+}
 
 /* ---------- Maksab visual foundation ---------- */
 :root {
