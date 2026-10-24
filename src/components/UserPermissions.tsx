@@ -868,9 +868,9 @@ function SectionGroupRows({
 }) {
   return (
     <>
-      {/* صف رأس القسم القابل للطي والفتح */}
+      {/* صف رأس القسم القابل للطي والفتح مع تكرار عناوين الأعمدة لتسهيل القراءة عند التمرير */}
       <tr className="matrix-section-row">
-        <td colSpan={5}>
+        <td>
           <button
             type="button"
             className="matrix-section-btn"
@@ -883,6 +883,18 @@ function SectionGroupRows({
             </span>
           </button>
         </td>
+        {actionsList.map((action) => {
+          const isActionAvailable = section.items.some((item) => item.actions.includes(action.key));
+          return (
+            <td key={action.key} className="center matrix-section-action-header">
+              {isActionAvailable ? (
+                <span>{action.label}</span>
+              ) : (
+                <span className="matrix-cell-disabled">—</span>
+              )}
+            </td>
+          );
+        })}
         <td className="center">
           {!readOnly && (
             <button
@@ -929,12 +941,14 @@ function SectionGroupRows({
                   <td key={action.key} className="center">
                     <label
                       className={`matrix-cell-interactive ${isChecked ? 'checked' : ''}`}
-                      title={`${action.label} - ${item.label}`}
+                      title={`${action.label} — ${item.label}`}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
                         disabled={disabled || readOnly}
+                        title={`${action.label} — ${item.label}`}
+                        aria-label={`${action.label} — ${item.label}`}
                         onChange={() => onToggleKey(key)}
                       />
                     </label>

@@ -1327,7 +1327,9 @@ code {
 }
 
 .matrix-table-wrap {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: calc(100vh - 280px);
+  position: relative;
 }
 
 .matrix-table {
@@ -1337,7 +1339,10 @@ code {
   text-align: right;
 }
 
-.matrix-table th {
+.matrix-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background: #f1f5f9;
   color: var(--erp-text, #1e293b);
   font-weight: 700;
@@ -1345,6 +1350,7 @@ code {
   border-bottom: 2px solid var(--erp-border, #e5e9f0);
   font-size: 12px;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .matrix-table th.center,
@@ -1356,8 +1362,15 @@ code {
   background: #f8fafc;
   border-top: 1px solid var(--erp-border, #e5e9f0);
   border-bottom: 1px solid var(--erp-border, #e5e9f0);
-  padding: 10px 14px;
+  padding: 8px 12px;
   font-weight: 700;
+}
+
+.matrix-section-action-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--erp-muted, #64748b);
+  text-align: center;
 }
 
 .matrix-section-btn {
