@@ -3,15 +3,87 @@ import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import Modal from './Modal';
 
-const groups = [
-  { label: 'البضاعة', module: 'goods', actions: [['view', 'عرض'], ['create', 'إضافة'], ['edit', 'تعديل'], ['delete', 'حذف']] },
-  { label: 'الفلوس', module: 'money', actions: [['view', 'عرض'], ['create', 'إضافة'], ['edit', 'تعديل'], ['delete', 'حذف']] },
-  { label: 'البيانات', module: 'data', actions: [['view', 'عرض'], ['create', 'إضافة'], ['edit', 'تعديل'], ['delete', 'حذف']] },
-  { label: 'الأرصدة', module: 'balances', actions: [['view', 'عرض']] },
-  { label: 'إدارة الأرصدة الافتتاحية', module: 'management', actions: [['view', 'عرض'], ['edit', 'تعديل']] },
-] as const;
+type ActionKey = 'view' | 'create' | 'edit' | 'delete';
 
-type PermissionKey = `${(typeof groups)[number]['module']}.${string}`;
+interface PermissionItemDef {
+  id: string;
+  label: string;
+  actions: ActionKey[];
+}
+
+interface SectionDef {
+  id: string;
+  label: string;
+  icon: string;
+  items: PermissionItemDef[];
+}
+
+// الهيكل القابل للتوسع المستقبلي: كل قسم رئيسي يمكن أن يضم تفريعاته الفرعية بكل سهولة
+const sections: SectionDef[] = [
+  {
+    id: 'goods',
+    label: 'البضاعة',
+    icon: '📦',
+    items: [
+      {
+        id: 'goods',
+        label: 'الفواتير وحركات البضاعة والمخازن',
+        actions: ['view', 'create', 'edit', 'delete'],
+      },
+    ],
+  },
+  {
+    id: 'money',
+    label: 'الفلوس',
+    icon: '💰',
+    items: [
+      {
+        id: 'money',
+        label: 'المقبوضات والمدفوعات والمصروفات وحركات الخزن',
+        actions: ['view', 'create', 'edit', 'delete'],
+      },
+    ],
+  },
+  {
+    id: 'data',
+    label: 'البيانات الأساسية',
+    icon: '📑',
+    items: [
+      {
+        id: 'data',
+        label: 'العملاء والموردون والأصناف والمخازن والخزن',
+        actions: ['view', 'create', 'edit', 'delete'],
+      },
+    ],
+  },
+  {
+    id: 'balances',
+    label: 'الأرصدة والتقارير',
+    icon: '📊',
+    items: [
+      {
+        id: 'balances',
+        label: 'كشوف الحسابات وأرصدة البضاعة والخزن',
+        actions: ['view'],
+      },
+    ],
+  },
+  {
+    id: 'management',
+    label: 'إدارة الأرصدة الافتتاحية',
+    icon: '⚙️',
+    items: [
+      {
+        id: 'management',
+        label: 'الأرصدة الافتتاحية السابقة وتصحيحات البداية',
+        actions: ['view', 'edit'],
+      },
+    ],
+  },
+];
+
+type PermissionKey = `${string}.${ActionKey}`;
+
 type CompanyUser = {
   user_id: string;
   email: string;
@@ -23,9 +95,47 @@ type CompanyUser = {
 
 type UserFilterStatus = 'all' | 'active' | 'suspended' | 'owner';
 
-function allPermissionKeys(): PermissionKey[] {
-  return groups.flatMap((group) => group.actions.map(([action]) => `${group.module}.${action}` as PermissionKey));
+// جمع كافة الصلاحيات المتاحة
+function getAllPermissionKeys(): PermissionKey[] {
+  return sections.flatMap((section) =>
+    section.items.flatMap((item) =>
+      item.actions.map((action) => `${item.id}.${action}` as PermissionKey),
+    ),
+  );
 }
+
+// قوالب الصلاحيات السريعة لتوفير الوقت
+const PRESETS: { id: string; label: string; icon: string; keys: PermissionKey[] }[] = [
+  {
+    id: 'cashier',
+    label: 'كاشير / مبيعات',
+    icon: '🛒',
+    keys: ['goods.view', 'goods.create', 'money.view', 'money.create'],
+  },
+  {
+    id: 'warehouse',
+    label: 'أمين مخزن',
+    icon: '📦',
+    keys: ['goods.view', 'goods.create', 'goods.edit', 'data.view', 'data.create', 'data.edit'],
+  },
+  {
+    id: 'accountant',
+    label: 'محاسب مالي',
+    icon: '💼',
+    keys: [
+      'goods.view', 'goods.create', 'goods.edit',
+      'money.view', 'money.create', 'money.edit',
+      'data.view', 'data.create', 'data.edit',
+      'balances.view',
+    ],
+  },
+  {
+    id: 'viewer',
+    label: 'مشاهد فقط',
+    icon: '👁️',
+    keys: ['goods.view', 'money.view', 'data.view', 'balances.view', 'management.view'],
+  },
+];
 
 export default function UserPermissions() {
   const [users, setUsers] = useState<CompanyUser[]>([]);
@@ -35,10 +145,19 @@ export default function UserPermissions() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  // مساحة العمل: الموظف المحدد والتصفية
+  // الموظف المختار والبحث
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<UserFilterStatus>('all');
+
+  // حالة طي/فرد الأقسام الهرمية
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    goods: true,
+    money: true,
+    data: true,
+    balances: true,
+    management: true,
+  });
 
   // نافذة دعوة موظف جديد
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -46,10 +165,12 @@ export default function UserPermissions() {
   const [inviteFullName, setInviteFullName] = useState('');
   const [invitePermissions, setInvitePermissions] = useState<PermissionKey[]>([]);
 
-  const allKeys = useMemo(() => allPermissionKeys(), []);
+  const allKeys = useMemo(() => getAllPermissionKeys(), []);
 
   async function request(action: string, payload: Record<string, unknown> = {}) {
-    const { data, error: invokeError } = await supabase.functions.invoke('manage-users', { body: { action, ...payload } });
+    const { data, error: invokeError } = await supabase.functions.invoke('manage-users', {
+      body: { action, ...payload },
+    });
     if (invokeError) throw new Error(errorMessage(invokeError));
     if (data?.error) throw new Error(data.error);
     return data;
@@ -98,7 +219,6 @@ export default function UserPermissions() {
     });
   }, [users, searchTerm, statusFilter]);
 
-  // ضمان تحديد أول موظف يطابق التصفية إذا لم يكن هناك تحديد
   useEffect(() => {
     if (filteredUsers.length > 0 && (!selectedUserId || !filteredUsers.some((u) => u.user_id === selectedUserId))) {
       setSelectedUserId(filteredUsers[0].user_id);
@@ -110,6 +230,19 @@ export default function UserPermissions() {
     ? drafts[selectedUser.user_id] ?? selectedUser.permission_keys ?? []
     : [];
 
+  function toggleSectionCollapse(sectionId: string) {
+    setExpandedSections((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
+  }
+
+  function expandAll() {
+    setExpandedSections(Object.fromEntries(sections.map((s) => [s.id, true])));
+  }
+
+  function collapseAll() {
+    setExpandedSections(Object.fromEntries(sections.map((s) => [s.id, false])));
+  }
+
+  // تبديل صلاحية مفردة
   function togglePermission(key: PermissionKey) {
     if (!selectedUser || selectedUser.access_role === 'owner') return;
     const exists = currentDraftKeys.includes(key);
@@ -117,12 +250,48 @@ export default function UserPermissions() {
     setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: updated }));
   }
 
-  function toggleGroup(moduleKeys: PermissionKey[]) {
+  // تبديل قسم رئيسي بالكامل
+  function toggleSection(section: SectionDef) {
     if (!selectedUser || selectedUser.access_role === 'owner') return;
-    const allChecked = moduleKeys.every((k) => currentDraftKeys.includes(k));
+    const sectionKeys = section.items.flatMap((item) =>
+      item.actions.map((act) => `${item.id}.${act}` as PermissionKey),
+    );
+    const allChecked = sectionKeys.every((k) => currentDraftKeys.includes(k));
     const updated = allChecked
-      ? currentDraftKeys.filter((k) => !moduleKeys.includes(k))
-      : [...currentDraftKeys, ...moduleKeys.filter((k) => !currentDraftKeys.includes(k))];
+      ? currentDraftKeys.filter((k) => !sectionKeys.includes(k))
+      : [...currentDraftKeys, ...sectionKeys.filter((k) => !currentDraftKeys.includes(k))];
+    setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: updated }));
+  }
+
+  // تبديل سطر فرعي بالكامل
+  function toggleItem(item: PermissionItemDef) {
+    if (!selectedUser || selectedUser.access_role === 'owner') return;
+    const itemKeys = item.actions.map((act) => `${item.id}.${act}` as PermissionKey);
+    const allChecked = itemKeys.every((k) => currentDraftKeys.includes(k));
+    const updated = allChecked
+      ? currentDraftKeys.filter((k) => !itemKeys.includes(k))
+      : [...currentDraftKeys, ...itemKeys.filter((k) => !currentDraftKeys.includes(k))];
+    setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: updated }));
+  }
+
+  // تطبيق قالب جاهز
+  function applyPreset(keys: PermissionKey[]) {
+    if (!selectedUser || selectedUser.access_role === 'owner') return;
+    setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: keys }));
+  }
+
+  // تبديل عمود كامل (مثل تفعيل/إلغاء 'عرض' للكل)
+  function toggleColumnAction(action: ActionKey) {
+    if (!selectedUser || selectedUser.access_role === 'owner') return;
+    const actionKeys = sections.flatMap((section) =>
+      section.items
+        .filter((item) => item.actions.includes(action))
+        .map((item) => `${item.id}.${action}` as PermissionKey),
+    );
+    const allActionChecked = actionKeys.every((k) => currentDraftKeys.includes(k));
+    const updated = allActionChecked
+      ? currentDraftKeys.filter((k) => !actionKeys.includes(k))
+      : [...currentDraftKeys, ...actionKeys.filter((k) => !currentDraftKeys.includes(k))];
     setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: updated }));
   }
 
@@ -194,7 +363,7 @@ export default function UserPermissions() {
         <div className="card empty">جارٍ تحميل المستخدمين والصلاحيات…</div>
       ) : (
         <div className="erp-users-workspace">
-          {/* الجانب الأيمن (Master List): قائمة الموظفين مدمجة وأنيقة (320px) */}
+          {/* الجانب الأيمن (Master List): قائمة الموظفين مدمجة */}
           <aside className="users-sidebar-panel" aria-label="قائمة الموظفين">
             <div className="users-sidebar-head">
               <div className="head-row">
@@ -270,8 +439,8 @@ export default function UserPermissions() {
             </div>
           </aside>
 
-          {/* الجانب الأيسر (Detail Workspace): المساحة الواسعة لإدارة الصلاحيات (70%+) */}
-          <main className="permissions-main-panel" aria-label="مساحة إدارة الصلاحيات">
+          {/* الجانب الأيسر (Matrix Tree-Table Workspace): جدول مصفوفة الصلاحيات الهرمي الشامل */}
+          <main className="permissions-main-panel" aria-label="مصفوفة إدارة الصلاحيات">
             {selectedUser ? (
               <>
                 <div className="permissions-main-head">
@@ -319,110 +488,94 @@ export default function UserPermissions() {
                 </div>
 
                 {selectedUser.access_role === 'owner' ? (
-                  <div style={{ padding: '24px' }}>
-                    <div className="alert success" style={{ marginBottom: '20px' }}>
-                      <strong>مدير المنشأة:</strong> يمتلك كافة صلاحيات النظام تلقائيًا بحكم دوره المالي والإداري، ولا يحتاج لتحديد أو تعديل.
+                  <div style={{ padding: '20px' }}>
+                    <div className="alert success" style={{ marginBottom: '16px' }}>
+                      <strong>مدير المنشأة:</strong> يمتلك كافة صلاحيات النظام وتفريعاته تلقائيًا بحكم دوره، ولا يحتاج إلى تعديل يدوي.
                     </div>
-                    <div className="permissions-cards-grid" style={{ padding: 0 }}>
-                      {groups.map((group) => (
-                        <div className="permission-card" key={group.module}>
-                          <div className="permission-card-head">
-                            <strong>قسم {group.label}</strong>
-                            <span className="badge ok">مفعل بالكامل</span>
-                          </div>
-                          <div className="permission-card-body">
-                            {group.actions.map(([action, label]) => (
-                              <label className="permission-card-item" key={action} style={{ opacity: 0.85 }}>
-                                <input type="checkbox" checked disabled />
-                                <span>صلاحية {label}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <HierarchyMatrixTable
+                      sections={sections}
+                      draftKeys={allKeys}
+                      onToggleKey={() => undefined}
+                      onToggleSection={() => undefined}
+                      onToggleItem={() => undefined}
+                      onToggleColumnAction={() => undefined}
+                      expandedSections={expandedSections}
+                      onToggleSectionCollapse={toggleSectionCollapse}
+                      readOnly
+                    />
                   </div>
                 ) : (
                   <>
-                    <div className="permissions-bulk-bar">
-                      <span className="summary-text">
-                        الصلاحيات الممنوحة حالياً: {currentDraftKeys.length} من أصل {allKeys.length}
+                    {/* شريط القوالب السريعة */}
+                    <div className="presets-container">
+                      <span className="presets-title">
+                        <span>⚡ قوالب سريعة:</span>
                       </span>
-                      <div className="bulk-buttons">
+                      <div className="presets-list">
+                        {PRESETS.map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            className="preset-chip-btn"
+                            disabled={busy}
+                            onClick={() => applyPreset(preset.keys)}
+                          >
+                            <span>{preset.icon}</span> <span>{preset.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* شريط الإجراءات والتحكم بالطي والفتح */}
+                    <div className="matrix-toolbar">
+                      <div>
+                        <strong>الصلاحيات المحددة:</strong>{' '}
+                        <span>
+                          {currentDraftKeys.length} من أصل {allKeys.length}
+                        </span>
+                      </div>
+                      <div className="matrix-toolbar-actions">
                         <button
                           type="button"
                           className="btn compact"
-                          disabled={busy}
                           onClick={() =>
                             setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: allKeys }))
                           }
                         >
-                          تحديد كامل الصلاحيات
+                          تحديد كافة الصلاحيات
                         </button>
                         <button
                           type="button"
                           className="btn compact"
-                          disabled={busy}
                           onClick={() =>
                             setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: [] }))
                           }
                         >
                           إلغاء تحديد الكل
                         </button>
+                        <span style={{ color: '#cbd5e1' }}>|</span>
+                        <button type="button" className="btn compact" onClick={expandAll}>
+                          توسيع الكل
+                        </button>
+                        <button type="button" className="btn compact" onClick={collapseAll}>
+                          طي الكل
+                        </button>
                       </div>
                     </div>
 
-                    <div className="permissions-cards-grid">
-                      {groups.map((group) => {
-                        const moduleKeys = group.actions.map(
-                          ([action]) => `${group.module}.${action}` as PermissionKey,
-                        );
-                        const allGroupChecked = moduleKeys.every((key) =>
-                          currentDraftKeys.includes(key),
-                        );
-                        const groupSelectedCount = moduleKeys.filter((key) =>
-                          currentDraftKeys.includes(key),
-                        ).length;
-
-                        return (
-                          <div className="permission-card" key={group.module}>
-                            <div className="permission-card-head">
-                              <strong>
-                                قسم {group.label}{' '}
-                                <span className="muted" style={{ fontSize: '11px', fontWeight: 'normal' }}>
-                                  ({groupSelectedCount}/{moduleKeys.length})
-                                </span>
-                              </strong>
-                              <button
-                                type="button"
-                                className="btn compact"
-                                style={{ fontSize: '11px', minHeight: '22px', padding: '1px 8px' }}
-                                disabled={busy}
-                                onClick={() => toggleGroup(moduleKeys)}
-                              >
-                                {allGroupChecked ? 'إلغاء القسم' : 'تحديد القسم'}
-                              </button>
-                            </div>
-                            <div className="permission-card-body">
-                              {group.actions.map(([action, label]) => {
-                                const key = `${group.module}.${action}` as PermissionKey;
-                                const isChecked = currentDraftKeys.includes(key);
-                                return (
-                                  <label className="permission-card-item" key={key}>
-                                    <input
-                                      type="checkbox"
-                                      disabled={busy}
-                                      checked={isChecked}
-                                      onChange={() => togglePermission(key)}
-                                    />
-                                    <span>صلاحية {label}</span>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
+                    {/* جدول مصفوفة الصلاحيات الهرمي */}
+                    <div className="matrix-table-wrap">
+                      <HierarchyMatrixTable
+                        sections={sections}
+                        draftKeys={currentDraftKeys}
+                        onToggleKey={togglePermission}
+                        onToggleSection={toggleSection}
+                        onToggleItem={toggleItem}
+                        onToggleColumnAction={toggleColumnAction}
+                        expandedSections={expandedSections}
+                        onToggleSectionCollapse={toggleSectionCollapse}
+                        disabled={busy}
+                      />
                     </div>
                   </>
                 )}
@@ -469,11 +622,29 @@ export default function UserPermissions() {
               </label>
             </div>
 
-            <div className="permissions-bulk-bar" style={{ marginTop: '8px', padding: '8px 4px' }}>
-              <span className="summary-text" style={{ fontSize: '12px' }}>
+            <div className="presets-container" style={{ marginTop: '8px', padding: '6px 8px' }}>
+              <span className="presets-title" style={{ fontSize: '11px' }}>
+                ⚡ قوالب سريعة:
+              </span>
+              <div className="presets-list">
+                {PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className="preset-chip-btn"
+                    onClick={() => setInvitePermissions(preset.keys)}
+                  >
+                    <span>{preset.icon}</span> <span>{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="matrix-toolbar" style={{ padding: '6px 8px' }}>
+              <span style={{ fontSize: '12px' }}>
                 الصلاحيات المبدئية ({invitePermissions.length} من {allKeys.length})
               </span>
-              <div className="bulk-buttons">
+              <div style={{ display: 'flex', gap: '6px' }}>
                 <button
                   type="button"
                   className="btn compact"
@@ -491,66 +662,57 @@ export default function UserPermissions() {
               </div>
             </div>
 
-            <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '6px' }}>
-              <div className="permissions-cards-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', padding: '4px', gap: '10px' }}>
-                {groups.map((group) => {
-                  const moduleKeys = group.actions.map(
-                    ([action]) => `${group.module}.${action}` as PermissionKey,
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              <HierarchyMatrixTable
+                sections={sections}
+                draftKeys={invitePermissions}
+                onToggleKey={(key) =>
+                  setInvitePermissions((prev) =>
+                    prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+                  )
+                }
+                onToggleSection={(sec) => {
+                  const secKeys = sec.items.flatMap((item) =>
+                    item.actions.map((act) => `${item.id}.${act}` as PermissionKey),
                   );
-                  const allGroupChecked = moduleKeys.every((key) =>
-                    invitePermissions.includes(key),
+                  const allChecked = secKeys.every((k) => invitePermissions.includes(k));
+                  setInvitePermissions((prev) =>
+                    allChecked
+                      ? prev.filter((k) => !secKeys.includes(k))
+                      : [...prev, ...secKeys.filter((k) => !prev.includes(k))],
                   );
-                  function toggleInviteGroup() {
-                    if (allGroupChecked) {
-                      setInvitePermissions((prev) => prev.filter((k) => !moduleKeys.includes(k)));
-                    } else {
-                      setInvitePermissions((prev) => [
-                        ...prev,
-                        ...moduleKeys.filter((k) => !prev.includes(k)),
-                      ]);
-                    }
-                  }
-                  return (
-                    <div className="permission-card" key={group.module}>
-                      <div className="permission-card-head" style={{ padding: '6px 10px' }}>
-                        <strong style={{ fontSize: '12px' }}>{group.label}</strong>
-                        <button
-                          type="button"
-                          className="btn compact"
-                          style={{ fontSize: '10px', minHeight: '19px', padding: '1px 6px' }}
-                          onClick={toggleInviteGroup}
-                        >
-                          {allGroupChecked ? 'إلغاء' : 'تحديد'}
-                        </button>
-                      </div>
-                      <div className="permission-card-body" style={{ padding: '8px 10px' }}>
-                        {group.actions.map(([action, label]) => {
-                          const key = `${group.module}.${action}` as PermissionKey;
-                          const isChecked = invitePermissions.includes(key);
-                          function toggleInviteKey() {
-                            setInvitePermissions((prev) =>
-                              isChecked ? prev.filter((k) => k !== key) : [...prev, key],
-                            );
-                          }
-                          return (
-                            <label className="permission-card-item" key={key} style={{ fontSize: '12px' }}>
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={toggleInviteKey}
-                              />
-                              <span>{label}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
+                }}
+                onToggleItem={(item) => {
+                  const itemKeys = item.actions.map((act) => `${item.id}.${act}` as PermissionKey);
+                  const allChecked = itemKeys.every((k) => invitePermissions.includes(k));
+                  setInvitePermissions((prev) =>
+                    allChecked
+                      ? prev.filter((k) => !itemKeys.includes(k))
+                      : [...prev, ...itemKeys.filter((k) => !prev.includes(k))],
                   );
-                })}
-              </div>
+                }}
+                onToggleColumnAction={(action) => {
+                  const actionKeys = sections.flatMap((section) =>
+                    section.items
+                      .filter((item) => item.actions.includes(action))
+                      .map((item) => `${item.id}.${action}` as PermissionKey),
+                  );
+                  const allActionChecked = actionKeys.every((k) => invitePermissions.includes(k));
+                  setInvitePermissions((prev) =>
+                    allActionChecked
+                      ? prev.filter((k) => !actionKeys.includes(k))
+                      : [...prev, ...actionKeys.filter((k) => !prev.includes(k))],
+                  );
+                }}
+                expandedSections={expandedSections}
+                onToggleSectionCollapse={toggleSectionCollapse}
+              />
             </div>
 
-            <div className="actions" style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <div
+              className="actions"
+              style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}
+            >
               <button
                 type="button"
                 className="btn"
@@ -567,5 +729,226 @@ export default function UserPermissions() {
         </Modal>
       )}
     </div>
+  );
+}
+
+// مكون جدول مصفوفة الصلاحيات الهرمي المشترك
+function HierarchyMatrixTable({
+  sections,
+  draftKeys,
+  onToggleKey,
+  onToggleSection,
+  onToggleItem,
+  onToggleColumnAction,
+  expandedSections,
+  onToggleSectionCollapse,
+  disabled = false,
+  readOnly = false,
+}: {
+  sections: SectionDef[];
+  draftKeys: PermissionKey[];
+  onToggleKey: (key: PermissionKey) => void;
+  onToggleSection: (section: SectionDef) => void;
+  onToggleItem: (item: PermissionItemDef) => void;
+  onToggleColumnAction: (action: ActionKey) => void;
+  expandedSections: Record<string, boolean>;
+  onToggleSectionCollapse: (sectionId: string) => void;
+  disabled?: boolean;
+  readOnly?: boolean;
+}) {
+  const actionsList: { key: ActionKey; label: string }[] = [
+    { key: 'view', label: 'عرض' },
+    { key: 'create', label: 'إضافة' },
+    { key: 'edit', label: 'تعديل' },
+    { key: 'delete', label: 'حذف' },
+  ];
+
+  return (
+    <table className="matrix-table">
+      <thead>
+        <tr>
+          <th style={{ width: '42%' }}>القسم / البند الفرعي</th>
+          {actionsList.map((action) => (
+            <th key={action.key} className="center" style={{ width: '12%' }}>
+              {!readOnly ? (
+                <button
+                  type="button"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    color: 'inherit',
+                  }}
+                  title={`تبديل صلاحية "${action.label}" للجميع`}
+                  onClick={() => onToggleColumnAction(action.key)}
+                >
+                  {action.label} ▾
+                </button>
+              ) : (
+                action.label
+              )}
+            </th>
+          ))}
+          <th className="center" style={{ width: '10%' }}>
+            تحكم سريع
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {sections.map((section) => {
+          const isExpanded = expandedSections[section.id] ?? true;
+          const sectionKeys = section.items.flatMap((item) =>
+            item.actions.map((act) => `${item.id}.${act}` as PermissionKey),
+          );
+          const checkedCount = sectionKeys.filter((k) => draftKeys.includes(k)).length;
+          const allSectionChecked = sectionKeys.length > 0 && checkedCount === sectionKeys.length;
+
+          return (
+            <SectionGroupRows
+              key={section.id}
+              section={section}
+              isExpanded={isExpanded}
+              checkedCount={checkedCount}
+              totalCount={sectionKeys.length}
+              allSectionChecked={allSectionChecked}
+              draftKeys={draftKeys}
+              actionsList={actionsList}
+              onToggleKey={onToggleKey}
+              onToggleSection={onToggleSection}
+              onToggleItem={onToggleItem}
+              onToggleSectionCollapse={onToggleSectionCollapse}
+              disabled={disabled}
+              readOnly={readOnly}
+            />
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function SectionGroupRows({
+  section,
+  isExpanded,
+  checkedCount,
+  totalCount,
+  allSectionChecked,
+  draftKeys,
+  actionsList,
+  onToggleKey,
+  onToggleSection,
+  onToggleItem,
+  onToggleSectionCollapse,
+  disabled,
+  readOnly,
+}: {
+  section: SectionDef;
+  isExpanded: boolean;
+  checkedCount: number;
+  totalCount: number;
+  allSectionChecked: boolean;
+  draftKeys: PermissionKey[];
+  actionsList: { key: ActionKey; label: string }[];
+  onToggleKey: (key: PermissionKey) => void;
+  onToggleSection: (section: SectionDef) => void;
+  onToggleItem: (item: PermissionItemDef) => void;
+  onToggleSectionCollapse: (sectionId: string) => void;
+  disabled: boolean;
+  readOnly: boolean;
+}) {
+  return (
+    <>
+      {/* صف رأس القسم القابل للطي والفتح */}
+      <tr className="matrix-section-row">
+        <td colSpan={5}>
+          <button
+            type="button"
+            className="matrix-section-btn"
+            onClick={() => onToggleSectionCollapse(section.id)}
+          >
+            <span className="matrix-section-chevron">{isExpanded ? '▾' : '▸'}</span>
+            <span>{section.icon}</span>
+            <span>{section.label}</span>
+            <span className="muted" style={{ fontSize: '11px', fontWeight: 'normal' }}>
+              ({checkedCount} من {totalCount})
+            </span>
+          </button>
+        </td>
+        <td className="center">
+          {!readOnly && (
+            <button
+              type="button"
+              className="btn compact"
+              style={{ fontSize: '11px', minHeight: '22px', padding: '1px 8px' }}
+              disabled={disabled}
+              onClick={() => onToggleSection(section)}
+            >
+              {allSectionChecked ? 'إلغاء القسم' : 'تحديد القسم'}
+            </button>
+          )}
+        </td>
+      </tr>
+
+      {/* صفوف البنود والتبويبات الفرعية التابعة للقسم */}
+      {isExpanded &&
+        section.items.map((item) => {
+          const itemKeys = item.actions.map((act) => `${item.id}.${act}` as PermissionKey);
+          const allItemChecked = itemKeys.every((k) => draftKeys.includes(k));
+
+          return (
+            <tr className="matrix-item-row" key={item.id}>
+              <td>
+                <div className="matrix-item-title">
+                  <span style={{ color: '#94a3b8' }}>↳</span>
+                  <span>{item.label}</span>
+                </div>
+              </td>
+              {actionsList.map((action) => {
+                const isSupported = item.actions.includes(action.key);
+                const key = `${item.id}.${action.key}` as PermissionKey;
+                const isChecked = draftKeys.includes(key);
+
+                if (!isSupported) {
+                  return (
+                    <td key={action.key} className="center">
+                      <span className="matrix-cell-disabled">—</span>
+                    </td>
+                  );
+                }
+
+                return (
+                  <td key={action.key} className="center">
+                    <label
+                      className={`matrix-cell-interactive ${isChecked ? 'checked' : ''}`}
+                      title={`${action.label} - ${item.label}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        disabled={disabled || readOnly}
+                        onChange={() => onToggleKey(key)}
+                      />
+                    </label>
+                  </td>
+                );
+              })}
+              <td className="center">
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="btn compact"
+                    style={{ fontSize: '10px', minHeight: '20px', padding: '1px 6px' }}
+                    disabled={disabled}
+                    onClick={() => onToggleItem(item)}
+                  >
+                    {allItemChecked ? 'إلغاء' : 'الكل'}
+                  </button>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+    </>
   );
 }
