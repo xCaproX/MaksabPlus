@@ -422,11 +422,16 @@ export default function Invoices() {
       </div>}
 
       {formOpen && (
-        <Modal title={formTitle} onClose={() => {
-          setFormOpen(false);
-          setEditing(null);
-          setEditingTransfer(null);
-        }}>
+        <Modal
+          className={isWarehouseTransfer ? undefined : 'invoice-entry-modal'}
+          backdropClassName={isWarehouseTransfer ? undefined : 'invoice-entry-backdrop'}
+          title={formTitle}
+          onClose={() => {
+            setFormOpen(false);
+            setEditing(null);
+            setEditingTransfer(null);
+          }}
+        >
           {isWarehouseTransfer ? <WarehouseTransferForm
             key={editingTransfer?.id ?? 'new-transfer'}
             warehouses={warehouses}

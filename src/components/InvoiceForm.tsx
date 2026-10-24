@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -74,6 +74,15 @@ export default function InvoiceForm({
   const [lines, setLines] = useState<LineDraft[]>(editing ? editing.lines : [emptyLine()]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const itemSearchRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const quantityRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [focusSearchKey, setFocusSearchKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!focusSearchKey) return;
+    itemSearchRefs.current[focusSearchKey]?.focus();
+    setFocusSearchKey(null);
+  }, [focusSearchKey, lines]);
 
   const total = round2(
     lines.reduce((sum, line) => sum + Number(line.qty || 0) * Number(line.unit_price || 0), 0),
@@ -120,7 +129,9 @@ export default function InvoiceForm({
   }
 
   function addLine() {
-    setLines((current) => [...current, emptyLine()]);
+    const line = emptyLine();
+    setLines((current) => [...current, line]);
+    setFocusSearchKey(line.key);
   }
 
   function removeLine(key: string) {
@@ -256,11 +267,12 @@ export default function InvoiceForm({
         <div className="lines-head">
           <h3>الأصناف</h3>
           <button type="button" className="btn ghost" onClick={addLine}>
-            + إضافة سطر
+            + إضافة صنف
           </button>
         </div>
 
-        <div className="table-wrap">
+        <p className="hint lines-hint">ابحث عن الصنف بالاسم أو الكود، وبعد اختياره أدخل الكمية.</p>
+        <div className="table-wrap lines-wrap">
           <table className="table lines-table">
             <thead>
               <tr>
@@ -273,26 +285,33 @@ export default function InvoiceForm({
             </thead>
             <tbody>
               {lines.map((line) => {
+                const selectedItem = items.find((item) => item.id === line.item_id);
                 const lineTotal = round2(
                   Number(line.qty || 0) * Number(line.unit_price || 0),
                 );
                 return (
                   <tr key={line.key}>
-                    <td>
+                    <td data-label="الصنف">
                       <SearchableSelect
+                        inputRef={(element) => { itemSearchRefs.current[line.key] = element; }}
                         value={line.item_id}
                         options={items.map((item) => ({
                           value: item.id,
                           label: `${item.code} — ${item.name} — متاح: ${formatQty(stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0)} ${item.unit}`,
                         }))}
-                        onChange={(value) => selectItem(line.key, value)}
+                        onChange={(value) => {
+                          selectItem(line.key, value);
+                          if (value) quantityRefs.current[line.key]?.focus();
+                        }}
                         placeholder="اختر صنفًا…"
                         searchPlaceholder="ابحث باسم أو كود الصنف…"
                         emptyMessage="لا توجد أصناف مطابقة"
                       />
                     </td>
-                    <td>
+                    <td data-label={selectedItem ? `الكمية (${selectedItem.unit})` : 'الكمية'}>
                       <input
+                        ref={(element) => { quantityRefs.current[line.key] = element; }}
+                        aria-label={`الكمية${selectedItem ? ` — ${selectedItem.name} (${selectedItem.unit})` : ''}`}
                         type="number"
                         min="0"
                         step="0.0001"
@@ -300,8 +319,9 @@ export default function InvoiceForm({
                         onChange={(e) => updateLine(line.key, { qty: e.target.value })}
                       />
                     </td>
-                    <td>
+                    <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
                       <input
+                        aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
                         type="number"
                         min="0"
                         step="0.01"
@@ -310,16 +330,17 @@ export default function InvoiceForm({
                         disabled={isWaste}
                       />
                     </td>
-                    <td className="num">{money(lineTotal)}</td>
-                    <td>
+                    <td className="num line-total" data-label="الإجمالي">{money(lineTotal)}</td>
+                    <td className="line-remove" data-label="إجراء">
                       <button
                         type="button"
                         className="icon-btn"
                         title="حذف السطر"
+                        aria-label="حذف سطر الصنف"
                         onClick={() => removeLine(line.key)}
                         disabled={lines.length === 1}
                       >
-                        ✕
+                        <span aria-hidden="true">×</span><span className="line-remove-label">حذف السطر</span>
                       </button>
                     </td>
                   </tr>

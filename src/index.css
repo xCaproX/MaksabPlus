@@ -241,6 +241,9 @@ p {
   display: flex;
   gap: 8px;
   border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
 }
 
 .tab {
@@ -251,6 +254,8 @@ p {
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
   border-bottom: 2px solid transparent;
 }
 
@@ -287,7 +292,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.13);
+  box-shadow: 0 0 0 3px rgba(46, 66, 92, 0.14);
 }
 
 .form-grid {
@@ -343,7 +348,7 @@ textarea:focus {
 
 .searchable-select-option:hover,
 .searchable-select-option.active {
-  background: #eef6f5;
+  background: #edf1f6;
 }
 
 .searchable-select-empty {
@@ -968,4 +973,66 @@ input, select, textarea { min-height: 44px; border-color: #dfe5e9; border-radius
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+/* ---------- Invoice entry ---------- */
+.modal.invoice-entry-modal { width: min(1080px, 100%); max-height: min(92dvh, 940px); }
+.invoice-entry-modal .modal-body { padding: 20px 24px 24px; }
+.lines-hint { margin: -2px 0 10px; }
+.lines-table { table-layout: fixed; }
+.lines-table th:first-child, .lines-table td:first-child { width: 42%; }
+.lines-table td { padding: 9px 8px; }
+.lines-table .line-total { font-weight: 700; color: var(--ink); }
+.line-remove { text-align: center !important; }
+.line-remove-label { display: none; }
+.form-footer { gap: 14px; }
+
+@media (max-width: 760px) {
+  .invoice-entry-backdrop { padding: 0; align-items: stretch; }
+  .modal.invoice-entry-modal {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .invoice-entry-modal .modal-head { position: sticky; top: 0; z-index: 2; background: var(--card); }
+  .invoice-entry-modal .modal-body { padding: 14px 13px calc(20px + env(safe-area-inset-bottom)); }
+  .lines-wrap { overflow: visible; }
+  .lines-table,
+  .lines-table tbody,
+  .lines-table tr,
+  .lines-table td { display: block; width: 100%; }
+  .lines-table thead { display: none; }
+  .lines-table tbody { display: grid; gap: 12px; }
+  .lines-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    padding: 13px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(39, 58, 84, .04);
+  }
+  .lines-table tbody tr:last-child td { border-bottom: 0; }
+  .lines-table td { padding: 0; border: 0; text-align: start; }
+  .lines-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin: 0 0 4px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .lines-table td:first-child { grid-column: 1 / -1; width: 100%; }
+  .lines-table .line-total { align-self: center; }
+  .lines-table .line-remove { grid-column: 1 / -1; text-align: start !important; }
+  .line-remove-label { display: inline; }
+  .lines-table .line-remove .icon-btn { padding: 7px 0; color: var(--danger); font-size: 13px; }
+  .form-footer { padding-bottom: 4px; }
+  .totals { align-items: stretch; gap: 12px; }
+  .totals > div { min-width: 110px; }
+  .paid-field { width: 100%; }
+  .invoice-form .actions { position: sticky; bottom: -14px; z-index: 1; padding: 10px 0 calc(8px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.97); }
+  .invoice-form .actions .btn.primary { flex: 1; }
 }

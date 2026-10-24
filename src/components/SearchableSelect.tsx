@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 
 export interface SearchOption {
   value: string;
@@ -14,6 +14,7 @@ interface SearchableSelectProps {
   emptyMessage?: string;
   required?: boolean;
   disabled?: boolean;
+  inputRef?: Ref<HTMLInputElement>;
 }
 
 export default function SearchableSelect({
@@ -25,6 +26,7 @@ export default function SearchableSelect({
   emptyMessage = 'لا توجد حسابات مطابقة',
   required = false,
   disabled = false,
+  inputRef,
 }: SearchableSelectProps) {
   const id = useId();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -73,6 +75,7 @@ export default function SearchableSelect({
   return (
     <div className="searchable-select" ref={containerRef}>
       <input
+        ref={inputRef}
         type="text"
         role="combobox"
         aria-autocomplete="list"
