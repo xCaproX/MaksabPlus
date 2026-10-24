@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty } from '../lib/format';
@@ -8,6 +8,8 @@ import { useAccess } from '../lib/access';
 import UserPermissions from '../components/UserPermissions';
 
 type ManagementTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes' | 'users';
+type ManagementSort = 'name-asc' | 'serial-desc' | 'serial-asc';
+const PAGE_SIZE = 20;
 
 const VALID_MANAGEMENT_TABS: ManagementTab[] = ['customers', 'suppliers', 'items', 'cashBoxes', 'users'];
 
@@ -19,23 +21,11 @@ export default function Management() {
   const initialTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
   const [tab, setTab] = useState<ManagementTab>(initialTab);
 
-  useEffect(() => {
-    const targetTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
-    if (targetTab !== tab) {
-      setTab(targetTab);
-    }
-  }, [tabParam]);
-
-  function switchTab(next: ManagementTab) {
-    setTab(next);
-    setSearchParams({ tab: next });
-  }
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
   const [stockRows, setStockRows] = useState<StockOpeningRow[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
-  const [itemSearch, setItemSearch] = useState('');
   const [accountValues, setAccountValues] = useState<Record<string, string>>({});
   const [cashValues, setCashValues] = useState<Record<string, string>>({});
   const [stockValues, setStockValues] = useState<Record<string, { qty: string; cost: string }>>({});
@@ -44,6 +34,38 @@ export default function Management() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [version, setVersion] = useState(0);
+
+  // الفلاتر والبحث
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState<ManagementSort>('name-asc');
+  const [page, setPage] = useState(1);
+
+  // العناصر المحددة للوحة الجانبية
+  const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
+  const [selectedItemRow, setSelectedItemRow] = useState<StockOpeningRow | null>(null);
+  const [selectedBox, setSelectedBox] = useState<CashBoxRow | null>(null);
+
+  useEffect(() => {
+    const targetTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
+    if (targetTab !== tab) {
+      setTab(targetTab);
+      setSelectedAccount(null);
+      setSelectedItemRow(null);
+      setSelectedBox(null);
+      setSearchTerm('');
+      setPage(1);
+    }
+  }, [tabParam]);
+
+  function switchTab(next: ManagementTab) {
+    setTab(next);
+    setSearchParams({ tab: next });
+    setSelectedAccount(null);
+    setSelectedItemRow(null);
+    setSelectedBox(null);
+    setSearchTerm('');
+    setPage(1);
+  }
 
   useEffect(() => {
     let alive = true;
@@ -124,49 +146,449 @@ export default function Management() {
     { id: 'cashBoxes', label: 'افتتاحيات الخزن' },
     ...(access?.role === 'owner' ? [{ id: 'users' as const, label: 'المستخدمون والصلاحيات' }] : []),
   ];
+
   const visibleAccounts = accounts.filter((account) => account.kind === (tab === 'customers' ? 'customer' : 'supplier'));
-  const visibleStockRows = stockRows.filter((row) =>
-    row.warehouse_id === selectedWarehouseId &&
-    row.item_name.toLocaleLowerCase().includes(itemSearch.trim().toLocaleLowerCase()) ||
-    row.item_code.toLocaleLowerCase().includes(itemSearch.trim().toLocaleLowerCase()),
-  );
+
+  // تصفية الحسابات
+  const filteredAccounts = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase('ar');
+    const list = visibleAccounts.filter((acc) => {
+      return !query || [acc.name, acc.phone || '', String(acc.serial_number)]
+        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+    });
+    return list.sort((a, b) => {
+      if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
+      if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
+      return a.name.localeCompare(b.name, 'ar');
+    });
+  }, [visibleAccounts, searchTerm, sortOrder]);
+
+  // تصفية المخزون
+  const filteredStockRows = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase('ar');
+    const list = stockRows.filter((row) => {
+      const matchWh = row.warehouse_id === selectedWarehouseId;
+      const matchQuery = !query || [row.item_name, row.item_code, String(row.item_number)]
+        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+      return matchWh && matchQuery;
+    });
+    return list.sort((a, b) => {
+      if (sortOrder === 'serial-desc') return b.item_number - a.item_number;
+      if (sortOrder === 'serial-asc') return a.item_number - b.item_number;
+      return a.item_name.localeCompare(b.item_name, 'ar');
+    });
+  }, [stockRows, selectedWarehouseId, searchTerm, sortOrder]);
+
+  // تصفية الخزن
+  const filteredCashBoxes = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase('ar');
+    const list = cashBoxes.filter((box) => {
+      return !query || [box.name, String(box.serial_number)]
+        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+    });
+    return list.sort((a, b) => {
+      if (sortOrder === 'serial-desc') return b.serial_number - a.serial_number;
+      if (sortOrder === 'serial-asc') return a.serial_number - b.serial_number;
+      return a.name.localeCompare(b.name, 'ar');
+    });
+  }, [cashBoxes, searchTerm, sortOrder]);
+
+  const activeTotalCount =
+    tab === 'customers' || tab === 'suppliers' ? filteredAccounts.length :
+    tab === 'items' ? filteredStockRows.length :
+    tab === 'cashBoxes' ? filteredCashBoxes.length : 0;
+
+  const pageCount = Math.max(1, Math.ceil(activeTotalCount / PAGE_SIZE));
+
+  const pageAccounts = filteredAccounts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageStock = filteredStockRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageBoxes = filteredCashBoxes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, sortOrder, selectedWarehouseId, tab]);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
+
+  const tabTitle =
+    tab === 'customers' ? 'افتتاحيات العملاء' :
+    tab === 'suppliers' ? 'افتتاحيات الموردين' :
+    tab === 'items' ? 'افتتاحيات المخزون' :
+    tab === 'cashBoxes' ? 'افتتاحيات الخزن' : 'المستخدمون والصلاحيات';
+
+  const selectedWarehouse = warehouses.find((w) => w.id === selectedWarehouseId);
+  const hasSelection = selectedAccount || selectedItemRow || selectedBox;
 
   return (
     <div className="stack">
-      <div className="page-head"><div><h1>إدارة</h1><p className="muted">إدخال وتعديل الأرصدة الافتتاحية.</p></div></div>
-      <div className="tabs">{tabs.map((entry) => <button key={entry.id} type="button" className={tab === entry.id ? 'tab active' : 'tab'} onClick={() => switchTab(entry.id)}>{entry.label}</button>)}</div>
+      <div className="page-head">
+        <div>
+          <h1>{tabTitle}</h1>
+          <p className="muted">
+            {tab === 'customers' || tab === 'suppliers'
+              ? 'إدخال وتعديل الأرصدة الافتتاحية السابقة. حفظ أي تعديل يسجل تصحيحًا يحافظ على الحركات السابقة.'
+              : tab === 'items'
+              ? 'تحديد كمية البداية وتكلفة الوحدة للمخزون بكل مخزن.'
+              : tab === 'cashBoxes'
+              ? 'تسجيل الرصيد النقدي الفعلي الموجود في الخزن عند بدء العمل على النظام.'
+              : 'إدارة المستخدمين وصلاحيات الدخول لصفحات وأقسام النظام.'}
+          </p>
+        </div>
+      </div>
+
+      <div className="tabs">
+        {tabs.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            className={tab === entry.id ? 'tab active' : 'tab'}
+            onClick={() => switchTab(entry.id)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </div>
+
       {error && <p className="alert error">{error}</p>}
       {notice && <p className="alert success">{notice}</p>}
-      {tab === 'users' && access?.role === 'owner' ? <UserPermissions /> : loading ? <div className="card empty">جارٍ التحميل…</div> : (
-        <>
-          {(tab === 'customers' || tab === 'suppliers') && <div className="card">
-            <p className="hint">{tab === 'customers' ? 'للعميل: الموجب يعني عليه، والسالب يعني له.' : 'للمورد: الموجب يعني له، والسالب يعني عليه.'} حفظ أي تعديل يسجل تصحيحًا يحافظ على الحركات السابقة.</p>
-            <div className="table-wrap responsive-table"><table className="table"><thead><tr><th>الرقم</th><th>الحساب</th><th>النوع</th><th>الرصيد الافتتاحي</th><th>الرصيد الحالي</th><th /></tr></thead><tbody>
-              {visibleAccounts.map((account) => <tr key={account.id} className="responsive-row"><td className="num" data-label="الرقم">{entityNumber(tab === 'customers' ? 'CUS' : 'SUP', account.serial_number)}</td><td data-label="الحساب">{account.name}</td><td data-label="النوع">{account.kind === 'customer' ? 'عميل' : 'مورد'}</td><td className="mobile-field-cell" data-label="الرصيد الافتتاحي"><input className="table-input num" type="number" step="0.0001" disabled={!canEditOpening} value={accountValues[account.id] ?? '0'} onChange={(event) => setAccountValues((values) => ({ ...values, [account.id]: event.target.value }))} /></td><td className="num" data-label="الرصيد الحالي">{money(account.balance)}</td><td className="row-actions" data-label="الإجراء">{canEditOpening && <button type="button" className="btn" disabled={saving} onClick={() => void saveAccountOpening(account)}>حفظ</button>}</td></tr>)}
-              {visibleAccounts.length === 0 && <tr><td colSpan={6} className="empty">{tab === 'customers' ? 'لا توجد حسابات عملاء.' : 'لا توجد حسابات موردين.'}</td></tr>}
-            </tbody></table></div>
-          </div>}
-          {tab === 'items' && <form className="stack" onSubmit={saveCashAndStock}>
-            <div className="card"><p className="hint">اختر مخزنًا وابحث عن الصنف لإدخال كمية البداية وتكلفة الوحدة. عند وجود حركات لاحقة، يمكن تصحيح الكمية، بينما تُقفل تكلفة البداية لحماية أرباح الفواتير السابقة.</p>
-              <div className="filter-row balance-filter-row">
-                <label>المخزن<select value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}><option value="">اختر المخزن</option>{warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{entityNumber('WH', warehouse.serial_number)} — {warehouse.name}</option>)}</select></label>
-                <label>بحث عن صنف<input type="search" value={itemSearch} onChange={(event) => setItemSearch(event.target.value)} placeholder="اكتب اسم الصنف أو كوده" disabled={!selectedWarehouseId} /></label>
+
+      {tab === 'users' && access?.role === 'owner' ? (
+        <UserPermissions />
+      ) : loading ? (
+        <div className="card empty">جارٍ التحميل…</div>
+      ) : (
+        <div className="erp-sales-workspace">
+          <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
+            <div className="erp-toolbar">
+              <div className="erp-toolbar-title">
+                <strong>{tabTitle}</strong>
+                <span>{activeTotalCount} نتيجة</span>
               </div>
-              <div className="table-wrap responsive-table"><table className="table"><thead><tr><th>رقم الصنف</th><th>كود الصنف</th><th>الصنف</th><th>كمية البداية</th><th>تكلفة الوحدة</th><th>المتاح الآن</th></tr></thead><tbody>
-                {visibleStockRows.map((row) => { const key = `${row.warehouse_id}:${row.item_id}`; const value = stockValues[key] ?? { qty: '0', cost: '0' }; return <tr key={key} className="responsive-row"><td className="num" data-label="رقم الصنف">{entityNumber('ITM', row.item_number)}</td><td className="num" data-label="كود الصنف">{row.item_code}</td><td data-label="الصنف">{row.item_name}</td><td className="mobile-field-cell" data-label="كمية البداية"><input className="table-input num" type="number" min="0" step="0.0001" disabled={!canEditOpening} value={value.qty} onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, qty: event.target.value } }))} /></td><td className="mobile-field-cell" data-label="تكلفة الوحدة"><input className="table-input num" type="number" min="0" step="0.0001" value={value.cost} disabled={!canEditOpening || row.cost_locked} onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))} /></td><td className="num" data-label="المتاح الآن">{formatQty(row.current_qty)} {row.unit}</td></tr>; })}
-                {visibleStockRows.length === 0 && <tr><td colSpan={6} className="empty">{warehouses.length === 0 ? 'أضف المخازن والأصناف أولًا.' : !selectedWarehouseId ? 'اختر مخزنًا لعرض أصنافه.' : itemSearch.trim() ? 'لا توجد أصناف تطابق البحث في هذا المخزن.' : 'لا توجد أصناف في هذا المخزن.'}</td></tr>}
-              </tbody></table></div>
-            </div>{canEditOpening && <div className="actions"><button type="submit" className="btn primary" disabled={saving || !selectedWarehouseId}>حفظ أرصدة المخزون</button></div>}
-          </form>}
-          {tab === 'cashBoxes' && <form className="stack" onSubmit={saveCashAndStock}>
-            <div className="card"><p className="hint">أدخل رصيد كل خزنة عند بداية العمل. التعديلات اللاحقة تُسجل كتصحيح محفوظ.</p>
-              <div className="table-wrap responsive-table"><table className="table"><thead><tr><th>الرقم</th><th>الخزنة</th><th>الرصيد الافتتاحي</th><th>الرصيد الحالي</th></tr></thead><tbody>
-                {cashBoxes.map((box) => <tr key={box.id} className="responsive-row"><td className="num" data-label="الرقم">{entityNumber('CBX', box.serial_number)}</td><td data-label="الخزنة">{box.name}</td><td className="mobile-field-cell" data-label="الرصيد الافتتاحي"><input className="table-input num" type="number" step="0.0001" disabled={!canEditOpening} value={cashValues[box.id] ?? '0'} onChange={(event) => setCashValues((values) => ({ ...values, [box.id]: event.target.value }))} /></td><td className="num" data-label="الرصيد الحالي">{money(box.balance)}</td></tr>)}
-                {cashBoxes.length === 0 && <tr><td colSpan={4} className="empty">لا توجد خزن.</td></tr>}
-              </tbody></table></div>
-            </div>{canEditOpening && <div className="actions"><button type="submit" className="btn primary" disabled={saving}>حفظ رصيد الخزن</button></div>}
-          </form>}
-        </>
+              <div className="erp-filters">
+                <label className="erp-search">
+                  <span className="sr-only">البحث</span>
+                  <input
+                    type="search"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder={
+                      tab === 'customers' ? 'بحث باسم العميل أو الرقم…' :
+                      tab === 'suppliers' ? 'بحث باسم المورد أو الرقم…' :
+                      tab === 'items' ? 'بحث باسم الصنف أو كوده…' : 'بحث باسم الخزنة…'
+                    }
+                  />
+                </label>
+
+                <select aria-label="ترتيب النتائج" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as ManagementSort)}>
+                  <option value="name-asc">الاسم (أ – ي)</option>
+                  <option value="serial-desc">الرقم (الأحدث)</option>
+                  <option value="serial-asc">الرقم (الأقدم)</option>
+                </select>
+
+                {tab === 'items' && (
+                  <select aria-label="اختيار المخزن" value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}>
+                    <option value="">اختر المخزن</option>
+                    {warehouses.map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {entityNumber('WH', wh.serial_number)} — {wh.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            <div className="erp-table-wrap">
+              {(tab === 'customers' || tab === 'suppliers') && (
+                <table className="table erp-table">
+                  <thead>
+                    <tr>
+                      <th>الرقم</th>
+                      <th>الحساب</th>
+                      <th>النوع</th>
+                      <th className="num">الرصيد الافتتاحي</th>
+                      <th className="num">الرصيد الحالي</th>
+                      <th aria-label="الإجراءات" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageAccounts.length === 0 && <tr><td colSpan={6} className="empty">{tab === 'customers' ? 'لا توجد حسابات عملاء تطابق البحث.' : 'لا توجد حسابات موردين تطابق البحث.'}</td></tr>}
+                    {pageAccounts.map((account) => {
+                      const isSelected = selectedAccount?.id === account.id;
+                      return (
+                        <tr
+                          key={account.id}
+                          className={isSelected ? 'selected' : ''}
+                          tabIndex={0}
+                          onClick={() => setSelectedAccount(account)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedAccount(account); }
+                          }}
+                        >
+                          <td className="num strong">{entityNumber(tab === 'customers' ? 'CUS' : 'SUP', account.serial_number)}</td>
+                          <td className="strong">{account.name}</td>
+                          <td className="muted">{account.kind === 'customer' ? 'عميل' : 'مورد'}</td>
+                          <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              className="table-input num"
+                              type="number"
+                              step="0.0001"
+                              disabled={!canEditOpening}
+                              value={accountValues[account.id] ?? '0'}
+                              onChange={(event) => setAccountValues((values) => ({ ...values, [account.id]: event.target.value }))}
+                            />
+                          </td>
+                          <td className={`num strong ${Number(account.balance) > 0 ? 'remaining' : ''}`}>{money(account.balance)}</td>
+                          <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
+                            {canEditOpening && (
+                              <button type="button" className="btn compact" disabled={saving} onClick={() => void saveAccountOpening(account)}>
+                                حفظ
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+
+              {tab === 'items' && (
+                <table className="table erp-table">
+                  <thead>
+                    <tr>
+                      <th>الرقم</th>
+                      <th>الكود</th>
+                      <th>الصنف</th>
+                      <th className="num">كمية البداية</th>
+                      <th className="num">تكلفة الوحدة</th>
+                      <th className="num">المتاح الآن</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageStock.length === 0 && <tr><td colSpan={6} className="empty">{warehouses.length === 0 ? 'أضف المخازن والأصناف أولًا.' : !selectedWarehouseId ? 'اختر مخزنًا لعرض أصنافه.' : 'لا توجد أصناف تطابق البحث في هذا المخزن.'}</td></tr>}
+                    {pageStock.map((row) => {
+                      const key = `${row.warehouse_id}:${row.item_id}`;
+                      const value = stockValues[key] ?? { qty: String(row.opening_qty), cost: String(row.unit_cost) };
+                      const isSelected = selectedItemRow?.item_id === row.item_id && selectedItemRow?.warehouse_id === row.warehouse_id;
+                      return (
+                        <tr
+                          key={key}
+                          className={isSelected ? 'selected' : ''}
+                          tabIndex={0}
+                          onClick={() => setSelectedItemRow(row)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedItemRow(row); }
+                          }}
+                        >
+                          <td className="num strong">{entityNumber('ITM', row.item_number)}</td>
+                          <td className="num">{row.item_code}</td>
+                          <td className="strong">{row.item_name}</td>
+                          <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              className="table-input num"
+                              type="number"
+                              min="0"
+                              step="0.0001"
+                              disabled={!canEditOpening}
+                              value={value.qty}
+                              onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, qty: event.target.value } }))}
+                            />
+                          </td>
+                          <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              className="table-input num"
+                              type="number"
+                              min="0"
+                              step="0.0001"
+                              value={value.cost}
+                              disabled={!canEditOpening || row.cost_locked}
+                              onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))}
+                            />
+                          </td>
+                          <td className="num strong">{formatQty(row.current_qty)} {row.unit}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+
+              {tab === 'cashBoxes' && (
+                <table className="table erp-table">
+                  <thead>
+                    <tr>
+                      <th>الرقم</th>
+                      <th>الخزنة</th>
+                      <th className="num">الرصيد الافتتاحي</th>
+                      <th className="num">الرصيد الحالي</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageBoxes.length === 0 && <tr><td colSpan={4} className="empty">لا توجد خزن تطابق البحث.</td></tr>}
+                    {pageBoxes.map((box) => {
+                      const isSelected = selectedBox?.id === box.id;
+                      return (
+                        <tr
+                          key={box.id}
+                          className={isSelected ? 'selected' : ''}
+                          tabIndex={0}
+                          onClick={() => setSelectedBox(box)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedBox(box); }
+                          }}
+                        >
+                          <td className="num strong">{entityNumber('CBX', box.serial_number)}</td>
+                          <td className="strong">{box.name}</td>
+                          <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              className="table-input num"
+                              type="number"
+                              step="0.0001"
+                              disabled={!canEditOpening}
+                              value={cashValues[box.id] ?? '0'}
+                              onChange={(event) => setCashValues((values) => ({ ...values, [box.id]: event.target.value }))}
+                            />
+                          </td>
+                          <td className="num strong remaining">{money(box.balance)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="erp-pagination">
+              <span>
+                عرض {activeTotalCount ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, activeTotalCount)} من {activeTotalCount}
+              </span>
+              <div>
+                <button type="button" className="btn compact" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>السابق</button>
+                <span>{page} / {pageCount}</span>
+                <button type="button" className="btn compact" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>التالي</button>
+              </div>
+            </div>
+          </section>
+
+          {/* اللوحة الجانبية للتفاصيل وإجراءات الحفظ */}
+          <aside className={hasSelection ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل الرصيد الافتتاحي">
+            {selectedAccount ? (
+              <>
+                <div className="erp-detail-head">
+                  <div>
+                    <span>{selectedAccount.kind === 'customer' ? 'افتتاحي عميل' : 'افتتاحي مورد'}</span>
+                    <h2>{selectedAccount.name}</h2>
+                  </div>
+                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedAccount(null)}>×</button>
+                </div>
+
+                <dl className="erp-detail-summary">
+                  <div><dt>الرقم</dt><dd className="num">{entityNumber(selectedAccount.kind === 'customer' ? 'CUS' : 'SUP', selectedAccount.serial_number)}</dd></div>
+                  <div><dt>الهاتف</dt><dd className="num">{selectedAccount.phone || '—'}</dd></div>
+                  <div><dt>الرصيد الفعلي الحالي</dt><dd className="num strong">{money(selectedAccount.balance)}</dd></div>
+                </dl>
+
+                <div className="erp-detail-totals">
+                  <span>الرصيد الافتتاحي</span>
+                  <strong className="num remaining">{money(Number(accountValues[selectedAccount.id] ?? selectedAccount.opening_balance))}</strong>
+                </div>
+
+                <p className="hint">
+                  {selectedAccount.kind === 'customer'
+                    ? 'للعميل: المبلغ الموجب يعني رصيد مستحق عليه (مدين)، والسالب يعني رصيد لصالحه (دائن).'
+                    : 'للمورد: المبلغ الموجب يعني رصيد مستحق له (دائن)، والسالب يعني رصيد لصالحك عنده (مدين).'}
+                </p>
+
+                {selectedAccount.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedAccount.notes}</p>}
+
+                <div className="erp-detail-actions">
+                  {canEditOpening && (
+                    <button type="button" className="btn primary" disabled={saving} onClick={() => void saveAccountOpening(selectedAccount)}>
+                      حفظ الرصيد الافتتاحي لهذا الحساب
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : selectedItemRow ? (
+              <>
+                <div className="erp-detail-head">
+                  <div>
+                    <span>افتتاحي المخزون</span>
+                    <h2>{selectedItemRow.item_name}</h2>
+                  </div>
+                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedItemRow(null)}>×</button>
+                </div>
+
+                <dl className="erp-detail-summary">
+                  <div><dt>رقم الصنف</dt><dd className="num">{entityNumber('ITM', selectedItemRow.item_number)}</dd></div>
+                  <div><dt>كود الصنف</dt><dd className="num">{selectedItemRow.item_code}</dd></div>
+                  <div><dt>المخزن</dt><dd>{selectedWarehouse?.name || selectedItemRow.warehouse_name}</dd></div>
+                  <div><dt>الرصيد المتاح حاليًا</dt><dd className="num strong">{formatQty(selectedItemRow.current_qty)} {selectedItemRow.unit}</dd></div>
+                </dl>
+
+                <div className="erp-detail-totals">
+                  <span>كمية البداية</span>
+                  <strong className="num">{formatQty(Number(stockValues[`${selectedItemRow.warehouse_id}:${selectedItemRow.item_id}`]?.qty ?? selectedItemRow.opening_qty))} {selectedItemRow.unit}</strong>
+                  <span>تكلفة الوحدة</span>
+                  <strong className="num">{money(Number(stockValues[`${selectedItemRow.warehouse_id}:${selectedItemRow.item_id}`]?.cost ?? selectedItemRow.unit_cost))}</strong>
+                </div>
+
+                {selectedItemRow.cost_locked && (
+                  <p className="hint">تكلفة البداية مقفولة لوجود حركات سابقة لحماية حسابات الأرباح، ويمكنك تعديل كمية البداية كتصحيح مخزني.</p>
+                )}
+
+                <div className="erp-detail-actions">
+                  {canEditOpening && (
+                    <form onSubmit={saveCashAndStock}>
+                      <button type="submit" className="btn primary" disabled={saving}>
+                        حفظ جميع أرصدة المخزون
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </>
+            ) : selectedBox ? (
+              <>
+                <div className="erp-detail-head">
+                  <div>
+                    <span>افتتاحي الخزنة</span>
+                    <h2>{selectedBox.name}</h2>
+                  </div>
+                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedBox(null)}>×</button>
+                </div>
+
+                <dl className="erp-detail-summary">
+                  <div><dt>رقم الخزنة</dt><dd className="num">{entityNumber('CBX', selectedBox.serial_number)}</dd></div>
+                  <div><dt>النوع</dt><dd>{selectedBox.is_primary ? 'الخزنة الرئيسية' : 'خزنة فرعية'}</dd></div>
+                  <div><dt>الرصيد الفعلي الحالي</dt><dd className="num strong">{money(selectedBox.balance)}</dd></div>
+                </dl>
+
+                <div className="erp-detail-totals">
+                  <span>الرصيد الافتتاحي</span>
+                  <strong className="num remaining">{money(Number(cashValues[selectedBox.id] ?? selectedBox.opening_balance))}</strong>
+                </div>
+
+                <div className="erp-detail-actions">
+                  {canEditOpening && (
+                    <form onSubmit={saveCashAndStock}>
+                      <button type="submit" className="btn primary" disabled={saving}>
+                        حفظ أرصدة الخزن
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="erp-detail-empty">
+                <strong>اختر بندًا</strong>
+                <span>اضغط على أي سطر لمراجعة رصيده الافتتاحي والفعلي وحفظ التعديلات فورًا.</span>
+              </div>
+            )}
+          </aside>
+        </div>
       )}
     </div>
   );
