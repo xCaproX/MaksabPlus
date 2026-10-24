@@ -25,13 +25,14 @@ export default function Login() {
   return (
     <div className="config-screen">
       <form className="card login-card" onSubmit={submit}>
-        <h1>
-          <span className="brand-mark">م</span> مكسب بلس
-        </h1>
-        <p className="muted">فواتير وإيصالات — تسجيل الدخول</p>
+        <img className="login-logo" src="/maksab-logo.png" alt="مكسب بلس" />
+        <div className="login-intro">
+          <h1>مرحبًا بعودتك</h1>
+          <p className="muted">سجّل دخولك لمتابعة أعمالك</p>
+        </div>
 
         <label>
-          الإيميل
+          البريد الإلكتروني
           <input
             type="email"
             value={email}
@@ -43,7 +44,7 @@ export default function Login() {
         </label>
 
         <label>
-          الباسورد
+          كلمة المرور
           <input
             type="password"
             value={password}
@@ -57,7 +58,7 @@ export default function Login() {
         {error && <p className="alert error">{error}</p>}
 
         <button type="submit" className="btn primary block" disabled={busy}>
-          {busy ? 'جارٍ الدخول…' : 'دخول'}
+          {busy ? 'جارٍ تسجيل الدخول…' : 'تسجيل الدخول'}
         </button>
       </form>
     </div>

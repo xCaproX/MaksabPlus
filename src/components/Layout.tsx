@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 
@@ -14,12 +14,11 @@ export default function Layout() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark">م</span>
-          مكسب بلس
-        </div>
+        <Link className="brand" to="/" aria-label="مكسب بلس — الصفحة الرئيسية">
+          <img src="/maksab-logo.png" alt="مكسب بلس" />
+        </Link>
 
-        <nav className="nav">
+        <nav className="nav" aria-label="التنقل الرئيسي">
           {can('goods.view','goods.create','goods.edit','goods.delete') && <NavLink to="/invoices" className={({ isActive }) => (isActive ? 'active' : '')}>
             البضاعة
           </NavLink>}
@@ -37,7 +36,7 @@ export default function Layout() {
           </NavLink>}
         </nav>
 
-        <button type="button" className="btn ghost" onClick={signOut}>
+        <button type="button" className="btn ghost sign-out" onClick={signOut}>
           تسجيل الخروج
         </button>
       </header>
