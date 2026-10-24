@@ -83,7 +83,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
       </div>
 
       <div className="card-head"><h3>الأصناف</h3></div>
-      <div className="table-wrap">
+      <div className="table-wrap responsive-table">
         <table className="table">
           <thead><tr><th>الصنف</th><th>المتاح في المصدر</th><th>الكمية المنقولة</th><th /></tr></thead>
           <tbody>
@@ -93,12 +93,12 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
               const itemChoices = selectableItems.some((entry) => entry.id === line.item_id) || !line.item_id
                 ? selectableItems
                 : [...selectableItems, ...items.filter((entry) => entry.id === line.item_id)];
-              return <tr key={line.key}>
-                <td><SearchableSelect value={line.item_id} options={itemChoices.map((entry) => ({ value: entry.id, label: entry.name }))}
+              return <tr className="responsive-row" key={line.key}>
+                <td className="transfer-item-cell" data-label="الصنف"><SearchableSelect value={line.item_id} options={itemChoices.map((entry) => ({ value: entry.id, label: entry.name }))}
                   onChange={(item_id) => updateLine(line.key, { item_id })} placeholder="اختر صنفًا…" searchPlaceholder="اكتب للبحث عن صنف…" emptyMessage="لا توجد أصناف متاحة في مخزن المصدر" required /></td>
-                <td className="num">{formatQty(stock?.current_qty ?? 0)} {item?.unit ?? ''}</td>
-                <td><input type="number" min="0.0001" step="0.0001" max={stock?.current_qty ?? undefined} value={line.qty} onChange={(event) => updateLine(line.key, { qty: event.target.value })} required /></td>
-                <td><button type="button" className="link danger" onClick={() => setLines((current) => current.filter((entry) => entry.key !== line.key))}>إزالة</button></td>
+                <td className="num" data-label="المتاح في المصدر">{formatQty(stock?.current_qty ?? 0)} {item?.unit ?? ''}</td>
+                <td data-label="الكمية المنقولة"><input type="number" min="0.0001" step="0.0001" max={stock?.current_qty ?? undefined} value={line.qty} onChange={(event) => updateLine(line.key, { qty: event.target.value })} required /></td>
+                <td data-label="إجراء"><button type="button" className="link danger" onClick={() => setLines((current) => current.filter((entry) => entry.key !== line.key))}>إزالة</button></td>
               </tr>;
             })}
             {lines.length === 0 && <tr><td colSpan={4} className="empty">أضف صنفًا للتحويل.</td></tr>}

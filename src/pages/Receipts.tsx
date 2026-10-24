@@ -338,6 +338,7 @@ export default function Receipts() {
         <button
           type="button"
           className={tab === 'in' ? 'tab active' : 'tab'}
+          aria-pressed={tab === 'in'}
           onClick={() => switchDirection('in')}
         >
           إيصالات استلام
@@ -345,11 +346,12 @@ export default function Receipts() {
         <button
           type="button"
           className={tab === 'out' ? 'tab active' : 'tab'}
+          aria-pressed={tab === 'out'}
           onClick={() => switchDirection('out')}
         >
           إيصالات صرف
         </button>
-        <button type="button" className={tab === 'cash_box_transfer' ? 'tab active' : 'tab'} onClick={switchToCashTransfer}>
+        <button type="button" className={tab === 'cash_box_transfer' ? 'tab active' : 'tab'} aria-pressed={tab === 'cash_box_transfer'} onClick={switchToCashTransfer}>
           تحويل بين الخزن
         </button>
       </div>
@@ -377,6 +379,8 @@ export default function Receipts() {
       </div>
 
       {formOpen && !showDeleted && (isCashBoxTransfer ? <Modal
+        className="transaction-entry-modal"
+        backdropClassName="transaction-entry-backdrop"
         title={editingTransfer ? `تعديل التحويل ${editingTransfer.number}` : 'تحويل جديد بين الخزن'}
         onClose={closeForm}
       >
@@ -384,6 +388,8 @@ export default function Receipts() {
           onSaved={(message) => { setNotice(message); setFormOpen(false); setEditingTransfer(null); setVersion((current) => current + 1); }}
           onCancel={closeForm} />
       </Modal> : <Modal
+        className="transaction-entry-modal"
+        backdropClassName="transaction-entry-backdrop"
         title={editing ? `تعديل الإيصال ${editing.number}` : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`}
         onClose={closeForm}
       >
@@ -485,23 +491,23 @@ export default function Receipts() {
         </form>
         </Modal>)}
 
-      {isCashBoxTransfer ? <div className="card"><div className="table-wrap"><table className="table">
+      {isCashBoxTransfer ? <div className="card"><div className="table-wrap responsive-table"><table className="table">
         <thead><tr><th>الرقم</th><th>التاريخ</th><th>وقت الإنشاء</th><th>من خزنة</th><th>إلى خزنة</th><th>المبلغ</th><th>ملاحظات</th><th /></tr></thead>
         <tbody>
           {loading && <tr><td colSpan={8} className="empty">جارٍ التحميل…</td></tr>}
           {!loading && filteredTransferRows.length === 0 && <tr><td colSpan={8} className="empty">{cashBoxFilter !== 'all' ? 'لا توجد تحويلات في الخزنة المحددة.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات بين الخزن بعد.'}</td></tr>}
-          {!loading && filteredTransferRows.map((transfer) => <tr key={transfer.id}>
-            <td className="num">{transfer.number}</td><td className="num">{transfer.transfer_date}</td><td className="num">{creationTime(transfer.created_at)}</td>
-            <td>{transfer.source_cash_box_name}</td><td>{transfer.destination_cash_box_name}</td>
-            <td className="num strong">{money(transfer.amount)}</td><td>{transfer.notes || '—'}</td>
-            <td className="row-actions">{showDeleted
+          {!loading && filteredTransferRows.map((transfer) => <tr className="responsive-row" key={transfer.id}>
+            <td className="num" data-label="الرقم">{transfer.number}</td><td className="num" data-label="التاريخ">{transfer.transfer_date}</td><td className="num" data-label="وقت الإنشاء">{creationTime(transfer.created_at)}</td>
+            <td data-label="من خزنة">{transfer.source_cash_box_name}</td><td data-label="إلى خزنة">{transfer.destination_cash_box_name}</td>
+            <td className="num strong" data-label="المبلغ">{money(transfer.amount)}</td><td data-label="ملاحظات">{transfer.notes || '—'}</td>
+            <td className="row-actions" data-label="الإجراءات">{showDeleted
               ? can('money.delete') && <button type="button" className="link" onClick={() => restoreTransfer(transfer)}>استعادة</button>
               : <>{can('money.edit') && <button type="button" className="link" onClick={() => { setEditingTransfer(transfer); setFormOpen(true); }}>تعديل</button>}{can('money.delete') && <button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button>}</>}
             </td>
           </tr>)}
         </tbody>
       </table></div></div> : <div className="card">
-        <div className="table-wrap">
+        <div className="table-wrap responsive-table">
           <table className="table">
             <thead>
               <tr>
@@ -539,21 +545,21 @@ export default function Receipts() {
 
               {!loading &&
                 filteredRows.map((receipt) => (
-                  <tr key={receipt.id}>
-                    <td className="num">{receipt.number}</td>
-                    <td className="num">{receipt.receipt_date}</td>
-                    <td className="num">{creationTime(receipt.created_at)}</td>
-                    <td>
+                  <tr className="responsive-row" key={receipt.id}>
+                    <td className="num" data-label="الرقم">{receipt.number}</td>
+                    <td className="num" data-label="التاريخ">{receipt.receipt_date}</td>
+                    <td className="num" data-label="وقت الإنشاء">{creationTime(receipt.created_at)}</td>
+                    <td data-label="الحساب">
                       {receipt.account_name}{' '}
                       <span className="muted">
                         ({receipt.account_kind === 'customer' ? 'عميل' : receipt.account_kind === 'supplier' ? 'مورد' : 'هالك'})
                       </span>
                     </td>
-                    <td>{receipt.cash_box_name}</td>
-                    <td className="num strong">{money(receipt.amount)}</td>
-                    <td className="muted">{receipt.statement ?? '—'}</td>
-                    <td className="muted">{receipt.notes ?? '—'}</td>
-                    <td className="row-actions">
+                    <td data-label="الخزنة">{receipt.cash_box_name}</td>
+                    <td className="num strong" data-label="المبلغ">{money(receipt.amount)}</td>
+                    <td className="muted" data-label="البيان">{receipt.statement ?? '—'}</td>
+                    <td className="muted" data-label="ملاحظات">{receipt.notes ?? '—'}</td>
+                    <td className="row-actions" data-label="الإجراءات">
                       {showDeleted ? can('money.delete') ? (
                         receipt.is_free ? (
                           <button

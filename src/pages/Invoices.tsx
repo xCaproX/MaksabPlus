@@ -423,8 +423,8 @@ export default function Invoices() {
 
       {formOpen && (
         <Modal
-          className={isWarehouseTransfer ? undefined : 'invoice-entry-modal'}
-          backdropClassName={isWarehouseTransfer ? undefined : 'invoice-entry-backdrop'}
+          className={isWarehouseTransfer ? 'transaction-entry-modal' : 'transaction-entry-modal invoice-entry-modal'}
+          backdropClassName="transaction-entry-backdrop"
           title={formTitle}
           onClose={() => {
             setFormOpen(false);
@@ -456,18 +456,18 @@ export default function Invoices() {
       )}
 
       {isWarehouseTransfer ? <div className="card">
-        <div className="table-wrap"><table className="table">
+        <div className="table-wrap responsive-table"><table className="table">
           <thead><tr><th>الرقم</th><th>التاريخ</th><th>وقت الإنشاء</th><th>من مخزن</th><th>إلى مخزن</th><th>عدد الأصناف</th><th>إجمالي الكميات</th><th>قيمة التكلفة المنقولة</th><th>ملاحظات</th><th /></tr></thead>
           <tbody>
             {loading && <tr><td colSpan={10} className="empty">جارٍ التحميل…</td></tr>}
             {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).length === 0 &&
               <tr><td colSpan={10} className="empty">{warehouseFilter !== 'all' ? 'لا توجد تحويلات للمخزن المحدد.' : showDeleted ? 'لا توجد تحويلات محذوفة.' : 'لا توجد تحويلات مخزنية بعد.'}</td></tr>}
-            {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).map((transfer) => <tr key={transfer.id}>
-              <td className="num">{transfer.number}</td><td className="num">{transfer.transfer_date}</td><td className="num">{creationTime(transfer.created_at)}</td>
-              <td>{transfer.source_warehouse_name}</td><td>{transfer.destination_warehouse_name}</td>
-              <td className="num">{transfer.line_count}</td><td className="num">{formatQty(transfer.total_qty)}</td>
-              <td className="num">{money(transfer.total_value)}</td><td>{transfer.notes || '—'}</td>
-              <td className="row-actions">{showDeleted
+            {!loading && transferRows.filter((row) => warehouseFilter === 'all' || row.source_warehouse_id === warehouseFilter || row.destination_warehouse_id === warehouseFilter).map((transfer) => <tr className="responsive-row" key={transfer.id}>
+              <td className="num" data-label="الرقم">{transfer.number}</td><td className="num" data-label="التاريخ">{transfer.transfer_date}</td><td className="num" data-label="وقت الإنشاء">{creationTime(transfer.created_at)}</td>
+              <td data-label="من مخزن">{transfer.source_warehouse_name}</td><td data-label="إلى مخزن">{transfer.destination_warehouse_name}</td>
+              <td className="num" data-label="عدد الأصناف">{transfer.line_count}</td><td className="num" data-label="إجمالي الكميات">{formatQty(transfer.total_qty)}</td>
+              <td className="num" data-label="قيمة التكلفة المنقولة">{money(transfer.total_value)}</td><td data-label="ملاحظات">{transfer.notes || '—'}</td>
+              <td className="row-actions" data-label="الإجراءات">{showDeleted
                 ? can('goods.delete') && <button type="button" className="link" onClick={() => restoreTransfer(transfer)}>استعادة</button>
                 : <>{can('goods.view') && <button type="button" className="link" onClick={() => void openTransferDetails(transfer)}>عرض</button>}{can('goods.edit') && <button type="button" className="link" onClick={() => void startEditTransfer(transfer)}>تعديل</button>}{can('goods.delete') && <button type="button" className="link danger" onClick={() => void removeTransfer(transfer)}>حذف</button>}</>}
               </td>
