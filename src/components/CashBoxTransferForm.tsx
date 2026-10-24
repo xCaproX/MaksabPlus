@@ -52,30 +52,68 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
     <form className="inline-form" onSubmit={submit}>
       {error && <p className="alert error">{error}</p>}
       <div className="form-grid">
-        <label>من خزنة
+        <label className="form-grid-col-4">
+          من خزنة (المصدر)
           <select value={sourceId} onChange={(event) => {
             const next = event.target.value;
             setSourceId(next);
             if (next === destinationId) setDestinationId(activeBoxes.find((box) => box.id !== next)?.id ?? '');
           }} required>
             <option value="">اختر خزنة المصدر…</option>
-            {activeBoxes.map((box) => <option key={box.id} value={box.id}>{box.name} — {money(box.balance)}</option>)}
+            {activeBoxes.map((box) => <option key={box.id} value={box.id}>{box.name} — رصيدها: {money(box.balance)}</option>)}
           </select>
         </label>
-        <label>إلى خزنة
+        <label className="form-grid-col-4">
+          إلى خزنة (الوجهة)
           <select value={destinationId} onChange={(event) => setDestinationId(event.target.value)} required>
             <option value="">اختر خزنة الوجهة…</option>
-            {activeBoxes.filter((box) => box.id !== sourceId).map((box) => <option key={box.id} value={box.id}>{box.name} — {money(box.balance)}</option>)}
+            {activeBoxes.filter((box) => box.id !== sourceId).map((box) => <option key={box.id} value={box.id}>{box.name} — رصيدها: {money(box.balance)}</option>)}
           </select>
         </label>
-        <label>التاريخ<input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label>
-        <label>المبلغ<input type="number" min="0.0001" step="0.0001" max={maxAmount} value={amount} onChange={(event) => setAmount(event.target.value)} required /></label>
-        <label className="span-2">ملاحظات<input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="اختياري" /></label>
+        <label className="form-grid-col-4">
+          التاريخ
+          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
+        </label>
+        <label className="form-grid-col-4">
+          المبلغ المنقول
+          <input
+            type="number"
+            min="0.0001"
+            step="0.0001"
+            dir="ltr"
+            placeholder="0.00"
+            max={maxAmount}
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            required
+          />
+        </label>
+        <label className="form-grid-col-8">
+          ملاحظات التحويل
+          <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="ملاحظات التحويل (اختياري)…" />
+        </label>
       </div>
-      <p className="hint">ينقص المبلغ من رصيد خزنة المصدر ويضاف إلى الوجهة. لا يتغير مجموع الخزن أو رصيد أي عميل أو مورد.</p>
-      <div className="actions">
-        <button type="submit" className="btn primary" disabled={busy}>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل'}</button>
-        <button type="button" className="btn" onClick={onCancel} disabled={busy}>إلغاء</button>
+
+      {Number(amount) > 0 && (
+        <div className="invoice-totals-bar">
+          <div className="total-stat-box grand-total">
+            <span className="stat-box-title">المبلغ المراد تحويله بين الخزنتين</span>
+            <strong className="stat-box-num">{money(Number(amount))}</strong>
+          </div>
+        </div>
+      )}
+
+      <div className="form-footer-smart-hint">
+        <span>💡 ينقص المبلغ من رصيد خزنة المصدر ويضاف إلى الوجهة مباشرة. لا يتغير مجموع الخزن الكلي أو رصيد أي عميل أو مورد.</span>
+      </div>
+
+      <div className="form-modal-actions">
+        <button type="submit" className="btn primary" disabled={busy}>
+          {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل'}
+        </button>
+        <button type="button" className="btn" onClick={onCancel} disabled={busy}>
+          إلغاء
+        </button>
       </div>
     </form>
   );

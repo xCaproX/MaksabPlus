@@ -763,7 +763,18 @@ export default function Receipts() {
           >
             <form className="inline-form" onSubmit={submit}>
               <div className="form-grid">
-                <label>
+                <label className="form-grid-col-5">
+                  {isIn ? 'استلام من (العميل / الحساب)' : 'صرف إلى (المورد / الحساب)'}
+                  <SearchableSelect
+                    value={accountId}
+                    options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
+                    onChange={setAccountId}
+                    placeholder="اختر الحساب…"
+                    required
+                  />
+                </label>
+
+                <label className="form-grid-col-3">
                   نوع الحساب
                   <select
                     value={accountKind}
@@ -778,19 +789,8 @@ export default function Receipts() {
                   </select>
                 </label>
 
-                <label>
-                  الحساب
-                  <SearchableSelect
-                    value={accountId}
-                    options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
-                    onChange={setAccountId}
-                    placeholder="اختر الحساب…"
-                    required
-                  />
-                </label>
-
-                <label>
-                  الخزنة
+                <label className="form-grid-col-4">
+                  الخزنة {isIn ? 'المستلمة' : 'المنصرفة'}
                   <select value={cashBoxId} onChange={(e) => setCashBoxId(e.target.value)} required>
                     {selectableCashBoxes.map((box) => (
                       <option key={box.id} value={box.id}>
@@ -800,17 +800,13 @@ export default function Receipts() {
                   </select>
                 </label>
 
-                <label>
-                  التاريخ
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-                </label>
-
-                <label>
+                <label className="form-grid-col-4">
                   المبلغ
                   <input
                     type="number"
                     step="0.0001"
                     min="0.0001"
+                    dir="ltr"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
@@ -818,36 +814,52 @@ export default function Receipts() {
                   />
                 </label>
 
-                <label>
+                <label className="form-grid-col-3">
+                  التاريخ
+                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+                </label>
+
+                <label className="form-grid-col-5">
                   البيان
                   <input
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="سبب أو وصف المعاملة"
+                    placeholder="سبب أو وصف المعاملة…"
                   />
                 </label>
 
-                <label className="span-2">
+                <label className="form-grid-col-12">
                   ملاحظات
                   <input
                     type="text"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="اختياري"
+                    placeholder="أي ملاحظات إضافية على الإيصال (اختياري)…"
                   />
                 </label>
               </div>
 
-              <p className="hint">
-                {isIn
-                  ? 'استلام من عميل يقلّل رصيده، ومن مورد يزيد رصيده؛ ويزيد رصيد الخزنة.'
-                  : 'صرف لعميل يزيد رصيده، ولمورد يقلّل رصيده؛ وينقص رصيد الخزنة.'}
-              </p>
+              {Number(amount) > 0 && (
+                <div className="invoice-totals-bar" style={{ marginTop: '4px' }}>
+                  <div className="total-stat-box grand-total">
+                    <span className="stat-box-title">قيمة الإيصال المحصلة / المنصرفة</span>
+                    <strong className="stat-box-num">{money(Number(amount))}</strong>
+                  </div>
+                </div>
+              )}
 
-              <div className="actions">
+              <div className="form-footer-smart-hint">
+                <span>
+                  {isIn
+                    ? '💡 استلام من عميل يقلّل رصيده، ومن مورد يزيد رصيده؛ ويزيد رصيد الخزنة.'
+                    : '💡 صرف لعميل يزيد رصيده، ولمورد يقلّل رصيده؛ وينقص رصيد الخزنة.'}
+                </span>
+              </div>
+
+              <div className="form-modal-actions">
                 <button type="submit" className="btn primary" disabled={busy}>
-                  {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ الإيصال'}
+                  {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
                 </button>
                 <button type="button" className="btn" onClick={closeForm} disabled={busy}>
                   إلغاء

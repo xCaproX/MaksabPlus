@@ -209,12 +209,26 @@ export default function InvoiceForm({
   return (
     <form className="invoice-form" onSubmit={submit}>
       <div className="form-grid">
-        <label>
-          التاريخ
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+        <label className="form-grid-col-5">
+          {isWaste ? 'الحساب' : kind === 'sale' || kind === 'sale_return' ? 'العميل' : 'المورد'}
+          {isWaste ? (
+            <select value={accountId} disabled required>
+              <option value={accountId}>
+                {accounts.find((account) => account.id === accountId)?.name ?? 'حساب الهالك الثابت غير موجود'}
+              </option>
+            </select>
+          ) : (
+            <SearchableSelect
+              value={accountId}
+              options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
+              onChange={setAccountId}
+              placeholder="اختر الحساب…"
+              required
+            />
+          )}
         </label>
 
-        <label>
+        <label className="form-grid-col-2">
           نوع الحساب
           <select
             value={accountKind}
@@ -236,26 +250,12 @@ export default function InvoiceForm({
           </select>
         </label>
 
-        <label>
-          الحساب
-          {isWaste ? (
-            <select value={accountId} disabled required>
-              <option value={accountId}>
-                {accounts.find((account) => account.id === accountId)?.name ?? 'حساب الهالك الثابت غير موجود'}
-              </option>
-            </select>
-          ) : (
-            <SearchableSelect
-              value={accountId}
-              options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
-              onChange={setAccountId}
-              placeholder="اختر الحساب…"
-              required
-            />
-          )}
+        <label className="form-grid-col-2">
+          التاريخ
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
         </label>
 
-        <label>
+        <label className="form-grid-col-3">
           المخزن
           <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} required>
             {selectableWarehouses.length === 0 && <option value="">لا يوجد مخزن نشط</option>}
@@ -267,36 +267,40 @@ export default function InvoiceForm({
           </select>
         </label>
 
-        <label className="span-2">
+        <label className="form-grid-col-12">
           ملاحظات
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="اختياري"
+            placeholder="ملاحظات إضافية على الفاتورة (اختياري)…"
           />
         </label>
       </div>
 
       <div className="lines">
-        <div className="lines-head">
-          <h3>الأصناف</h3>
-          <button type="button" className="btn ghost" onClick={addLine}>
-            + إضافة صنف
+        <div className="lines-head-bar">
+          <div className="lines-head-title">
+            <h3>الأصناف</h3>
+            <span className="lines-count-badge">{lines.length} {lines.length === 1 ? 'صنف' : 'أصناف'}</span>
+          </div>
+          <button type="button" className="add-line-btn" onClick={addLine}>
+            <span>+</span>
+            <span>إضافة صنف</span>
           </button>
         </div>
 
-        <p className="hint lines-hint">ابحث عن الصنف بالاسم أو الكود، وبعد اختياره أدخل الكمية.</p>
-        {lineWarning && <p className="alert warning" role="status">{lineWarning}</p>}
-        <div className="table-wrap lines-wrap">
-          <table className="table lines-table">
+        {lineWarning && <p className="alert warning" role="status" style={{ margin: '8px 0' }}>{lineWarning}</p>}
+
+        <div className="lines-wrap">
+          <table className="lines-table">
             <thead>
               <tr>
                 <th>الصنف</th>
                 <th className="w-qty">الكمية</th>
                 <th className="w-price">{isWaste ? 'سعر البيع' : 'السعر'}</th>
                 <th className="w-total">الإجمالي</th>
-                <th className="w-action" />
+                <th className="w-action center">حذف</th>
               </tr>
             </thead>
             <tbody>
@@ -330,16 +334,19 @@ export default function InvoiceForm({
                       />
                     </td>
                     <td data-label={selectedItem ? `الكمية (${selectedItem.unit})` : 'الكمية'}>
-                      <input
-                        ref={(element) => { quantityRefs.current[line.key] = element; }}
-                        aria-label={`الكمية${selectedItem ? ` — ${selectedItem.name} (${selectedItem.unit})` : ''}`}
-                        type="number"
-                        min="0"
-                        step="0.0001"
-                        value={line.qty}
-                        onChange={(e) => updateLine(line.key, { qty: e.target.value })}
-                        onKeyDown={moveFromQuantity}
-                      />
+                      <div className="line-qty-cell">
+                        <input
+                          ref={(element) => { quantityRefs.current[line.key] = element; }}
+                          aria-label={`الكمية${selectedItem ? ` — ${selectedItem.name} (${selectedItem.unit})` : ''}`}
+                          type="number"
+                          min="0"
+                          step="0.0001"
+                          value={line.qty}
+                          onChange={(e) => updateLine(line.key, { qty: e.target.value })}
+                          onKeyDown={moveFromQuantity}
+                        />
+                        {selectedItem && <span className="line-unit-badge">{selectedItem.unit}</span>}
+                      </div>
                     </td>
                     <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
                       <input
@@ -347,23 +354,25 @@ export default function InvoiceForm({
                         type="number"
                         min="0"
                         step="0.01"
+                        dir="ltr"
+                        placeholder="0.00"
                         value={line.unit_price}
                         onChange={(e) => updateLine(line.key, { unit_price: e.target.value })}
                         onKeyDown={addLineFromPrice}
                         disabled={isWaste}
                       />
                     </td>
-                    <td className="num line-total" data-label="الإجمالي">{money(lineTotal)}</td>
-                    <td className="line-remove" data-label="إجراء">
+                    <td className="line-total" data-label="الإجمالي">{money(lineTotal)}</td>
+                    <td className="center" data-label="إجراء">
                       <button
                         type="button"
-                        className="icon-btn"
-                        title="حذف السطر"
+                        className="line-delete-btn"
+                        title="حذف هذا الصنف"
                         aria-label="حذف سطر الصنف"
                         onClick={() => removeLine(line.key)}
                         disabled={lines.length === 1}
                       >
-                        <span aria-hidden="true">×</span><span className="line-remove-label">حذف السطر</span>
+                        ✕
                       </button>
                     </td>
                   </tr>
@@ -375,59 +384,90 @@ export default function InvoiceForm({
       </div>
 
       <div className="form-footer">
-        <div className="totals">
-          <div>
-            <span className="muted">الإجمالي</span>
-            <strong className="num">{money(total)}</strong>
+        <div className="invoice-totals-bar">
+          <div className="total-stat-box grand-total">
+            <span className="stat-box-title">إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}</span>
+            <strong className="stat-box-num">{money(total)}</strong>
           </div>
-          {!isWaste && <div>
-            <span className="muted">{isReturn ? 'غير المسترد' : 'المتبقي'}</span>
-            <strong className="num">{money(remaining)}</strong>
-          </div>}
-          {!isWaste && <label className="paid-field">
-            {isReturn ? 'المسترد' : 'المدفوع'}
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={paid}
-              onChange={(e) => setPaid(e.target.value)}
-            />
-          </label>}
+
+          {!isWaste && (
+            <div className="total-input-box">
+              <label>
+                <span className="stat-box-title">{isReturn ? 'المبلغ المسترد' : 'المبلغ المدفوع'}</span>
+                <div className="input-with-action-wrap">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    dir="ltr"
+                    placeholder="0.00"
+                    value={paid}
+                    onChange={(e) => setPaid(e.target.value)}
+                  />
+                  {total > 0 && Number(paid) !== total && (
+                    <button
+                      type="button"
+                      className="btn-pay-full-pill"
+                      title="سداد كامل المبلغ"
+                      onClick={() => setPaid(String(total))}
+                    >
+                      كامل المبلغ
+                    </button>
+                  )}
+                </div>
+              </label>
+            </div>
+          )}
+
+          {!isWaste && (
+            <div className={`total-stat-box ${remaining === 0 ? 'paid-full' : 'has-remaining'}`}>
+              <span className="stat-box-title">
+                {isReturn
+                  ? remaining === 0 ? 'مسترد بالكامل' : 'غير مسترد'
+                  : remaining === 0 ? 'خالص بالكامل' : 'المتبقي (آجل)'}
+              </span>
+              <strong className="stat-box-num">{money(remaining)}</strong>
+            </div>
+          )}
+
           {!isWaste && paidNumber > 0 && (
-            <label className="paid-field">
-              الخزنة
-              <select value={effectiveCashBoxId} onChange={(event) => setCashBoxId(event.target.value)} required>
-                <option value="">اختر الخزنة…</option>
-                {selectableCashBoxes.map((box) => (
-                  <option key={box.id} value={box.id}>
-                    {box.name}{!box.is_active ? ' — موقوفة (مرتبطة بالفاتورة الحالية)' : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="total-input-box">
+              <label>
+                <span className="stat-box-title">الخزنة المستلمة / المنصرفة</span>
+                <select value={effectiveCashBoxId} onChange={(event) => setCashBoxId(event.target.value)} required>
+                  <option value="">اختر الخزنة…</option>
+                  {selectableCashBoxes.map((box) => (
+                    <option key={box.id} value={box.id}>
+                      {box.name} ({money(box.balance)})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           )}
         </div>
 
-        <p className="hint">
-          {isWaste
-            ? 'تُحسب خسارة الهالك من متوسط تكلفة الصنف في هذا المخزن وقت الحفظ. لا يترتب عليه مبلغ أو إيصال.'
-            : cashAccountSelected
-            ? `الحساب نقدي: يجب أن يساوي ${isReturn ? 'المسترد' : 'المدفوع'} إجمالي المستند، وسيُنشأ الإيصال تلقائيًا.`
-            : isReturn
-            ? paidNumber > 0
-              ? `سيتم إنشاء إيصال ${isRefundIn ? 'استلام من' : 'صرف إلى'} الحساب بقيمة المسترد وربطه بالمرتجع.`
-              : 'لا يوجد مسترد: لن يتم إنشاء إيصال، وسيبقى المبلغ رصيدًا دائنًا للحساب.'
-            : paidNumber > 0
-              ? 'سيتم إنشاء إيصال تلقائي بقيمة المدفوع وربطه بالفاتورة.'
-              : 'لا يوجد مدفوع: لن يتم إنشاء إيصال.'}
-        </p>
+        <div className={`form-footer-smart-hint ${cashAccountSelected ? 'notice-cash' : ''}`}>
+          <span>
+            {isWaste
+              ? 'تُحسب خسارة الهالك من متوسط تكلفة الصنف في هذا المخزن وقت الحفظ. لا يترتب عليه مبلغ أو إيصال.'
+              : cashAccountSelected
+              ? `💡 الحساب نقدي: يجب أن يساوي ${isReturn ? 'المسترد' : 'المدفوع'} إجمالي المستند (${money(total)})، وسينشأ الإيصال آليًا.`
+              : isReturn
+              ? paidNumber > 0
+                ? `سيتم إنشاء إيصال ${isRefundIn ? 'استلام من' : 'صرف إلى'} الحساب بقيمة المسترد (${money(paidNumber)}) وربطه بالمرتجع.`
+                : 'لا يوجد مسترد: لن يتم إنشاء إيصال، وسيبقى المبلغ رصيدًا دائنًا للحساب.'
+              : paidNumber > 0
+                ? `سيتم إنشاء إيصال نقدية تلقائي بقيمة المدفوع (${money(paidNumber)}) وربطه بالفاتورة.`
+                : 'فاتورة آجلة: لا يوجد مدفوع نقدي، وستضاف القيمة لحساب العميل/المورد.'}
+          </span>
+        </div>
 
         {error && <p className="alert error">{error}</p>}
 
-        <div className="actions">
+        <div className="form-modal-actions">
           <button type="submit" className="btn primary" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ الفاتورة'}
+            {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : `حفظ ${isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}`}
           </button>
           <button type="button" className="btn" onClick={onCancel} disabled={busy}>
             إلغاء
