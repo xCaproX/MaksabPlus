@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty, today } from '../lib/format';
@@ -7,7 +7,9 @@ import Modal from '../components/Modal';
 import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, ItemMovementStatementRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 
 type BalanceTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes';
+type BalanceSort = 'balance-desc' | 'balance-asc' | 'name-asc';
 
+const PAGE_SIZE = 20;
 const VALID_BALANCE_TABS: BalanceTab[] = ['customers', 'suppliers', 'items', 'cashBoxes'];
 
 export default function Balances() {
@@ -16,23 +18,6 @@ export default function Balances() {
   const initialTab = (tabParam && VALID_BALANCE_TABS.includes(tabParam)) ? tabParam : 'customers';
   const [tab, setTab] = useState<BalanceTab>(initialTab);
 
-  useEffect(() => {
-    const targetTab = (tabParam && VALID_BALANCE_TABS.includes(tabParam)) ? tabParam : 'customers';
-    if (targetTab !== tab) {
-      setTab(targetTab);
-      setStatementAccount(null);
-      setCashStatementBox(null);
-      setItemStatementRow(null);
-    }
-  }, [tabParam]);
-
-  function switchTab(next: BalanceTab) {
-    setTab(next);
-    setSearchParams({ tab: next });
-    setStatementAccount(null);
-    setCashStatementBox(null);
-    setItemStatementRow(null);
-  }
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
   const [stockRows, setStockRows] = useState<StockOpeningRow[]>([]);
@@ -40,20 +25,56 @@ export default function Balances() {
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // الفلاتر والبحث
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
+  const [page, setPage] = useState(1);
+
+  // العناصر المحددة للوحة الجانبية
+  const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
+  const [selectedItem, setSelectedItem] = useState<StockOpeningRow | null>(null);
+  const [selectedBox, setSelectedBox] = useState<CashBoxRow | null>(null);
+
+  // كشوفات الحساب والنوافذ المخصصة للطباعة
   const [statementAccount, setStatementAccount] = useState<AccountRow | null>(null);
   const [statementFrom, setStatementFrom] = useState(`${today().slice(0, 7)}-01`);
   const [statementTo, setStatementTo] = useState(today());
   const [statementRows, setStatementRows] = useState<AccountStatementRow[]>([]);
   const [statementLoading, setStatementLoading] = useState(false);
   const [statementError, setStatementError] = useState('');
+
   const [cashStatementBox, setCashStatementBox] = useState<CashBoxRow | null>(null);
   const [cashStatementRows, setCashStatementRows] = useState<CashBoxStatementRow[]>([]);
   const [cashStatementLoading, setCashStatementLoading] = useState(false);
   const [cashStatementError, setCashStatementError] = useState('');
+
   const [itemStatementRow, setItemStatementRow] = useState<StockOpeningRow | null>(null);
   const [itemStatementRows, setItemStatementRows] = useState<ItemMovementStatementRow[]>([]);
   const [itemStatementLoading, setItemStatementLoading] = useState(false);
   const [itemStatementError, setItemStatementError] = useState('');
+
+  useEffect(() => {
+    const targetTab = (tabParam && VALID_BALANCE_TABS.includes(tabParam)) ? tabParam : 'customers';
+    if (targetTab !== tab) {
+      setTab(targetTab);
+      setSelectedAccount(null);
+      setSelectedItem(null);
+      setSelectedBox(null);
+      setSearchTerm('');
+      setPage(1);
+    }
+  }, [tabParam]);
+
+  function switchTab(next: BalanceTab) {
+    setTab(next);
+    setSearchParams({ tab: next });
+    setSelectedAccount(null);
+    setSelectedItem(null);
+    setSelectedBox(null);
+    setSearchTerm('');
+    setPage(1);
+  }
 
   useEffect(() => {
     let alive = true;
@@ -86,8 +107,85 @@ export default function Balances() {
   const visibleAccounts = accounts.filter((account) => account.system_key === null);
   const customers = visibleAccounts.filter((account) => account.kind === 'customer');
   const suppliers = visibleAccounts.filter((account) => account.kind === 'supplier');
-  const selectedStockRows = stockRows.filter((row) => row.warehouse_id === selectedWarehouseId);
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === selectedWarehouseId);
+
+  // تصفية العملاء
+  const filteredCustomers = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase('ar');
+    const list = customers.filter((acc) => {
+      return !query || [acc.name, acc.phone || '', String(acc.serial_number), acc.notes || '']
+        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+    });
+    return list.sort((a, b) => {
+      if (sortOrder === 'balance-desc') return Number(b.balance) - Number(a.balance);
+      if (sortOrder === 'balance-asc') return Number(a.balance) - Number(b.balance);
+      return a.name.localeCompare(b.name, 'ar');
+    });
+  }, [customers, searchTerm, sortOrder]);
+
+  // تصفية الموردين
+  const filteredSuppliers = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase('ar');
+    const list = suppliers.filter((acc) => {
+      return !query || [acc.name, acc.phone || '', String(acc.serial_number), acc.notes || '']
+        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+    });
+    return list.sort((a, b) => {
+      if (sortOrder === 'balance-desc') return Number(b.balance) - Number(a.balance);
+      if (sortOrder === 'balance-asc') return Number(a.balance) - Number(b.balance);
+      return a.name.localeCompare(b.name, 'ar');
+    });
+  }, [suppliers, searchTerm, sortOrder]);
+
+  // تصفية الأصناف
+  const filteredItems = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase('ar');
+    const list = stockRows.filter((item) => {
+      const matchWh = !selectedWarehouseId || item.warehouse_id === selectedWarehouseId;
+      const matchQuery = !query || [item.item_name, item.item_code, item.item_notes || '', String(item.item_number)]
+        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+      return matchWh && matchQuery;
+    });
+    return list.sort((a, b) => {
+      if (sortOrder === 'balance-desc') return Number(b.current_qty) - Number(a.current_qty);
+      if (sortOrder === 'balance-asc') return Number(a.current_qty) - Number(b.current_qty);
+      return a.item_name.localeCompare(b.item_name, 'ar');
+    });
+  }, [stockRows, selectedWarehouseId, searchTerm, sortOrder]);
+
+  // تصفية الخزن
+  const filteredCashBoxes = useMemo(() => {
+    const query = searchTerm.trim().toLocaleLowerCase('ar');
+    const list = cashBoxes.filter((box) => {
+      return !query || [box.name, box.notes || '', String(box.serial_number)]
+        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+    });
+    return list.sort((a, b) => {
+      if (sortOrder === 'balance-desc') return Number(b.balance) - Number(a.balance);
+      if (sortOrder === 'balance-asc') return Number(a.balance) - Number(b.balance);
+      return a.name.localeCompare(b.name, 'ar');
+    });
+  }, [cashBoxes, searchTerm, sortOrder]);
+
+  const activeTotalCount =
+    tab === 'customers' ? filteredCustomers.length :
+    tab === 'suppliers' ? filteredSuppliers.length :
+    tab === 'items' ? filteredItems.length : filteredCashBoxes.length;
+
+  const pageCount = Math.max(1, Math.ceil(activeTotalCount / PAGE_SIZE));
+
+  const pageCustomers = filteredCustomers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageSuppliers = filteredSuppliers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageBoxes = filteredCashBoxes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, sortOrder, selectedWarehouseId, tab]);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   function openStatement(account: AccountRow) {
     setStatementAccount(account);
@@ -170,103 +268,523 @@ export default function Balances() {
       setItemStatementRows((data ?? []) as ItemMovementStatementRow[]);
     }
   }
-  const tabs: { id: BalanceTab; label: string }[] = [
-    { id: 'customers', label: 'حسابات العملاء' },
-    { id: 'suppliers', label: 'حسابات الموردين' },
-    { id: 'items', label: 'أرصدة الأصناف' },
-    { id: 'cashBoxes', label: 'أرصدة الخزن' },
-  ];
+
+  const tabTitle =
+    tab === 'customers' ? 'حسابات العملاء' :
+    tab === 'suppliers' ? 'حسابات الموردين' :
+    tab === 'items' ? 'أرصدة الأصناف' : 'أرصدة الخزن';
+
+  const hasSelection = selectedAccount || selectedItem || selectedBox;
 
   return (
     <div className="stack">
-      <div className="page-head"><div><h1>الأرصدة</h1><p className="muted">عرض أرصدة الحسابات والمخزون والخزن.</p></div></div>
-      <div className="tabs">
-        {tabs.map((entry) => <button key={entry.id} type="button" className={tab === entry.id ? 'tab active' : 'tab'} onClick={() => switchTab(entry.id)}>{entry.label}</button>)}
+      <div className="page-head">
+        <div>
+          <h1>{tabTitle}</h1>
+          <p className="muted">
+            {tab === 'customers'
+              ? 'متابعة أرصدة العملاء وكشوفات حساباتهم (الموجب يعني عليه، والسالب يعني له).'
+              : tab === 'suppliers'
+              ? 'متابعة أرصدة الموردين ومستحقاتهم وكشوفات الحساب.'
+              : tab === 'items'
+              ? 'متابعة كميات الأصناف الحالية في المخازن وحركة الصادر والوارد.'
+              : 'متابعة السيولة النقدية والأرصدة الفعلية في خزن الشركة.'}
+          </p>
+        </div>
       </div>
+
+      <div className="tabs">
+        <button type="button" className={tab === 'customers' ? 'tab active' : 'tab'} onClick={() => switchTab('customers')}>حسابات العملاء</button>
+        <button type="button" className={tab === 'suppliers' ? 'tab active' : 'tab'} onClick={() => switchTab('suppliers')}>حسابات الموردين</button>
+        <button type="button" className={tab === 'items' ? 'tab active' : 'tab'} onClick={() => switchTab('items')}>أرصدة الأصناف</button>
+        <button type="button" className={tab === 'cashBoxes' ? 'tab active' : 'tab'} onClick={() => switchTab('cashBoxes')}>أرصدة الخزن</button>
+      </div>
+
       {error && <p className="alert error">{error}</p>}
-      {loading ? <div className="card empty">جارٍ التحميل…</div> : (
-        <div className="card table-wrap responsive-table">
-          {tab === 'customers' && <table className="table"><thead><tr><th>الرقم</th><th>العميل</th><th>الهاتف</th><th>الرصيد</th><th>ملاحظات</th><th /></tr></thead><tbody>
-            {customers.map((account) => <tr key={account.id} className="responsive-row"><td className="num" data-label="الرقم">{entityNumber('CUS', account.serial_number)}</td><td data-label="العميل">{account.name}</td><td data-label="الهاتف">{account.phone ?? '—'}</td><td className="num strong" data-label="الرصيد">{money(account.balance)}</td><td data-label="ملاحظات">{account.notes || '—'}</td><td className="row-actions" data-label="الإجراء"><button type="button" className="btn" onClick={() => openStatement(account)}>كشف حساب</button></td></tr>)}
-            {customers.length === 0 && <tr><td colSpan={6} className="empty">لا توجد حسابات عملاء.</td></tr>}
-          </tbody></table>}
-          {tab === 'suppliers' && <table className="table"><thead><tr><th>الرقم</th><th>المورد</th><th>الهاتف</th><th>الرصيد</th><th>ملاحظات</th><th /></tr></thead><tbody>
-            {suppliers.map((account) => <tr key={account.id} className="responsive-row"><td className="num" data-label="الرقم">{entityNumber('SUP', account.serial_number)}</td><td data-label="المورد">{account.name}</td><td data-label="الهاتف">{account.phone ?? '—'}</td><td className="num strong" data-label="الرصيد">{money(account.balance)}</td><td data-label="ملاحظات">{account.notes || '—'}</td><td className="row-actions" data-label="الإجراء"><button type="button" className="btn" onClick={() => openStatement(account)}>كشف حساب</button></td></tr>)}
-            {suppliers.length === 0 && <tr><td colSpan={6} className="empty">لا توجد حسابات موردين.</td></tr>}
-          </tbody></table>}
-          {tab === 'items' && <>
-            <div className="filter-row balance-filter-row"><label>المخزن<select value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}><option value="">اختر المخزن</option>{warehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{entityNumber('WH', warehouse.serial_number)} — {warehouse.name}</option>)}</select></label><p className="filter-note"><strong>ملاحظات المخزن:</strong> {selectedWarehouse?.notes || '—'}</p></div>
-            <table className="table"><thead><tr><th>رقم الصنف</th><th>كود الصنف</th><th>الصنف</th><th>ملاحظات الصنف</th><th>الكمية الحالية</th><th /></tr></thead><tbody>
-              {selectedStockRows.map((row) => <tr key={`${row.warehouse_id}:${row.item_id}`} className="responsive-row"><td className="num" data-label="رقم الصنف">{entityNumber('ITM', row.item_number)}</td><td className="num" data-label="الكود">{row.item_code}</td><td data-label="الصنف">{row.item_name}</td><td data-label="ملاحظات الصنف">{row.item_notes || '—'}</td><td className="num strong" data-label="الكمية الحالية">{formatQty(row.current_qty)} {row.unit}</td><td className="row-actions" data-label="الإجراء"><button type="button" className="btn" onClick={() => openItemStatement(row)}>كشف حركة</button></td></tr>)}
-              {selectedStockRows.length === 0 && <tr><td colSpan={6} className="empty">{warehouses.length === 0 ? 'لا توجد مخازن نشطة.' : selectedWarehouseId ? 'لا توجد أصناف لهذا المخزن.' : 'اختر مخزنًا لعرض أصنافه.'}</td></tr>}
-            </tbody></table>
-          </>}
-          {tab === 'cashBoxes' && <table className="table"><thead><tr><th>الرقم</th><th>الخزنة</th><th>الرصيد الحالي</th><th>ملاحظات</th><th /></tr></thead><tbody>
-            {cashBoxes.map((box) => <tr key={box.id} className="responsive-row"><td className="num" data-label="الرقم">{entityNumber('CBX', box.serial_number)}</td><td data-label="الخزنة">{box.name}</td><td className="num strong" data-label="الرصيد الحالي">{money(box.balance)}</td><td data-label="ملاحظات">{box.notes || '—'}</td><td className="row-actions" data-label="الإجراء"><button type="button" className="btn" onClick={() => openCashBoxStatement(box)}>كشف حركة</button></td></tr>)}
-            {cashBoxes.length === 0 && <tr><td colSpan={5} className="empty">لا توجد خزن.</td></tr>}
-          </tbody></table>}
-        </div>
+
+      {/* الـ ERP Workspace لقسم الأرصدة */}
+      <div className="erp-sales-workspace">
+        <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
+          <div className="erp-toolbar">
+            <div className="erp-toolbar-title">
+              <strong>{tabTitle}</strong>
+              <span>{activeTotalCount} نتيجة</span>
+            </div>
+            <div className="erp-filters">
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={
+                    tab === 'customers' ? 'بحث بالاسم أو الهاتف أو الرقم…' :
+                    tab === 'suppliers' ? 'بحث باسم المورد أو الهاتف…' :
+                    tab === 'items' ? 'بحث باسم الصنف أو الكود…' : 'بحث باسم الخزنة…'
+                  }
+                />
+              </label>
+
+              <select aria-label="ترتيب النتائج" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as BalanceSort)}>
+                <option value="balance-desc">{tab === 'items' ? 'الأعلى كمية' : 'الأعلى رصيدًا'}</option>
+                <option value="balance-asc">{tab === 'items' ? 'الأقل كمية' : 'الأقل رصيدًا'}</option>
+                <option value="name-asc">الاسم (أ – ي)</option>
+              </select>
+
+              {tab === 'items' && (
+                <select aria-label="تصفية حسب المخزن" value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}>
+                  {warehouses.map((wh) => (
+                    <option key={wh.id} value={wh.id}>
+                      {entityNumber('WH', wh.serial_number)} — {wh.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
+          <div className="erp-table-wrap">
+            {tab === 'customers' && (
+              <table className="table erp-table">
+                <thead>
+                  <tr>
+                    <th>الرقم</th>
+                    <th>العميل</th>
+                    <th>الهاتف</th>
+                    <th className="num">الرصيد الحالي</th>
+                    <th>الملاحظات</th>
+                    <th aria-label="الإجراءات" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && <tr><td colSpan={6} className="empty">جارٍ التحميل…</td></tr>}
+                  {!loading && pageCustomers.length === 0 && <tr><td colSpan={6} className="empty">لا توجد حسابات عملاء تطابق البحث.</td></tr>}
+                  {!loading && pageCustomers.map((account) => {
+                    const isSelected = selectedAccount?.id === account.id;
+                    return (
+                      <tr
+                        key={account.id}
+                        className={isSelected ? 'selected' : ''}
+                        tabIndex={0}
+                        onClick={() => setSelectedAccount(account)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedAccount(account); }
+                        }}
+                      >
+                        <td className="num strong">{entityNumber('CUS', account.serial_number)}</td>
+                        <td className="strong">{account.name}</td>
+                        <td className="num">{account.phone || '—'}</td>
+                        <td className={`num strong ${Number(account.balance) > 0 ? 'remaining' : ''}`}>{money(account.balance)}</td>
+                        <td className="muted">{account.notes || '—'}</td>
+                        <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
+                          <button type="button" className="btn compact" onClick={() => openStatement(account)}>كشف حساب</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+
+            {tab === 'suppliers' && (
+              <table className="table erp-table">
+                <thead>
+                  <tr>
+                    <th>الرقم</th>
+                    <th>المورد</th>
+                    <th>الهاتف</th>
+                    <th className="num">الرصيد الحالي</th>
+                    <th>الملاحظات</th>
+                    <th aria-label="الإجراءات" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && <tr><td colSpan={6} className="empty">جارٍ التحميل…</td></tr>}
+                  {!loading && pageSuppliers.length === 0 && <tr><td colSpan={6} className="empty">لا توجد حسابات موردين تطابق البحث.</td></tr>}
+                  {!loading && pageSuppliers.map((account) => {
+                    const isSelected = selectedAccount?.id === account.id;
+                    return (
+                      <tr
+                        key={account.id}
+                        className={isSelected ? 'selected' : ''}
+                        tabIndex={0}
+                        onClick={() => setSelectedAccount(account)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedAccount(account); }
+                        }}
+                      >
+                        <td className="num strong">{entityNumber('SUP', account.serial_number)}</td>
+                        <td className="strong">{account.name}</td>
+                        <td className="num">{account.phone || '—'}</td>
+                        <td className={`num strong ${Number(account.balance) > 0 ? 'remaining' : ''}`}>{money(account.balance)}</td>
+                        <td className="muted">{account.notes || '—'}</td>
+                        <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
+                          <button type="button" className="btn compact" onClick={() => openStatement(account)}>كشف حساب</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+
+            {tab === 'items' && (
+              <table className="table erp-table">
+                <thead>
+                  <tr>
+                    <th>الرقم</th>
+                    <th>الكود</th>
+                    <th>الصنف</th>
+                    <th className="num">الكمية الحالية</th>
+                    <th>الملاحظات</th>
+                    <th aria-label="الإجراءات" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && <tr><td colSpan={6} className="empty">جارٍ التحميل…</td></tr>}
+                  {!loading && pageItems.length === 0 && <tr><td colSpan={6} className="empty">لا توجد أصناف تطابق البحث أو المخزن.</td></tr>}
+                  {!loading && pageItems.map((row) => {
+                    const isSelected = selectedItem?.item_id === row.item_id && selectedItem?.warehouse_id === row.warehouse_id;
+                    return (
+                      <tr
+                        key={`${row.warehouse_id}:${row.item_id}`}
+                        className={isSelected ? 'selected' : ''}
+                        tabIndex={0}
+                        onClick={() => setSelectedItem(row)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedItem(row); }
+                        }}
+                      >
+                        <td className="num strong">{entityNumber('ITM', row.item_number)}</td>
+                        <td className="num">{row.item_code}</td>
+                        <td className="strong">{row.item_name}</td>
+                        <td className="num strong">{formatQty(row.current_qty)} {row.unit}</td>
+                        <td className="muted">{row.item_notes || '—'}</td>
+                        <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
+                          <button type="button" className="btn compact" onClick={() => openItemStatement(row)}>كشف حركة</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+
+            {tab === 'cashBoxes' && (
+              <table className="table erp-table">
+                <thead>
+                  <tr>
+                    <th>الرقم</th>
+                    <th>الخزنة</th>
+                    <th className="num">الرصيد الحالي</th>
+                    <th>الملاحظات</th>
+                    <th aria-label="الإجراءات" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && <tr><td colSpan={5} className="empty">جارٍ التحميل…</td></tr>}
+                  {!loading && pageBoxes.length === 0 && <tr><td colSpan={5} className="empty">لا توجد خزن تطابق البحث.</td></tr>}
+                  {!loading && pageBoxes.map((box) => {
+                    const isSelected = selectedBox?.id === box.id;
+                    return (
+                      <tr
+                        key={box.id}
+                        className={isSelected ? 'selected' : ''}
+                        tabIndex={0}
+                        onClick={() => setSelectedBox(box)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedBox(box); }
+                        }}
+                      >
+                        <td className="num strong">{entityNumber('CBX', box.serial_number)}</td>
+                        <td className="strong">{box.name}</td>
+                        <td className="num strong">{money(box.balance)}</td>
+                        <td className="muted">{box.notes || '—'}</td>
+                        <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
+                          <button type="button" className="btn compact" onClick={() => openCashBoxStatement(box)}>كشف حركة</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="erp-pagination">
+            <span>
+              عرض {activeTotalCount ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, activeTotalCount)} من {activeTotalCount}
+            </span>
+            <div>
+              <button type="button" className="btn compact" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>السابق</button>
+              <span>{page} / {pageCount}</span>
+              <button type="button" className="btn compact" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>التالي</button>
+            </div>
+          </div>
+        </section>
+
+        {/* اللوحة الجانبية للتفاصيل */}
+        <aside className={hasSelection ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل الرصيد">
+          {selectedAccount ? (
+            <>
+              <div className="erp-detail-head">
+                <div>
+                  <span>{selectedAccount.kind === 'customer' ? 'حساب عميل' : 'حساب مورد'}</span>
+                  <h2>{selectedAccount.name}</h2>
+                </div>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedAccount(null)}>×</button>
+              </div>
+
+              <dl className="erp-detail-summary">
+                <div><dt>الرقم التسلسلي</dt><dd className="num">{entityNumber(selectedAccount.kind === 'customer' ? 'CUS' : 'SUP', selectedAccount.serial_number)}</dd></div>
+                <div><dt>رقم الهاتف</dt><dd className="num">{selectedAccount.phone || '—'}</dd></div>
+                <div><dt>الحالة</dt><dd>{selectedAccount.is_active ? 'نشط' : 'موقوف'}</dd></div>
+              </dl>
+
+              <div className="erp-detail-totals">
+                <span>الرصيد الفعلي</span>
+                <strong className={`num ${Number(selectedAccount.balance) > 0 ? 'remaining' : ''}`}>{money(selectedAccount.balance)}</strong>
+              </div>
+
+              <p className="hint">
+                {selectedAccount.kind === 'customer'
+                  ? 'الرصيد الموجب يعني مستحق على العميل (مدين)، والرصيد السالب يعني رصيد لصالحه (دائن).'
+                  : 'الرصيد الموجب يعني مستحق للمورد (دائن)، والرصيد السالب يعني رصيد للشركة طرفه (مدين).'}
+              </p>
+
+              {selectedAccount.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedAccount.notes}</p>}
+
+              <div className="erp-detail-actions">
+                <button type="button" className="btn primary" onClick={() => openStatement(selectedAccount)}>
+                  عرض وطباعة كشف الحساب 🖨️
+                </button>
+              </div>
+            </>
+          ) : selectedItem ? (
+            <>
+              <div className="erp-detail-head">
+                <div>
+                  <span>بيانات الصنف والمخزون</span>
+                  <h2>{selectedItem.item_name}</h2>
+                </div>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedItem(null)}>×</button>
+              </div>
+
+              <dl className="erp-detail-summary">
+                <div><dt>رقم الصنف</dt><dd className="num">{entityNumber('ITM', selectedItem.item_number)}</dd></div>
+                <div><dt>كود الصنف</dt><dd className="num">{selectedItem.item_code}</dd></div>
+                <div><dt>المخزن</dt><dd>{selectedWarehouse?.name || selectedItem.warehouse_name}</dd></div>
+                <div><dt>الوحدة</dt><dd>{selectedItem.unit}</dd></div>
+              </dl>
+
+              <div className="erp-detail-totals">
+                <span>الكمية الحالية</span>
+                <strong className="num">{formatQty(selectedItem.current_qty)} {selectedItem.unit}</strong>
+              </div>
+
+              {selectedItem.item_notes && <p className="erp-detail-notes"><span>ملاحظات الصنف</span>{selectedItem.item_notes}</p>}
+
+              <div className="erp-detail-actions">
+                <button type="button" className="btn primary" onClick={() => openItemStatement(selectedItem)}>
+                  عرض وطباعة كشف حركة الصنف 🖨️
+                </button>
+              </div>
+            </>
+          ) : selectedBox ? (
+            <>
+              <div className="erp-detail-head">
+                <div>
+                  <span>بيانات الخزنة</span>
+                  <h2>{selectedBox.name}</h2>
+                </div>
+                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setSelectedBox(null)}>×</button>
+              </div>
+
+              <dl className="erp-detail-summary">
+                <div><dt>الرقم التسلسلي</dt><dd className="num">{entityNumber('CBX', selectedBox.serial_number)}</dd></div>
+                <div><dt>النوع</dt><dd>{selectedBox.is_primary ? 'الخزنة الرئيسية' : 'خزنة فرعية'}</dd></div>
+                <div><dt>الحالة</dt><dd>{selectedBox.is_active ? 'نشطة' : 'موقوفة'}</dd></div>
+              </dl>
+
+              <div className="erp-detail-totals">
+                <span>الرصيد النقدي الحالي</span>
+                <strong className="num remaining">{money(selectedBox.balance)}</strong>
+              </div>
+
+              {selectedBox.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedBox.notes}</p>}
+
+              <div className="erp-detail-actions">
+                <button type="button" className="btn primary" onClick={() => openCashBoxStatement(selectedBox)}>
+                  عرض وطباعة حركة الخزنة 🖨️
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="erp-detail-empty">
+              <strong>اختر حسابًا أو صنفًا</strong>
+              <span>ستظهر بيانات الرصيد وإمكانية استخراج كشف الحساب من هنا فورًا.</span>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      {/* نوافذ الطباعة وكشوفات الحساب المتخصصة */}
+      {statementAccount && (
+        <Modal title="كشف حساب" className="account-statement-modal" backdropClassName="statement-modal-backdrop" onClose={() => setStatementAccount(null)}>
+          <div className="account-statement-print">
+            <div className="account-statement-heading">
+              <div>
+                <h2>كشف حساب {statementAccount.kind === 'customer' ? 'عميل' : 'مورد'}</h2>
+                <strong>{statementAccount.name}</strong>
+                <p>{statementAccount.phone || '—'}</p>
+              </div>
+              <div className="account-statement-period">
+                <label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label>
+                <label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label>
+              </div>
+            </div>
+            <div className="actions statement-actions print-hidden">
+              <form onSubmit={loadStatement}>
+                <button type="submit" className="btn primary" disabled={statementLoading || !statementFrom || !statementTo}>
+                  {statementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}
+                </button>
+              </form>
+              {statementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
+            </div>
+            {statementError && <p className="alert error print-hidden">{statementError}</p>}
+            {statementRows.length > 0 && (
+              <>
+                <div className="table-wrap responsive-table">
+                  <table className="table account-statement-table">
+                    <thead>
+                      <tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr>
+                    </thead>
+                    <tbody>
+                      {statementRows.map((row, index) => (
+                        <tr key={`${row.row_type}-${row.transaction_date}-${row.receipt_number ?? row.invoice_number ?? index}`} className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}>
+                          <td className="num" data-label="التاريخ">{row.transaction_date}</td>
+                          <td className="card-wide-cell" data-label="البيان">{row.description}</td>
+                          <td className="num" data-label="مدين">{Number(row.debit) ? money(row.debit) : '—'}</td>
+                          <td className="num" data-label="دائن">{Number(row.credit) ? money(row.credit) : '—'}</td>
+                          <td className="num strong" data-label="الرصيد">{money(row.running_balance)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="account-statement-totals">
+                  <p><span>إجمالي المدين:</span><strong>{money(statementRows[0].total_debit)}</strong></p>
+                  <p><span>إجمالي الدائن:</span><strong>{money(statementRows[0].total_credit)}</strong></p>
+                  <p><span>رصيد آخر المدة:</span><strong>{money(statementRows[statementRows.length - 1].running_balance)}</strong></p>
+                </div>
+              </>
+            )}
+            {!statementRows.length && !statementLoading && !statementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
+          </div>
+        </Modal>
       )}
-      {statementAccount && <Modal title="كشف حساب" className="account-statement-modal" backdropClassName="statement-modal-backdrop" onClose={() => setStatementAccount(null)}>
-        <div className="account-statement-print">
-          <div className="account-statement-heading">
-            <div><h2>كشف حساب {statementAccount.kind === 'customer' ? 'عميل' : 'مورد'}</h2><strong>{statementAccount.name}</strong><p>{statementAccount.phone || '—'}</p></div>
-            <div className="account-statement-period"><label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label><label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label></div>
+
+      {cashStatementBox && (
+        <Modal title="كشف حركة خزنة" className="account-statement-modal" backdropClassName="statement-modal-backdrop" onClose={() => setCashStatementBox(null)}>
+          <div className="account-statement-print">
+            <div className="account-statement-heading">
+              <div><h2>كشف حركة خزنة</h2><strong>{cashStatementBox.name}</strong></div>
+              <div className="account-statement-period">
+                <label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label>
+                <label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label>
+              </div>
+            </div>
+            <div className="actions statement-actions print-hidden">
+              <form onSubmit={loadCashBoxStatement}>
+                <button type="submit" className="btn primary" disabled={cashStatementLoading || !statementFrom || !statementTo}>
+                  {cashStatementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}
+                </button>
+              </form>
+              {cashStatementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
+            </div>
+            {cashStatementError && <p className="alert error print-hidden">{cashStatementError}</p>}
+            {cashStatementRows.length > 0 && (
+              <>
+                <div className="table-wrap responsive-table">
+                  <table className="table account-statement-table">
+                    <thead><tr><th>التاريخ</th><th>البيان</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead>
+                    <tbody>
+                      {cashStatementRows.map((row, index) => (
+                        <tr key={`${row.row_type}-${row.transaction_date}-${row.receipt_number ?? row.transfer_number ?? index}`} className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}>
+                          <td className="num" data-label="التاريخ">{row.transaction_date}</td>
+                          <td className="card-wide-cell" data-label="البيان">{row.description}</td>
+                          <td className="num" data-label="وارد">{Number(row.incoming) ? money(row.incoming) : '—'}</td>
+                          <td className="num" data-label="صادر">{Number(row.outgoing) ? money(row.outgoing) : '—'}</td>
+                          <td className="num strong" data-label="الرصيد">{money(row.running_balance)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="account-statement-totals">
+                  <p><span>إجمالي الوارد:</span><strong>{money(cashStatementRows[0].total_incoming)}</strong></p>
+                  <p><span>إجمالي الصادر:</span><strong>{money(cashStatementRows[0].total_outgoing)}</strong></p>
+                  <p><span>رصيد آخر المدة:</span><strong>{money(cashStatementRows[cashStatementRows.length - 1].running_balance)}</strong></p>
+                </div>
+              </>
+            )}
+            {!cashStatementRows.length && !cashStatementLoading && !cashStatementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
           </div>
-          <div className="actions statement-actions print-hidden">
-            <form onSubmit={loadStatement}><button type="submit" className="btn primary" disabled={statementLoading || !statementFrom || !statementTo}>{statementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}</button></form>
-            {statementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
+        </Modal>
+      )}
+
+      {itemStatementRow && (
+        <Modal title="كشف حركة صنف" className="account-statement-modal" backdropClassName="statement-modal-backdrop" onClose={() => setItemStatementRow(null)}>
+          <div className="account-statement-print">
+            <div className="account-statement-heading">
+              <div>
+                <h2>كشف حركة صنف</h2>
+                <strong>[{entityNumber('ITM', itemStatementRow.item_number)}] {itemStatementRow.item_code} — {itemStatementRow.item_name} ~ {itemStatementRow.unit}</strong>
+                <p>{selectedWarehouse?.name ?? itemStatementRow.warehouse_name}</p>
+              </div>
+              <div className="account-statement-period">
+                <label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label>
+                <label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label>
+              </div>
+            </div>
+            <div className="actions statement-actions print-hidden">
+              <form onSubmit={loadItemStatement}>
+                <button type="submit" className="btn primary" disabled={itemStatementLoading || !statementFrom || !statementTo}>
+                  {itemStatementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}
+                </button>
+              </form>
+              {itemStatementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
+            </div>
+            {itemStatementError && <p className="alert error print-hidden">{itemStatementError}</p>}
+            {itemStatementRows.length > 0 && (
+              <>
+                <div className="table-wrap responsive-table">
+                  <table className="table account-statement-table">
+                    <thead><tr><th>التاريخ</th><th>البيان</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead>
+                    <tbody>
+                      {itemStatementRows.map((row, index) => (
+                        <tr key={`${row.row_type}-${row.transaction_date}-${row.transfer_number ?? row.invoice_number ?? index}`} className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}>
+                          <td className="num" data-label="التاريخ">{row.transaction_date}</td>
+                          <td className="card-wide-cell" data-label="البيان">{row.description}</td>
+                          <td className="num" data-label="وارد">{Number(row.incoming) ? `${formatQty(row.incoming)} ${itemStatementRow.unit}` : '—'}</td>
+                          <td className="num" data-label="صادر">{Number(row.outgoing) ? `${formatQty(row.outgoing)} ${itemStatementRow.unit}` : '—'}</td>
+                          <td className="num strong" data-label="الرصيد">{formatQty(row.running_balance)} {itemStatementRow.unit}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="account-statement-totals">
+                  <p><span>إجمالي الوارد:</span><strong>{formatQty(itemStatementRows[0].total_incoming)} {itemStatementRow.unit}</strong></p>
+                  <p><span>إجمالي الصادر:</span><strong>{formatQty(itemStatementRows[0].total_outgoing)} {itemStatementRow.unit}</strong></p>
+                  <p><span>رصيد آخر المدة:</span><strong>{formatQty(itemStatementRows[itemStatementRows.length - 1].running_balance)} {itemStatementRow.unit}</strong></p>
+                </div>
+              </>
+            )}
+            {!itemStatementRows.length && !itemStatementLoading && !itemStatementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
           </div>
-          {statementError && <p className="alert error print-hidden">{statementError}</p>}
-          {statementRows.length > 0 && <>
-            <div className="table-wrap responsive-table"><table className="table account-statement-table"><thead><tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead><tbody>
-              {statementRows.map((row, index) => <tr key={`${row.row_type}-${row.transaction_date}-${row.receipt_number ?? row.invoice_number ?? index}`} className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}><td className="num" data-label="التاريخ">{row.transaction_date}</td><td className="card-wide-cell" data-label="البيان">{row.description}</td><td className="num" data-label="مدين">{Number(row.debit) ? money(row.debit) : '—'}</td><td className="num" data-label="دائن">{Number(row.credit) ? money(row.credit) : '—'}</td><td className="num strong" data-label="الرصيد">{money(row.running_balance)}</td></tr>)}
-            </tbody></table></div>
-            <div className="account-statement-totals"><p><span>إجمالي المدين:</span><strong>{money(statementRows[0].total_debit)}</strong></p><p><span>إجمالي الدائن:</span><strong>{money(statementRows[0].total_credit)}</strong></p><p><span>رصيد آخر المدة:</span><strong>{money(statementRows[statementRows.length - 1].running_balance)}</strong></p></div>
-          </>}
-          {!statementRows.length && !statementLoading && !statementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
-        </div>
-      </Modal>}
-      {cashStatementBox && <Modal title="كشف حركة خزنة" className="account-statement-modal" backdropClassName="statement-modal-backdrop" onClose={() => setCashStatementBox(null)}>
-        <div className="account-statement-print">
-          <div className="account-statement-heading">
-            <div><h2>كشف حركة خزنة</h2><strong>{cashStatementBox.name}</strong></div>
-            <div className="account-statement-period"><label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label><label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label></div>
-          </div>
-          <div className="actions statement-actions print-hidden">
-            <form onSubmit={loadCashBoxStatement}><button type="submit" className="btn primary" disabled={cashStatementLoading || !statementFrom || !statementTo}>{cashStatementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}</button></form>
-            {cashStatementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
-          </div>
-          {cashStatementError && <p className="alert error print-hidden">{cashStatementError}</p>}
-          {cashStatementRows.length > 0 && <>
-            <div className="table-wrap responsive-table"><table className="table account-statement-table"><thead><tr><th>التاريخ</th><th>البيان</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody>
-              {cashStatementRows.map((row, index) => <tr key={`${row.row_type}-${row.transaction_date}-${row.receipt_number ?? row.transfer_number ?? index}`} className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}><td className="num" data-label="التاريخ">{row.transaction_date}</td><td className="card-wide-cell" data-label="البيان">{row.description}</td><td className="num" data-label="وارد">{Number(row.incoming) ? money(row.incoming) : '—'}</td><td className="num" data-label="صادر">{Number(row.outgoing) ? money(row.outgoing) : '—'}</td><td className="num strong" data-label="الرصيد">{money(row.running_balance)}</td></tr>)}
-            </tbody></table></div>
-            <div className="account-statement-totals"><p><span>إجمالي الوارد:</span><strong>{money(cashStatementRows[0].total_incoming)}</strong></p><p><span>إجمالي الصادر:</span><strong>{money(cashStatementRows[0].total_outgoing)}</strong></p><p><span>رصيد آخر المدة:</span><strong>{money(cashStatementRows[cashStatementRows.length - 1].running_balance)}</strong></p></div>
-          </>}
-          {!cashStatementRows.length && !cashStatementLoading && !cashStatementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
-        </div>
-      </Modal>}
-      {itemStatementRow && <Modal title="كشف حركة صنف" className="account-statement-modal" backdropClassName="statement-modal-backdrop" onClose={() => setItemStatementRow(null)}>
-        <div className="account-statement-print">
-          <div className="account-statement-heading">
-            <div><h2>كشف حركة صنف</h2><strong>[{entityNumber('ITM', itemStatementRow.item_number)}] {itemStatementRow.item_code} — {itemStatementRow.item_name} ~ {itemStatementRow.unit}</strong><p>{selectedWarehouse?.name ?? itemStatementRow.warehouse_name}</p></div>
-            <div className="account-statement-period"><label>من تاريخ<input type="date" value={statementFrom} onChange={(event) => setStatementFrom(event.target.value)} required /></label><label>إلى تاريخ<input type="date" value={statementTo} onChange={(event) => setStatementTo(event.target.value)} required /></label></div>
-          </div>
-          <div className="actions statement-actions print-hidden">
-            <form onSubmit={loadItemStatement}><button type="submit" className="btn primary" disabled={itemStatementLoading || !statementFrom || !statementTo}>{itemStatementLoading ? 'جارٍ إعداد الكشف…' : 'عرض الكشف'}</button></form>
-            {itemStatementRows.length > 0 && <button type="button" className="btn" onClick={() => window.print()}>طباعة / حفظ PDF</button>}
-          </div>
-          {itemStatementError && <p className="alert error print-hidden">{itemStatementError}</p>}
-          {itemStatementRows.length > 0 && <>
-            <div className="table-wrap responsive-table"><table className="table account-statement-table"><thead><tr><th>التاريخ</th><th>البيان</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead><tbody>
-              {itemStatementRows.map((row, index) => <tr key={`${row.row_type}-${row.transaction_date}-${row.transfer_number ?? row.invoice_number ?? index}`} className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}><td className="num" data-label="التاريخ">{row.transaction_date}</td><td className="card-wide-cell" data-label="البيان">{row.description}</td><td className="num" data-label="وارد">{Number(row.incoming) ? `${formatQty(row.incoming)} ${itemStatementRow.unit}` : '—'}</td><td className="num" data-label="صادر">{Number(row.outgoing) ? `${formatQty(row.outgoing)} ${itemStatementRow.unit}` : '—'}</td><td className="num strong" data-label="الرصيد">{formatQty(row.running_balance)} {itemStatementRow.unit}</td></tr>)}
-            </tbody></table></div>
-            <div className="account-statement-totals"><p><span>إجمالي الوارد:</span><strong>{formatQty(itemStatementRows[0].total_incoming)} {itemStatementRow.unit}</strong></p><p><span>إجمالي الصادر:</span><strong>{formatQty(itemStatementRows[0].total_outgoing)} {itemStatementRow.unit}</strong></p><p><span>رصيد آخر المدة:</span><strong>{formatQty(itemStatementRows[itemStatementRows.length - 1].running_balance)} {itemStatementRow.unit}</strong></p></div>
-          </>}
-          {!itemStatementRows.length && !itemStatementLoading && !itemStatementError && <p className="hint print-hidden">اختر الفترة ثم اضغط «عرض الكشف».</p>}
-        </div>
-      </Modal>}
+        </Modal>
+      )}
     </div>
   );
 }
