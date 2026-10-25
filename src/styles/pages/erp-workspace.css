@@ -1,0 +1,127 @@
+/* ---------- ERP Workspace System (List & Detail Panels) ---------- */
+.erp-sales-workspace {
+  display: grid;
+  grid-template-columns: minmax(620px, 1fr) minmax(320px, 390px);
+  min-height: min(680px, calc(100dvh - 170px));
+  overflow: hidden;
+  border: 1px solid var(--erp-border);
+  background: var(--erp-surface);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(25, 45, 68, .08);
+}
+
+.erp-list-panel { min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
+.erp-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--erp-space-2);
+  padding: 10px var(--erp-space-3);
+  border-bottom: 1px solid var(--erp-border);
+  background: var(--erp-surface-muted);
+}
+.erp-toolbar-title { display: none; }
+.erp-filters { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: var(--erp-space-2); width: 100%; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.erp-filters input,
+.erp-filters select {
+  min-height: var(--erp-control-height);
+  height: var(--erp-control-height);
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  background: var(--erp-surface);
+}
+.erp-search input { width: 205px; }
+.erp-date { display: flex; align-items: center; gap: 4px; color: var(--erp-muted); font-size: 11px; font-weight: 650; }
+.erp-date input { width: 128px; }
+
+.erp-detail-panel { display: flex; flex-direction: column; min-width: 0; border-inline-start: 1px solid var(--erp-border); background: var(--erp-surface); }
+.erp-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 10px var(--erp-space-3);
+  border-bottom: 1px solid var(--erp-border);
+  background: var(--erp-surface-muted);
+}
+.erp-detail-head > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.erp-detail-head span {
+  color: var(--erp-muted);
+  font-size: 12px;
+  font-weight: 550;
+}
+.erp-detail-head h2 {
+  margin: 0;
+  color: var(--erp-text);
+  font-size: 16px;
+  font-weight: 700;
+}
+.erp-detail-head .icon-btn { font-size: 20px; line-height: 1; }
+.erp-detail-empty { display: grid; place-content: center; gap: 5px; min-height: 230px; padding: 24px; color: var(--erp-muted); text-align: center; font-size: 13px; }
+.erp-detail-empty strong { color: var(--erp-text); font-size: 14px; }
+.erp-detail-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 0; padding: var(--erp-space-2) var(--erp-space-3); border-bottom: 1px solid var(--erp-border); }
+.erp-detail-summary > div { min-width: 0; padding: 7px 0; }
+.erp-detail-summary dt { color: var(--erp-muted); font-size: 11px; }
+.erp-detail-summary dd { margin: 1px 0 0; overflow: hidden; color: var(--erp-text); font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.erp-detail-lines { flex: 1; min-height: 0; overflow: auto; padding: var(--erp-space-3); }
+.erp-detail-lines h3 { margin-bottom: 8px; color: var(--erp-text); font-size: 13px; }
+.erp-detail-lines .table { font-size: 11px; }
+.erp-detail-lines .table th,
+.erp-detail-lines .table td { padding: 7px 5px; }
+.erp-detail-totals { display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; padding: var(--erp-space-2) var(--erp-space-3); border-top: 1px solid var(--erp-border); background: var(--erp-surface-muted); font-size: 12px; }
+.erp-detail-totals span { color: var(--erp-muted); }
+.erp-detail-totals strong { color: var(--erp-text); }
+.erp-detail-totals .remaining { color: #a54a26; }
+.erp-detail-notes { display: grid; gap: 2px; padding: 0 var(--erp-space-3) var(--erp-space-2); color: var(--erp-text); font-size: 12px; }
+.erp-detail-notes span { color: var(--erp-muted); font-size: 11px; font-weight: 700; }
+.erp-detail-actions { display: flex; gap: 7px; padding: var(--erp-space-2) var(--erp-space-3) var(--erp-space-3); }
+.erp-detail-actions .btn { min-height: 33px; padding: 5px 10px; font-size: 12px; }
+
+@media (max-width: 1200px) {
+  .erp-sales-workspace { grid-template-columns: minmax(570px, 1fr) 320px; }
+  .erp-toolbar { align-items: flex-start; flex-direction: column; }
+  .erp-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: min(100%, 650px);
+    align-self: stretch;
+  }
+  .erp-search { grid-column: 1 / -1; }
+  .erp-search input, .erp-filters select { width: 100%; }
+  .erp-date { display: grid; grid-template-columns: 1fr; gap: 3px; }
+  .erp-date input { width: 100%; }
+}
+
+@media (max-width: 760px) {
+  .erp-sales-workspace { display: block; min-height: auto; overflow: visible; border-radius: 8px; }
+  .erp-toolbar { padding: 10px; }
+  .erp-filters { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .erp-search { grid-column: 1 / -1; }
+  .erp-search input, .erp-filters select, .erp-date, .erp-date input { width: 100%; }
+  .erp-date { display: grid; grid-template-columns: 1fr; gap: 3px; }
+  .erp-detail-panel { display: none; }
+  .erp-detail-panel.open { display: flex; position: fixed; inset: 0; z-index: 50; border: 0; }
+  .erp-detail-head { position: sticky; inset-block-start: 0; z-index: 1; }
+  .erp-detail-lines { max-height: none; }
+}
+
+/* The list loses width when its details panel is open, even on a wide browser.
+   Respond to the list itself so the filters never fall into arbitrary wrapping. */
+@container (max-width: 950px) {
+  .erp-toolbar { align-items: flex-start; flex-direction: column; }
+  .erp-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: 100%;
+  }
+  .erp-search { grid-column: 1 / -1; }
+  .erp-search input, .erp-filters select { width: 100%; }
+  .erp-date { display: grid; grid-template-columns: 1fr; gap: 3px; }
+  .erp-date input { width: 100%; }
+}

@@ -1,0 +1,33 @@
+:root {
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --ink: #1e293b;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --primary: #2e425c;
+  --primary-dark: #1e3348;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
+
+  /* ERP workspace tokens */
+  --erp-navy: #2e425c;
+  --erp-navy-strong: #1e3348;
+  --erp-surface: #ffffff;
+  --erp-surface-muted: #f8fafc;
+  --erp-border: #e2e8f0;
+  --erp-text: #1e293b;
+  --erp-muted: #64748b;
+  --erp-row-height: 40px;
+  --erp-control-height: 34px;
+  --erp-space-1: 6px;
+  --erp-space-2: 10px;
+  --erp-space-3: 14px;
+  --erp-space-4: 18px;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

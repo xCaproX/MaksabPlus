@@ -1,0 +1,62 @@
+/* ---------- Login / config ---------- */
+.config-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(ellipse at 50% 20%, #fff 0%, #f3f6f4 70%);
+}
+
+.login-card,
+.config-card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px;
+  border-color: #edf0f2;
+  border-radius: 18px;
+  box-shadow: 0 16px 48px rgba(39, 58, 84, .09);
+}
+
+.login-card h1 {
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.config-card ol {
+  margin: 0;
+  padding-inline-start: 20px;
+  color: var(--muted);
+}
+
+code {
+  background: #eef2f6;
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 13px;
+  direction: ltr;
+  display: inline-block;
+}
+
+.login-logo {
+  display: block;
+  width: min(100%, 260px);
+  height: 94px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.login-intro {
+  text-align: center;
+  display: grid;
+  gap: 5px;
+}
+
+.login-intro h1 {
+  font-size: 21px;
+}

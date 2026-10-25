@@ -1,0 +1,102 @@
+/* ---------- Document details / modal ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.modal {
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(16, 24, 40, 0.24);
+  width: min(880px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+
+.modal-body {
+  padding: 18px 20px 22px;
+  overflow-y: auto;
+}
+
+.modal-section {
+  margin: 18px 0 10px;
+}
+
+.subtable {
+  font-size: 13px;
+}
+
+.subtable th,
+.subtable td {
+  padding: 7px 10px;
+}
+
+.doc-meta-list {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.doc-meta-list dt {
+  color: var(--muted);
+}
+
+.doc-meta-list dd {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .doc-meta-list {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .statement-modal-backdrop { padding: 0; align-items: stretch; }
+  .modal.account-statement-modal {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .account-statement-modal .modal-head { position: sticky; top: 0; z-index: 2; background: var(--card); }
+  .account-statement-modal .modal-body { padding: 14px 13px calc(20px + env(safe-area-inset-bottom)); }
+
+  .master-data-backdrop { padding: 0; align-items: stretch; }
+  .modal.master-data-modal {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .master-data-modal .modal-head { position: sticky; top: 0; z-index: 2; background: var(--card); }
+  .master-data-modal .modal-body { padding: 14px 13px calc(20px + env(safe-area-inset-bottom)); }
+  .master-data-modal form > .actions {
+    position: sticky;
+    bottom: -14px;
+    z-index: 1;
+    padding: 10px 0 calc(8px + env(safe-area-inset-bottom));
+    background: rgba(255,255,255,.97);
+  }
+  .master-data-modal form > .actions .btn.primary { flex: 1; }
+}

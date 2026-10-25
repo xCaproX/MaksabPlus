@@ -1,0 +1,77 @@
+/* ---------- Status Badges & Link Types ---------- */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-badge.paid,
+.status-badge-paid {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.status-badge.partial,
+.status-badge-partial {
+  color: #9a5b07;
+  background: #fef3c7;
+}
+
+.status-badge.unpaid,
+.status-badge-unpaid {
+  color: #aa3a32;
+  background: #fde9e7;
+}
+
+/* Link type color family (Blue/Indigo - completely distinct from payment status) */
+.status-badge.linked,
+.status-badge-linked {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+}
+
+.status-badge.free,
+.status-badge-free {
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.status-badge.neutral,
+.status-badge-neutral {
+  color: #334155;
+  background: #f8fafc;
+}
+
+/* Linked receipt link in detail panel */
+.receipt-linked-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  width: fit-content;
+  transition: all 0.15s ease;
+}
+
+.receipt-linked-link:hover {
+  background: #dbeafe;
+  color: #1e40af;
+  text-decoration: none;
+}
+
+.receipt-linked-link .link-ext-icon {
+  opacity: 0.7;
+}

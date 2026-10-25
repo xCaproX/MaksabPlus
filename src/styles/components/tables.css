@@ -1,0 +1,229 @@
+/* ---------- Tables ---------- */
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.table th {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+  background: #fafbfc;
+  white-space: nowrap;
+}
+
+.table-input {
+  min-width: 120px;
+  padding: 7px 9px;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background: #fbfcfd;
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 26px 0;
+}
+
+.row-actions {
+  display: flex;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+/* ---------- ERP Table Workspace ---------- */
+.erp-table-wrap { flex: 1; overflow: auto; }
+.erp-table { min-width: 780px; font-size: 12px; border-collapse: separate; border-spacing: 0; }
+.erp-table th,
+.erp-table td { height: var(--erp-row-height); padding: 6px 9px; white-space: nowrap; border-bottom-color: #e8edf2; }
+.erp-table th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  background: #f2f5f8;
+  color: #52647a;
+  font-size: 11px;
+  font-weight: 700;
+}
+.erp-table tbody tr { cursor: pointer; }
+.erp-table tbody tr:hover td { background: #f6f8fb; }
+.erp-table tbody tr.selected td { background: #e9eff6; }
+.erp-table tbody tr:focus-visible { outline: 2px solid var(--erp-navy); outline-offset: -2px; }
+.erp-table .remaining { color: #a54a26; }
+.erp-row-actions { visibility: hidden; min-width: 88px; }
+.erp-table tr:hover .erp-row-actions,
+.erp-table tr.selected .erp-row-actions,
+.erp-table tr:focus-within .erp-row-actions { visibility: visible; }
+.erp-row-actions .link { font-size: 12px; }
+
+/* Row Actions dropdown menu */
+.row-actions-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.row-actions-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.row-actions-trigger-btn:hover,
+.row-actions-trigger-btn:focus-visible {
+  background: #f1f5f9;
+  color: var(--ink);
+  border-color: #e2e8f0;
+}
+
+.row-actions-dropdown {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 4px);
+  z-index: 50;
+  min-width: 125px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row-actions-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: pointer;
+  text-align: right;
+  transition: all 0.12s ease;
+}
+
+.row-actions-item:hover {
+  background: #f8fafc;
+  color: var(--primary);
+}
+
+.row-actions-item.danger {
+  color: var(--danger);
+}
+
+.row-actions-item.danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.action-item-icon {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* Gracefully degrade table when detail panel is open */
+.erp-sales-workspace.detail-open .col-hide-on-detail {
+  display: none !important;
+}
+
+.erp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--erp-space-2);
+  min-height: 46px;
+  padding: 6px var(--erp-space-3);
+  border-top: 1px solid var(--erp-border);
+  color: var(--erp-muted);
+  font-size: 12px;
+}
+.erp-pagination > div { display: flex; align-items: center; gap: 7px; }
+
+/* Responsive Table (Mobile Cards) */
+.responsive-table { overflow: visible; }
+.responsive-table .table { display: block; width: 100%; }
+.responsive-table .table thead { display: none; }
+.responsive-table .table tbody { display: grid; gap: 10px; }
+.responsive-table .table tbody > tr:not(.responsive-row) { display: block; }
+.responsive-table .table tbody > tr:not(.responsive-row) > td { display: block; width: 100%; text-align: center; }
+.responsive-table .table tr.responsive-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 12px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(39, 58, 84, .04);
+}
+.responsive-table .table tr.responsive-row td {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  width: auto;
+  min-width: 0;
+  padding: 5px 0;
+  border: 0;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.responsive-table .table tr.responsive-row td::before {
+  content: attr(data-label);
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+.responsive-table .table tr.responsive-row td.transfer-item-cell { grid-column: 1 / -1; display: block; }
+.responsive-table .table tr.responsive-row td.transfer-item-cell::before { display: block; margin-bottom: 4px; }
+.responsive-table .table tr.responsive-row td.card-wide-cell { grid-column: 1 / -1; display: block; }
+.responsive-table .table tr.responsive-row td.card-wide-cell::before { display: block; margin-bottom: 4px; }
+.responsive-table .table tr.responsive-row td.mobile-field-cell { grid-column: 1 / -1; align-items: center; }
+.responsive-table .table tr.responsive-row td.mobile-field-cell .table-input { width: min(58%, 220px); min-width: 0; margin-inline-start: auto; }
+.responsive-table .table tr.responsive-row td.row-actions { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 9px; }
+.responsive-table .table tr.responsive-row td.row-actions::before { flex: 1 0 100%; }
+
+@media (max-width: 760px) {
+  .table {
+    font-size: 13px;
+  }
+  .erp-table-wrap { max-height: 52dvh; }
+  .erp-pagination { padding: 8px 10px; }
+  .erp-row-actions { visibility: visible; }
+}
