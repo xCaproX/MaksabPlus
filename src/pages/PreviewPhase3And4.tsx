@@ -21,7 +21,7 @@ import { money } from '../lib/format';
 export default function PreviewPhase3And4() {
   const [openSections, setOpenSections] = useState({
     goods: true,
-    money: true, // Multiple sections open at once!
+    money: false,
     data: false,
     balances: false,
     management: false,
@@ -82,7 +82,17 @@ export default function PreviewPhase3And4() {
   const current = mockInvoices.find((i) => i.id === selectedInvoice) || mockInvoices[0];
 
   function toggleSection(key: keyof typeof openSections) {
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+    setOpenSections((prev) => {
+      const willBeOpen = !prev[key];
+      return {
+        goods: false,
+        money: false,
+        data: false,
+        balances: false,
+        management: false,
+        [key]: willBeOpen,
+      };
+    });
   }
 
   return (
@@ -91,7 +101,7 @@ export default function PreviewPhase3And4() {
         {/* Sidebar */}
         <header className="topbar">
           <div className="brand">
-            <img src="/maksab-logo.png" alt="مكسب بلس" />
+            <img src="/maksab-sidebar-logo.png" alt="مكسب بلس" />
           </div>
 
           <nav className="nav" aria-label="التنقل الرئيسي">

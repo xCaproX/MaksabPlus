@@ -15,26 +15,35 @@ function getInitialSection(pathname: string): NavSection | null {
   return null;
 }
 
-function getStoredOpenSections(uid: string | null): Record<NavSection, boolean> {
-  const defaultState: Record<NavSection, boolean> = {
-    goods: true,
-    money: false,
-    data: false,
-    balances: false,
-    management: false,
+function makeSingleOpen(section: NavSection | null): Record<NavSection, boolean> {
+  return {
+    goods: section === 'goods',
+    money: section === 'money',
+    data: section === 'data',
+    balances: section === 'balances',
+    management: section === 'management',
   };
-  if (!uid) return defaultState;
-  try {
-    const raw = localStorage.getItem(`maksab_nav_sections_${uid}`);
-    if (raw) return { ...defaultState, ...JSON.parse(raw) };
-  } catch {}
-  return defaultState;
 }
 
-function saveOpenSections(uid: string | null, state: Record<NavSection, boolean>) {
+function getStoredOpenSection(uid: string | null): NavSection | null {
+  if (!uid) return 'goods';
+  try {
+    const raw = localStorage.getItem(`maksab_active_nav_section_${uid}`);
+    if (raw && ['goods', 'money', 'data', 'balances', 'management'].includes(raw)) {
+      return raw as NavSection;
+    }
+  } catch {}
+  return 'goods';
+}
+
+function saveOpenSection(uid: string | null, section: NavSection | null) {
   if (!uid) return;
   try {
-    localStorage.setItem(`maksab_nav_sections_${uid}`, JSON.stringify(state));
+    if (section) {
+      localStorage.setItem(`maksab_active_nav_section_${uid}`, section);
+    } else {
+      localStorage.removeItem(`maksab_active_nav_section_${uid}`);
+    }
   } catch {}
 }
 
@@ -48,9 +57,7 @@ export default function Layout() {
   const [companyName, setCompanyName] = useState('');
   const [openSections, setOpenSections] = useState<Record<NavSection, boolean>>(() => {
     const current = getInitialSection(location.pathname);
-    const initial = getStoredOpenSections(null);
-    if (current) initial[current] = true;
-    return initial;
+    return makeSingleOpen(current || 'goods');
   });
 
   useEffect(() => {
@@ -79,12 +86,10 @@ export default function Layout() {
       setUserName(displayName);
       setCompanyName(compDisplayName);
 
-      setOpenSections(() => {
-        const stored = getStoredOpenSections(user.id);
-        const current = getInitialSection(location.pathname);
-        if (current) stored[current] = true;
-        return stored;
-      });
+      const stored = getStoredOpenSection(user.id);
+      const current = getInitialSection(location.pathname);
+      const active = current || stored || 'goods';
+      setOpenSections(makeSingleOpen(active));
     }
 
     void loadUser();
@@ -93,32 +98,27 @@ export default function Layout() {
     };
   }, []);
 
-  // When location changes, ensure current active section is open
+  // When location changes, ensure current active section is open and all others closed
   useEffect(() => {
     const current = getInitialSection(location.pathname);
     if (!current) return;
-    setOpenSections((prev) => {
-      if (prev[current]) return prev;
-      const next = { ...prev, [current]: true };
-      saveOpenSections(userId, next);
-      return next;
-    });
+    setOpenSections(makeSingleOpen(current));
+    saveOpenSection(userId, current);
   }, [location.pathname, userId]);
 
   function toggleSection(section: NavSection) {
     setOpenSections((prev) => {
-      const next = { ...prev, [section]: !prev[section] };
-      saveOpenSections(userId, next);
-      return next;
+      const willBeOpen = !prev[section];
+      const nextSection = willBeOpen ? section : null;
+      saveOpenSection(userId, nextSection);
+      return makeSingleOpen(nextSection);
     });
   }
 
   function ensureSectionOpen(section: NavSection) {
-    setOpenSections((prev) => {
-      if (prev[section]) return prev;
-      const next = { ...prev, [section]: true };
-      saveOpenSections(userId, next);
-      return next;
+    setOpenSections(() => {
+      saveOpenSection(userId, section);
+      return makeSingleOpen(section);
     });
   }
 
@@ -178,7 +178,7 @@ export default function Layout() {
     <div className="app">
       <header className="topbar">
         <Link className="brand" to="/" aria-label="مكسب بلس — الصفحة الرئيسية">
-          <img src="/maksab-logo.png" alt="مكسب بلس" />
+          <img src="/maksab-sidebar-logo.png" alt="مكسب بلس" />
         </Link>
 
         <nav className="nav" aria-label="التنقل الرئيسي">

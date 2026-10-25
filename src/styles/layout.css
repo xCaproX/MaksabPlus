@@ -101,7 +101,7 @@
   }
 }
 
-/* ---------- Maksab Layout Foundation (Sidebar & Subnav) ---------- */
+/* ---------- Maksab Layout Foundation (Dark Primary Sidebar & Subnav) ---------- */
 .app { min-height: 100dvh; flex-direction: row; }
 .topbar {
   position: sticky;
@@ -115,13 +115,14 @@
   align-items: stretch;
   gap: 20px;
   border: 0;
-  border-inline-start: 1px solid var(--line);
-  background: var(--card);
-  box-shadow: 1px 0 6px rgba(15, 23, 42, 0.02);
+  border-inline-start: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--primary);
+  box-shadow: -1px 0 10px rgba(15, 23, 42, 0.12);
 }
 .brand { display: flex; justify-content: center; padding: 4px 8px 12px; }
 .brand img { display: block; width: 100%; max-width: 190px; height: 68px; object-fit: contain; }
 .nav { width: 100%; flex: 1; flex-direction: column; gap: 4px; overflow-y: auto; scrollbar-width: thin; }
+.nav .nav-link,
 .nav a.nav-link {
   display: flex;
   align-items: center;
@@ -131,7 +132,8 @@
   border-radius: 9px;
   font-size: 14px;
   font-weight: 650;
-  color: var(--ink);
+  color: #e2e8f0;
+  text-decoration: none;
   transition: all .15s ease;
 }
 .nav-link-main {
@@ -140,18 +142,22 @@
   gap: 10px;
 }
 .nav-icon {
-  color: var(--muted);
+  color: #94a3b8;
   transition: color .15s ease;
   flex-shrink: 0;
 }
-.nav a.nav-link:hover { background: #f8fafc; color: var(--primary); }
-.nav a.nav-link:hover .nav-icon { color: var(--primary); }
+.nav .nav-link:hover,
+.nav a.nav-link:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+.nav .nav-link:hover .nav-icon,
+.nav a.nav-link:hover .nav-icon { color: #ffffff; }
+.nav .nav-link.active,
 .nav a.nav-link.active {
-  background: #f1f5f9;
-  color: var(--primary-dark);
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
 }
+.nav .nav-link.active .nav-icon,
 .nav a.nav-link.active .nav-icon {
-  color: var(--primary);
+  color: #38bdf8;
 }
 .nav-chevron {
   display: flex;
@@ -160,16 +166,17 @@
   width: 26px;
   height: 26px;
   border-radius: 6px;
-  color: var(--muted);
+  color: #94a3b8;
   cursor: pointer;
   transition: all .15s ease;
 }
+.nav .nav-link:hover .nav-chevron,
 .nav a.nav-link:hover .nav-chevron {
-  color: var(--ink);
+  color: #ffffff;
 }
 .nav-chevron:hover {
-  background: rgba(15, 23, 42, 0.08);
-  color: var(--primary-dark) !important;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff !important;
 }
 .nav-group { display: flex; flex-direction: column; width: 100%; }
 .subnav {
@@ -180,7 +187,7 @@
   margin-inline-start: 18px;
   margin-top: 3px;
   margin-bottom: 10px;
-  border-inline-start: 2px solid #e2e8f0;
+  border-inline-start: 2px solid rgba(255, 255, 255, 0.18);
 }
 .subnav-link {
   display: flex !important;
@@ -191,7 +198,7 @@
   border-radius: 6px !important;
   font-size: 13px !important;
   font-weight: 500 !important;
-  color: var(--muted) !important;
+  color: rgba(255, 255, 255, 0.72) !important;
   text-decoration: none !important;
   transition: all .15s ease !important;
 }
@@ -199,32 +206,32 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background-color: #cbd5e1;
+  background-color: rgba(255, 255, 255, 0.35);
   flex-shrink: 0;
   transition: all .15s ease;
 }
 .subnav-link:hover {
-  color: var(--ink) !important;
-  background: rgba(15, 23, 42, 0.03) !important;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 .subnav-link:hover .subnav-dot {
-  background-color: var(--muted);
+  background-color: #ffffff;
 }
 .subnav-link.active {
-  color: var(--primary-dark) !important;
-  background: rgba(46, 66, 92, 0.08) !important;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.16) !important;
   font-weight: 700 !important;
 }
 .subnav-link.active .subnav-dot {
   width: 6px;
   height: 6px;
-  background-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(46, 66, 92, 0.2);
+  background-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
 }
 .sidebar-footer {
   margin-top: auto;
   padding-top: 14px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -235,13 +242,13 @@
   gap: 2px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: #f8fafc;
-  border: 1px solid #f1f5f9;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .sidebar-user-name {
   font-size: 13px;
   font-weight: 700;
-  color: var(--ink);
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -249,7 +256,7 @@
 .sidebar-company-name {
   font-size: 11.5px;
   font-weight: 550;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.65);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -262,14 +269,14 @@
   gap: 8px;
   font-size: 13px;
   border-radius: 8px;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.75);
   border: 1px solid transparent;
   transition: all .15s ease;
 }
 .sign-out:hover {
-  color: var(--danger);
-  background: #fef2f2;
-  border-color: #fee2e2;
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.25);
+  border-color: rgba(220, 38, 38, 0.35);
 }
 .content { flex: 1; width: auto; max-width: 1440px; min-width: 0; padding: 24px clamp(16px, 2.5vw, 36px); }
 
@@ -286,8 +293,9 @@
     padding: 8px 14px 10px;
     gap: 6px;
     border: 0;
-    border-bottom: 1px solid var(--line);
-    box-shadow: 0 2px 10px rgba(39, 58, 84, .04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--primary);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
   }
   .brand { display: none; }
   .nav {
@@ -299,7 +307,21 @@
     gap: 5px;
     scrollbar-width: thin;
   }
-  .nav a { justify-content: center; min-height: 42px; padding: 8px 12px; font-size: 13px; }
+  .nav a {
+    justify-content: center;
+    min-height: 42px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .nav a:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+  .nav a.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
   .nav-chevron { display: none; }
   .nav-group { display: contents; }
   .subnav { display: none !important; }
@@ -312,6 +334,12 @@
     border-top: none;
   }
   .sidebar-user-block { display: none; }
-  .sign-out { align-self: flex-end; min-height: 34px; padding: 3px 8px; font-size: 12px; }
+  .sign-out {
+    align-self: flex-end;
+    min-height: 34px;
+    padding: 3px 8px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.75);
+  }
   .content { width: 100%; padding: 16px 13px 28px; }
 }
