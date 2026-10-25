@@ -8,11 +8,13 @@ const port = 5197;
 
 function checkUrl(url) {
   return new Promise((resolve) => {
-    http.get(url, (res) => {
-      resolve(res.statusCode === 200);
-    }).on('error', () => {
-      resolve(false);
-    });
+    http
+      .get(url, (res) => {
+        resolve(res.statusCode === 200);
+      })
+      .on('error', () => {
+        resolve(false);
+      });
   });
 }
 
@@ -29,7 +31,9 @@ async function waitForServer(url, timeoutMs = 20000) {
 function runEdgeScreenshot(width, height, outputPath, targetUrl) {
   return new Promise((resolve) => {
     if (fs.existsSync(outputPath)) {
-      try { fs.unlinkSync(outputPath); } catch {}
+      try {
+        fs.unlinkSync(outputPath);
+      } catch {}
     }
     const args = [
       '--headless',
@@ -63,8 +67,10 @@ async function main() {
   vite.stdout.on('data', (d) => console.log('vite:', d.toString().trim()));
   vite.stderr.on('data', (d) => console.error('vite err:', d.toString().trim()));
 
-  const targetUrl = `http://localhost:${port}/preview-phase3-4`;
-  const ready = await waitForServer(targetUrl);
+  const phaseUrl = `http://localhost:${port}/preview-phase3-4`;
+  const invoiceUrl = `http://localhost:${port}/preview-invoice`;
+
+  const ready = await waitForServer(phaseUrl);
   if (!ready) {
     console.error('Server did not become ready in time');
     vite.kill();
@@ -77,34 +83,33 @@ async function main() {
   const outDir = path.resolve('public', 'screenshots');
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
-  const shot1280 = path.join(outDir, 'sidebar-dark-1280px.png');
-  const shot1920 = path.join(outDir, 'sidebar-dark-1920px.png');
-  const shot600 = path.join(outDir, 'sidebar-dark-600px.png');
+  const tasks = [
+    { name: 'ui-modernized-1280px.png', w: 1280, h: 920, url: phaseUrl },
+    { name: 'ui-modernized-1920px.png', w: 1920, h: 1080, url: phaseUrl },
+    { name: 'ui-modernized-600px.png', w: 600, h: 960, url: phaseUrl },
+    { name: 'invoice-form-1280px.png', w: 1280, h: 920, url: invoiceUrl },
+    { name: 'invoice-form-600px.png', w: 600, h: 960, url: invoiceUrl },
+  ];
 
-  console.log('Taking 1280px screenshot...');
-  await runEdgeScreenshot(1280, 920, shot1280, targetUrl);
-  console.log('Saved 1280px exists:', fs.existsSync(shot1280));
+  const artifactDir = path.resolve(
+    'C:\\Users\\cfcap\\.gemini\\antigravity\\brain\\c39402ce-365e-4a3f-9835-a6507764ea65'
+  );
 
-  console.log('Taking 1920px screenshot...');
-  await runEdgeScreenshot(1920, 1080, shot1920, targetUrl);
-  console.log('Saved 1920px exists:', fs.existsSync(shot1920));
-
-  console.log('Taking 600px screenshot...');
-  await runEdgeScreenshot(600, 900, shot600, targetUrl);
-  console.log('Saved 600px exists:', fs.existsSync(shot600));
-
-  const artifactDir = path.resolve('C:\\Users\\cfcap\\.gemini\\antigravity\\brain\\c39402ce-365e-4a3f-9835-a6507764ea65');
-  if (fs.existsSync(artifactDir)) {
-    if (fs.existsSync(shot1280)) fs.copyFileSync(shot1280, path.join(artifactDir, 'sidebar-dark-1280px.png'));
-    if (fs.existsSync(shot1920)) fs.copyFileSync(shot1920, path.join(artifactDir, 'sidebar-dark-1920px.png'));
-    if (fs.existsSync(shot600)) fs.copyFileSync(shot600, path.join(artifactDir, 'sidebar-dark-600px.png'));
-    console.log('Copied to artifact dir:', artifactDir);
+  for (const t of tasks) {
+    const shotPath = path.join(outDir, t.name);
+    console.log(`Taking ${t.name} (${t.w}x${t.h})...`);
+    await runEdgeScreenshot(t.w, t.h, shotPath, t.url);
+    const ok = fs.existsSync(shotPath);
+    console.log(`Saved ${t.name}:`, ok);
+    if (ok && fs.existsSync(artifactDir)) {
+      fs.copyFileSync(shotPath, path.join(artifactDir, t.name));
+    }
   }
 
   console.log('Cleaning up server...');
   vite.kill('SIGTERM');
   spawn('taskkill', ['/pid', String(vite.pid), '/f', '/t']);
-  console.log('Done!');
+  console.log('Done taking all screenshots!');
 }
 
 main().catch((err) => {

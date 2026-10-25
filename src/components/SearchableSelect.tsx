@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
+import { ChevronDown, Check } from 'lucide-react';
 
 export interface SearchOption {
   value: string;
@@ -22,8 +23,8 @@ export default function SearchableSelect({
   options,
   onChange,
   placeholder = 'اختر…',
-  searchPlaceholder = 'اكتب للبحث عن حساب…',
-  emptyMessage = 'لا توجد حسابات مطابقة',
+  searchPlaceholder = 'اكتب للبحث…',
+  emptyMessage = 'لا توجد نتائج مطابقة',
   required = false,
   disabled = false,
   inputRef,
@@ -40,7 +41,9 @@ export default function SearchableSelect({
 
   useEffect(() => {
     function closeOnOutsideClick(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
     }
     document.addEventListener('pointerdown', closeOnOutsideClick);
     return () => document.removeEventListener('pointerdown', closeOnOutsideClick);
@@ -73,54 +76,65 @@ export default function SearchableSelect({
   }
 
   return (
-    <div className="searchable-select" ref={containerRef}>
-      <input
-        ref={inputRef}
-        type="text"
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={open}
-        aria-controls={`${id}-options`}
-        aria-activedescendant={open && activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined}
-        value={open ? query : selected?.label ?? ''}
-        placeholder={open ? searchPlaceholder : placeholder}
-        onFocus={() => {
-          setQuery('');
-          setActiveIndex(-1);
-          setOpen(true);
-        }}
-        onClick={() => {
-          if (!open) {
+    <div className={`searchable-select ${open ? 'is-open' : ''}`} ref={containerRef}>
+      <div className="searchable-select-input-wrap">
+        <input
+          ref={inputRef}
+          type="text"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={open}
+          aria-controls={`${id}-options`}
+          aria-activedescendant={open && activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined}
+          value={open ? query : selected?.label ?? ''}
+          placeholder={open ? searchPlaceholder : placeholder}
+          onFocus={() => {
             setQuery('');
             setActiveIndex(-1);
             setOpen(true);
-          }
-        }}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          setActiveIndex(-1);
-          setOpen(true);
-        }}
-        onKeyDown={handleKeyDown}
-        required={required}
-        disabled={disabled}
-      />
+          }}
+          onClick={() => {
+            if (!open) {
+              setQuery('');
+              setActiveIndex(-1);
+              setOpen(true);
+            }
+          }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setActiveIndex(-1);
+            setOpen(true);
+          }}
+          onKeyDown={handleKeyDown}
+          required={required}
+          disabled={disabled}
+        />
+        <div className="searchable-select-arrow" aria-hidden="true">
+          <ChevronDown size={15} />
+        </div>
+      </div>
       {open && !disabled && (
         <div className="searchable-select-options" id={`${id}-options`} role="listbox">
-          {filteredOptions.length > 0 ? filteredOptions.map((option, index) => (
-            <button
-              type="button"
-              role="option"
-              aria-selected={option.value === value}
-              id={`${id}-option-${index}`}
-              className={index === activeIndex ? 'searchable-select-option active' : 'searchable-select-option'}
-              key={option.value}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => choose(option)}
-            >
-              {option.label}
-            </button>
-          )) : (
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((option, index) => {
+              const isSelected = option.value === value;
+              return (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  id={`${id}-option-${index}`}
+                  className={`searchable-select-option ${index === activeIndex ? 'active' : ''} ${isSelected ? 'selected' : ''}`.trim()}
+                  key={option.value}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => choose(option)}
+                >
+                  <span>{option.label}</span>
+                  {isSelected && <Check size={14} className="searchable-select-check" />}
+                </button>
+              );
+            })
+          ) : (
             <div className="searchable-select-empty">{emptyMessage}</div>
           )}
         </div>

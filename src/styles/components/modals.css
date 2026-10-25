@@ -1,24 +1,29 @@
-/* ---------- Document details / modal ---------- */
+/* ---------- Modern Document Details & Modals ---------- */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(16, 24, 40, 0.45);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
   z-index: 50;
+  animation: backdropFadeIn 0.2s var(--ease-out);
 }
 
 .modal {
   background: var(--card);
-  border-radius: 16px;
-  box-shadow: 0 18px 40px rgba(16, 24, 40, 0.24);
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-modal);
   width: min(880px, 100%);
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: modalPopIn 0.24s var(--ease-spring);
 }
 
 .modal-head {
@@ -26,15 +31,24 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 16px 22px;
   border-bottom: 1px solid var(--line);
-  border-top-left-radius: inherit;
-  border-top-right-radius: inherit;
+  border-start-start-radius: inherit;
+  border-start-end-radius: inherit;
+  background: #ffffff;
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .modal-body {
-  padding: 18px 20px 22px;
+  padding: 20px 22px 24px;
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .modal-section {
@@ -47,7 +61,7 @@
 
 .subtable th,
 .subtable td {
-  padding: 7px 10px;
+  padding: 8px 12px;
 }
 
 .doc-meta-list {
@@ -55,15 +69,84 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 8px 16px;
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 .doc-meta-list dt {
   color: var(--muted);
+  font-weight: 600;
 }
 
 .doc-meta-list dd {
   margin: 0;
+  color: var(--ink);
+}
+
+/* Confirm Dialog Specific Polish */
+.modal.confirm-modal {
+  max-width: 480px;
+}
+
+.confirm-dialog-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.confirm-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full, 9999px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirm-icon-wrap.danger {
+  background: var(--danger-light, #fef2f2);
+  color: var(--danger, #dc2626);
+  border: 1px solid var(--danger-border, #fecaca);
+}
+
+.confirm-icon-wrap.info {
+  background: var(--primary-light, rgba(46, 66, 92, 0.08));
+  color: var(--primary, #2e425c);
+  border: 1px solid var(--line);
+}
+
+.confirm-text-wrap {
+  flex: 1;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+/* Modal Animations */
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 @media (max-width: 760px) {
@@ -72,31 +155,64 @@
     gap: 2px;
   }
 
-  .statement-modal-backdrop { padding: 0; align-items: stretch; }
+  .statement-modal-backdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+
   .modal.account-statement-modal {
     width: 100%;
     height: 100dvh;
     max-height: 100dvh;
     border-radius: 0;
+    border: none;
   }
-  .account-statement-modal .modal-head { position: sticky; top: 0; z-index: 2; background: var(--card); }
-  .account-statement-modal .modal-body { padding: 14px 13px calc(20px + env(safe-area-inset-bottom)); }
 
-  .master-data-backdrop { padding: 0; align-items: stretch; }
+  .account-statement-modal .modal-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--card);
+  }
+
+  .account-statement-modal .modal-body {
+    padding: 14px 13px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .master-data-backdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+
   .modal.master-data-modal {
     width: 100%;
     height: 100dvh;
     max-height: 100dvh;
     border-radius: 0;
+    border: none;
   }
-  .master-data-modal .modal-head { position: sticky; top: 0; z-index: 2; background: var(--card); }
-  .master-data-modal .modal-body { padding: 14px 13px calc(20px + env(safe-area-inset-bottom)); }
+
+  .master-data-modal .modal-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--card);
+  }
+
+  .master-data-modal .modal-body {
+    padding: 14px 13px calc(20px + env(safe-area-inset-bottom));
+  }
+
   .master-data-modal form > .actions {
     position: sticky;
     bottom: -14px;
     z-index: 1;
     padding: 10px 0 calc(8px + env(safe-area-inset-bottom));
-    background: rgba(255,255,255,.97);
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(4px);
   }
-  .master-data-modal form > .actions .btn.primary { flex: 1; }
+
+  .master-data-modal form > .actions .btn.primary {
+    flex: 1;
+  }
 }

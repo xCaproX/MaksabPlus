@@ -1,10 +1,19 @@
-/* ---------- Cards ---------- */
+/* ---------- Modern Cards & Surface Components ---------- */
 .card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 18px;
+  border-radius: var(--radius-md, 12px);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.card.card-interactive:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
 }
 
 .card-head {
@@ -12,31 +21,38 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .badge {
-  background: #eef2f6;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
   color: var(--muted);
-  border-radius: 999px;
+  border-radius: var(--radius-full, 9999px);
   padding: 3px 10px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .badge.ok {
-  background: #ecfdf3;
-  color: var(--success);
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
 }
 
 .badge.danger {
-  background: #fef3f2;
-  color: var(--danger);
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 .badge.info {
-  background: #eff8ff;
-  color: #175cd3;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
 .chips {
@@ -45,17 +61,38 @@
   gap: 8px;
 }
 
+.chip {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full, 9999px);
+  padding: 4px 12px;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--ink-secondary);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.chip:hover {
+  background: #ffffff;
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
 .stock-breakdown {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 4px;
-  margin-top: 5px;
+  gap: 5px;
+  margin-top: 6px;
 }
 
 .stock-breakdown .chip {
   font-size: 11px;
-  font-weight: 400;
+  font-weight: 500;
+  padding: 2px 8px;
 }
 
 .filter-row {
@@ -76,23 +113,7 @@
 .filter-note {
   margin: 0 0 10px;
   color: var(--muted);
-}
-
-.chip {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 5px 12px;
   font-size: 13px;
-  color: var(--muted);
-}
-
-/* Card Visual Foundation Polish */
-.card {
-  border-color: #e9edf1;
-  border-radius: 14px;
-  box-shadow: var(--shadow);
-  padding: 20px;
 }
 
 @media (max-width: 760px) {

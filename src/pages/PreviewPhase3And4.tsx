@@ -16,9 +16,11 @@ import {
 import DateInput from '../components/DateInput';
 import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { money } from '../lib/format';
 
 export default function PreviewPhase3And4() {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [openSections, setOpenSections] = useState({
     goods: true,
     money: false,
@@ -487,7 +489,11 @@ export default function PreviewPhase3And4() {
                   <button type="button" className="btn">
                     تعديل الفاتورة
                   </button>
-                  <button type="button" className="btn danger">
+                  <button
+                    type="button"
+                    className="btn danger"
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
                     حذف
                   </button>
                 </div>
@@ -495,6 +501,17 @@ export default function PreviewPhase3And4() {
             </div>
           </div>
         </main>
+
+        {showDeleteConfirm && (
+          <ConfirmDialog
+            title="تأكيد حذف الفاتورة"
+            message={`هل أنت متأكد من رغبتك في حذف الفاتورة رقم ${current.number}؟\nسيتم إلغاء تأثيرها المالي وحركاتها المخزنية بشكل فوري.`}
+            confirmLabel="نعم، حذف الفاتورة"
+            danger
+            onConfirm={() => setShowDeleteConfirm(false)}
+            onCancel={() => setShowDeleteConfirm(false)}
+          />
+        )}
       </div>
     </BrowserRouter>
   );

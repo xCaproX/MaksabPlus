@@ -1,4 +1,4 @@
-/* ---------- Tabs ---------- */
+/* ---------- Modern Navigation Tabs ---------- */
 .tabs {
   display: flex;
   gap: 8px;
@@ -9,27 +9,44 @@
 }
 
 .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: transparent;
   padding: 10px 16px;
   font: inherit;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
   white-space: nowrap;
   flex: 0 0 auto;
   border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.tab:hover {
+  color: var(--ink);
 }
 
 .tab.active {
-  color: var(--primary-dark);
+  color: var(--primary);
   border-bottom-color: var(--primary);
+  font-weight: 700;
 }
 
 /* In desktop sidebar mode, top horizontal tabs are hidden */
-.tabs { display: none; }
+.tabs {
+  display: none;
+}
 
 /* In mobile mode, horizontal tabs are displayed */
 @media (max-width: 760px) {
-  .tabs { display: flex; }
+  .tabs {
+    display: flex;
+  }
 }

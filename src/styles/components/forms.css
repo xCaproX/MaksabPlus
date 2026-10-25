@@ -1,10 +1,10 @@
-/* ---------- Forms ---------- */
+/* ---------- Modern Forms & Input Controls ---------- */
 label {
   display: flex;
   flex-direction: column;
   gap: 6px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--muted);
 }
 
@@ -12,113 +12,50 @@ input,
 select,
 textarea {
   font: inherit;
+  font-size: 13.5px;
   color: var(--ink);
-  background: #fff;
+  background: #ffffff;
   border: 1px solid var(--line);
-  border-radius: 9px;
-  padding: 9px 11px;
+  border-radius: var(--radius-sm, 8px);
+  min-height: 40px;
+  padding: 8px 12px;
   width: 100%;
   outline: none;
   font-weight: 400;
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted-light);
+  font-weight: 400;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--line-strong);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(46, 66, 92, 0.14);
+  box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
-select:disabled {
-  background: #f3f5f7;
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: #f8fafc;
   color: var(--muted);
   cursor: not-allowed;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.form-grid .span-2 {
-  grid-column: span 2;
-}
-
-.inline-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.searchable-select {
-  position: relative;
-  width: 100%;
-}
-
-.searchable-select-options {
-  position: absolute;
-  inset-inline: 0;
-  top: calc(100% + 4px);
-  z-index: 60;
-  max-height: 260px;
-  overflow-y: auto;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--card);
-  box-shadow: 0 10px 24px rgba(16, 24, 40, 0.16);
-}
-
-.searchable-select-option {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-
-.searchable-select-option:last-child {
-  border-bottom: 0;
-}
-
-.searchable-select-option:hover,
-.searchable-select-option.active {
-  background: #edf1f6;
-}
-
-.searchable-select-empty {
-  padding: 12px;
-  color: var(--muted);
-}
-
-.actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-start;
-}
-
-.check {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  align-self: end;
-  padding-bottom: 9px;
-}
-
-.check input {
-  width: auto;
-}
-
-/* Base Form Control Foundation */
-input, select, textarea {
-  min-height: 44px;
-  border-color: #dfe5e9;
-  border-radius: 10px;
+  border-color: var(--line);
+  opacity: 0.75;
 }
 
 /* Number inputs hide native spinners */
@@ -131,23 +68,171 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.form-grid .span-2 {
+  grid-column: span 2;
+}
+
+.inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Searchable Select */
+.searchable-select {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-select-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.searchable-select-input-wrap input {
+  padding-inline-end: 36px;
+}
+
+.searchable-select-arrow {
+  position: absolute;
+  inset-inline-end: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  pointer-events: none;
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.searchable-select.is-open .searchable-select-arrow {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+.searchable-select-options {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 5px);
+  z-index: 60;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 8px);
+  background: #ffffff;
+  box-shadow: var(--shadow-lg);
+  animation: dropdown-pop 0.16s var(--ease-out);
+  scrollbar-width: thin;
+}
+
+.searchable-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.searchable-select-option:last-child {
+  border-bottom: 0;
+}
+
+.searchable-select-option:hover,
+.searchable-select-option.active {
+  background: #f1f5f9;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.searchable-select-option.selected {
+  color: var(--primary);
+  font-weight: 650;
+  background: rgba(46, 66, 92, 0.04);
+}
+
+.searchable-select-check {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.searchable-select-empty {
+  padding: 14px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  align-self: end;
+  padding-bottom: 9px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 550;
+  color: var(--ink);
+}
+
+.check input {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
 /* DateInput shared component */
 .date-input-wrap {
   position: relative;
   display: flex;
   align-items: center;
-  background: #fff;
-  border: 1px solid var(--erp-border, #cbd5e1);
-  border-radius: 7px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 8px);
   height: 40px;
   min-height: 40px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
   overflow: hidden;
+}
+
+.date-input-wrap:hover {
+  border-color: var(--line-strong);
 }
 
 .date-input-wrap:focus-within {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(46, 66, 92, 0.12);
+  box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
 .date-input-wrap.disabled {
@@ -163,20 +248,21 @@ input[type="number"] {
   box-shadow: none !important;
   height: 100% !important;
   min-height: 100% !important;
-  padding: 0 10px !important;
+  padding: 0 12px !important;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   direction: ltr;
-  text-align: left;
+  text-align: start;
   font-variant-numeric: tabular-nums;
   border-radius: 0 !important;
+  background: transparent !important;
 }
 
 .date-picker-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
+  width: 38px;
   height: 100%;
   border: none;
   background: transparent;
@@ -184,23 +270,36 @@ input[type="number"] {
   cursor: pointer;
   padding: 0;
   border-inline-start: 1px solid var(--line);
-  transition: all 0.15s ease;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .date-picker-trigger:hover {
-  background: #f1f5f9;
+  background: #f8fafc;
   color: var(--primary);
 }
 
 .date-hidden-picker {
   position: absolute;
   top: 0;
-  right: 0;
+  inset-inline-end: 0;
   width: 1px;
   height: 1px;
   opacity: 0;
   pointer-events: none;
   border: 0;
+}
+
+@keyframes dropdown-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (max-width: 760px) {
