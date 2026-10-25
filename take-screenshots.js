@@ -35,10 +35,12 @@ function runEdgeScreenshot(width, height, outputPath, targetUrl) {
         fs.unlinkSync(outputPath);
       } catch {}
     }
+    const tempProfile = path.join(process.env.TEMP || 'C:\\Windows\\Temp', `edge_shot_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`);
     const args = [
       '--headless',
       '--disable-gpu',
       '--hide-scrollbars',
+      `--user-data-dir=${tempProfile}`,
       `--window-size=${width},${height}`,
       `--screenshot=${outputPath}`,
       targetUrl,

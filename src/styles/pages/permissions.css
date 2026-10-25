@@ -73,7 +73,8 @@
 }
 
 .users-sidebar-filters input,
-.users-sidebar-filters select {
+.users-sidebar-filters select,
+.users-sidebar-filters .searchable-select input {
   width: 100%;
   font-size: 12px;
   min-height: 32px;
@@ -81,6 +82,19 @@
   border-radius: 5px;
   border: 1px solid var(--erp-border, #e5e9f0);
   padding: 0 8px;
+}
+
+.users-sidebar-filters .searchable-select input {
+  padding-inline-end: 28px;
+}
+
+.users-sidebar-filters .searchable-select-arrow {
+  inset-inline-end: 8px;
+}
+
+.users-sidebar-filters .searchable-select-arrow svg {
+  width: 13px;
+  height: 13px;
 }
 
 .users-list-scroll {

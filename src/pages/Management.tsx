@@ -7,6 +7,7 @@ import { translateDbError } from '../lib/errors';
 import type { AccountRow, CashBoxRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 import { useAccess } from '../lib/access';
 import UserPermissions from '../components/UserPermissions';
+import SearchableSelect from '../components/SearchableSelect';
 import { toast } from '../components/Toast';
 
 type ManagementTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes' | 'users';
@@ -280,21 +281,31 @@ export default function Management() {
                   />
                 </label>
 
-                <select aria-label="ترتيب النتائج" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as ManagementSort)}>
-                  <option value="name-asc">الاسم (أ – ي)</option>
-                  <option value="serial-desc">الرقم (الأحدث)</option>
-                  <option value="serial-asc">الرقم (الأقدم)</option>
-                </select>
+                <SearchableSelect
+                  ariaLabel="ترتيب النتائج"
+                  value={sortOrder}
+                  options={[
+                    { value: 'name-asc', label: 'الاسم (أ – ي)' },
+                    { value: 'serial-desc', label: 'الرقم (الأحدث)' },
+                    { value: 'serial-asc', label: 'الرقم (الأقدم)' },
+                  ]}
+                  onChange={(val) => setSortOrder(val as ManagementSort)}
+                />
 
                 {tab === 'items' && (
-                  <select aria-label="اختيار المخزن" value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}>
-                    <option value="">اختر المخزن</option>
-                    {warehouses.map((wh) => (
-                      <option key={wh.id} value={wh.id}>
-                        {entityNumber('WH', wh.serial_number)} — {wh.name}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    ariaLabel="اختيار المخزن"
+                    value={selectedWarehouseId}
+                    options={[
+                      { value: '', label: 'اختر المخزن' },
+                      ...warehouses.map((wh) => ({
+                        value: wh.id,
+                        label: `${entityNumber('WH', wh.serial_number)} — ${wh.name}`,
+                      })),
+                    ]}
+                    onChange={setSelectedWarehouseId}
+                    searchPlaceholder="بحث عن مخزن…"
+                  />
                 )}
               </div>
             </div>

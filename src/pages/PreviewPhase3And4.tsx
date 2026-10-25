@@ -17,10 +17,13 @@ import DateInput from '../components/DateInput';
 import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
 import ConfirmDialog from '../components/ConfirmDialog';
+import SearchableSelect from '../components/SearchableSelect';
 import { money } from '../lib/format';
 
 export default function PreviewPhase3And4() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [sortOrder, setSortOrder] = useState('date-desc');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [openSections, setOpenSections] = useState({
     goods: true,
     money: false,
@@ -291,17 +294,27 @@ export default function PreviewPhase3And4() {
                       <input type="search" placeholder="بحث بالرقم أو العميل أو المخزن…" />
                     </label>
 
-                    <select aria-label="ترتيب النتائج" defaultValue="date-desc">
-                      <option value="date-desc">الأحدث أولًا</option>
-                      <option value="date-asc">الأقدم أولًا</option>
-                    </select>
+                    <SearchableSelect
+                      ariaLabel="ترتيب النتائج"
+                      value={sortOrder}
+                      options={[
+                        { value: 'date-desc', label: 'الأحدث أولًا' },
+                        { value: 'date-asc', label: 'الأقدم أولًا' },
+                      ]}
+                      onChange={setSortOrder}
+                    />
 
-                    <select aria-label="تصفية حسب حالة السداد" defaultValue="all">
-                      <option value="all">كل الحالات</option>
-                      <option value="paid">مسددة</option>
-                      <option value="partial">جزئية</option>
-                      <option value="unpaid">غير مسددة</option>
-                    </select>
+                    <SearchableSelect
+                      ariaLabel="تصفية حسب حالة السداد"
+                      value={statusFilter}
+                      options={[
+                        { value: 'all', label: 'كل الحالات' },
+                        { value: 'paid', label: 'مسددة' },
+                        { value: 'partial', label: 'جزئية' },
+                        { value: 'unpaid', label: 'غير مسددة' },
+                      ]}
+                      onChange={setStatusFilter}
+                    />
 
                     {/* Shared DateInput components */}
                     <div className="erp-date">

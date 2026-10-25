@@ -6,6 +6,7 @@ import { entityNumber, formatDate, money, qty as formatQty, today } from '../lib
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import DateInput from '../components/DateInput';
+import SearchableSelect from '../components/SearchableSelect';
 import { toast } from '../components/Toast';
 import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, ItemMovementStatementRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 
@@ -326,20 +327,28 @@ export default function Balances() {
                 />
               </label>
 
-              <select aria-label="ترتيب النتائج" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as BalanceSort)}>
-                <option value="balance-desc">{tab === 'items' ? 'الأعلى كمية' : 'الأعلى رصيدًا'}</option>
-                <option value="balance-asc">{tab === 'items' ? 'الأقل كمية' : 'الأقل رصيدًا'}</option>
-                <option value="name-asc">الاسم (أ – ي)</option>
-              </select>
+              <SearchableSelect
+                ariaLabel="ترتيب النتائج"
+                value={sortOrder}
+                options={[
+                  { value: 'balance-desc', label: tab === 'items' ? 'الأعلى كمية' : 'الأعلى رصيدًا' },
+                  { value: 'balance-asc', label: tab === 'items' ? 'الأقل كمية' : 'الأقل رصيدًا' },
+                  { value: 'name-asc', label: 'الاسم (أ – ي)' },
+                ]}
+                onChange={(val) => setSortOrder(val as BalanceSort)}
+              />
 
               {tab === 'items' && (
-                <select aria-label="تصفية حسب المخزن" value={selectedWarehouseId} onChange={(event) => setSelectedWarehouseId(event.target.value)}>
-                  {warehouses.map((wh) => (
-                    <option key={wh.id} value={wh.id}>
-                      {entityNumber('WH', wh.serial_number)} — {wh.name}
-                    </option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  ariaLabel="تصفية حسب المخزن"
+                  value={selectedWarehouseId}
+                  options={warehouses.map((wh) => ({
+                    value: wh.id,
+                    label: `${entityNumber('WH', wh.serial_number)} — ${wh.name}`,
+                  }))}
+                  onChange={setSelectedWarehouseId}
+                  searchPlaceholder="بحث عن مخزن…"
+                />
               )}
             </div>
           </div>

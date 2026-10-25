@@ -614,19 +614,33 @@ export default function MasterData() {
                 />
               </label>
 
-              <select aria-label="ترتيب النتائج" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as MasterSort)}>
-                <option value="name-asc">الاسم (أ – ي)</option>
-                <option value="serial-desc">الرقم التسلسلي (الأحدث)</option>
-                <option value="serial-asc">الرقم التسلسلي (الأقدم)</option>
-                {tab === 'items' && <option value="price-desc">الأعلى سعر بيع</option>}
-                {tab === 'items' && <option value="price-asc">الأقل سعر بيع</option>}
-              </select>
+              <SearchableSelect
+                ariaLabel="ترتيب النتائج"
+                value={sortOrder}
+                options={[
+                  { value: 'name-asc', label: 'الاسم (أ – ي)' },
+                  { value: 'serial-desc', label: 'الرقم التسلسلي (الأحدث)' },
+                  { value: 'serial-asc', label: 'الرقم التسلسلي (الأقدم)' },
+                  ...(tab === 'items'
+                    ? [
+                        { value: 'price-desc', label: 'الأعلى سعر بيع' },
+                        { value: 'price-asc', label: 'الأقل سعر بيع' },
+                      ]
+                    : []),
+                ]}
+                onChange={(val) => setSortOrder(val as MasterSort)}
+              />
 
-              <select aria-label="تصفية الحالة" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}>
-                <option value="all">كل الحالات</option>
-                <option value="active">النشطة فقط</option>
-                <option value="inactive">الموقوفة فقط</option>
-              </select>
+              <SearchableSelect
+                ariaLabel="تصفية الحالة"
+                value={statusFilter}
+                options={[
+                  { value: 'all', label: 'كل الحالات' },
+                  { value: 'active', label: 'النشطة فقط' },
+                  { value: 'inactive', label: 'الموقوفة فقط' },
+                ]}
+                onChange={(val) => setStatusFilter(val as StatusFilter)}
+              />
             </div>
           </div>
 

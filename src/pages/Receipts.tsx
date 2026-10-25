@@ -502,21 +502,31 @@ export default function Receipts() {
                 />
               </label>
 
-              <select aria-label="ترتيب النتائج" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as ReceiptSort)}>
-                <option value="date-desc">الأحدث أولًا</option>
-                <option value="date-asc">الأقدم أولًا</option>
-                <option value="amount-desc">الأعلى مبلغًا</option>
-                <option value="amount-asc">الأقل مبلغًا</option>
-              </select>
+              <SearchableSelect
+                ariaLabel="ترتيب النتائج"
+                value={sortOrder}
+                options={[
+                  { value: 'date-desc', label: 'الأحدث أولًا' },
+                  { value: 'date-asc', label: 'الأقدم أولًا' },
+                  { value: 'amount-desc', label: 'الأعلى مبلغًا' },
+                  { value: 'amount-asc', label: 'الأقل مبلغًا' },
+                ]}
+                onChange={(val) => setSortOrder(val as ReceiptSort)}
+              />
 
-              <select aria-label="تصفية حسب الخزنة" value={cashBoxFilter} onChange={(event) => setCashBoxFilter(event.target.value)}>
-                <option value="all">كل الخزن</option>
-                {cashBoxes.map((box) => (
-                  <option key={box.id} value={box.id}>
-                    {box.name}{!box.is_active ? ' — موقوفة' : ''}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                ariaLabel="تصفية حسب الخزنة"
+                value={cashBoxFilter}
+                options={[
+                  { value: 'all', label: 'كل الخزن' },
+                  ...cashBoxes.map((box) => ({
+                    value: box.id,
+                    label: `${box.name}${!box.is_active ? ' — موقوفة' : ''}`,
+                  })),
+                ]}
+                onChange={setCashBoxFilter}
+                searchPlaceholder="بحث عن خزنة…"
+              />
 
               <div className="erp-date"><span>من</span><DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" /></div>
               <div className="erp-date"><span>إلى</span><DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" /></div>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import Modal from './Modal';
+import SearchableSelect from './SearchableSelect';
 import { toast } from './Toast';
 
 type ActionKey = 'view' | 'create' | 'edit' | 'delete';
@@ -416,16 +417,17 @@ export default function UserPermissions() {
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="بحث بالاسم أو البريد…"
                 />
-                <select
-                  aria-label="تصفية الموظفين"
+                <SearchableSelect
+                  ariaLabel="تصفية الموظفين"
                   value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value as UserFilterStatus)}
-                >
-                  <option value="all">كل المستخدمين</option>
-                  <option value="active">النشطون فقط</option>
-                  <option value="suspended">الموقوفون فقط</option>
-                  <option value="owner">مديرو المنشأة</option>
-                </select>
+                  options={[
+                    { value: 'all', label: 'كل المستخدمين' },
+                    { value: 'active', label: 'النشطون فقط' },
+                    { value: 'suspended', label: 'الموقوفون فقط' },
+                    { value: 'owner', label: 'مديرو المنشأة' },
+                  ]}
+                  onChange={(val) => setStatusFilter(val as UserFilterStatus)}
+                />
               </div>
             </div>
 

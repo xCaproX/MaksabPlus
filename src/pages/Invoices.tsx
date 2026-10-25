@@ -11,6 +11,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import DateInput from '../components/DateInput';
 import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
+import SearchableSelect from '../components/SearchableSelect';
 import { toast } from '../components/Toast';
 import type {
   AccountRow,
@@ -545,20 +546,30 @@ export default function Invoices() {
                 />
               </label>
 
-              <select aria-label="ترتيب النتائج" value={sortOrder} onChange={(event) => setSortOrder(event.target.value as SaleSort)}>
-                <option value="date-desc">الأحدث أولًا</option>
-                <option value="date-asc">الأقدم أولًا</option>
-                <option value="total-desc">الأعلى قيمة</option>
-                <option value="total-asc">الأقل قيمة</option>
-              </select>
+              <SearchableSelect
+                ariaLabel="ترتيب النتائج"
+                value={sortOrder}
+                options={[
+                  { value: 'date-desc', label: 'الأحدث أولًا' },
+                  { value: 'date-asc', label: 'الأقدم أولًا' },
+                  { value: 'total-desc', label: 'الأعلى قيمة' },
+                  { value: 'total-asc', label: 'الأقل قيمة' },
+                ]}
+                onChange={(val) => setSortOrder(val as SaleSort)}
+              />
 
               {!isWarehouseTransfer && kind !== 'waste' && (
-                <select aria-label="حالة السداد" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as SaleStatus)}>
-                  <option value="all">كل الحالات</option>
-                  <option value="paid">{isReturn ? 'مستردة' : 'مسددة'}</option>
-                  <option value="partial">{isReturn ? 'مستردة جزئيًا' : 'مسددة جزئيًا'}</option>
-                  <option value="unpaid">{isReturn ? 'غير مستردة' : 'غير مسددة'}</option>
-                </select>
+                <SearchableSelect
+                  ariaLabel="حالة السداد"
+                  value={statusFilter}
+                  options={[
+                    { value: 'all', label: 'كل الحالات' },
+                    { value: 'paid', label: isReturn ? 'مستردة' : 'مسددة' },
+                    { value: 'partial', label: isReturn ? 'مستردة جزئيًا' : 'مسددة جزئيًا' },
+                    { value: 'unpaid', label: isReturn ? 'غير مستردة' : 'غير مسددة' },
+                  ]}
+                  onChange={(val) => setStatusFilter(val as SaleStatus)}
+                />
               )}
 
               <div className="erp-date"><span>من</span><DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" /></div>
