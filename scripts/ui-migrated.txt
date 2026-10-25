@@ -1,0 +1,2 @@
+# One path per line, relative to repo root. A screen is added here the moment it is migrated.
+# Never remove a line. Never edit scripts/check-ui.mjs without the owner's approval.
