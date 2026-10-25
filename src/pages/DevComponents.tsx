@@ -28,8 +28,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  type SelectOption,
 } from "@/components/ui/select"
 import { Combobox } from "@/components/ui/combobox"
+import { formatDate } from "@/lib/format"
 import {
   Dialog,
   DialogContent,
@@ -66,6 +68,28 @@ import { Toaster } from "@/components/ui/sonner"
 import { RowActions } from "@/components/app/RowActions"
 import { DataTable } from "@/components/app/DataTable"
 import { PageLayout, DetailPanel } from "@/components/app/PageLayout"
+
+// Options Collections with Arabic Labels
+const statusFilterOptions: SelectOption[] = [
+  { value: "all", label: "جميع الحالات" },
+  { value: "paid", label: "خالص" },
+  { value: "partial", label: "جزئي" },
+  { value: "unpaid", label: "غير مسدد" },
+]
+
+const paymentMethodOptions: SelectOption[] = [
+  { value: "cash", label: "نقدي (خزينة رئيسية)" },
+  { value: "bank", label: "تحويل بنكي" },
+  { value: "cheque", label: "شيك بنكي مؤجل" },
+  { value: "card", label: "بطاقة ائتمان / مدى" },
+]
+
+const comboboxOptions = [
+  { value: "item-1", label: "شاشات سامسونج 32 بوصة", subLabel: "قسم الإلكترونيات", meta: "1,200 ج.م" },
+  { value: "item-2", label: "طابعة إبسون L3250", subLabel: "طابعات وأحبار", meta: "4,500 ج.م" },
+  { value: "item-3", label: "كابل HDMI بطول 3 متر", subLabel: "إكسسوارات", meta: "75 ج.م" },
+  { value: "item-4", label: "لوحة مفاتيح وماوس لاسلكي", subLabel: "إكسسوارات", meta: "350 ج.م" },
+]
 
 // Form Schema
 const testFormSchema = z.object({
@@ -107,6 +131,7 @@ export default function DevComponents() {
   const [numVal, setNumVal] = React.useState<number | null>(1500.5)
   const [dateVal, setDateVal] = React.useState<string | null>("2026-10-25")
   const [comboboxVal, setComboboxVal] = React.useState<string | null>("item-2")
+  const [paymentMethod, setPaymentMethod] = React.useState<string>("cash")
   const [selectedInvoice, setSelectedInvoice] = React.useState<SampleInvoice | null>(sampleData[0])
   const [isDetailOpen, setIsDetailOpen] = React.useState(true)
   const [dialogOpen, setDialogOpen] = React.useState(false)
@@ -157,7 +182,9 @@ export default function DevComponents() {
         header: "التاريخ",
         meta: { priority: "medium" },
         cell: ({ row }) => (
-          <span className="font-mono text-muted-foreground">{row.original.date}</span>
+          <span className="font-mono tabular-nums text-foreground">
+            {formatDate(row.original.date)}
+          </span>
         ),
       },
       {
@@ -271,15 +298,16 @@ export default function DevComponents() {
                   <SearchIcon className="absolute top-2.5 start-2.5 size-4 text-muted-foreground" />
                   <Input placeholder="بحث برقم الفاتورة أو العميل..." className="ps-8 h-9" />
                 </div>
-                <Select defaultValue="all">
+                <Select items={statusFilterOptions} defaultValue="all">
                   <SelectTrigger className="w-36 h-9">
                     <SelectValue placeholder="الحالة" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">جميع الحالات</SelectItem>
-                    <SelectItem value="paid">خالص</SelectItem>
-                    <SelectItem value="partial">جزئي</SelectItem>
-                    <SelectItem value="unpaid">غير مسدد</SelectItem>
+                    {statusFilterOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <div className="w-44">
@@ -331,7 +359,7 @@ export default function DevComponents() {
                     <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
                       <div>
                         <span className="text-muted-foreground block">تاريخ الإصدار:</span>
-                        <span className="font-mono font-medium">{selectedInvoice.date}</span>
+                        <span className="font-mono tabular-nums font-medium text-foreground">{formatDate(selectedInvoice.date)}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground block">طريقة الدفع:</span>
@@ -444,7 +472,7 @@ export default function DevComponents() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  <label className="text-xs font-medium text-foreground mb-1 block">
                     الكمية (بالقطعة):
                   </label>
                   <NumberInput
@@ -455,7 +483,7 @@ export default function DevComponents() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  <label className="text-xs font-medium text-foreground mb-1 block">
                     الوزن (بالكيلو جرام):
                   </label>
                   <NumberInput
@@ -496,8 +524,8 @@ export default function DevComponents() {
             </div>
           </section>
 
-          {/* 3. DateInput & Combobox & Select */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* 3. Inputs & Forms & Selectors */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="rounded-lg border border-border bg-card p-5 space-y-3">
               <h3 className="font-bold text-sm text-foreground">5. منتقي التاريخ (DateInput)</h3>
               <p className="text-xs text-muted-foreground">
@@ -510,28 +538,49 @@ export default function DevComponents() {
             </div>
 
             <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-              <h3 className="font-bold text-sm text-foreground">6. صندوق البحث والاختيار (Combobox)</h3>
+              <h3 className="font-bold text-sm text-foreground">6. صندوق البحث (Combobox)</h3>
               <p className="text-xs text-muted-foreground">
                 بديل SearchableSelect، متوافق مع لوحة المفاتيح واللغة العربية.
               </p>
               <Combobox
-                options={[
-                  { value: "item-1", label: "شاشات سامسونج 32 بوصة", subLabel: "قسم الإلكترونيات", meta: "1,200 ج.م" },
-                  { value: "item-2", label: "طابعة إبسون L3250", subLabel: "طابعات وأحبار", meta: "4,500 ج.م" },
-                  { value: "item-3", label: "كابل HDMI بطول 3 متر", subLabel: "إكسسوارات", meta: "75 ج.م" },
-                  { value: "item-4", label: "لوحة مفاتيح وماوس لاسلكي", subLabel: "إكسسوارات", meta: "350 ج.م" },
-                ]}
+                options={comboboxOptions}
                 value={comboboxVal}
                 onChange={setComboboxVal}
                 placeholder="اختر صنفاً..."
               />
               <div className="text-xs text-muted-foreground">
-                المحدد: <span className="font-mono text-foreground font-semibold">{comboboxVal}</span>
+                المحدد: <span className="font-semibold text-foreground">{comboboxOptions.find((o) => o.value === comboboxVal)?.label ?? "لا يوجد"}</span>
               </div>
             </div>
 
             <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-              <h3 className="font-bold text-sm text-foreground">7. النماذج (React Hook Form + Zod)</h3>
+              <h3 className="font-bold text-sm text-foreground">7. القائمة المنسدلة (Select)</h3>
+              <p className="text-xs text-muted-foreground">
+                مبني على Base UI ويعرض التسميات العربية دائماً عبر خاصية items.
+              </p>
+              <Select
+                items={paymentMethodOptions}
+                value={paymentMethod}
+                onValueChange={(val) => val && setPaymentMethod(val as string)}
+              >
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue placeholder="طريقة الدفع" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethodOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="text-xs text-muted-foreground">
+                المحدد: <span className="font-semibold text-foreground">{paymentMethodOptions.find((o) => o.value === paymentMethod)?.label}</span>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-5 space-y-3">
+              <h3 className="font-bold text-sm text-foreground">8. النماذج (RHF + Zod)</h3>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
                   <FormField
@@ -539,7 +588,7 @@ export default function DevComponents() {
                     name="fullName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>اسم المستخدم</FormLabel>
+                        <FormLabel className="text-foreground font-medium">اسم العميل</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -552,7 +601,7 @@ export default function DevComponents() {
                     name="notes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>ملاحظات (Textarea)</FormLabel>
+                        <FormLabel className="text-foreground font-medium">ملاحظات (Textarea)</FormLabel>
                         <FormControl>
                           <Textarea placeholder="أدخل أية تفاصيل إضافية..." {...field} />
                         </FormControl>
@@ -560,17 +609,27 @@ export default function DevComponents() {
                       </FormItem>
                     )}
                   />
-                  <div className="flex items-center justify-between pt-1">
-                    <Button type="submit" size="sm" variant="primary">
-                      تحقق وحفظ
-                    </Button>
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <div className="flex items-center gap-1.5">
+                      <Button type="submit" size="xs" variant="primary">
+                        حفظ
+                      </Button>
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="outline"
+                        onClick={() => form.setValue("fullName", "أ", { shouldValidate: true })}
+                      >
+                        فحص الخطأ
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-1.5">
                       <Checkbox
                         id="chk-demo"
                         checked={checkboxChecked}
                         onCheckedChange={(val) => setCheckboxChecked(!!val)}
                       />
-                      <label htmlFor="chk-demo" className="text-xs">تفعيل</label>
+                      <label htmlFor="chk-demo" className="text-xs font-medium text-foreground">تفعيل</label>
                     </div>
                   </div>
                 </form>
@@ -581,7 +640,7 @@ export default function DevComponents() {
           {/* 4. Dialog & Tooltip & Controls */}
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-              <h3 className="font-bold text-sm text-foreground">8. النوافذ المنبثقة (Dialog & Popover)</h3>
+              <h3 className="font-bold text-sm text-foreground">9. النوافذ المنبثقة (Dialog & Popover)</h3>
               <div className="flex flex-wrap gap-2">
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger
@@ -617,7 +676,7 @@ export default function DevComponents() {
             </div>
 
             <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-              <h3 className="font-bold text-sm text-foreground">9. التلميحات والمفاتيح (Tooltip & Switch)</h3>
+              <h3 className="font-bold text-sm text-foreground">10. التلميحات والمفاتيح (Tooltip & Switch)</h3>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Switch
@@ -625,7 +684,7 @@ export default function DevComponents() {
                     onCheckedChange={setSwitchChecked}
                     id="switch-demo"
                   />
-                  <label htmlFor="switch-demo" className="text-xs font-medium">
+                  <label htmlFor="switch-demo" className="text-xs font-medium text-foreground">
                     {switchChecked ? "نشط" : "معطل"}
                   </label>
                 </div>
@@ -646,7 +705,7 @@ export default function DevComponents() {
             </div>
 
             <div className="rounded-lg border border-border bg-card p-5 space-y-3">
-              <h3 className="font-bold text-sm text-foreground">10. عناصر التحميل المؤقت (Skeleton)</h3>
+              <h3 className="font-bold text-sm text-foreground">11. عناصر التحميل المؤقت (Skeleton)</h3>
               <div className="space-y-2">
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-4 w-full" />

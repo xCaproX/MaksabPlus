@@ -10,7 +10,7 @@ import {
   type Table as TanStackTable,
 } from "@tanstack/react-table"
 import { ArrowUpDownIcon, Columns3Icon } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import {
   Table,
   TableBody,
@@ -138,115 +138,116 @@ export function DataTable<TData, TValue>({
         </DropdownMenu>
       </div>
 
-      <div className="relative max-h-[650px] overflow-auto rounded-lg border border-border bg-card">
-        <Table className="w-full text-xs md:text-sm">
-          <TableHeader className="sticky top-0 z-10 border-b border-border bg-card shadow-xs">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                {headerGroup.headers.map((header) => {
-                  const meta = header.column.columnDef.meta as
-                    | { priority?: "high" | "medium" | "low"; isNumeric?: boolean }
-                    | undefined
+      <Table
+        className="w-full text-xs md:text-sm"
+        containerClassName="max-h-[380px] overflow-auto rounded-lg border border-border bg-card shadow-xs"
+      >
+        <TableHeader className="sticky top-0 z-20 border-b border-border bg-card shadow-xs [&_tr]:bg-card">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id} className="hover:bg-transparent">
+              {headerGroup.headers.map((header) => {
+                const meta = header.column.columnDef.meta as
+                  | { priority?: "high" | "medium" | "low"; isNumeric?: boolean }
+                  | undefined
 
-                  const shouldHide = detailOpen && meta?.priority === "low"
-
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className={cn(
-                        "h-9 px-3 font-semibold text-muted-foreground select-none",
-                        meta?.isNumeric && "text-end tabular-nums",
-                        shouldHide && "hidden"
-                      )}
-                    >
-                      {header.isPlaceholder ? null : (
-                        <div
-                          className={cn(
-                            "flex items-center gap-1.5",
-                            meta?.isNumeric && "justify-end",
-                            header.column.getCanSort() && "cursor-pointer select-none"
-                          )}
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {header.column.getCanSort() && (
-                            <ArrowUpDownIcon className="size-3 text-muted-foreground opacity-60" />
-                          )}
-                        </div>
-                      )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i} className="hover:bg-transparent">
-                  {columns.map((_, colIdx) => (
-                    <TableCell key={colIdx} className="p-3">
-                      <Skeleton className="h-4 w-full" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-32 text-center text-muted-foreground"
-                >
-                  {emptyState ?? "لا توجد بيانات متاحة"}
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => {
-                const currentId = getRowId ? getRowId(row.original) : (row.original as any)?.id
-                const isSelected = selectedRowId !== undefined && selectedRowId !== null && currentId === selectedRowId
+                const shouldHide = detailOpen && meta?.priority === "low"
 
                 return (
-                  <TableRow
-                    key={row.id}
-                    data-selected={isSelected}
-                    onClick={() => onRowClick?.(row.original)}
+                  <TableHead
+                    key={header.id}
                     className={cn(
-                      "transition-colors",
-                      onRowClick && "cursor-pointer hover:bg-muted/60",
-                      isSelected && "bg-accent/80 font-medium"
+                      "h-9 px-3 font-semibold text-muted-foreground select-none",
+                      meta?.isNumeric && "text-end tabular-nums",
+                      shouldHide && "hidden"
                     )}
                   >
-                    {row.getVisibleCells().map((cell) => {
-                      const meta = cell.column.columnDef.meta as
-                        | { priority?: "high" | "medium" | "low"; isNumeric?: boolean }
-                        | undefined
-                      const shouldHide = detailOpen && meta?.priority === "low"
-
-                      return (
-                        <TableCell
-                          key={cell.id}
-                          className={cn(
-                            "px-3 py-2 text-foreground",
-                            meta?.isNumeric && "text-end tabular-nums font-mono",
-                            shouldHide && "hidden"
-                          )}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      )
-                    })}
-                  </TableRow>
+                    {header.isPlaceholder ? null : (
+                      <div
+                        className={cn(
+                          "flex items-center gap-1.5",
+                          meta?.isNumeric && "justify-end",
+                          header.column.getCanSort() && "cursor-pointer select-none"
+                        )}
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.column.getCanSort() && (
+                          <ArrowUpDownIcon className="size-3 text-muted-foreground opacity-60" />
+                        )}
+                      </div>
+                    )}
+                  </TableHead>
                 )
-              })
-            )}
-          </TableBody>
-          {totalsRow && (
-            <TableFooter className="border-t-2 border-border bg-muted/40 font-semibold">
-              {typeof totalsRow === "function" ? totalsRow(table) : totalsRow}
-            </TableFooter>
+              })}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <TableRow key={i} className="hover:bg-transparent">
+                {columns.map((_, colIdx) => (
+                  <TableCell key={colIdx} className="p-3">
+                    <Skeleton className="h-4 w-full" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : table.getRowModel().rows.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="h-32 text-center text-muted-foreground"
+              >
+                {emptyState ?? "لا توجد بيانات متاحة"}
+              </TableCell>
+            </TableRow>
+          ) : (
+            table.getRowModel().rows.map((row) => {
+              const currentId = getRowId ? getRowId(row.original) : (row.original as any)?.id
+              const isSelected = selectedRowId !== undefined && selectedRowId !== null && currentId === selectedRowId
+
+              return (
+                <TableRow
+                  key={row.id}
+                  data-selected={isSelected}
+                  onClick={() => onRowClick?.(row.original)}
+                  className={cn(
+                    "transition-colors",
+                    onRowClick && "cursor-pointer hover:bg-muted/60",
+                    isSelected && "bg-accent/80 font-medium"
+                  )}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const meta = cell.column.columnDef.meta as
+                      | { priority?: "high" | "medium" | "low"; isNumeric?: boolean }
+                      | undefined
+                    const shouldHide = detailOpen && meta?.priority === "low"
+
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          "px-3 py-2 text-foreground",
+                          meta?.isNumeric && "text-end tabular-nums font-mono",
+                          shouldHide && "hidden"
+                        )}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    )
+                  })}
+                </TableRow>
+              )
+            })
           )}
-        </Table>
-      </div>
+        </TableBody>
+        {totalsRow && (
+          <TableFooter className="sticky bottom-0 z-20 border-t-2 border-border bg-card font-semibold shadow-xs [&_tr]:bg-card [&_td]:bg-card">
+            {typeof totalsRow === "function" ? totalsRow(table) : totalsRow}
+          </TableFooter>
+        )}
+      </Table>
     </div>
   )
 }

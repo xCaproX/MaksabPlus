@@ -1,6 +1,6 @@
 import * as React from "react"
 import { CheckIcon, ChevronsUpDownIcon, SearchIcon, XIcon } from "lucide-react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 export interface ComboboxOption {

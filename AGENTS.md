@@ -30,6 +30,7 @@ UI language: Arabic (Egyptian), RTL.
 6. Reuse shared components (DateInput, MoneyDisplay, StatusBadge, RowActions). Fix a problem once in the shared component, never per screen. Before creating a new component, check whether one already exists.
 7. After completing a task: commit and push the code to GitHub.
    - Push a database migration only to the dev/staging project.
+   - Never apply a migration to production without explicit approval from the owner.
    - Never run destructive git or file commands inside the repo (git clean, git reset --hard, git checkout -- ., git restore on many files, rm -rf). Run all experiments in a directory OUTSIDE the repo. If the working tree is dirty, ask the owner first.
 
 ## Database
