@@ -17,6 +17,8 @@ import PreviewInvoice from './pages/PreviewInvoice';
 import PreviewReceipt from './pages/PreviewReceipt';
 import PreviewPhase3And4 from './pages/PreviewPhase3And4';
 
+const DevComponents = import.meta.env.DEV ? lazy(() => import('./pages/DevComponents')) : null;
+
 function PageSuspense({ children, fullScreen = false }: { children: ReactNode; fullScreen?: boolean }) {
   return (
     <Suspense fallback={fullScreen ? <div className="config-screen">جارٍ تحميل الصفحة…</div> : <div className="card empty" role="status">جارٍ تحميل الصفحة…</div>}>
@@ -63,6 +65,14 @@ export default function App() {
     return (
       <PageSuspense fullScreen>
         <PreviewPhase3And4 />
+      </PageSuspense>
+    );
+  }
+
+  if (import.meta.env.DEV && window.location.pathname === '/dev/components' && DevComponents) {
+    return (
+      <PageSuspense fullScreen>
+        <DevComponents />
       </PageSuspense>
     );
   }

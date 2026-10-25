@@ -89,14 +89,36 @@ async function main() {
   await runEdgeScreenshot(1920, 1080, shot1920, targetUrl);
   console.log('Saved 1920px exists:', fs.existsSync(shot1920));
 
+  // Phase 1: Showcase route /dev/components
+  const phase1Dir = path.join(outDir, 'phase1');
+  if (!fs.existsSync(phase1Dir)) fs.mkdirSync(phase1Dir, { recursive: true });
+
+  const devUrl = `http://localhost:${port}/dev/components`;
+  const devShot1280 = path.join(phase1Dir, 'dev-components-1280px.png');
+  const devShot1920 = path.join(phase1Dir, 'dev-components-1920px.png');
+
+  console.log('Taking 1280px screenshot of /dev/components...');
+  await runEdgeScreenshot(1280, 1200, devShot1280, devUrl);
+  console.log('Saved dev 1280px exists:', fs.existsSync(devShot1280));
+
+  console.log('Taking 1920px screenshot of /dev/components...');
+  await runEdgeScreenshot(1920, 1200, devShot1920, devUrl);
+  console.log('Saved dev 1920px exists:', fs.existsSync(devShot1920));
+
   // Copy to artifact directory
-  const artifactDir = path.resolve('C:\\Users\\cfcap\\.gemini\\antigravity\\brain\\1bdc31ed-3459-4258-8fcb-be1bf38958d0');
+  const artifactDir = path.resolve('C:\\Users\\cfcap\\.gemini\\antigravity\\brain\\16a0f386-8c08-4f7f-ad2b-d742683beb9d');
   if (fs.existsSync(artifactDir)) {
     if (fs.existsSync(shot1280)) {
       fs.copyFileSync(shot1280, path.join(artifactDir, 'phase3-4-verification-1280px.png'));
     }
     if (fs.existsSync(shot1920)) {
       fs.copyFileSync(shot1920, path.join(artifactDir, 'phase3-4-verification-1920px.png'));
+    }
+    if (fs.existsSync(devShot1280)) {
+      fs.copyFileSync(devShot1280, path.join(artifactDir, 'dev-components-1280px.png'));
+    }
+    if (fs.existsSync(devShot1920)) {
+      fs.copyFileSync(devShot1920, path.join(artifactDir, 'dev-components-1920px.png'));
     }
     console.log('Copied screenshots to artifact directory:', artifactDir);
   }
@@ -105,6 +127,7 @@ async function main() {
   vite.kill('SIGTERM');
   spawn('taskkill', ['/pid', String(vite.pid), '/f', '/t']);
   console.log('Done!');
+  process.exit(0);
 }
 
 main().catch((err) => {
