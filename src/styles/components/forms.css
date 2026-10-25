@@ -48,6 +48,17 @@ textarea:focus {
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+  padding-inline-end: 34px;
+  cursor: pointer;
+}
+
 input:disabled,
 select:disabled,
 textarea:disabled {
@@ -115,6 +126,15 @@ input[type="number"] {
 .searchable-select.is-open .searchable-select-arrow {
   transform: rotate(180deg);
   color: var(--primary);
+}
+
+.searchable-select.disabled {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.searchable-select.disabled .searchable-select-arrow {
+  opacity: 0.4;
 }
 
 .searchable-select-options {

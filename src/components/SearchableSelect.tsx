@@ -15,6 +15,8 @@ interface SearchableSelectProps {
   emptyMessage?: string;
   required?: boolean;
   disabled?: boolean;
+  className?: string;
+  ariaLabel?: string;
   inputRef?: Ref<HTMLInputElement>;
 }
 
@@ -27,6 +29,8 @@ export default function SearchableSelect({
   emptyMessage = 'لا توجد نتائج مطابقة',
   required = false,
   disabled = false,
+  className = '',
+  ariaLabel,
   inputRef,
 }: SearchableSelectProps) {
   const id = useId();
@@ -43,6 +47,7 @@ export default function SearchableSelect({
     function closeOnOutsideClick(event: PointerEvent) {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
+        setQuery('');
       }
     }
     document.addEventListener('pointerdown', closeOnOutsideClick);
@@ -75,8 +80,15 @@ export default function SearchableSelect({
     }
   }
 
+  const displayPlaceholder = open
+    ? (selected ? selected.label : searchPlaceholder)
+    : (selected ? selected.label : placeholder);
+
   return (
-    <div className={`searchable-select ${open ? 'is-open' : ''}`} ref={containerRef}>
+    <div
+      className={`searchable-select ${open ? 'is-open' : ''} ${disabled ? 'disabled' : ''} ${className}`.trim()}
+      ref={containerRef}
+    >
       <div className="searchable-select-input-wrap">
         <input
           ref={inputRef}
@@ -84,17 +96,20 @@ export default function SearchableSelect({
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={open}
+          aria-label={ariaLabel}
           aria-controls={`${id}-options`}
           aria-activedescendant={open && activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined}
           value={open ? query : selected?.label ?? ''}
-          placeholder={open ? searchPlaceholder : placeholder}
+          placeholder={displayPlaceholder}
           onFocus={() => {
-            setQuery('');
-            setActiveIndex(-1);
-            setOpen(true);
+            if (!disabled) {
+              setQuery('');
+              setActiveIndex(-1);
+              setOpen(true);
+            }
           }}
           onClick={() => {
-            if (!open) {
+            if (!disabled && !open) {
               setQuery('');
               setActiveIndex(-1);
               setOpen(true);
@@ -106,7 +121,7 @@ export default function SearchableSelect({
             setOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          required={required}
+          required={required && !value}
           disabled={disabled}
         />
         <div className="searchable-select-arrow" aria-hidden="true">

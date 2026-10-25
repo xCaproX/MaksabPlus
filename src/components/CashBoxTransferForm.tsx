@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { money, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import { toast } from './Toast';
+import SearchableSelect from './SearchableSelect';
 import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
 
 interface Props {
@@ -52,21 +53,38 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
       <div className="form-grid">
         <label className="form-grid-col-6">
           من خزنة (المصدر)
-          <select value={sourceId} onChange={(event) => {
-            const next = event.target.value;
-            setSourceId(next);
-            if (next === destinationId) setDestinationId(activeBoxes.find((box) => box.id !== next)?.id ?? '');
-          }} required>
-            <option value="">اختر خزنة المصدر…</option>
-            {activeBoxes.map((box) => <option key={box.id} value={box.id}>{box.name} — رصيدها: {money(box.balance)}</option>)}
-          </select>
+          <SearchableSelect
+            value={sourceId}
+            options={activeBoxes.map((box) => ({
+              value: box.id,
+              label: `${box.name} — رصيدها: ${money(box.balance)}`,
+            }))}
+            onChange={(next) => {
+              setSourceId(next);
+              if (next === destinationId) setDestinationId(activeBoxes.find((box) => box.id !== next)?.id ?? '');
+            }}
+            placeholder="اختر خزنة المصدر…"
+            searchPlaceholder="ابحث عن خزنة المصدر…"
+            emptyMessage="لا توجد خزن متاحة"
+            required
+          />
         </label>
         <label className="form-grid-col-6">
           إلى خزنة (الوجهة)
-          <select value={destinationId} onChange={(event) => setDestinationId(event.target.value)} required>
-            <option value="">اختر خزنة الوجهة…</option>
-            {activeBoxes.filter((box) => box.id !== sourceId).map((box) => <option key={box.id} value={box.id}>{box.name} — رصيدها: {money(box.balance)}</option>)}
-          </select>
+          <SearchableSelect
+            value={destinationId}
+            options={activeBoxes
+              .filter((box) => box.id !== sourceId)
+              .map((box) => ({
+                value: box.id,
+                label: `${box.name} — رصيدها: ${money(box.balance)}`,
+              }))}
+            onChange={setDestinationId}
+            placeholder="اختر خزنة الوجهة…"
+            searchPlaceholder="ابحث عن خزنة الوجهة…"
+            emptyMessage="لا توجد خزن متاحة"
+            required
+          />
         </label>
         <label className="form-grid-col-4">
           المبلغ المنقول

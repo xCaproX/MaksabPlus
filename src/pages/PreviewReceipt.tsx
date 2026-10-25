@@ -82,17 +82,20 @@ export default function PreviewReceipt() {
               <div className="form-header-fields">
                 <label className="field-account-kind">
                   نوع الحساب
-                  <select
+                  <SearchableSelect
                     value={accountKind}
-                    onChange={(e) => {
-                      setAccountKind(e.target.value as AccountKind);
+                    options={[
+                      { value: 'customer', label: 'عميل' },
+                      { value: 'supplier', label: 'مورد' },
+                    ]}
+                    onChange={(val) => {
+                      setAccountKind(val as AccountKind);
                       setAccountId('');
                     }}
+                    placeholder="اختر النوع…"
+                    searchPlaceholder="بحث في الأنواع…"
                     required
-                  >
-                    <option value="customer">عميل</option>
-                    <option value="supplier">مورد</option>
-                  </select>
+                  />
                 </label>
 
                 <label className="field-account-select">
@@ -124,13 +127,18 @@ export default function PreviewReceipt() {
             <div className="form-grid">
               <label className="form-grid-col-4">
                 الخزنة المستلمة
-                <select value={cashBoxId} onChange={(e) => setCashBoxId(e.target.value)} required>
-                  {mockCashBoxes.map((box) => (
-                    <option key={box.id} value={box.id}>
-                      {box.name} ({money(box.balance)})
-                    </option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  value={cashBoxId}
+                  options={mockCashBoxes.map((box) => ({
+                    value: box.id,
+                    label: `${box.name} (${money(box.balance)})`,
+                  }))}
+                  onChange={setCashBoxId}
+                  placeholder="اختر الخزنة…"
+                  searchPlaceholder="اكتب للبحث عن خزنة…"
+                  emptyMessage="لا توجد خزنة مطابقة"
+                  required
+                />
               </label>
 
               <label className="form-grid-col-4">

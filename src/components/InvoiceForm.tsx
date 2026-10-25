@@ -288,14 +288,17 @@ export default function InvoiceForm({
             {!isWaste && (
               <label className="field-account-kind">
                 نوع الحساب
-                <select
+                <SearchableSelect
                   value={accountKind}
-                  onChange={(e) => handleAccountKindChange(e.target.value as AccountKind)}
+                  options={[
+                    { value: 'customer', label: 'عميل' },
+                    { value: 'supplier', label: 'مورد' },
+                  ]}
+                  onChange={(val) => handleAccountKindChange(val as AccountKind)}
+                  placeholder="اختر النوع…"
+                  searchPlaceholder="بحث في الأنواع…"
                   required
-                >
-                  <option value="customer">عميل</option>
-                  <option value="supplier">مورد</option>
-                </select>
+                />
               </label>
             )}
 
@@ -307,6 +310,8 @@ export default function InvoiceForm({
                   options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
                   onChange={handleAccountChange}
                   placeholder="اختر الحساب…"
+                  searchPlaceholder="اكتب للبحث عن حساب…"
+                  emptyMessage="لا توجد حسابات مطابقة"
                   required
                 />
               </label>
@@ -314,14 +319,18 @@ export default function InvoiceForm({
 
             <label className="field-warehouse-select">
               المخزن
-              <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} required>
-                {selectableWarehouses.length === 0 && <option value="">لا يوجد مخزن نشط</option>}
-                {selectableWarehouses.map((warehouse) => (
-                  <option key={warehouse.id} value={warehouse.id}>
-                    {warehouse.name}{warehouse.is_active === false ? ' — موقوف (للفواتير القديمة)' : ''}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                value={warehouseId}
+                options={selectableWarehouses.map((warehouse) => ({
+                  value: warehouse.id,
+                  label: `${warehouse.name}${warehouse.is_active === false ? ' — موقوف (للفواتير القديمة)' : ''}`,
+                }))}
+                onChange={setWarehouseId}
+                placeholder={selectableWarehouses.length === 0 ? 'لا يوجد مخزن نشط' : 'اختر المخزن…'}
+                searchPlaceholder="اكتب للبحث عن مخزن…"
+                emptyMessage="لا يوجد مخزن مطابق"
+                required
+              />
             </label>
           </div>
 
@@ -526,19 +535,19 @@ export default function InvoiceForm({
                       </span>
                     )}
                   </span>
-                  <select
+                  <SearchableSelect
                     value={effectiveCashBoxId}
-                    onChange={(event) => setCashBoxId(event.target.value)}
+                    options={selectableCashBoxes.map((box) => ({
+                      value: box.id,
+                      label: `${box.name} (${money(box.balance)})`,
+                    }))}
+                    onChange={(val) => setCashBoxId(val)}
+                    placeholder="اختر الخزنة…"
+                    searchPlaceholder="اكتب للبحث عن خزنة…"
+                    emptyMessage="لا توجد خزنة مطابقة"
                     disabled={paidNumber <= 0}
                     required={paidNumber > 0}
-                  >
-                    <option value="">اختر الخزنة…</option>
-                    {selectableCashBoxes.map((box) => (
-                      <option key={box.id} value={box.id}>
-                        {box.name} ({money(box.balance)})
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </label>
               </div>
             )}

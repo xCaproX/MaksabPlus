@@ -115,38 +115,41 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
       <div className="form-grid">
         <label className="form-grid-col-6">
           من مخزن (المصدر)
-          <select
+          <SearchableSelect
             value={sourceId}
-            onChange={(event) => {
-              const next = event.target.value;
+            options={choices.map((warehouse) => ({
+              value: warehouse.id,
+              label: warehouse.name,
+            }))}
+            onChange={(next) => {
               setSourceId(next);
               setLines([emptyLine()]);
               if (next === destinationId) {
                 setDestinationId(activeWarehouses.find((warehouse) => warehouse.id !== next)?.id ?? '');
               }
             }}
+            placeholder="اختر مخزن المصدر…"
+            searchPlaceholder="ابحث عن مخزن المصدر…"
+            emptyMessage="لا توجد مخازن متاحة"
             required
-          >
-            <option value="">اختر مخزن المصدر…</option>
-            {choices.map((warehouse) => (
-              <option key={warehouse.id} value={warehouse.id}>
-                {warehouse.name}
-              </option>
-            ))}
-          </select>
+          />
         </label>
         <label className="form-grid-col-6">
           إلى مخزن (الوجهة)
-          <select value={destinationId} onChange={(event) => setDestinationId(event.target.value)} required>
-            <option value="">اختر مخزن الوجهة…</option>
-            {choices
+          <SearchableSelect
+            value={destinationId}
+            options={choices
               .filter((warehouse) => warehouse.id !== sourceId)
-              .map((warehouse) => (
-                <option key={warehouse.id} value={warehouse.id}>
-                  {warehouse.name}
-                </option>
-              ))}
-          </select>
+              .map((warehouse) => ({
+                value: warehouse.id,
+                label: warehouse.name,
+              }))}
+            onChange={setDestinationId}
+            placeholder="اختر مخزن الوجهة…"
+            searchPlaceholder="ابحث عن مخزن الوجهة…"
+            emptyMessage="لا توجد مخازن متاحة"
+            required
+          />
         </label>
         <label className="form-grid-col-12">
           ملاحظات

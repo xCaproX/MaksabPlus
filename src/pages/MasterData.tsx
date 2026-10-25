@@ -7,6 +7,7 @@ import { entityNumber, money } from '../lib/format';
 import { errorMessage, translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import SearchableSelect from '../components/SearchableSelect';
 import { toast } from '../components/Toast';
 import type { AccountKind, AccountRow, ItemRow, WarehouseOption } from '../lib/types';
 import { useAccess } from '../lib/access';
@@ -1186,15 +1187,20 @@ export default function MasterData() {
                 <>
                   <label>
                     المخزن لرصيد أول المدة
-                    <select
+                    <SearchableSelect
                       value={itemOpeningWarehouseId}
-                      onChange={(e) => setItemOpeningWarehouseId(e.target.value)}
-                    >
-                      <option value="">لا يوجد رصيد أول مدة</option>
-                      {warehouseRows.filter((w) => w.is_active).map((w) => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                    </select>
+                      options={[
+                        { value: '', label: 'لا يوجد رصيد أول مدة' },
+                        ...warehouseRows.filter((w) => w.is_active).map((w) => ({
+                          value: w.id,
+                          label: w.name,
+                        })),
+                      ]}
+                      onChange={setItemOpeningWarehouseId}
+                      placeholder="اختر المخزن لرصيد أول المدة…"
+                      searchPlaceholder="اكتب للبحث عن مخزن…"
+                      emptyMessage="لا توجد مخازن نشطة"
+                    />
                   </label>
 
                   {itemOpeningWarehouseId && (

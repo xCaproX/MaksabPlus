@@ -121,7 +121,7 @@
 }
 
 .form-header-fields .field-account-kind {
-  width: 130px;
+  width: 140px;
   flex-shrink: 0;
 }
 
@@ -132,7 +132,7 @@
 
 .form-header-fields .field-warehouse-select,
 .form-header-fields .field-cashbox-select {
-  width: 210px;
+  width: 220px;
   flex-shrink: 0;
 }
 
@@ -413,11 +413,19 @@
   vertical-align: middle;
 }
 
-.lines-table td input,
-.lines-table td .searchable-select input {
+.lines-table td input {
   min-height: 38px;
   height: 38px;
   padding: 0 10px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.lines-table td .searchable-select input {
+  min-height: 38px;
+  height: 38px;
+  padding-inline-start: 10px;
+  padding-inline-end: 34px;
   font-size: 13px;
   border-radius: 6px;
 }
