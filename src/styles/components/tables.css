@@ -65,6 +65,71 @@
   font-size: 11px;
   font-weight: 700;
 }
+
+/* Sortable Table Headers */
+.table th.sortable-th,
+.erp-table th.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.table th.sortable-th:hover,
+.erp-table th.sortable-th:hover {
+  background-color: #e4ebf3;
+  color: var(--primary);
+}
+
+.table th.sortable-th.active,
+.erp-table th.sortable-th.active {
+  color: var(--primary-dark);
+  font-weight: 800;
+  background-color: #dce5f0;
+}
+
+.sortable-header-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+
+.sortable-header-content.align-end {
+  justify-content: flex-end;
+}
+
+.sortable-header-content.align-center {
+  justify-content: center;
+}
+
+.sortable-header-content.align-start {
+  justify-content: flex-start;
+}
+
+.sort-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-light);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.sortable-th:hover .sort-icon-box {
+  color: var(--muted);
+}
+
+.sort-icon-box.active {
+  color: var(--primary);
+}
+
+.sort-icon.inactive {
+  opacity: 0.35;
+}
+
+.sortable-th:hover .sort-icon.inactive {
+  opacity: 0.8;
+}
 .erp-table tbody tr { cursor: pointer; }
 .erp-table tbody tr:hover td { background: #f6f8fb; }
 .erp-table tbody tr.selected td { background: #e9eff6; }

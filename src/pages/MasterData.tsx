@@ -8,6 +8,7 @@ import { errorMessage, translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import SearchableSelect from '../components/SearchableSelect';
+import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 import type { AccountKind, AccountRow, ItemRow, WarehouseOption } from '../lib/types';
 import { useAccess } from '../lib/access';
@@ -20,7 +21,13 @@ type LocationsTab = Tab | 'warehouses' | 'cashBoxes';
 type FormModal = 'account' | 'item' | 'warehouse' | 'cashBox' | null;
 interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
-type MasterSort = 'name-asc' | 'serial-desc' | 'serial-asc' | 'price-desc' | 'price-asc';
+type MasterSort =
+  | 'name-asc'
+  | 'name-desc'
+  | 'serial-desc'
+  | 'serial-asc'
+  | 'price-desc'
+  | 'price-asc';
 type StatusFilter = 'all' | 'active' | 'inactive';
 const PAGE_SIZE = 20;
 
@@ -187,6 +194,7 @@ export default function MasterData() {
     return list.sort((a, b) => {
       if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
       if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
       return a.name.localeCompare(b.name, 'ar');
     });
   }, [customers, searchTerm, statusFilter, sortOrder]);
@@ -203,6 +211,7 @@ export default function MasterData() {
     return list.sort((a, b) => {
       if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
       if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
       return a.name.localeCompare(b.name, 'ar');
     });
   }, [suppliers, searchTerm, statusFilter, sortOrder]);
@@ -221,6 +230,7 @@ export default function MasterData() {
       if (sortOrder === 'price-asc') return Number(a.sale_price) - Number(b.sale_price);
       if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
       if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
       return a.name.localeCompare(b.name, 'ar');
     });
   }, [items, searchTerm, statusFilter, sortOrder]);
@@ -237,6 +247,7 @@ export default function MasterData() {
     return list.sort((a, b) => {
       if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
       if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
       return a.name.localeCompare(b.name, 'ar');
     });
   }, [warehouseRows, searchTerm, statusFilter, sortOrder]);
@@ -253,6 +264,7 @@ export default function MasterData() {
     return list.sort((a, b) => {
       if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
       if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
       return a.name.localeCompare(b.name, 'ar');
     });
   }, [cashBoxes, searchTerm, statusFilter, sortOrder]);
@@ -619,6 +631,7 @@ export default function MasterData() {
                 value={sortOrder}
                 options={[
                   { value: 'name-asc', label: 'الاسم (أ – ي)' },
+                  { value: 'name-desc', label: 'الاسم (ي – أ)' },
                   { value: 'serial-desc', label: 'الرقم التسلسلي (الأحدث)' },
                   { value: 'serial-asc', label: 'الرقم التسلسلي (الأقدم)' },
                   ...(tab === 'items'
@@ -649,8 +662,19 @@ export default function MasterData() {
               <table className="table erp-table">
                 <thead>
                   <tr>
-                    <th>الرقم</th>
-                    <th>الاسم</th>
+                    <SortableHeader
+                      label="الرقم"
+                      field="serial"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                    />
+                    <SortableHeader
+                      label="الاسم"
+                      field="name"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                      defaultDirection="asc"
+                    />
                     <th>الهاتف</th>
                     <th>ملاحظات</th>
                     <th>الحالة</th>
@@ -694,8 +718,19 @@ export default function MasterData() {
               <table className="table erp-table">
                 <thead>
                   <tr>
-                    <th>الرقم</th>
-                    <th>الاسم</th>
+                    <SortableHeader
+                      label="الرقم"
+                      field="serial"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                    />
+                    <SortableHeader
+                      label="الاسم"
+                      field="name"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                      defaultDirection="asc"
+                    />
                     <th>الهاتف</th>
                     <th>ملاحظات</th>
                     <th>الحالة</th>
@@ -739,11 +774,29 @@ export default function MasterData() {
               <table className="table erp-table">
                 <thead>
                   <tr>
-                    <th>الرقم</th>
+                    <SortableHeader
+                      label="الرقم"
+                      field="serial"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                    />
                     <th>الكود</th>
-                    <th>الاسم</th>
+                    <SortableHeader
+                      label="الاسم"
+                      field="name"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                      defaultDirection="asc"
+                    />
                     <th>الوحدة</th>
-                    <th className="num">سعر البيع</th>
+                    <SortableHeader
+                      label="سعر البيع"
+                      field="price"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                      align="end"
+                      className="num"
+                    />
                     <th className="num">سعر الشراء</th>
                     <th>الحالة</th>
                     <th aria-label="الإجراءات" />
@@ -788,8 +841,19 @@ export default function MasterData() {
               <table className="table erp-table">
                 <thead>
                   <tr>
-                    <th>الرقم</th>
-                    <th>المخزن</th>
+                    <SortableHeader
+                      label="الرقم"
+                      field="serial"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                    />
+                    <SortableHeader
+                      label="المخزن"
+                      field="name"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                      defaultDirection="asc"
+                    />
                     <th>النوع</th>
                     <th>ملاحظات</th>
                     <th>الحالة</th>
@@ -833,8 +897,19 @@ export default function MasterData() {
               <table className="table erp-table">
                 <thead>
                   <tr>
-                    <th>الرقم</th>
-                    <th>الخزنة</th>
+                    <SortableHeader
+                      label="الرقم"
+                      field="serial"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                    />
+                    <SortableHeader
+                      label="الخزنة"
+                      field="name"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as MasterSort)}
+                      defaultDirection="asc"
+                    />
                     <th>النوع</th>
                     <th>ملاحظات</th>
                     <th>الحالة</th>

@@ -12,6 +12,7 @@ import DateInput from '../components/DateInput';
 import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
 import SearchableSelect from '../components/SearchableSelect';
+import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 import type {
   AccountRow,
@@ -38,7 +39,17 @@ interface EditingInvoice {
 interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
 type SaleStatus = 'all' | 'paid' | 'partial' | 'unpaid';
-type SaleSort = 'date-desc' | 'date-asc' | 'total-desc' | 'total-asc';
+type SaleSort =
+  | 'date-desc'
+  | 'date-asc'
+  | 'number-desc'
+  | 'number-asc'
+  | 'total-desc'
+  | 'total-asc'
+  | 'account-asc'
+  | 'account-desc'
+  | 'remaining-desc'
+  | 'remaining-asc';
 const PAGE_SIZE = 20;
 
 function saleStatus(invoice: InvoiceRow): Exclude<SaleStatus, 'all'> {
@@ -175,6 +186,12 @@ export default function Invoices() {
     return next.sort((a, b) => {
       if (sortOrder === 'total-desc') return Number(b.total) - Number(a.total);
       if (sortOrder === 'total-asc') return Number(a.total) - Number(b.total);
+      if (sortOrder === 'number-desc') return b.number.localeCompare(a.number, undefined, { numeric: true });
+      if (sortOrder === 'number-asc') return a.number.localeCompare(b.number, undefined, { numeric: true });
+      if (sortOrder === 'account-desc') return (b.account_name || '').localeCompare(a.account_name || '', 'ar');
+      if (sortOrder === 'account-asc') return (a.account_name || '').localeCompare(b.account_name || '', 'ar');
+      if (sortOrder === 'remaining-desc') return Number(b.remaining) - Number(a.remaining);
+      if (sortOrder === 'remaining-asc') return Number(a.remaining) - Number(b.remaining);
       const comparison = a.invoice_date.localeCompare(b.invoice_date) || a.number.localeCompare(b.number);
       return sortOrder === 'date-asc' ? comparison : -comparison;
     });
@@ -194,6 +211,8 @@ export default function Invoices() {
     return next.sort((a, b) => {
       if (sortOrder === 'total-desc') return Number(b.total_value) - Number(a.total_value);
       if (sortOrder === 'total-asc') return Number(a.total_value) - Number(b.total_value);
+      if (sortOrder === 'number-desc') return b.number.localeCompare(a.number, undefined, { numeric: true });
+      if (sortOrder === 'number-asc') return a.number.localeCompare(b.number, undefined, { numeric: true });
       const comparison = a.transfer_date.localeCompare(b.transfer_date) || a.number.localeCompare(b.number);
       return sortOrder === 'date-asc' ? comparison : -comparison;
     });
@@ -552,8 +571,12 @@ export default function Invoices() {
                 options={[
                   { value: 'date-desc', label: 'الأحدث أولًا' },
                   { value: 'date-asc', label: 'الأقدم أولًا' },
+                  { value: 'number-desc', label: 'الرقم (تنازلي)' },
+                  { value: 'number-asc', label: 'الرقم (تصاعدي)' },
                   { value: 'total-desc', label: 'الأعلى قيمة' },
                   { value: 'total-asc', label: 'الأقل قيمة' },
+                  { value: 'account-asc', label: `${partyHeader} (أ – ي)` },
+                  { value: 'remaining-desc', label: 'الأعلى متبقيًا' },
                 ]}
                 onChange={(val) => setSortOrder(val as SaleSort)}
               />
@@ -582,13 +605,30 @@ export default function Invoices() {
               <table className="table erp-table">
                 <thead>
                   <tr>
-                    <th>الرقم</th>
-                    <th>التاريخ</th>
+                    <SortableHeader
+                      label="الرقم"
+                      field="number"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as SaleSort)}
+                    />
+                    <SortableHeader
+                      label="التاريخ"
+                      field="date"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as SaleSort)}
+                    />
                     <th>من مخزن</th>
                     <th className="col-hide-on-detail">إلى مخزن</th>
                     <th className="num">عدد الأصناف</th>
                     <th className="num">إجمالي الكميات</th>
-                    <th className="num">قيمة التكلفة</th>
+                    <SortableHeader
+                      label="قيمة التكلفة"
+                      field="total"
+                      align="end"
+                      className="num"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as SaleSort)}
+                    />
                     <th className="col-hide-on-detail">ملاحظات</th>
                     <th aria-label="الإجراءات" />
                   </tr>
@@ -640,15 +680,47 @@ export default function Invoices() {
               <table className="table erp-table">
                 <thead>
                   <tr>
-                    <th>الرقم</th>
-                    <th>التاريخ</th>
-                    <th>{partyHeader}</th>
+                    <SortableHeader
+                      label="الرقم"
+                      field="number"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as SaleSort)}
+                    />
+                    <SortableHeader
+                      label="التاريخ"
+                      field="date"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as SaleSort)}
+                    />
+                    <SortableHeader
+                      label={partyHeader}
+                      field="account"
+                      defaultDirection="asc"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as SaleSort)}
+                    />
                     <th className="col-hide-on-detail">المخزن</th>
-                    <th className="num">الإجمالي</th>
+                    <SortableHeader
+                      label="الإجمالي"
+                      field="total"
+                      align="end"
+                      className="num"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as SaleSort)}
+                    />
                     {(kind === 'sale' || kind === 'sale_return') && canViewProfit && <th className="num col-hide-on-detail">الربح</th>}
                     {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && <th className="num col-hide-on-detail">{kind === 'waste' ? 'الخسارة' : 'التكلفة'}</th>}
                     {kind !== 'waste' && <th className="col-hide-on-detail">{isReturn ? 'الاسترداد' : 'السداد'}</th>}
-                    {kind !== 'waste' && <th className="num">{isReturn ? 'غير المسترد' : 'المتبقي'}</th>}
+                    {kind !== 'waste' && (
+                      <SortableHeader
+                        label={isReturn ? 'غير المسترد' : 'المتبقي'}
+                        field="remaining"
+                        align="end"
+                        className="num"
+                        currentSort={sortOrder}
+                        onSort={(s) => setSortOrder(s as SaleSort)}
+                      />
+                    )}
                     <th aria-label="الإجراءات" />
                   </tr>
                 </thead>

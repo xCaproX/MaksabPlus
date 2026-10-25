@@ -18,6 +18,7 @@ import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
 import ConfirmDialog from '../components/ConfirmDialog';
 import SearchableSelect from '../components/SearchableSelect';
+import SortableHeader from '../components/SortableHeader';
 import { money } from '../lib/format';
 
 export default function PreviewPhase3And4() {
@@ -34,7 +35,12 @@ export default function PreviewPhase3And4() {
 
   const [dateFrom, setDateFrom] = useState('2026-10-01');
   const [dateTo, setDateTo] = useState('2026-10-24');
-  const [selectedInvoice, setSelectedInvoice] = useState(1);
+  const [selectedInvoice, setSelectedInvoice] = useState<number | null>(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('detail') === '0') {
+      return null;
+    }
+    return 1;
+  });
 
   const mockInvoices = [
     {
@@ -84,7 +90,20 @@ export default function PreviewPhase3And4() {
     },
   ];
 
-  const current = mockInvoices.find((i) => i.id === selectedInvoice) || mockInvoices[0];
+  const current = mockInvoices.find((i) => i.id === selectedInvoice) || null;
+
+  const sortedMockInvoices = [...mockInvoices].sort((a, b) => {
+    if (sortOrder === 'total-desc') return b.total - a.total;
+    if (sortOrder === 'total-asc') return a.total - b.total;
+    if (sortOrder === 'number-desc') return b.number.localeCompare(a.number, undefined, { numeric: true });
+    if (sortOrder === 'number-asc') return a.number.localeCompare(b.number, undefined, { numeric: true });
+    if (sortOrder === 'customer-desc') return b.customer.localeCompare(a.customer, 'ar');
+    if (sortOrder === 'customer-asc') return a.customer.localeCompare(b.customer, 'ar');
+    if (sortOrder === 'remaining-desc') return b.remaining - a.remaining;
+    if (sortOrder === 'remaining-asc') return a.remaining - b.remaining;
+    const cmp = a.date.localeCompare(b.date);
+    return sortOrder === 'date-asc' ? cmp : -cmp;
+  });
 
   function toggleSection(key: keyof typeof openSections) {
     setOpenSections((prev) => {
@@ -285,7 +304,7 @@ export default function PreviewPhase3And4() {
             </div>
 
             {/* ERP Sales Workspace with detail open */}
-            <div className="erp-sales-workspace detail-open">
+            <div className={current ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
               <section className="erp-list-panel" aria-label="قائمة فواتير المبيعات">
                 <div className="erp-toolbar">
                   <div className="erp-filters">
@@ -300,6 +319,12 @@ export default function PreviewPhase3And4() {
                       options={[
                         { value: 'date-desc', label: 'الأحدث أولًا' },
                         { value: 'date-asc', label: 'الأقدم أولًا' },
+                        { value: 'number-desc', label: 'الرقم (تنازلي)' },
+                        { value: 'number-asc', label: 'الرقم (تصاعدي)' },
+                        { value: 'total-desc', label: 'الأعلى قيمة' },
+                        { value: 'total-asc', label: 'الأقل قيمة' },
+                        { value: 'customer-asc', label: 'العميل (أ – ي)' },
+                        { value: 'remaining-desc', label: 'الأعلى متبقيًا' },
                       ]}
                       onChange={setSortOrder}
                     />
@@ -332,19 +357,19 @@ export default function PreviewPhase3And4() {
                   <table className="table erp-table">
                     <thead>
                       <tr>
-                        <th>الرقم</th>
-                        <th>التاريخ</th>
-                        <th>العميل</th>
+                        <SortableHeader label="الرقم" field="number" currentSort={sortOrder} onSort={setSortOrder} />
+                        <SortableHeader label="التاريخ" field="date" currentSort={sortOrder} onSort={setSortOrder} />
+                        <SortableHeader label="العميل" field="customer" defaultDirection="asc" currentSort={sortOrder} onSort={setSortOrder} />
                         <th className="col-hide-on-detail">المخزن</th>
-                        <th className="num">الإجمالي</th>
+                        <SortableHeader label="الإجمالي" field="total" align="end" className="num" currentSort={sortOrder} onSort={setSortOrder} />
                         <th className="num col-hide-on-detail">الربح</th>
                         <th className="col-hide-on-detail">السداد</th>
-                        <th className="num">المتبقي</th>
+                        <SortableHeader label="المتبقي" field="remaining" align="end" className="num" currentSort={sortOrder} onSort={setSortOrder} />
                         <th aria-label="الإجراءات" />
                       </tr>
                     </thead>
                     <tbody>
-                      {mockInvoices.map((inv) => (
+                      {sortedMockInvoices.map((inv) => (
                         <tr
                           key={inv.id}
                           className={inv.id === selectedInvoice ? 'selected' : ''}
@@ -392,16 +417,22 @@ export default function PreviewPhase3And4() {
               </section>
 
               {/* Detail Panel */}
-              <aside className="erp-detail-panel open" aria-label="تفاصيل المستند">
-                <div className="erp-detail-head">
-                  <div>
-                    <span>فاتورة مبيعات</span>
-                    <h2 className="num">{current.number}</h2>
+              {current && (
+                <aside className="erp-detail-panel open" aria-label="تفاصيل المستند">
+                  <div className="erp-detail-head">
+                    <div>
+                      <span>فاتورة مبيعات</span>
+                      <h2 className="num">{current.number}</h2>
+                    </div>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label="إغلاق التفاصيل"
+                      onClick={() => setSelectedInvoice(null)}
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
-                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل">
-                    <X size={18} />
-                  </button>
-                </div>
 
                 <dl className="erp-detail-summary">
                   <div>
@@ -511,11 +542,12 @@ export default function PreviewPhase3And4() {
                   </button>
                 </div>
               </aside>
+              )}
             </div>
           </div>
         </main>
 
-        {showDeleteConfirm && (
+        {showDeleteConfirm && current && (
           <ConfirmDialog
             title="تأكيد حذف الفاتورة"
             message={`هل أنت متأكد من رغبتك في حذف الفاتورة رقم ${current.number}؟\nسيتم إلغاء تأثيرها المالي وحركاتها المخزنية بشكل فوري.`}

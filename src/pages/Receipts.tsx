@@ -12,6 +12,7 @@ import AccountBalanceCard from '../components/AccountBalanceCard';
 import DateInput from '../components/DateInput';
 import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
+import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 import type {
   AccountRow,
@@ -29,7 +30,15 @@ function linkKind(kind: ReceiptRow['invoice_kind']) {
 
 interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
-type ReceiptSort = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
+type ReceiptSort =
+  | 'date-desc'
+  | 'date-asc'
+  | 'number-desc'
+  | 'number-asc'
+  | 'amount-desc'
+  | 'amount-asc'
+  | 'account-asc'
+  | 'account-desc';
 const PAGE_SIZE = 20;
 
 const VALID_RECEIPT_TABS = ['in', 'out', 'cash_box_transfer'] as const;
@@ -138,6 +147,10 @@ export default function Receipts() {
     return next.sort((a, b) => {
       if (sortOrder === 'amount-desc') return Number(b.amount) - Number(a.amount);
       if (sortOrder === 'amount-asc') return Number(a.amount) - Number(b.amount);
+      if (sortOrder === 'number-desc') return b.number.localeCompare(a.number, undefined, { numeric: true });
+      if (sortOrder === 'number-asc') return a.number.localeCompare(b.number, undefined, { numeric: true });
+      if (sortOrder === 'account-desc') return (b.account_name || '').localeCompare(a.account_name || '', 'ar');
+      if (sortOrder === 'account-asc') return (a.account_name || '').localeCompare(b.account_name || '', 'ar');
       const comparison = a.receipt_date.localeCompare(b.receipt_date) || a.number.localeCompare(b.number);
       return sortOrder === 'date-asc' ? comparison : -comparison;
     });
@@ -158,6 +171,8 @@ export default function Receipts() {
     return next.sort((a, b) => {
       if (sortOrder === 'amount-desc') return Number(b.amount) - Number(a.amount);
       if (sortOrder === 'amount-asc') return Number(a.amount) - Number(b.amount);
+      if (sortOrder === 'number-desc') return b.number.localeCompare(a.number, undefined, { numeric: true });
+      if (sortOrder === 'number-asc') return a.number.localeCompare(b.number, undefined, { numeric: true });
       const comparison = a.transfer_date.localeCompare(b.transfer_date) || a.number.localeCompare(b.number);
       return sortOrder === 'date-asc' ? comparison : -comparison;
     });
@@ -508,8 +523,12 @@ export default function Receipts() {
                 options={[
                   { value: 'date-desc', label: 'الأحدث أولًا' },
                   { value: 'date-asc', label: 'الأقدم أولًا' },
+                  { value: 'number-desc', label: 'الرقم (تنازلي)' },
+                  { value: 'number-asc', label: 'الرقم (تصاعدي)' },
                   { value: 'amount-desc', label: 'الأعلى مبلغًا' },
                   { value: 'amount-asc', label: 'الأقل مبلغًا' },
+                  { value: 'account-asc', label: 'الحساب (أ-ي)' },
+                  { value: 'account-desc', label: 'الحساب (ي-أ)' },
                 ]}
                 onChange={(val) => setSortOrder(val as ReceiptSort)}
               />
@@ -538,11 +557,28 @@ export default function Receipts() {
               <table className="table erp-table">
                 <thead>
                   <tr>
-                    <th>الرقم</th>
-                    <th>التاريخ</th>
+                    <SortableHeader
+                      label="الرقم"
+                      field="number"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as ReceiptSort)}
+                    />
+                    <SortableHeader
+                      label="التاريخ"
+                      field="date"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as ReceiptSort)}
+                    />
                     <th>من خزنة</th>
                     <th className="col-hide-on-detail">إلى خزنة</th>
-                    <th className="num">المبلغ</th>
+                    <SortableHeader
+                      label="المبلغ"
+                      field="amount"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as ReceiptSort)}
+                      align="end"
+                      className="num"
+                    />
                     <th className="col-hide-on-detail">ملاحظات</th>
                     <th aria-label="الإجراءات" />
                   </tr>
@@ -592,11 +628,33 @@ export default function Receipts() {
               <table className="table erp-table">
                 <thead>
                   <tr>
-                    <th>الرقم</th>
-                    <th>التاريخ</th>
-                    <th>الحساب</th>
+                    <SortableHeader
+                      label="الرقم"
+                      field="number"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as ReceiptSort)}
+                    />
+                    <SortableHeader
+                      label="التاريخ"
+                      field="date"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as ReceiptSort)}
+                    />
+                    <SortableHeader
+                      label="الحساب"
+                      field="account"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as ReceiptSort)}
+                    />
                     <th className="col-hide-on-detail">الخزنة</th>
-                    <th className="num">المبلغ</th>
+                    <SortableHeader
+                      label="المبلغ"
+                      field="amount"
+                      currentSort={sortOrder}
+                      onSort={(s) => setSortOrder(s as ReceiptSort)}
+                      align="end"
+                      className="num"
+                    />
                     <th className="col-hide-on-detail">نوع الإيصال</th>
                     <th className="col-hide-on-detail">البيان</th>
                     <th aria-label="الإجراءات" />

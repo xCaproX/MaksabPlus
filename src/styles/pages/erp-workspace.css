@@ -54,9 +54,13 @@
 .erp-filters .searchable-select-options {
   min-width: 160px;
 }
-.erp-search input { width: 205px; }
-.erp-date { display: flex; align-items: center; gap: 4px; color: var(--erp-muted); font-size: 11px; font-weight: 650; }
-.erp-date input { width: 128px; }
+.erp-search {
+  flex: 0 1 230px;
+  min-width: 170px;
+}
+.erp-search input { width: 100%; }
+.erp-date { display: inline-flex; align-items: center; gap: 4px; color: var(--erp-muted); font-size: 11px; font-weight: 650; flex-shrink: 0; }
+.erp-date input { width: 122px; }
 
 .erp-detail-panel { display: flex; flex-direction: column; min-width: 0; border-inline-start: 1px solid var(--erp-border); background: var(--erp-surface); }
 .erp-detail-head {
@@ -106,44 +110,25 @@
 .erp-detail-actions .btn { min-height: 33px; padding: 5px 10px; font-size: 12px; }
 
 @media (max-width: 1200px) {
-  .erp-sales-workspace { grid-template-columns: minmax(570px, 1fr) 320px; }
-  .erp-toolbar { align-items: flex-start; flex-direction: column; }
-  .erp-filters {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    width: min(100%, 650px);
-    align-self: stretch;
-  }
-  .erp-search { grid-column: 1 / -1; }
-  .erp-search input, .erp-filters select, .erp-filters .searchable-select { width: 100%; }
-  .erp-date { display: grid; grid-template-columns: 1fr; gap: 3px; }
-  .erp-date input { width: 100%; }
+  .erp-sales-workspace { grid-template-columns: minmax(540px, 1fr) 320px; }
 }
 
 @media (max-width: 760px) {
   .erp-sales-workspace { display: block; min-height: auto; overflow: visible; border-radius: 8px; }
   .erp-toolbar { padding: 10px; }
-  .erp-filters { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
-  .erp-search { grid-column: 1 / -1; }
-  .erp-search input, .erp-filters select, .erp-filters .searchable-select, .erp-date, .erp-date input { width: 100%; }
-  .erp-date { display: grid; grid-template-columns: 1fr; gap: 3px; }
+  .erp-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .erp-search { flex: 1 0 100%; }
+  .erp-search input { width: 100%; }
+  .erp-filters .searchable-select { flex: 1 1 calc(50% - 4px); min-width: 130px; }
+  .erp-date { flex: 1 1 100%; justify-content: space-between; }
+  .erp-date input { flex: 1; }
   .erp-detail-panel { display: none; }
   .erp-detail-panel.open { display: flex; position: fixed; inset: 0; z-index: 50; border: 0; }
   .erp-detail-head { position: sticky; inset-block-start: 0; z-index: 1; }
   .erp-detail-lines { max-height: none; }
-}
-
-/* The list loses width when its details panel is open, even on a wide browser.
-   Respond to the list itself so the filters never fall into arbitrary wrapping. */
-@container (max-width: 950px) {
-  .erp-toolbar { align-items: flex-start; flex-direction: column; }
-  .erp-filters {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    width: 100%;
-  }
-  .erp-search { grid-column: 1 / -1; }
-  .erp-search input, .erp-filters select, .erp-filters .searchable-select { width: 100%; }
-  .erp-date { display: grid; grid-template-columns: 1fr; gap: 3px; }
-  .erp-date input { width: 100%; }
 }

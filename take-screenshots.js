@@ -86,11 +86,9 @@ async function main() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
   const tasks = [
-    { name: 'ui-modernized-1280px.png', w: 1280, h: 920, url: phaseUrl },
-    { name: 'ui-modernized-1920px.png', w: 1920, h: 1080, url: phaseUrl },
-    { name: 'ui-modernized-600px.png', w: 600, h: 960, url: phaseUrl },
-    { name: 'invoice-form-1280px.png', w: 1280, h: 920, url: invoiceUrl },
-    { name: 'invoice-form-600px.png', w: 600, h: 960, url: invoiceUrl },
+    { name: 'sortable-table-1280px.png', w: 1280, h: 920, url: phaseUrl },
+    { name: 'sortable-table-1920px.png', w: 1920, h: 1080, url: phaseUrl },
+    { name: 'sortable-table-600px.png', w: 600, h: 960, url: `${phaseUrl}?detail=0` },
   ];
 
   const artifactDir = path.resolve(
