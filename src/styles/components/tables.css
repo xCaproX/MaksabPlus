@@ -175,49 +175,51 @@
 .erp-pagination > div { display: flex; align-items: center; gap: 7px; }
 
 /* Responsive Table (Mobile Cards) */
-.responsive-table { overflow: visible; }
-.responsive-table .table { display: block; width: 100%; }
-.responsive-table .table thead { display: none; }
-.responsive-table .table tbody { display: grid; gap: 10px; }
-.responsive-table .table tbody > tr:not(.responsive-row) { display: block; }
-.responsive-table .table tbody > tr:not(.responsive-row) > td { display: block; width: 100%; text-align: center; }
-.responsive-table .table tr.responsive-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px 12px;
-  padding: 13px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(39, 58, 84, .04);
+@media (max-width: 760px) {
+  .responsive-table { overflow: visible; }
+  .responsive-table .table { display: block; width: 100%; }
+  .responsive-table .table thead { display: none; }
+  .responsive-table .table tbody { display: grid; gap: 10px; }
+  .responsive-table .table tbody > tr:not(.responsive-row) { display: block; }
+  .responsive-table .table tbody > tr:not(.responsive-row) > td { display: block; width: 100%; text-align: center; }
+  .responsive-table .table tr.responsive-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px 12px;
+    padding: 13px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(39, 58, 84, .04);
+  }
+  .responsive-table .table tr.responsive-row td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    width: auto;
+    min-width: 0;
+    padding: 5px 0;
+    border: 0;
+    text-align: start;
+    overflow-wrap: anywhere;
+  }
+  .responsive-table .table tr.responsive-row td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 650;
+  }
+  .responsive-table .table tr.responsive-row td.transfer-item-cell { grid-column: 1 / -1; display: block; }
+  .responsive-table .table tr.responsive-row td.transfer-item-cell::before { display: block; margin-bottom: 4px; }
+  .responsive-table .table tr.responsive-row td.card-wide-cell { grid-column: 1 / -1; display: block; }
+  .responsive-table .table tr.responsive-row td.card-wide-cell::before { display: block; margin-bottom: 4px; }
+  .responsive-table .table tr.responsive-row td.mobile-field-cell { grid-column: 1 / -1; align-items: center; }
+  .responsive-table .table tr.responsive-row td.mobile-field-cell .table-input { width: min(58%, 220px); min-width: 0; margin-inline-start: auto; }
+  .responsive-table .table tr.responsive-row td.row-actions { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 9px; }
+  .responsive-table .table tr.responsive-row td.row-actions::before { flex: 1 0 100%; }
 }
-.responsive-table .table tr.responsive-row td {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  width: auto;
-  min-width: 0;
-  padding: 5px 0;
-  border: 0;
-  text-align: start;
-  overflow-wrap: anywhere;
-}
-.responsive-table .table tr.responsive-row td::before {
-  content: attr(data-label);
-  flex: 0 0 auto;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 650;
-}
-.responsive-table .table tr.responsive-row td.transfer-item-cell { grid-column: 1 / -1; display: block; }
-.responsive-table .table tr.responsive-row td.transfer-item-cell::before { display: block; margin-bottom: 4px; }
-.responsive-table .table tr.responsive-row td.card-wide-cell { grid-column: 1 / -1; display: block; }
-.responsive-table .table tr.responsive-row td.card-wide-cell::before { display: block; margin-bottom: 4px; }
-.responsive-table .table tr.responsive-row td.mobile-field-cell { grid-column: 1 / -1; align-items: center; }
-.responsive-table .table tr.responsive-row td.mobile-field-cell .table-input { width: min(58%, 220px); min-width: 0; margin-inline-start: auto; }
-.responsive-table .table tr.responsive-row td.row-actions { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 9px; }
-.responsive-table .table tr.responsive-row td.row-actions::before { flex: 1 0 100%; }
 
 @media (max-width: 760px) {
   .table {
