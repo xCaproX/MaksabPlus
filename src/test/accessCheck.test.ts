@@ -49,6 +49,25 @@ describe('accessCheck - حوكمة الصلاحيات والأمان', () => {
     expect(hasPermission(broadGoodsViewer, 'goods.sale.create')).toBe(false);
   });
 
+  it('يدعم المطابقة العكسية عند طلب صلاحية عامة وممتلك الموظف تفريعة فرعية (Reverse Subtab Match)', () => {
+    // حالة الموظف الممنوح دليل العملاء والأصناف فقط
+    const granularEmployee: AccessState = {
+      role: 'employee',
+      permissions: ['data.customers.view', 'data.items.view'],
+    };
+
+    // يجب أن تمنحه الدخول لقسم البيانات الأساسية (data.view)
+    expect(hasPermission(granularEmployee, 'data.view')).toBe(true);
+
+    // لكن لا تمنحه صلاحية التعديل العام أو الحذف إذا لم تُمنح له
+    expect(hasPermission(granularEmployee, 'data.edit')).toBe(false);
+    expect(hasPermission(granularEmployee, 'data.delete')).toBe(false);
+
+    // ولا تمنحه دخول الأقسام الأخرى التي ليس لديه أي صلاحية فيها
+    expect(hasPermission(granularEmployee, 'balances.view')).toBe(false);
+    expect(hasPermission(granularEmployee, 'management.view')).toBe(false);
+  });
+
   it('يتحقق من وجود أي من الصلاحيات المتعددة المطلوبة (OR logic)', () => {
     const employee: AccessState = {
       role: 'employee',

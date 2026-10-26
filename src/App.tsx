@@ -103,9 +103,9 @@ export default function App() {
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/invoices" element={<AccessRoute permissions={['goods.view','goods.sale.view','goods.purchase.view','goods.sale_return.view','goods.purchase_return.view','goods.waste.view','goods.warehouse_transfer.view']}><PageSuspense><Invoices /></PageSuspense></AccessRoute>} />
           <Route path="/receipts" element={<AccessRoute permissions={['money.view','money.in.view','money.out.view','money.cash_box_transfer.view']}><PageSuspense><Receipts /></PageSuspense></AccessRoute>} />
-          <Route path="/data" element={<AccessRoute permissions={['data.view','data.create','data.edit','data.delete']}><PageSuspense><MasterData /></PageSuspense></AccessRoute>} />
-          <Route path="/balances" element={<AccessRoute permissions={['balances.view']}><PageSuspense><Balances /></PageSuspense></AccessRoute>} />
-          <Route path="/management" element={<AccessRoute permissions={['management.view','management.edit']}><PageSuspense><Management /></PageSuspense></AccessRoute>} />
+          <Route path="/data" element={<AccessRoute permissions={['data.view','data.customers.view','data.suppliers.view','data.items.view','data.warehouses.view','data.cashBoxes.view','data.create','data.edit','data.delete']}><PageSuspense><MasterData /></PageSuspense></AccessRoute>} />
+          <Route path="/balances" element={<AccessRoute permissions={['balances.view','balances.customers.view','balances.suppliers.view','balances.items.view','balances.cashBoxes.view']}><PageSuspense><Balances /></PageSuspense></AccessRoute>} />
+          <Route path="/management" element={<AccessRoute permissions={['management.view','management.customers.view','management.suppliers.view','management.items.view','management.cashBoxes.view','management.edit']}><PageSuspense><Management /></PageSuspense></AccessRoute>} />
           <Route path="/access-denied" element={<div className="card empty">هذا المستخدم غير نشط أو لا يملك صلاحية دخول أي صفحة. تواصل مع مدير الشركة.</div>} />
         </Route>
         <Route path="*" element={<Navigate to={session ? '/' : '/login'} replace />} />

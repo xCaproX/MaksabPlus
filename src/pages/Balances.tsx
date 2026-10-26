@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { X, Printer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { entityNumber, formatDate, money, qty as formatQty, today } from '../lib/format';
@@ -10,6 +10,7 @@ import SearchableSelect from '../components/SearchableSelect';
 import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 import { matchesSearchQuery } from '../lib/search';
+import { useAccess } from '../lib/access';
 import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, ItemMovementStatementRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 
 type BalanceTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes';
@@ -22,13 +23,23 @@ type BalanceSort =
   | 'serial-asc';
 
 const PAGE_SIZE = 20;
+const BALANCE_TABS: { id: BalanceTab; label: string; permission: string }[] = [
+  { id: 'customers', label: 'حسابات العملاء', permission: 'balances.customers.view' },
+  { id: 'suppliers', label: 'حسابات الموردين', permission: 'balances.suppliers.view' },
+  { id: 'items', label: 'أرصدة الأصناف', permission: 'balances.items.view' },
+  { id: 'cashBoxes', label: 'أرصدة الخزن', permission: 'balances.cashBoxes.view' },
+];
+
 const VALID_BALANCE_TABS: BalanceTab[] = ['customers', 'suppliers', 'items', 'cashBoxes'];
 
 export default function Balances() {
+  const { can } = useAccess();
+  const visibleTabs = BALANCE_TABS.filter((t) => can(t.permission, 'balances.view'));
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as BalanceTab | null;
   const initialTab = (tabParam && VALID_BALANCE_TABS.includes(tabParam)) ? tabParam : 'customers';
   const [tab, setTab] = useState<BalanceTab>(initialTab);
+  const canViewCurrentTab = can(`balances.${tab}.view`, 'balances.view');
 
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
@@ -295,6 +306,11 @@ export default function Balances() {
 
   const hasSelection = selectedAccount || selectedItem || selectedBox;
 
+  if (!canViewCurrentTab) {
+    const firstAllowedTab = visibleTabs[0];
+    return <Navigate to={firstAllowedTab ? `/balances?tab=${firstAllowedTab.id}` : '/access-denied'} replace />;
+  }
+
   return (
     <div className="stack">
       <div className="page-head">
@@ -313,10 +329,16 @@ export default function Balances() {
       </div>
 
       <div className="tabs">
-        <button type="button" className={tab === 'customers' ? 'tab active' : 'tab'} onClick={() => switchTab('customers')}>حسابات العملاء</button>
-        <button type="button" className={tab === 'suppliers' ? 'tab active' : 'tab'} onClick={() => switchTab('suppliers')}>حسابات الموردين</button>
-        <button type="button" className={tab === 'items' ? 'tab active' : 'tab'} onClick={() => switchTab('items')}>أرصدة الأصناف</button>
-        <button type="button" className={tab === 'cashBoxes' ? 'tab active' : 'tab'} onClick={() => switchTab('cashBoxes')}>أرصدة الخزن</button>
+        {visibleTabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={tab === t.id ? 'tab active' : 'tab'}
+            onClick={() => switchTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* الـ ERP Workspace لقسم الأرصدة */}

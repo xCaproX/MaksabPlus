@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty } from '../lib/format';
@@ -16,14 +16,26 @@ type ManagementTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes' | 'users'
 type ManagementSort = 'name-asc' | 'name-desc' | 'serial-desc' | 'serial-asc';
 const PAGE_SIZE = 20;
 
+const MANAGEMENT_TABS: { id: ManagementTab; label: string; permission?: string }[] = [
+  { id: 'customers', label: 'افتتاحيات العملاء', permission: 'management.customers.view' },
+  { id: 'suppliers', label: 'افتتاحيات الموردين', permission: 'management.suppliers.view' },
+  { id: 'items', label: 'افتتاحيات المخزون', permission: 'management.items.view' },
+  { id: 'cashBoxes', label: 'افتتاحيات الخزن', permission: 'management.cashBoxes.view' },
+  { id: 'users', label: 'المستخدمون والصلاحيات' },
+];
+
 const VALID_MANAGEMENT_TABS: ManagementTab[] = ['customers', 'suppliers', 'items', 'cashBoxes', 'users'];
 
 export default function Management() {
   const { access, can } = useAccess();
+  const visibleTabs = MANAGEMENT_TABS.filter((t) =>
+    t.id === 'users' ? access?.role === 'owner' : can(t.permission!, 'management.view')
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as ManagementTab | null;
   const initialTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
   const [tab, setTab] = useState<ManagementTab>(initialTab);
+  const canViewCurrentTab = tab === 'users' ? access?.role === 'owner' : can(`management.${tab}.view`, 'management.view');
   const canEditOpening = can(`management.${tab}.edit`, 'management.edit');
 
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
@@ -144,14 +156,6 @@ export default function Management() {
     else { setNotice('تم حفظ الأرصدة الافتتاحية والتعديلات'); setVersion((value) => value + 1); }
   }
 
-  const tabs: { id: ManagementTab; label: string }[] = [
-    { id: 'customers', label: 'افتتاحيات العملاء' },
-    { id: 'suppliers', label: 'افتتاحيات الموردين' },
-    { id: 'items', label: 'افتتاحيات المخزون' },
-    { id: 'cashBoxes', label: 'افتتاحيات الخزن' },
-    ...(access?.role === 'owner' ? [{ id: 'users' as const, label: 'المستخدمون والصلاحيات' }] : []),
-  ];
-
   const visibleAccounts = accounts.filter((account) => account.kind === (tab === 'customers' ? 'customer' : 'supplier'));
 
   // تصفية الحسابات
@@ -223,6 +227,11 @@ export default function Management() {
   const selectedWarehouse = warehouses.find((w) => w.id === selectedWarehouseId);
   const hasSelection = selectedAccount || selectedItemRow || selectedBox;
 
+  if (!canViewCurrentTab) {
+    const firstAllowedTab = visibleTabs[0];
+    return <Navigate to={firstAllowedTab ? `/management?tab=${firstAllowedTab.id}` : '/access-denied'} replace />;
+  }
+
   return (
     <div className="stack">
       <div className="page-head">
@@ -241,7 +250,7 @@ export default function Management() {
       </div>
 
       <div className="tabs">
-        {tabs.map((entry) => (
+        {visibleTabs.map((entry) => (
           <button
             key={entry.id}
             type="button"

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getCompanyId } from '../lib/company';
@@ -32,14 +32,24 @@ type MasterSort =
 type StatusFilter = 'all' | 'active' | 'inactive';
 const PAGE_SIZE = 20;
 
+const DATA_TABS: { id: LocationsTab; label: string; permission: string }[] = [
+  { id: 'customers', label: 'العملاء', permission: 'data.customers.view' },
+  { id: 'suppliers', label: 'الموردون', permission: 'data.suppliers.view' },
+  { id: 'items', label: 'الأصناف', permission: 'data.items.view' },
+  { id: 'warehouses', label: 'المخازن', permission: 'data.warehouses.view' },
+  { id: 'cashBoxes', label: 'الخزن', permission: 'data.cashBoxes.view' },
+];
+
 const VALID_DATA_TABS: LocationsTab[] = ['customers', 'suppliers', 'items', 'warehouses', 'cashBoxes'];
 
 export default function MasterData() {
   const { can } = useAccess();
+  const visibleTabs = DATA_TABS.filter((t) => can(t.permission, 'data.view'));
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as LocationsTab | null;
   const initialTab = (tabParam && VALID_DATA_TABS.includes(tabParam)) ? tabParam : 'customers';
   const [tab, setTab] = useState<LocationsTab>(initialTab);
+  const canViewCurrentTab = can(`data.${tab}.view`, 'data.view');
 
   const [companyId, setCompanyId] = useState('');
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
@@ -566,6 +576,11 @@ export default function MasterData() {
 
   const hasSelection = selectedAccount || selectedItem || selectedWarehouse || selectedBox;
 
+  if (!canViewCurrentTab) {
+    const firstAllowedTab = visibleTabs[0];
+    return <Navigate to={firstAllowedTab ? `/data?tab=${firstAllowedTab.id}` : '/access-denied'} replace />;
+  }
+
   return (
     <div className="stack">
       <div className="page-head">
@@ -591,11 +606,16 @@ export default function MasterData() {
       </div>
 
       <div className="tabs">
-        <button type="button" className={tab === 'customers' ? 'tab active' : 'tab'} onClick={() => switchTab('customers')}>العملاء</button>
-        <button type="button" className={tab === 'suppliers' ? 'tab active' : 'tab'} onClick={() => switchTab('suppliers')}>الموردون</button>
-        <button type="button" className={tab === 'items' ? 'tab active' : 'tab'} onClick={() => switchTab('items')}>الأصناف</button>
-        <button type="button" className={tab === 'warehouses' ? 'tab active' : 'tab'} onClick={() => switchTab('warehouses')}>المخازن</button>
-        <button type="button" className={tab === 'cashBoxes' ? 'tab active' : 'tab'} onClick={() => switchTab('cashBoxes')}>الخزن</button>
+        {visibleTabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={tab === t.id ? 'tab active' : 'tab'}
+            onClick={() => switchTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* الـ ERP Workspace لقسم البيانات الأساسية */}
@@ -682,8 +702,8 @@ export default function MasterData() {
                           {account.is_active ? <span className="status-badge paid">نشط</span> : <span className="status-badge unpaid">موقوف</span>}
                         </td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {can('data.edit') && <button type="button" className="link" onClick={() => startAccountEdit(account)}>تعديل</button>}
-                          {can('data.delete') && <button type="button" className="link danger" onClick={() => removeAccount(account)}>حذف</button>}
+                          {can('data.customers.edit') && <button type="button" className="link" onClick={() => startAccountEdit(account)}>تعديل</button>}
+                          {can('data.customers.delete') && <button type="button" className="link danger" onClick={() => removeAccount(account)}>حذف</button>}
                         </td>
                       </tr>
                     );
@@ -738,8 +758,8 @@ export default function MasterData() {
                           {account.is_active ? <span className="status-badge paid">نشط</span> : <span className="status-badge unpaid">موقوف</span>}
                         </td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {can('data.edit') && <button type="button" className="link" onClick={() => startAccountEdit(account)}>تعديل</button>}
-                          {can('data.delete') && <button type="button" className="link danger" onClick={() => removeAccount(account)}>حذف</button>}
+                          {can('data.suppliers.edit') && <button type="button" className="link" onClick={() => startAccountEdit(account)}>تعديل</button>}
+                          {can('data.suppliers.delete') && <button type="button" className="link danger" onClick={() => removeAccount(account)}>حذف</button>}
                         </td>
                       </tr>
                     );
@@ -805,8 +825,8 @@ export default function MasterData() {
                           {item.is_active ? <span className="status-badge paid">نشط</span> : <span className="status-badge unpaid">موقوف</span>}
                         </td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {can('data.edit') && <button type="button" className="link" onClick={() => startItemEdit(item)}>تعديل</button>}
-                          {can('data.delete') && <button type="button" className="link danger" onClick={() => removeItem(item)}>حذف</button>}
+                          {can('data.items.edit') && <button type="button" className="link" onClick={() => startItemEdit(item)}>تعديل</button>}
+                          {can('data.items.delete') && <button type="button" className="link danger" onClick={() => removeItem(item)}>حذف</button>}
                         </td>
                       </tr>
                     );
@@ -861,8 +881,8 @@ export default function MasterData() {
                           {warehouse.is_active ? <span className="status-badge paid">نشط</span> : <span className="status-badge unpaid">موقوف</span>}
                         </td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {can('data.edit') && <button type="button" className="link" onClick={() => startWarehouseForm(warehouse)}>تعديل</button>}
-                          {can('data.delete') && !warehouse.is_primary && <button type="button" className="link danger" onClick={() => void removeWarehouse(warehouse)}>حذف</button>}
+                          {can('data.warehouses.edit') && <button type="button" className="link" onClick={() => startWarehouseForm(warehouse)}>تعديل</button>}
+                          {can('data.warehouses.delete') && !warehouse.is_primary && <button type="button" className="link danger" onClick={() => void removeWarehouse(warehouse)}>حذف</button>}
                         </td>
                       </tr>
                     );
@@ -917,8 +937,8 @@ export default function MasterData() {
                           {box.is_active ? <span className="status-badge paid">نشطة</span> : <span className="status-badge unpaid">موقوفة</span>}
                         </td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {can('data.edit') && <button type="button" className="link" onClick={() => startCashBoxForm(box)}>تعديل</button>}
-                          {can('data.delete') && !box.is_primary && <button type="button" className="link danger" onClick={() => void removeCashBox(box)}>حذف</button>}
+                          {can('data.cashBoxes.edit') && <button type="button" className="link" onClick={() => startCashBoxForm(box)}>تعديل</button>}
+                          {can('data.cashBoxes.delete') && !box.is_primary && <button type="button" className="link danger" onClick={() => void removeCashBox(box)}>حذف</button>}
                         </td>
                       </tr>
                     );
@@ -963,12 +983,12 @@ export default function MasterData() {
               {selectedAccount.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedAccount.notes}</p>}
 
               <div className="erp-detail-actions">
-                {can('data.edit') && (
+                {can(selectedAccount.kind === 'customer' ? 'data.customers.edit' : 'data.suppliers.edit') && (
                   <button type="button" className="btn" onClick={() => startAccountEdit(selectedAccount)}>
                     تعديل البيانات
                   </button>
                 )}
-                {can('data.delete') && (
+                {can(selectedAccount.kind === 'customer' ? 'data.customers.delete' : 'data.suppliers.delete') && (
                   <button type="button" className="btn danger" onClick={() => removeAccount(selectedAccount)}>
                     حذف
                   </button>
@@ -1002,12 +1022,12 @@ export default function MasterData() {
               {selectedItem.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedItem.notes}</p>}
 
               <div className="erp-detail-actions">
-                {can('data.edit') && (
+                {can('data.items.edit') && (
                   <button type="button" className="btn" onClick={() => startItemEdit(selectedItem)}>
                     تعديل الصنف
                   </button>
                 )}
-                {can('data.delete') && (
+                {can('data.items.delete') && (
                   <button type="button" className="btn danger" onClick={() => removeItem(selectedItem)}>
                     حذف الصنف
                   </button>
@@ -1035,17 +1055,17 @@ export default function MasterData() {
               {selectedWarehouse.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedWarehouse.notes}</p>}
 
               <div className="erp-detail-actions">
-                {can('data.edit') && (
+                {can('data.warehouses.edit') && (
                   <button type="button" className="btn" onClick={() => startWarehouseForm(selectedWarehouse)}>
                     تعديل المخزن
                   </button>
                 )}
-                {can('data.edit') && (
+                {can('data.warehouses.edit') && (
                   <button type="button" className="btn" onClick={() => void toggleWarehouse(selectedWarehouse)}>
                     {selectedWarehouse.is_active ? 'إيقاف المخزن' : 'تفعيل المخزن'}
                   </button>
                 )}
-                {can('data.delete') && !selectedWarehouse.is_primary && (
+                {can('data.warehouses.delete') && !selectedWarehouse.is_primary && (
                   <button type="button" className="btn danger" onClick={() => void removeWarehouse(selectedWarehouse)}>
                     حذف المخزن
                   </button>
@@ -1073,17 +1093,17 @@ export default function MasterData() {
               {selectedBox.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedBox.notes}</p>}
 
               <div className="erp-detail-actions">
-                {can('data.edit') && (
+                {can('data.cashBoxes.edit') && (
                   <button type="button" className="btn" onClick={() => startCashBoxForm(selectedBox)}>
                     تعديل الخزنة
                   </button>
                 )}
-                {can('data.edit') && (
+                {can('data.cashBoxes.edit') && (
                   <button type="button" className="btn" onClick={() => void toggleCashBox(selectedBox)}>
                     {selectedBox.is_active ? 'إيقاف الخزنة' : 'تفعيل الخزنة'}
                   </button>
                 )}
-                {can('data.delete') && !selectedBox.is_primary && (
+                {can('data.cashBoxes.delete') && !selectedBox.is_primary && (
                   <button type="button" className="btn danger" onClick={() => void removeCashBox(selectedBox)}>
                     حذف الخزنة
                   </button>
