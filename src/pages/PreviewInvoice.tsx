@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import Modal from '../components/Modal';
 import InvoiceForm from '../components/InvoiceForm';
+import InvoiceFormPrototype from '../components/InvoiceFormPrototype';
 import type { AccountRow, CashBoxRow, ItemRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 
 export default function PreviewInvoice() {
   const [open, setOpen] = useState(true);
+  const [viewMode, setViewMode] = useState<'prototype' | 'current'>('prototype');
 
   const mockAccounts: AccountRow[] = [
     {
@@ -62,30 +64,51 @@ export default function PreviewInvoice() {
 
   return (
     <div style={{ padding: '24px', minHeight: '100vh', background: 'var(--bg)' }}>
-      {!open && (
-        <button type="button" className="btn primary" onClick={() => setOpen(true)}>
-          فتح نافذة الفاتورة
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px', background: '#fff', padding: '12px 18px', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+        <strong>عرض المقارنة:</strong>
+        <button
+          type="button"
+          className={`btn ${viewMode === 'prototype' ? 'primary' : 'outline'}`}
+          onClick={() => { setViewMode('prototype'); setOpen(true); }}
+        >
+          ✨ النموذج المقترح الجديد (المبني على تنظيم شاشة إكسس)
         </button>
-      )}
+        <button
+          type="button"
+          className={`btn ${viewMode === 'current' ? 'primary' : 'outline'}`}
+          onClick={() => { setViewMode('current'); setOpen(true); }}
+        >
+          النموذج الحالي القديم
+        </button>
+        {!open && (
+          <button type="button" className="btn outline" onClick={() => setOpen(true)} style={{ marginInlineStart: 'auto' }}>
+            فتح النافذة
+          </button>
+        )}
+      </div>
 
       {open && (
         <Modal
           className="transaction-entry-modal"
           backdropClassName="transaction-entry-backdrop"
-          title="فاتورة مبيعات جديدة"
+          title={viewMode === 'prototype' ? 'فاتورة مبيعات جديدة — النموذج المقترح' : 'فاتورة مبيعات جديدة — النموذج الحالي'}
           onClose={() => setOpen(false)}
         >
-          <InvoiceForm
-            kind="sale"
-            accounts={mockAccounts}
-            warehouses={mockWarehouses}
-            cashBoxes={mockCashBoxes}
-            items={mockItems}
-            stockRows={mockStock}
-            editing={null}
-            onSaved={(msg) => alert(msg)}
-            onCancel={() => setOpen(false)}
-          />
+          {viewMode === 'prototype' ? (
+            <InvoiceFormPrototype onCancel={() => setOpen(false)} />
+          ) : (
+            <InvoiceForm
+              kind="sale"
+              accounts={mockAccounts}
+              warehouses={mockWarehouses}
+              cashBoxes={mockCashBoxes}
+              items={mockItems}
+              stockRows={mockStock}
+              editing={null}
+              onSaved={(msg) => alert(msg)}
+              onCancel={() => setOpen(false)}
+            />
+          )}
         </Modal>
       )}
     </div>
