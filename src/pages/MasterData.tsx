@@ -627,24 +627,6 @@ export default function MasterData() {
               </label>
 
               <SearchableSelect
-                ariaLabel="ترتيب النتائج"
-                value={sortOrder}
-                options={[
-                  { value: 'name-asc', label: 'الاسم (أ – ي)' },
-                  { value: 'name-desc', label: 'الاسم (ي – أ)' },
-                  { value: 'serial-desc', label: 'الرقم التسلسلي (الأحدث)' },
-                  { value: 'serial-asc', label: 'الرقم التسلسلي (الأقدم)' },
-                  ...(tab === 'items'
-                    ? [
-                        { value: 'price-desc', label: 'الأعلى سعر بيع' },
-                        { value: 'price-asc', label: 'الأقل سعر بيع' },
-                      ]
-                    : []),
-                ]}
-                onChange={(val) => setSortOrder(val as MasterSort)}
-              />
-
-              <SearchableSelect
                 ariaLabel="تصفية الحالة"
                 value={statusFilter}
                 options={[

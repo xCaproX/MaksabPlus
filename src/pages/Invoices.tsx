@@ -565,22 +565,6 @@ export default function Invoices() {
                 />
               </label>
 
-              <SearchableSelect
-                ariaLabel="ترتيب النتائج"
-                value={sortOrder}
-                options={[
-                  { value: 'date-desc', label: 'الأحدث أولًا' },
-                  { value: 'date-asc', label: 'الأقدم أولًا' },
-                  { value: 'number-desc', label: 'الرقم (تنازلي)' },
-                  { value: 'number-asc', label: 'الرقم (تصاعدي)' },
-                  { value: 'total-desc', label: 'الأعلى قيمة' },
-                  { value: 'total-asc', label: 'الأقل قيمة' },
-                  { value: 'account-asc', label: `${partyHeader} (أ – ي)` },
-                  { value: 'remaining-desc', label: 'الأعلى متبقيًا' },
-                ]}
-                onChange={(val) => setSortOrder(val as SaleSort)}
-              />
-
               {!isWarehouseTransfer && kind !== 'waste' && (
                 <SearchableSelect
                   ariaLabel="حالة السداد"
@@ -595,8 +579,10 @@ export default function Invoices() {
                 />
               )}
 
-              <div className="erp-date"><span>من</span><DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" /></div>
-              <div className="erp-date"><span>إلى</span><DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" /></div>
+              <div className="erp-date-range">
+                <div className="erp-date"><span>من</span><DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" /></div>
+                <div className="erp-date"><span>إلى</span><DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" /></div>
+              </div>
             </div>
           </div>
 

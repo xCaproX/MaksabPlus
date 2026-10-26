@@ -518,22 +518,6 @@ export default function Receipts() {
               </label>
 
               <SearchableSelect
-                ariaLabel="ترتيب النتائج"
-                value={sortOrder}
-                options={[
-                  { value: 'date-desc', label: 'الأحدث أولًا' },
-                  { value: 'date-asc', label: 'الأقدم أولًا' },
-                  { value: 'number-desc', label: 'الرقم (تنازلي)' },
-                  { value: 'number-asc', label: 'الرقم (تصاعدي)' },
-                  { value: 'amount-desc', label: 'الأعلى مبلغًا' },
-                  { value: 'amount-asc', label: 'الأقل مبلغًا' },
-                  { value: 'account-asc', label: 'الحساب (أ-ي)' },
-                  { value: 'account-desc', label: 'الحساب (ي-أ)' },
-                ]}
-                onChange={(val) => setSortOrder(val as ReceiptSort)}
-              />
-
-              <SearchableSelect
                 ariaLabel="تصفية حسب الخزنة"
                 value={cashBoxFilter}
                 options={[
@@ -547,8 +531,10 @@ export default function Receipts() {
                 searchPlaceholder="بحث عن خزنة…"
               />
 
-              <div className="erp-date"><span>من</span><DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" /></div>
-              <div className="erp-date"><span>إلى</span><DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" /></div>
+              <div className="erp-date-range">
+                <div className="erp-date"><span>من</span><DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" /></div>
+                <div className="erp-date"><span>إلى</span><DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" /></div>
+              </div>
             </div>
           </div>
 

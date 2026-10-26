@@ -1,7 +1,7 @@
 /* ---------- ERP Workspace System (List & Detail Panels) ---------- */
 .erp-sales-workspace {
   display: grid;
-  grid-template-columns: minmax(620px, 1fr) minmax(320px, 390px);
+  grid-template-columns: minmax(560px, 1fr) minmax(300px, 350px);
   min-height: min(680px, calc(100dvh - 170px));
   overflow: hidden;
   border: 1px solid var(--erp-border);
@@ -55,12 +55,19 @@
   min-width: 160px;
 }
 .erp-search {
-  flex: 0 1 230px;
-  min-width: 170px;
+  flex: 1 1 180px;
+  max-width: 240px;
+  min-width: 140px;
 }
 .erp-search input { width: 100%; }
+.erp-date-range {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--erp-space-2);
+  flex-shrink: 0;
+}
 .erp-date { display: inline-flex; align-items: center; gap: 4px; color: var(--erp-muted); font-size: 11px; font-weight: 650; flex-shrink: 0; }
-.erp-date input { width: 122px; }
+.erp-date input { width: 115px; }
 
 .erp-detail-panel { display: flex; flex-direction: column; min-width: 0; border-inline-start: 1px solid var(--erp-border); background: var(--erp-surface); }
 .erp-detail-head {
@@ -125,7 +132,8 @@
   .erp-search { flex: 1 0 100%; }
   .erp-search input { width: 100%; }
   .erp-filters .searchable-select { flex: 1 1 calc(50% - 4px); min-width: 130px; }
-  .erp-date { flex: 1 1 100%; justify-content: space-between; }
+  .erp-date-range { display: flex; width: 100%; gap: 8px; }
+  .erp-date { flex: 1 1 calc(50% - 4px); justify-content: space-between; }
   .erp-date input { flex: 1; }
   .erp-detail-panel { display: none; }
   .erp-detail-panel.open { display: flex; position: fixed; inset: 0; z-index: 50; border: 0; }

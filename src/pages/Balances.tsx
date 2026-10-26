@@ -346,20 +346,6 @@ export default function Balances() {
                 />
               </label>
 
-              <SearchableSelect
-                ariaLabel="ترتيب النتائج"
-                value={sortOrder}
-                options={[
-                  { value: 'balance-desc', label: tab === 'items' ? 'الأعلى كمية' : 'الأعلى رصيدًا' },
-                  { value: 'balance-asc', label: tab === 'items' ? 'الأقل كمية' : 'الأقل رصيدًا' },
-                  { value: 'name-asc', label: 'الاسم (أ – ي)' },
-                  { value: 'name-desc', label: 'الاسم (ي – أ)' },
-                  { value: 'serial-desc', label: 'الرقم (تنازلي)' },
-                  { value: 'serial-asc', label: 'الرقم (تصاعدي)' },
-                ]}
-                onChange={(val) => setSortOrder(val as BalanceSort)}
-              />
-
               {tab === 'items' && (
                 <SearchableSelect
                   ariaLabel="تصفية حسب المخزن"

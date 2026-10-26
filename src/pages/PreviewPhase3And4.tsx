@@ -314,22 +314,6 @@ export default function PreviewPhase3And4() {
                     </label>
 
                     <SearchableSelect
-                      ariaLabel="ترتيب النتائج"
-                      value={sortOrder}
-                      options={[
-                        { value: 'date-desc', label: 'الأحدث أولًا' },
-                        { value: 'date-asc', label: 'الأقدم أولًا' },
-                        { value: 'number-desc', label: 'الرقم (تنازلي)' },
-                        { value: 'number-asc', label: 'الرقم (تصاعدي)' },
-                        { value: 'total-desc', label: 'الأعلى قيمة' },
-                        { value: 'total-asc', label: 'الأقل قيمة' },
-                        { value: 'customer-asc', label: 'العميل (أ – ي)' },
-                        { value: 'remaining-desc', label: 'الأعلى متبقيًا' },
-                      ]}
-                      onChange={setSortOrder}
-                    />
-
-                    <SearchableSelect
                       ariaLabel="تصفية حسب حالة السداد"
                       value={statusFilter}
                       options={[
@@ -342,13 +326,15 @@ export default function PreviewPhase3And4() {
                     />
 
                     {/* Shared DateInput components */}
-                    <div className="erp-date">
-                      <span>من</span>
-                      <DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" />
-                    </div>
-                    <div className="erp-date">
-                      <span>إلى</span>
-                      <DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" />
+                    <div className="erp-date-range">
+                      <div className="erp-date">
+                        <span>من</span>
+                        <DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" />
+                      </div>
+                      <div className="erp-date">
+                        <span>إلى</span>
+                        <DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" />
+                      </div>
                     </div>
                   </div>
                 </div>

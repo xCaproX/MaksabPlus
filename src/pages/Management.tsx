@@ -8,10 +8,11 @@ import type { AccountRow, CashBoxRow, StockOpeningRow, WarehouseOption } from '.
 import { useAccess } from '../lib/access';
 import UserPermissions from '../components/UserPermissions';
 import SearchableSelect from '../components/SearchableSelect';
+import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 
 type ManagementTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes' | 'users';
-type ManagementSort = 'name-asc' | 'serial-desc' | 'serial-asc';
+type ManagementSort = 'name-asc' | 'name-desc' | 'serial-desc' | 'serial-asc';
 const PAGE_SIZE = 20;
 
 const VALID_MANAGEMENT_TABS: ManagementTab[] = ['customers', 'suppliers', 'items', 'cashBoxes', 'users'];
@@ -162,6 +163,7 @@ export default function Management() {
     return list.sort((a, b) => {
       if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
       if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
       return a.name.localeCompare(b.name, 'ar');
     });
   }, [visibleAccounts, searchTerm, sortOrder]);
@@ -178,6 +180,7 @@ export default function Management() {
     return list.sort((a, b) => {
       if (sortOrder === 'serial-desc') return b.item_number - a.item_number;
       if (sortOrder === 'serial-asc') return a.item_number - b.item_number;
+      if (sortOrder === 'name-desc') return b.item_name.localeCompare(a.item_name, 'ar');
       return a.item_name.localeCompare(b.item_name, 'ar');
     });
   }, [stockRows, selectedWarehouseId, searchTerm, sortOrder]);
@@ -192,6 +195,7 @@ export default function Management() {
     return list.sort((a, b) => {
       if (sortOrder === 'serial-desc') return b.serial_number - a.serial_number;
       if (sortOrder === 'serial-asc') return a.serial_number - b.serial_number;
+      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
       return a.name.localeCompare(b.name, 'ar');
     });
   }, [cashBoxes, searchTerm, sortOrder]);
@@ -281,17 +285,6 @@ export default function Management() {
                   />
                 </label>
 
-                <SearchableSelect
-                  ariaLabel="ترتيب النتائج"
-                  value={sortOrder}
-                  options={[
-                    { value: 'name-asc', label: 'الاسم (أ – ي)' },
-                    { value: 'serial-desc', label: 'الرقم (الأحدث)' },
-                    { value: 'serial-asc', label: 'الرقم (الأقدم)' },
-                  ]}
-                  onChange={(val) => setSortOrder(val as ManagementSort)}
-                />
-
                 {tab === 'items' && (
                   <SearchableSelect
                     ariaLabel="اختيار المخزن"
@@ -315,8 +308,19 @@ export default function Management() {
                 <table className="table erp-table">
                   <thead>
                     <tr>
-                      <th>الرقم</th>
-                      <th>الحساب</th>
+                      <SortableHeader
+                        label="الرقم"
+                        field="serial"
+                        currentSort={sortOrder}
+                        onSort={(s) => setSortOrder(s as ManagementSort)}
+                      />
+                      <SortableHeader
+                        label="الحساب"
+                        field="name"
+                        currentSort={sortOrder}
+                        onSort={(s) => setSortOrder(s as ManagementSort)}
+                        defaultDirection="asc"
+                      />
                       <th>النوع</th>
                       <th className="num">الرصيد الافتتاحي</th>
                       <th className="num">الرصيد الحالي</th>
@@ -369,9 +373,20 @@ export default function Management() {
                 <table className="table erp-table">
                   <thead>
                     <tr>
-                      <th>الرقم</th>
+                      <SortableHeader
+                        label="الرقم"
+                        field="serial"
+                        currentSort={sortOrder}
+                        onSort={(s) => setSortOrder(s as ManagementSort)}
+                      />
                       <th>الكود</th>
-                      <th>الصنف</th>
+                      <SortableHeader
+                        label="الصنف"
+                        field="name"
+                        currentSort={sortOrder}
+                        onSort={(s) => setSortOrder(s as ManagementSort)}
+                        defaultDirection="asc"
+                      />
                       <th className="num">كمية البداية</th>
                       <th className="num">تكلفة الوحدة</th>
                       <th className="num">المتاح الآن</th>
@@ -430,8 +445,19 @@ export default function Management() {
                 <table className="table erp-table">
                   <thead>
                     <tr>
-                      <th>الرقم</th>
-                      <th>الخزنة</th>
+                      <SortableHeader
+                        label="الرقم"
+                        field="serial"
+                        currentSort={sortOrder}
+                        onSort={(s) => setSortOrder(s as ManagementSort)}
+                      />
+                      <SortableHeader
+                        label="الخزنة"
+                        field="name"
+                        currentSort={sortOrder}
+                        onSort={(s) => setSortOrder(s as ManagementSort)}
+                        defaultDirection="asc"
+                      />
                       <th className="num">الرصيد الافتتاحي</th>
                       <th className="num">الرصيد الحالي</th>
                     </tr>
