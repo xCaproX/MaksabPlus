@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { money, qty as formatQty, round2, today } from '../lib/format';
+import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
 import ConfirmDialog from './ConfirmDialog';
@@ -93,12 +94,9 @@ export default function InvoiceForm({
     setFocusSearchKey(null);
   }, [focusSearchKey, lines]);
 
-  const activeLines = lines.filter((line) => line.item_id);
-  const total = round2(
-    activeLines.reduce((sum, line) => sum + Number(line.qty || 0) * Number(line.unit_price || 0), 0),
-  );
+  const total = calculateInvoiceSubtotal(lines);
   const paidNumber = Number(paid || 0);
-  const remaining = round2(total - (Number.isFinite(paidNumber) ? paidNumber : 0));
+  const remaining = calculateRemaining(total, paid);
   const cashAccountSelected = accounts.some(
     (account) => account.id === accountId && ['cash_customer', 'cash_supplier'].includes(account.system_key ?? ''),
   );
@@ -120,11 +118,15 @@ export default function InvoiceForm({
   const effectiveCashBoxId = cashBoxId || editing?.invoice.cash_box_id || cashBoxes.find((box) => box.is_active)?.id || '';
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
-  const netInvoiceDebt = isReturn ? -(total - paidNumber) : (total - paidNumber);
-  const prevRemaining = editing ? (Number(editing.invoice.total) - Number(editing.invoice.paid)) : 0;
-  const prevDebt = editing ? (isReturn ? -prevRemaining : prevRemaining) : 0;
-  const balanceBefore = selectedAccount ? (Number(selectedAccount.balance) - prevDebt) : 0;
-  const balanceAfter = balanceBefore + netInvoiceDebt;
+  const { netInvoiceDebt, balanceBefore, balanceAfter } = calculateBalancePreview({
+    currentAccountBalance: Number(selectedAccount?.balance || 0),
+    isReturn,
+    total,
+    paid: paidNumber,
+    isEditing: Boolean(editing),
+    editingTotal: Number(editing?.invoice.total || 0),
+    editingPaid: Number(editing?.invoice.paid || 0),
+  });
 
   function handleAccountKindChange(nextKind: AccountKind) {
     setAccountKind(nextKind);

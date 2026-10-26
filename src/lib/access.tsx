@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from './supabase';
+import { hasPermission, type AccessState } from './accessCheck';
 
-export type AccessState = { role: 'owner' | 'employee'; permissions: string[] };
+export type { AccessState };
+export { hasPermission };
 type AccessContextValue = { access: AccessState | null; loading: boolean; can: (...keys: string[]) => boolean };
 const AccessContext = createContext<AccessContextValue>({ access: null, loading: true, can: () => false });
 
@@ -23,19 +25,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AccessContextValue>(() => ({
     access,
     loading,
-    can: (...keys) => {
-      if (!access) return false;
-      if (access.role === 'owner' || access.permissions.includes('*')) return true;
-      return keys.some((key) => {
-        if (access.permissions.includes(key)) return true;
-        const parts = key.split('.');
-        if (parts.length === 3) {
-          const parentKey = `${parts[0]}.${parts[2]}`;
-          if (access.permissions.includes(parentKey)) return true;
-        }
-        return false;
-      });
-    },
+    can: (...keys) => hasPermission(access, ...keys),
   }), [access, loading]);
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
