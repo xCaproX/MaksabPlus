@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test:db": "node supabase/tests/run-local.mjs",
+    "test:verify-db": "node supabase/tests/verify-remote-db.test.mjs",
     "db:verify-remote": "node supabase/verify-remote-db.mjs"
   },
   "dependencies": {
