@@ -588,7 +588,6 @@ export default function MasterData() {
       <div className="page-head">
         <div>
           <h1>{tabTitle}</h1>
-          <p className="muted">إدارة الحسابات والأصناف والمخازن والخزن وتعديل بياناتها الأساسية.</p>
         </div>
         {can(`data.${tab}.create`) && (
           <div className="actions">

@@ -289,9 +289,6 @@ export default function PreviewPhase3And4() {
             <div className="page-head">
               <div>
                 <h1>فواتير المبيعات</h1>
-                <p className="muted">
-                  سجل حركة البيع مع حساب الأرباح وإدارة سداد العملاء والمخزون في شاشة واحدة.
-                </p>
               </div>
               <div className="actions">
                 <button type="button" className="btn ghost">

@@ -257,15 +257,6 @@ export default function Management() {
       <div className="page-head">
         <div>
           <h1>{tabTitle}</h1>
-          <p className="muted">
-            {tab === 'customers' || tab === 'suppliers'
-              ? 'إدخال وتعديل الأرصدة الافتتاحية السابقة. حفظ أي تعديل يسجل تصحيحًا يحافظ على الحركات السابقة.'
-              : tab === 'items'
-              ? 'تحديد كمية البداية وتكلفة الوحدة للمخزون بكل مخزن.'
-              : tab === 'cashBoxes'
-              ? 'تسجيل الرصيد النقدي الفعلي الموجود في الخزن عند بدء العمل على النظام.'
-              : 'إدارة المستخدمين وصلاحيات الدخول لصفحات وأقسام النظام.'}
-          </p>
         </div>
         <div className="actions">
           {tab === 'customers' && canEditOpening && (

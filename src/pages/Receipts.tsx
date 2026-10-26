@@ -449,13 +449,6 @@ export default function Receipts() {
       <div className="page-head">
         <div>
           <h1>{showDeleted ? `المحذوفات — ${tabTitle}` : tabTitle}</h1>
-          <p className="muted">
-            {isCashBoxTransfer
-              ? 'انقل النقد بين الخزن؛ لا يتغير مجموع النقد ولا أرصدة العملاء والموردين.'
-              : isIn
-              ? 'إيصالات الاستلام (القبض): تُدخل نقدًا إلى الخزنة وتؤثر على رصيد العميل أو المورد.'
-              : 'إيصالات الصرف (الدفع): تُخرج نقدًا من الخزنة وتؤثر على رصيد العميل أو المورد.'}
-          </p>
         </div>
         <div className="actions">
           {can(`money.${tab}.delete`) && (
