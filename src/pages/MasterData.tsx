@@ -44,12 +44,12 @@ const VALID_DATA_TABS: LocationsTab[] = ['customers', 'suppliers', 'items', 'war
 
 export default function MasterData() {
   const { can } = useAccess();
-  const visibleTabs = DATA_TABS.filter((t) => can(t.permission, 'data.view'));
+  const visibleTabs = DATA_TABS.filter((t) => can(t.permission));
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as LocationsTab | null;
   const initialTab = (tabParam && VALID_DATA_TABS.includes(tabParam)) ? tabParam : 'customers';
   const [tab, setTab] = useState<LocationsTab>(initialTab);
-  const canViewCurrentTab = can(`data.${tab}.view`, 'data.view');
+  const canViewCurrentTab = can(`data.${tab}.view`);
 
   const [companyId, setCompanyId] = useState('');
   const [accounts, setAccounts] = useState<AccountRow[]>([]);

@@ -34,12 +34,12 @@ const VALID_BALANCE_TABS: BalanceTab[] = ['customers', 'suppliers', 'items', 'ca
 
 export default function Balances() {
   const { can } = useAccess();
-  const visibleTabs = BALANCE_TABS.filter((t) => can(t.permission, 'balances.view'));
+  const visibleTabs = BALANCE_TABS.filter((t) => can(t.permission));
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as BalanceTab | null;
   const initialTab = (tabParam && VALID_BALANCE_TABS.includes(tabParam)) ? tabParam : 'customers';
   const [tab, setTab] = useState<BalanceTab>(initialTab);
-  const canViewCurrentTab = can(`balances.${tab}.view`, 'balances.view');
+  const canViewCurrentTab = can(`balances.${tab}.view`);
 
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);

@@ -29,14 +29,14 @@ const VALID_MANAGEMENT_TABS: ManagementTab[] = ['customers', 'suppliers', 'items
 export default function Management() {
   const { access, can } = useAccess();
   const visibleTabs = MANAGEMENT_TABS.filter((t) =>
-    t.id === 'users' ? access?.role === 'owner' : can(t.permission!, 'management.view')
+    t.id === 'users' ? access?.role === 'owner' : can(t.permission!)
   );
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as ManagementTab | null;
   const initialTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
   const [tab, setTab] = useState<ManagementTab>(initialTab);
-  const canViewCurrentTab = tab === 'users' ? access?.role === 'owner' : can(`management.${tab}.view`, 'management.view');
-  const canEditOpening = can(`management.${tab}.edit`, 'management.edit');
+  const canViewCurrentTab = tab === 'users' ? access?.role === 'owner' : can(`management.${tab}.view`);
+  const canEditOpening = can(`management.${tab}.edit`);
 
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);

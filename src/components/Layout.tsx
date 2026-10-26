@@ -137,14 +137,14 @@ export default function Layout() {
     { id: 'waste', label: 'الهالك', permission: 'goods.waste.view' },
     { id: 'warehouse_transfer', label: 'تحويل بين مخازن', permission: 'goods.warehouse_transfer.view' },
   ];
-  const visibleGoodsTabs = goodsTabs.filter((t) => can(t.permission, 'goods.view'));
+  const visibleGoodsTabs = goodsTabs.filter((t) => can(t.permission));
 
   const moneyTabs = [
     { id: 'in', label: 'إيصالات استلام', permission: 'money.in.view' },
     { id: 'out', label: 'إيصالات صرف', permission: 'money.out.view' },
     { id: 'cash_box_transfer', label: 'تحويل بين الخزن', permission: 'money.cash_box_transfer.view' },
   ];
-  const visibleMoneyTabs = moneyTabs.filter((t) => can(t.permission, 'money.view'));
+  const visibleMoneyTabs = moneyTabs.filter((t) => can(t.permission));
 
   const dataTabs = [
     { id: 'customers', label: 'العملاء', permission: 'data.customers.view' },
@@ -153,7 +153,7 @@ export default function Layout() {
     { id: 'warehouses', label: 'المخازن', permission: 'data.warehouses.view' },
     { id: 'cashBoxes', label: 'الخزن', permission: 'data.cashBoxes.view' },
   ];
-  const visibleDataTabs = dataTabs.filter((t) => can(t.permission, 'data.view'));
+  const visibleDataTabs = dataTabs.filter((t) => can(t.permission));
 
   const balanceTabs = [
     { id: 'customers', label: 'حسابات العملاء', permission: 'balances.customers.view' },
@@ -161,7 +161,7 @@ export default function Layout() {
     { id: 'items', label: 'أرصدة الأصناف', permission: 'balances.items.view' },
     { id: 'cashBoxes', label: 'أرصدة الخزن', permission: 'balances.cashBoxes.view' },
   ];
-  const visibleBalanceTabs = balanceTabs.filter((t) => can(t.permission, 'balances.view'));
+  const visibleBalanceTabs = balanceTabs.filter((t) => can(t.permission));
 
   const managementTabs = [
     { id: 'customers', label: 'افتتاحيات العملاء', permission: 'management.customers.view' },
@@ -171,7 +171,7 @@ export default function Layout() {
     ...(access?.role === 'owner' ? [{ id: 'users', label: 'المستخدمون والصلاحيات', permission: 'management.users.view' }] : []),
   ];
   const visibleManagementTabs = managementTabs.filter((t) =>
-    t.id === 'users' ? access?.role === 'owner' : can(t.permission, 'management.view'),
+    t.id === 'users' ? access?.role === 'owner' : can(t.permission),
   );
 
   return (
