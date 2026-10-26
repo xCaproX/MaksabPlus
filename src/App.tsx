@@ -14,6 +14,7 @@ const Balances = lazy(() => import('./pages/Balances'));
 const Management = lazy(() => import('./pages/Management'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
 const PreviewInvoice = lazy(() => import('./pages/PreviewInvoice'));
+const PreviewInvoice2 = lazy(() => import('./pages/PreviewInvoice2'));
 const PreviewReceipt = lazy(() => import('./pages/PreviewReceipt'));
 const PreviewPhase3And4 = lazy(() => import('./pages/PreviewPhase3And4'));
 
@@ -47,6 +48,14 @@ export default function App() {
     return (
       <PageSuspense fullScreen>
         <PreviewInvoice />
+      </PageSuspense>
+    );
+  }
+
+  if (window.location.pathname === '/preview-invoice2') {
+    return (
+      <PageSuspense fullScreen>
+        <PreviewInvoice2 />
       </PageSuspense>
     );
   }
