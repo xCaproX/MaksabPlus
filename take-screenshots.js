@@ -40,6 +40,7 @@ function runEdgeScreenshot(width, height, outputPath, targetUrl) {
       '--headless',
       '--disable-gpu',
       '--hide-scrollbars',
+      '--virtual-time-budget=2000',
       `--user-data-dir=${tempProfile}`,
       `--window-size=${width},${height}`,
       `--screenshot=${outputPath}`,
@@ -71,6 +72,7 @@ async function main() {
 
   const phaseUrl = `http://localhost:${port}/preview-phase3-4`;
   const invoiceUrl = `http://localhost:${port}/preview-invoice`;
+  const receiptUrl = `http://localhost:${port}/preview-receipt`;
 
   const ready = await waitForServer(phaseUrl);
   if (!ready) {
@@ -86,9 +88,10 @@ async function main() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
   const tasks = [
-    { name: 'sortable-table-1280px.png', w: 1280, h: 920, url: phaseUrl },
-    { name: 'sortable-table-1920px.png', w: 1920, h: 1080, url: phaseUrl },
-    { name: 'sortable-table-600px.png', w: 600, h: 960, url: `${phaseUrl}?detail=0` },
+    { name: 'balance-card-1280px.png', w: 1280, h: 920, url: invoiceUrl },
+    { name: 'balance-card-1920px.png', w: 1920, h: 1080, url: invoiceUrl },
+    { name: 'balance-card-600px.png', w: 600, h: 960, url: invoiceUrl },
+    { name: 'balance-card-receipt-1280px.png', w: 1280, h: 920, url: receiptUrl },
   ];
 
   const artifactDir = path.resolve(
@@ -98,6 +101,7 @@ async function main() {
   for (const t of tasks) {
     const shotPath = path.join(outDir, t.name);
     console.log(`Taking ${t.name} (${t.w}x${t.h})...`);
+    await new Promise((r) => setTimeout(r, 600));
     await runEdgeScreenshot(t.w, t.h, shotPath, t.url);
     const ok = fs.existsSync(shotPath);
     console.log(`Saved ${t.name}:`, ok);

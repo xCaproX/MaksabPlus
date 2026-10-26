@@ -47,30 +47,28 @@ export default function AccountBalanceCard({
   function renderDeltaBadge(d: number) {
     const rounded = round2(d);
     if (rounded === 0) {
-      return <span className="badge">لا تغيير</span>;
-    }
-    if (isCust) {
-      return rounded > 0 ? (
-        <span className="badge danger">زيادة دين</span>
-      ) : (
-        <span className="badge ok">تخفيض دين</span>
-      );
-    } else {
-      return rounded > 0 ? (
-        <span className="badge ok">مستحق له</span>
-      ) : (
-        <span className="badge danger">خصم مستحق</span>
+      return (
+        <span className="badge neutral symbol-badge symbol-dot" title="ثبات وعدم التغيير" aria-label="ثبات وعدم التغيير">
+          •
+        </span>
       );
     }
+    if (rounded > 0) {
+      return (
+        <span className="badge ok symbol-badge" title="زيادة" aria-label="زيادة">
+          +
+        </span>
+      );
+    }
+    return (
+      <span className="badge danger symbol-badge" title="نقصان" aria-label="نقصان">
+        -
+      </span>
+    );
   }
 
   const roundedDelta = round2(delta);
-  const deltaFormatted =
-    roundedDelta > 0
-      ? `+${money(roundedDelta)}`
-      : roundedDelta < 0
-      ? `-${money(Math.abs(roundedDelta))}`
-      : money(0);
+  const deltaFormatted = money(Math.abs(roundedDelta));
 
   return (
     <div className="form-account-balance-card" aria-label="موقف حساب العميل/المورد">
