@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { X, ExternalLink, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { creationTime, formatDate, money, today } from '../lib/format';
@@ -43,6 +43,11 @@ const PAGE_SIZE = 20;
 
 const VALID_RECEIPT_TABS = ['in', 'out', 'cash_box_transfer'] as const;
 type ReceiptTab = typeof VALID_RECEIPT_TABS[number];
+const RECEIPT_TABS = [
+  { value: 'in', label: 'إيصالات استلام' },
+  { value: 'out', label: 'إيصالات صرف' },
+  { value: 'cash_box_transfer', label: 'تحويل بين الخزن' },
+] as const;
 
 export default function Receipts() {
   const { can } = useAccess();
@@ -115,6 +120,8 @@ export default function Receipts() {
 
   const isCashBoxTransfer = tab === 'cash_box_transfer';
   const isIn = direction === 'in';
+  const visibleTabs = RECEIPT_TABS.filter((item) => can(`money.${item.value}.view`));
+  const canViewCurrentTab = can(`money.${tab}.view`);
   const selectableAccounts = accounts.filter(
     (account) => account.kind === accountKind && account.system_key === null,
   );
@@ -432,6 +439,11 @@ export default function Receipts() {
     setVersion((current) => current + 1);
   }
 
+  if (!canViewCurrentTab) {
+    const firstAllowedTab = visibleTabs[0];
+    return <Navigate to={firstAllowedTab ? `/receipts?tab=${firstAllowedTab.value}` : '/access-denied'} replace />;
+  }
+
   return (
     <div className="stack">
       <div className="page-head">
@@ -460,30 +472,17 @@ export default function Receipts() {
       </div>
 
       <div className="tabs">
-        <button
-          type="button"
-          className={tab === 'in' ? 'tab active' : 'tab'}
-          aria-pressed={tab === 'in'}
-          onClick={() => switchDirection('in')}
-        >
-          إيصالات استلام
-        </button>
-        <button
-          type="button"
-          className={tab === 'out' ? 'tab active' : 'tab'}
-          aria-pressed={tab === 'out'}
-          onClick={() => switchDirection('out')}
-        >
-          إيصالات صرف
-        </button>
-        <button
-          type="button"
-          className={tab === 'cash_box_transfer' ? 'tab active' : 'tab'}
-          aria-pressed={tab === 'cash_box_transfer'}
-          onClick={switchToCashTransfer}
-        >
-          تحويل بين الخزن
-        </button>
+        {visibleTabs.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            className={tab === item.value ? 'tab active' : 'tab'}
+            aria-pressed={tab === item.value}
+            onClick={() => item.value === 'cash_box_transfer' ? switchToCashTransfer() : switchDirection(item.value)}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
       {showDeleted && (
@@ -584,7 +583,7 @@ export default function Receipts() {
                         <td className="col-hide-on-detail">{transfer.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                           {showDeleted ? (
-                            can('money.delete') && (
+                            can(`money.${tab}.delete`) && (
                               <RowActions
                                 onRestore={() => void restoreTransfer(transfer)}
                                 restoreLabel="استعادة التحويل"
@@ -592,8 +591,8 @@ export default function Receipts() {
                             )
                           ) : (
                             <RowActions
-                              onEdit={can('money.edit') ? () => { setEditingTransfer(transfer); setFormOpen(true); } : undefined}
-                              onDelete={can('money.delete') ? () => void removeTransfer(transfer) : undefined}
+                              onEdit={can(`money.${tab}.edit`) ? () => { setEditingTransfer(transfer); setFormOpen(true); } : undefined}
+                              onDelete={can(`money.${tab}.delete`) ? () => void removeTransfer(transfer) : undefined}
                             />
                           )}
                         </td>
@@ -673,7 +672,7 @@ export default function Receipts() {
                         <td className="muted col-hide-on-detail">{receipt.statement || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                           {showDeleted ? (
-                            can('money.delete') ? (
+                            can(`money.${tab}.delete`) ? (
                               receipt.is_free ? (
                                 <RowActions
                                   onRestore={() => void restore(receipt)}
@@ -685,8 +684,8 @@ export default function Receipts() {
                             ) : null
                           ) : receipt.is_free ? (
                             <RowActions
-                              onEdit={can('money.edit') ? () => startEdit(receipt) : undefined}
-                              onDelete={can('money.delete') ? () => void remove(receipt) : undefined}
+                              onEdit={can(`money.${tab}.edit`) ? () => startEdit(receipt) : undefined}
+                              onDelete={can(`money.${tab}.delete`) ? () => void remove(receipt) : undefined}
                             />
                           ) : (
                             <span className="muted" title={`يُعدَّل من داخل ${linkKind(receipt.invoice_kind)}`}>مرتبط</span>
@@ -737,11 +736,11 @@ export default function Receipts() {
 
               <div className="erp-detail-actions">
                 {showDeleted ? (
-                  can('money.delete') && <button type="button" className="btn" onClick={() => void restoreTransfer(viewingTransfer)}>استعادة التحويل</button>
+                  can(`money.${tab}.delete`) && <button type="button" className="btn" onClick={() => void restoreTransfer(viewingTransfer)}>استعادة التحويل</button>
                 ) : (
                   <>
-                    {can('money.edit') && <button type="button" className="btn" onClick={() => { setEditingTransfer(viewingTransfer); setFormOpen(true); }}>تعديل التحويل</button>}
-                    {can('money.delete') && <button type="button" className="btn danger" onClick={() => void removeTransfer(viewingTransfer)}>حذف</button>}
+                    {can(`money.${tab}.edit`) && <button type="button" className="btn" onClick={() => { setEditingTransfer(viewingTransfer); setFormOpen(true); }}>تعديل التحويل</button>}
+                    {can(`money.${tab}.delete`) && <button type="button" className="btn danger" onClick={() => void removeTransfer(viewingTransfer)}>حذف</button>}
                   </>
                 )}
               </div>
@@ -789,11 +788,11 @@ export default function Receipts() {
 
               <div className="erp-detail-actions">
                 {showDeleted ? (
-                  can('money.delete') && viewing.is_free && <button type="button" className="btn" onClick={() => void restore(viewing)}>استعادة الإيصال</button>
+                  can(`money.${tab}.delete`) && viewing.is_free && <button type="button" className="btn" onClick={() => void restore(viewing)}>استعادة الإيصال</button>
                 ) : viewing.is_free ? (
                   <>
-                    {can('money.edit') && <button type="button" className="btn" onClick={() => startEdit(viewing)}>تعديل الإيصال</button>}
-                    {can('money.delete') && <button type="button" className="btn danger" onClick={() => void remove(viewing)}>حذف</button>}
+                    {can(`money.${tab}.edit`) && <button type="button" className="btn" onClick={() => startEdit(viewing)}>تعديل الإيصال</button>}
+                    {can(`money.${tab}.delete`) && <button type="button" className="btn danger" onClick={() => void remove(viewing)}>حذف</button>}
                   </>
                 ) : (
                   <p className="hint">هذا الإيصال مُنشأ تلقائيًا ومربوط بـ{linkKind(viewing.invoice_kind)}. يمكن تعديله أو حذفه من داخل الفاتورة نفسها.</p>

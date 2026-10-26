@@ -101,8 +101,8 @@ export default function App() {
         <Route path="/set-password" element={session ? <PageSuspense fullScreen><SetPassword /></PageSuspense> : <Navigate to="/login" replace />} />
         <Route element={session ? <AccessProvider key={session.user.id}><Layout /></AccessProvider> : <Navigate to="/login" replace />}>
           <Route path="/" element={<HomeRedirect />} />
-          <Route path="/invoices" element={<AccessRoute permissions={['goods.view','goods.create','goods.edit','goods.delete']}><PageSuspense><Invoices /></PageSuspense></AccessRoute>} />
-          <Route path="/receipts" element={<AccessRoute permissions={['money.view','money.create','money.edit','money.delete']}><PageSuspense><Receipts /></PageSuspense></AccessRoute>} />
+          <Route path="/invoices" element={<AccessRoute permissions={['goods.view','goods.sale.view','goods.purchase.view','goods.sale_return.view','goods.purchase_return.view','goods.waste.view','goods.warehouse_transfer.view']}><PageSuspense><Invoices /></PageSuspense></AccessRoute>} />
+          <Route path="/receipts" element={<AccessRoute permissions={['money.view','money.in.view','money.out.view','money.cash_box_transfer.view']}><PageSuspense><Receipts /></PageSuspense></AccessRoute>} />
           <Route path="/data" element={<AccessRoute permissions={['data.view','data.create','data.edit','data.delete']}><PageSuspense><MasterData /></PageSuspense></AccessRoute>} />
           <Route path="/balances" element={<AccessRoute permissions={['balances.view']}><PageSuspense><Balances /></PageSuspense></AccessRoute>} />
           <Route path="/management" element={<AccessRoute permissions={['management.view','management.edit']}><PageSuspense><Management /></PageSuspense></AccessRoute>} />

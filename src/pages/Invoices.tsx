@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { X, ExternalLink, Receipt as ReceiptIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { creationTime, formatDate, money, qty as formatQty } from '../lib/format';
@@ -66,6 +66,14 @@ function saleStatusLabel(status: Exclude<SaleStatus, 'all'>, isReturn = false): 
 }
 
 const VALID_INVOICE_TABS: InvoiceTab[] = ['sale', 'purchase', 'sale_return', 'purchase_return', 'waste', 'warehouse_transfer'];
+const INVOICE_TABS = [
+  { value: 'sale', label: 'فواتير المبيعات' },
+  { value: 'purchase', label: 'فواتير المشتريات' },
+  { value: 'sale_return', label: 'مرتجعات المبيعات' },
+  { value: 'purchase_return', label: 'مرتجعات المشتريات' },
+  { value: 'waste', label: 'الهالك' },
+  { value: 'warehouse_transfer', label: 'تحويل بين مخازن' },
+] as const;
 
 export default function Invoices() {
   const { can, access } = useAccess();
@@ -113,6 +121,8 @@ export default function Invoices() {
   const invoiceKind = isWarehouseTransfer ? null : kind;
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
   const canViewProfit = access?.role === 'owner';
+  const visibleTabs = INVOICE_TABS.filter((tab) => can(`goods.${tab.value}.view`));
+  const canViewCurrentTab = can(`goods.${kind}.view`);
 
   useEffect(() => {
     const targetKind = (tabParam && VALID_INVOICE_TABS.includes(tabParam)) ? tabParam : 'sale';
@@ -481,6 +491,11 @@ export default function Invoices() {
     setVersion((current) => current + 1);
   }
 
+  if (!canViewCurrentTab) {
+    const firstAllowedTab = visibleTabs[0];
+    return <Navigate to={firstAllowedTab ? `/invoices?tab=${firstAllowedTab.value}` : '/access-denied'} replace />;
+  }
+
   return (
     <div className="stack">
       <div className="page-head">
@@ -515,16 +530,7 @@ export default function Invoices() {
       </div>
 
       <div className="tabs">
-        {(
-          [
-            { value: 'sale', label: 'فواتير المبيعات' },
-            { value: 'purchase', label: 'فواتير المشتريات' },
-            { value: 'sale_return', label: 'مرتجعات المبيعات' },
-            { value: 'purchase_return', label: 'مرتجعات المشتريات' },
-            { value: 'waste', label: 'الهالك' },
-            { value: 'warehouse_transfer', label: 'تحويل بين مخازن' },
-          ] as const
-        ).map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab.value}
             type="button"
@@ -636,7 +642,7 @@ export default function Invoices() {
                         <td className="col-hide-on-detail">{transfer.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                           {showDeleted ? (
-                            can('goods.delete') && (
+                            can(`goods.${kind}.delete`) && (
                               <RowActions
                                 onRestore={() => void restoreTransfer(transfer)}
                                 restoreLabel="استعادة التحويل"
@@ -644,8 +650,8 @@ export default function Invoices() {
                             )
                           ) : (
                             <RowActions
-                              onEdit={can('goods.edit') ? () => void startEditTransfer(transfer) : undefined}
-                              onDelete={can('goods.delete') ? () => void removeTransfer(transfer) : undefined}
+                              onEdit={can(`goods.${kind}.edit`) ? () => void startEditTransfer(transfer) : undefined}
+                              onDelete={can(`goods.${kind}.delete`) ? () => void removeTransfer(transfer) : undefined}
                             />
                           )}
                         </td>
@@ -739,7 +745,7 @@ export default function Invoices() {
                         )}
                         <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                           {showDeleted ? (
-                            can('goods.delete') && (
+                            can(`goods.${kind}.delete`) && (
                               <RowActions
                                 onRestore={() => void restore(invoice)}
                                 restoreLabel={`استعادة ${newLabel}`}
@@ -747,8 +753,8 @@ export default function Invoices() {
                             )
                           ) : (
                             <RowActions
-                              onEdit={can('goods.edit') ? () => void startEdit(invoice) : undefined}
-                              onDelete={can('goods.delete') ? () => void remove(invoice) : undefined}
+                              onEdit={can(`goods.${kind}.edit`) ? () => void startEdit(invoice) : undefined}
+                              onDelete={can(`goods.${kind}.delete`) ? () => void remove(invoice) : undefined}
                             />
                           )}
                         </td>
@@ -818,11 +824,11 @@ export default function Invoices() {
 
                   <div className="erp-detail-actions">
                     {showDeleted ? (
-                      can('goods.delete') && <button type="button" className="btn" onClick={() => void restoreTransfer(viewingTransfer)}>استعادة التحويل</button>
+                      can(`goods.${kind}.delete`) && <button type="button" className="btn" onClick={() => void restoreTransfer(viewingTransfer)}>استعادة التحويل</button>
                     ) : (
                       <>
-                        {can('goods.edit') && <button type="button" className="btn" onClick={() => void startEditTransfer(viewingTransfer)}>تعديل التحويل</button>}
-                        {can('goods.delete') && <button type="button" className="btn danger" onClick={() => void removeTransfer(viewingTransfer)}>حذف</button>}
+                        {can(`goods.${kind}.edit`) && <button type="button" className="btn" onClick={() => void startEditTransfer(viewingTransfer)}>تعديل التحويل</button>}
+                        {can(`goods.${kind}.delete`) && <button type="button" className="btn danger" onClick={() => void removeTransfer(viewingTransfer)}>حذف</button>}
                       </>
                     )}
                   </div>
@@ -904,11 +910,11 @@ export default function Invoices() {
 
                   <div className="erp-detail-actions">
                     {showDeleted ? (
-                      can('goods.delete') && <button type="button" className="btn" onClick={() => void restore(viewing)}>استعادة {newLabel}</button>
+                      can(`goods.${kind}.delete`) && <button type="button" className="btn" onClick={() => void restore(viewing)}>استعادة {newLabel}</button>
                     ) : (
                       <>
-                        {can('goods.edit') && <button type="button" className="btn" onClick={() => void startEdit(viewing)}>تعديل {newLabel}</button>}
-                        {can('goods.delete') && <button type="button" className="btn danger" onClick={() => void remove(viewing)}>حذف</button>}
+                        {can(`goods.${kind}.edit`) && <button type="button" className="btn" onClick={() => void startEdit(viewing)}>تعديل {newLabel}</button>}
+                        {can(`goods.${kind}.delete`) && <button type="button" className="btn danger" onClick={() => void remove(viewing)}>حذف</button>}
                       </>
                     )}
                   </div>
