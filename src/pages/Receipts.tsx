@@ -452,7 +452,7 @@ export default function Receipts() {
         </div>
         <div className="actions">
           {can(`money.${tab}.delete`) && (
-            <button type="button" className="btn ghost" onClick={toggleDeleted}>
+            <button type="button" className="btn outline" onClick={toggleDeleted}>
               {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
             </button>
           )}

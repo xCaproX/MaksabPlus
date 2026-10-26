@@ -291,7 +291,7 @@ export default function PreviewPhase3And4() {
                 <h1>فواتير المبيعات</h1>
               </div>
               <div className="actions">
-                <button type="button" className="btn ghost">
+                <button type="button" className="btn outline">
                   عرض المحذوفات
                 </button>
                 <button type="button" className="btn primary">
