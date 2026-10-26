@@ -3,7 +3,7 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { entityNumber, money, qty as formatQty } from '../lib/format';
-import { translateDbError } from '../lib/errors';
+import { errorMessage, translateDbError } from '../lib/errors';
 import type { AccountRow, CashBoxRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 import { useAccess } from '../lib/access';
 import UserPermissions from '../components/UserPermissions';
@@ -123,21 +123,39 @@ export default function Management() {
     return () => { alive = false; };
   }, [version]);
 
-  async function saveAccountOpening(account: AccountRow) {
-    const opening = Number(accountValues[account.id] ?? 0);
-    if (!Number.isFinite(opening)) { setError('أدخل رصيدًا افتتاحيًا صحيحًا'); return; }
+  async function saveAccountsOpening(kind: 'customer' | 'supplier') {
+    const list = accounts.filter((a) => a.kind === kind);
+    const changed = list.filter((a) => Number(accountValues[a.id] ?? 0) !== Number(a.opening_balance));
+    if (changed.length === 0) {
+      setNotice(`لم يتم تعديل أي رصيد افتتاحي لـ ${kind === 'customer' ? 'العملاء' : 'الموردين'}.`);
+      return;
+    }
     setSaving(true); setError(''); setNotice('');
-    const { error: saveError } = await supabase.rpc('save_account', {
-      p_account_id: account.id,
-      p_name: account.name,
-      p_kind: account.kind,
-      p_phone: account.phone,
-      p_is_active: account.is_active,
-      p_opening_balance: opening,
-    });
-    setSaving(false);
-    if (saveError) setError(translateDbError(saveError.message));
-    else { setNotice(`تم حفظ الرصيد الافتتاحي لحساب «${account.name}»`); setVersion((value) => value + 1); }
+    try {
+      for (const account of changed) {
+        const opening = Number(accountValues[account.id] ?? 0);
+        if (!Number.isFinite(opening)) {
+          setError(`الرصيد الافتتاحي لحساب «${account.name}» غير صحيح.`);
+          setSaving(false);
+          return;
+        }
+        const { error: saveError } = await supabase.rpc('save_account', {
+          p_account_id: account.id,
+          p_name: account.name,
+          p_kind: account.kind,
+          p_phone: account.phone,
+          p_is_active: account.is_active,
+          p_opening_balance: opening,
+        });
+        if (saveError) throw new Error(saveError.message);
+      }
+      setNotice(`تم حفظ الأرصدة الافتتاحية بنجاح (${changed.length} حساب).`);
+      setVersion((v) => v + 1);
+    } catch (err) {
+      setError(translateDbError(errorMessage(err)));
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveCashAndStock(event?: FormEvent<HTMLFormElement>) {
@@ -250,13 +268,24 @@ export default function Management() {
           </p>
         </div>
         <div className="actions">
-          {tab === 'users' && access?.role === 'owner' && (
+          {tab === 'customers' && canEditOpening && (
             <button
               type="button"
               className="btn primary"
-              onClick={() => setIsInviteOpen(true)}
+              disabled={saving}
+              onClick={() => void saveAccountsOpening('customer')}
             >
-              + دعوة موظف
+              {saving ? 'جارٍ الحفظ…' : 'حفظ أرصدة العملاء'}
+            </button>
+          )}
+          {tab === 'suppliers' && canEditOpening && (
+            <button
+              type="button"
+              className="btn primary"
+              disabled={saving}
+              onClick={() => void saveAccountsOpening('supplier')}
+            >
+              {saving ? 'جارٍ الحفظ…' : 'حفظ أرصدة الموردين'}
             </button>
           )}
           {tab === 'items' && canEditOpening && (
@@ -277,6 +306,15 @@ export default function Management() {
               onClick={() => void saveCashAndStock()}
             >
               {saving ? 'جارٍ الحفظ…' : 'حفظ أرصدة الخزن'}
+            </button>
+          )}
+          {tab === 'users' && access?.role === 'owner' && (
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => setIsInviteOpen(true)}
+            >
+              + دعوة موظف
             </button>
           )}
         </div>
@@ -357,11 +395,10 @@ export default function Management() {
                       <th className="col-hide-on-detail">النوع</th>
                       <th className="num">الرصيد الافتتاحي</th>
                       <th className="num">الرصيد الحالي</th>
-                      <th aria-label="الإجراءات" />
                     </tr>
                   </thead>
                   <tbody>
-                    {pageAccounts.length === 0 && <tr><td colSpan={6} className="empty">{tab === 'customers' ? 'لا توجد حسابات عملاء تطابق البحث.' : 'لا توجد حسابات موردين تطابق البحث.'}</td></tr>}
+                    {pageAccounts.length === 0 && <tr><td colSpan={5} className="empty">{tab === 'customers' ? 'لا توجد حسابات عملاء تطابق البحث.' : 'لا توجد حسابات موردين تطابق البحث.'}</td></tr>}
                     {pageAccounts.map((account) => {
                       const isSelected = selectedAccount?.id === account.id;
                       return (
@@ -388,13 +425,6 @@ export default function Management() {
                             />
                           </td>
                           <td className={`num strong ${Number(account.balance) > 0 ? 'remaining' : ''}`}>{money(account.balance)}</td>
-                          <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                            {canEditOpening && (
-                              <button type="button" className="btn compact" disabled={saving} onClick={() => void saveAccountOpening(account)}>
-                                حفظ
-                              </button>
-                            )}
-                          </td>
                         </tr>
                       );
                     })}
@@ -574,14 +604,6 @@ export default function Management() {
                 </p>
 
                 {selectedAccount.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedAccount.notes}</p>}
-
-                <div className="erp-detail-actions">
-                  {canEditOpening && (
-                    <button type="button" className="btn primary" disabled={saving} onClick={() => void saveAccountOpening(selectedAccount)}>
-                      حفظ الرصيد الافتتاحي لهذا الحساب
-                    </button>
-                  )}
-                </div>
               </>
             ) : selectedItemRow ? (
               <>
@@ -612,16 +634,6 @@ export default function Management() {
                 {selectedItemRow.cost_locked && (
                   <p className="hint">تكلفة البداية مقفولة لوجود حركات سابقة لحماية حسابات الأرباح، ويمكنك تعديل كمية البداية كتصحيح مخزني.</p>
                 )}
-
-                <div className="erp-detail-actions">
-                  {canEditOpening && (
-                    <form onSubmit={saveCashAndStock}>
-                      <button type="submit" className="btn primary" disabled={saving}>
-                        حفظ جميع أرصدة المخزون
-                      </button>
-                    </form>
-                  )}
-                </div>
               </>
             ) : selectedBox ? (
               <>
@@ -645,21 +657,11 @@ export default function Management() {
                   <span>الرصيد الافتتاحي</span>
                   <strong className="num remaining">{money(Number(cashValues[selectedBox.id] ?? selectedBox.opening_balance))}</strong>
                 </div>
-
-                <div className="erp-detail-actions">
-                  {canEditOpening && (
-                    <form onSubmit={saveCashAndStock}>
-                      <button type="submit" className="btn primary" disabled={saving}>
-                        حفظ أرصدة الخزن
-                      </button>
-                    </form>
-                  )}
-                </div>
               </>
             ) : (
               <div className="erp-detail-empty">
                 <strong>اختر بندًا</strong>
-                <span>اضغط على أي سطر لمراجعة رصيده الافتتاحي والفعلي وحفظ التعديلات فورًا.</span>
+                <span>اضغط على أي سطر لمراجعة رصيده الافتتاحي والفعلي.</span>
               </div>
             )}
           </aside>

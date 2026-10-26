@@ -283,13 +283,6 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
             <div className="users-sidebar-head">
               <div className="head-row">
                 <strong>المستخدمون ({filteredUsers.length})</strong>
-                <button
-                  type="button"
-                  className="btn primary compact"
-                  onClick={() => setIsInviteOpen(true)}
-                >
-                  + دعوة موظف
-                </button>
               </div>
 
               <div className="users-sidebar-filters">
