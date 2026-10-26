@@ -29,8 +29,7 @@ UI language: Arabic (Egyptian), RTL.
    - Do not blindly implement a suggestion that conflicts with the product goal. Explain why and work through the choice with the owner.
 6. Reuse shared components (DateInput, MoneyDisplay, StatusBadge, RowActions). Fix a problem once in the shared component, never per screen. Before creating a new component, check whether one already exists.
 7. After completing a task: commit and push the code to GitHub.
-   - Push a database migration only to the dev/staging project.
-   - Never apply a migration to production without explicit approval from the owner.
+   - Push a database migration to the production project.
 
 ## Database
 8. All schema changes go in timestamped files under supabase/migrations/. Never edit an existing migration. Add a new one.
