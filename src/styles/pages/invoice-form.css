@@ -1,9 +1,16 @@
 /* ---------- Transaction Entry Forms & Modals Foundation ---------- */
 .modal.transaction-entry-modal {
-  width: min(1060px, 98vw);
+  width: min(1360px, 96vw);
   max-height: min(94dvh, 960px);
   border-radius: 16px;
   overflow: hidden;
+}
+
+@media (min-width: 1600px) {
+  .modal.transaction-entry-modal {
+    width: min(1520px, 94vw);
+    max-height: min(92dvh, 1020px);
+  }
 }
 
 .transaction-entry-modal .modal-head {

@@ -26,6 +26,10 @@
   animation: modalPopIn 0.24s var(--ease-spring);
 }
 
+.modal.account-statement-modal {
+  width: min(1180px, 96vw);
+}
+
 .modal-head {
   display: flex;
   align-items: center;
