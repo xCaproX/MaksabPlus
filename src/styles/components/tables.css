@@ -51,6 +51,15 @@
   white-space: nowrap;
 }
 
+td.row-actions {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+td.row-actions > * + * {
+  margin-inline-start: 12px;
+}
+
 /* ---------- ERP Table Workspace ---------- */
 .erp-table-wrap { flex: 1; overflow: auto; }
 .erp-table { min-width: 780px; font-size: 12px; border-collapse: separate; border-spacing: 0; }
