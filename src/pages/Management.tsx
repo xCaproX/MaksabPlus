@@ -61,6 +61,7 @@ export default function Management() {
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
   const [selectedItemRow, setSelectedItemRow] = useState<StockOpeningRow | null>(null);
   const [selectedBox, setSelectedBox] = useState<CashBoxRow | null>(null);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   useEffect(() => {
     const targetTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
@@ -139,8 +140,9 @@ export default function Management() {
     else { setNotice(`تم حفظ الرصيد الافتتاحي لحساب «${account.name}»`); setVersion((value) => value + 1); }
   }
 
-  async function saveCashAndStock(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setError(''); setNotice('');
+  async function saveCashAndStock(event?: FormEvent<HTMLFormElement>) {
+    if (event) event.preventDefault();
+    setError(''); setNotice('');
     const cash = cashBoxes.map((box) => ({ cash_box_id: box.id, opening_balance: Number(cashValues[box.id] ?? 0) }));
     const stock = stockRows.map((row) => {
       const value = stockValues[`${row.warehouse_id}:${row.item_id}`] ?? { qty: String(row.opening_qty), cost: String(row.unit_cost) };
@@ -247,6 +249,37 @@ export default function Management() {
               : 'إدارة المستخدمين وصلاحيات الدخول لصفحات وأقسام النظام.'}
           </p>
         </div>
+        <div className="actions">
+          {tab === 'users' && access?.role === 'owner' && (
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => setIsInviteOpen(true)}
+            >
+              + دعوة موظف
+            </button>
+          )}
+          {tab === 'items' && canEditOpening && (
+            <button
+              type="button"
+              className="btn primary"
+              disabled={saving}
+              onClick={() => void saveCashAndStock()}
+            >
+              {saving ? 'جارٍ الحفظ…' : 'حفظ أرصدة المخزون'}
+            </button>
+          )}
+          {tab === 'cashBoxes' && canEditOpening && (
+            <button
+              type="button"
+              className="btn primary"
+              disabled={saving}
+              onClick={() => void saveCashAndStock()}
+            >
+              {saving ? 'جارٍ الحفظ…' : 'حفظ أرصدة الخزن'}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="tabs">
@@ -263,17 +296,13 @@ export default function Management() {
       </div>
 
       {tab === 'users' && access?.role === 'owner' ? (
-        <UserPermissions />
+        <UserPermissions inviteOpen={isInviteOpen} onInviteOpenChange={setIsInviteOpen} />
       ) : loading ? (
         <div className="card empty">جارٍ التحميل…</div>
       ) : (
-        <div className="erp-sales-workspace">
+        <div className={hasSelection ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
           <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
             <div className="erp-toolbar">
-              <div className="erp-toolbar-title">
-                <strong>{tabTitle}</strong>
-                <span>{activeTotalCount} نتيجة</span>
-              </div>
               <div className="erp-filters">
                 <label className="erp-search">
                   <span className="sr-only">البحث</span>
@@ -325,7 +354,7 @@ export default function Management() {
                         onSort={(s) => setSortOrder(s as ManagementSort)}
                         defaultDirection="asc"
                       />
-                      <th>النوع</th>
+                      <th className="col-hide-on-detail">النوع</th>
                       <th className="num">الرصيد الافتتاحي</th>
                       <th className="num">الرصيد الحالي</th>
                       <th aria-label="الإجراءات" />
@@ -347,7 +376,7 @@ export default function Management() {
                         >
                           <td className="num strong">{entityNumber(tab === 'customers' ? 'CUS' : 'SUP', account.serial_number)}</td>
                           <td className="strong">{account.name}</td>
-                          <td className="muted">{account.kind === 'customer' ? 'عميل' : 'مورد'}</td>
+                          <td className="muted col-hide-on-detail">{account.kind === 'customer' ? 'عميل' : 'مورد'}</td>
                           <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
                             <input
                               className="table-input num"
@@ -383,7 +412,7 @@ export default function Management() {
                         currentSort={sortOrder}
                         onSort={(s) => setSortOrder(s as ManagementSort)}
                       />
-                      <th>الكود</th>
+                      <th className="col-hide-on-detail">الكود</th>
                       <SortableHeader
                         label="الصنف"
                         field="name"
@@ -413,7 +442,7 @@ export default function Management() {
                           }}
                         >
                           <td className="num strong">{entityNumber('ITM', row.item_number)}</td>
-                          <td className="num">{row.item_code}</td>
+                          <td className="num col-hide-on-detail">{row.item_code}</td>
                           <td className="strong">{row.item_name}</td>
                           <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
                             <input

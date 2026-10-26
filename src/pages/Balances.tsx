@@ -342,13 +342,9 @@ export default function Balances() {
       </div>
 
       {/* الـ ERP Workspace لقسم الأرصدة */}
-      <div className="erp-sales-workspace">
+      <div className={hasSelection ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
-            <div className="erp-toolbar-title">
-              <strong>{tabTitle}</strong>
-              <span>{activeTotalCount} نتيجة</span>
-            </div>
             <div className="erp-filters">
               <label className="erp-search">
                 <span className="sr-only">البحث</span>
@@ -368,10 +364,13 @@ export default function Balances() {
                 <SearchableSelect
                   ariaLabel="تصفية حسب المخزن"
                   value={selectedWarehouseId}
-                  options={warehouses.map((wh) => ({
-                    value: wh.id,
-                    label: `${entityNumber('WH', wh.serial_number)} — ${wh.name}`,
-                  }))}
+                  options={[
+                    { value: '', label: 'كل المخازن' },
+                    ...warehouses.map((wh) => ({
+                      value: wh.id,
+                      label: `${entityNumber('WH', wh.serial_number)} — ${wh.name}`,
+                    })),
+                  ]}
                   onChange={setSelectedWarehouseId}
                   searchPlaceholder="بحث عن مخزن…"
                 />
@@ -397,7 +396,7 @@ export default function Balances() {
                       onSort={(s) => setSortOrder(s as BalanceSort)}
                       defaultDirection="asc"
                     />
-                    <th>الهاتف</th>
+                    <th className="col-hide-on-detail">الهاتف</th>
                     <SortableHeader
                       label="الرصيد الحالي"
                       field="balance"
@@ -406,7 +405,7 @@ export default function Balances() {
                       align="end"
                       className="num"
                     />
-                    <th>الملاحظات</th>
+                    <th className="col-hide-on-detail">الملاحظات</th>
                     <th aria-label="الإجراءات" />
                   </tr>
                 </thead>
@@ -427,9 +426,9 @@ export default function Balances() {
                       >
                         <td className="num strong">{entityNumber('CUS', account.serial_number)}</td>
                         <td className="strong">{account.name}</td>
-                        <td className="num">{account.phone || '—'}</td>
+                        <td className="num col-hide-on-detail">{account.phone || '—'}</td>
                         <td className={`num strong ${Number(account.balance) > 0 ? 'remaining' : ''}`}>{money(account.balance)}</td>
-                        <td className="muted">{account.notes || '—'}</td>
+                        <td className="muted col-hide-on-detail">{account.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button type="button" className="btn compact" onClick={() => openStatement(account)}>كشف حساب</button>
                         </td>
@@ -457,7 +456,7 @@ export default function Balances() {
                       onSort={(s) => setSortOrder(s as BalanceSort)}
                       defaultDirection="asc"
                     />
-                    <th>الهاتف</th>
+                    <th className="col-hide-on-detail">الهاتف</th>
                     <SortableHeader
                       label="الرصيد الحالي"
                       field="balance"
@@ -466,7 +465,7 @@ export default function Balances() {
                       align="end"
                       className="num"
                     />
-                    <th>الملاحظات</th>
+                    <th className="col-hide-on-detail">الملاحظات</th>
                     <th aria-label="الإجراءات" />
                   </tr>
                 </thead>
@@ -487,9 +486,9 @@ export default function Balances() {
                       >
                         <td className="num strong">{entityNumber('SUP', account.serial_number)}</td>
                         <td className="strong">{account.name}</td>
-                        <td className="num">{account.phone || '—'}</td>
+                        <td className="num col-hide-on-detail">{account.phone || '—'}</td>
                         <td className={`num strong ${Number(account.balance) > 0 ? 'remaining' : ''}`}>{money(account.balance)}</td>
-                        <td className="muted">{account.notes || '—'}</td>
+                        <td className="muted col-hide-on-detail">{account.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button type="button" className="btn compact" onClick={() => openStatement(account)}>كشف حساب</button>
                         </td>
@@ -510,7 +509,7 @@ export default function Balances() {
                       currentSort={sortOrder}
                       onSort={(s) => setSortOrder(s as BalanceSort)}
                     />
-                    <th>الكود</th>
+                    <th className="col-hide-on-detail">الكود</th>
                     <SortableHeader
                       label="الصنف"
                       field="name"
@@ -526,7 +525,7 @@ export default function Balances() {
                       align="end"
                       className="num"
                     />
-                    <th>الملاحظات</th>
+                    <th className="col-hide-on-detail">الملاحظات</th>
                     <th aria-label="الإجراءات" />
                   </tr>
                 </thead>
@@ -546,10 +545,10 @@ export default function Balances() {
                         }}
                       >
                         <td className="num strong">{entityNumber('ITM', row.item_number)}</td>
-                        <td className="num">{row.item_code}</td>
+                        <td className="num col-hide-on-detail">{row.item_code}</td>
                         <td className="strong">{row.item_name}</td>
                         <td className="num strong">{formatQty(row.current_qty)} {row.unit}</td>
-                        <td className="muted">{row.item_notes || '—'}</td>
+                        <td className="muted col-hide-on-detail">{row.item_notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button type="button" className="btn compact" onClick={() => openItemStatement(row)}>كشف حركة</button>
                         </td>
@@ -585,7 +584,7 @@ export default function Balances() {
                       align="end"
                       className="num"
                     />
-                    <th>الملاحظات</th>
+                    <th className="col-hide-on-detail">الملاحظات</th>
                     <th aria-label="الإجراءات" />
                   </tr>
                 </thead>
@@ -607,7 +606,7 @@ export default function Balances() {
                         <td className="num strong">{entityNumber('CBX', box.serial_number)}</td>
                         <td className="strong">{box.name}</td>
                         <td className="num strong">{money(box.balance)}</td>
-                        <td className="muted">{box.notes || '—'}</td>
+                        <td className="muted col-hide-on-detail">{box.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button type="button" className="btn compact" onClick={() => openCashBoxStatement(box)}>كشف حركة</button>
                         </td>

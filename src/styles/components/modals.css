@@ -203,7 +203,8 @@
     padding: 14px 13px calc(20px + env(safe-area-inset-bottom));
   }
 
-  .master-data-modal form > .actions {
+  .master-data-modal form > .actions,
+  .master-data-modal form > .form-modal-actions {
     position: sticky;
     bottom: -14px;
     z-index: 1;
@@ -212,7 +213,8 @@
     backdrop-filter: blur(4px);
   }
 
-  .master-data-modal form > .actions .btn.primary {
+  .master-data-modal form > .actions .btn.primary,
+  .master-data-modal form > .form-modal-actions .btn.primary {
     flex: 1;
   }
 }

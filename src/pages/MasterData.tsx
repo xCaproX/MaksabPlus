@@ -9,6 +9,8 @@ import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import SearchableSelect from '../components/SearchableSelect';
 import SortableHeader from '../components/SortableHeader';
+import RowActions from '../components/RowActions';
+import StatusBadge from '../components/StatusBadge';
 import { toast } from '../components/Toast';
 import type { AccountKind, AccountRow, ItemRow, WarehouseOption } from '../lib/types';
 import { useAccess } from '../lib/access';
@@ -589,19 +591,21 @@ export default function MasterData() {
           <p className="muted">إدارة الحسابات والأصناف والمخازن والخزن وتعديل بياناتها الأساسية.</p>
         </div>
         {can(`data.${tab}.create`) && (
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() => {
-              if (tab === 'customers') startAccountAdd('customer');
-              else if (tab === 'suppliers') startAccountAdd('supplier');
-              else if (tab === 'items') startItemAdd();
-              else if (tab === 'warehouses') startWarehouseForm();
-              else startCashBoxForm();
-            }}
-          >
-            {newBtnLabel}
-          </button>
+          <div className="actions">
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => {
+                if (tab === 'customers') startAccountAdd('customer');
+                else if (tab === 'suppliers') startAccountAdd('supplier');
+                else if (tab === 'items') startItemAdd();
+                else if (tab === 'warehouses') startWarehouseForm();
+                else startCashBoxForm();
+              }}
+            >
+              {newBtnLabel}
+            </button>
+          </div>
         )}
       </div>
 
@@ -619,13 +623,9 @@ export default function MasterData() {
       </div>
 
       {/* الـ ERP Workspace لقسم البيانات الأساسية */}
-      <div className="erp-sales-workspace">
+      <div className={hasSelection ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
-            <div className="erp-toolbar-title">
-              <strong>{tabTitle}</strong>
-              <span>{activeTotalCount} نتيجة</span>
-            </div>
             <div className="erp-filters">
               <label className="erp-search">
                 <span className="sr-only">البحث</span>
@@ -673,8 +673,8 @@ export default function MasterData() {
                       onSort={(s) => setSortOrder(s as MasterSort)}
                       defaultDirection="asc"
                     />
-                    <th>الهاتف</th>
-                    <th>ملاحظات</th>
+                    <th className="col-hide-on-detail">الهاتف</th>
+                    <th className="col-hide-on-detail">ملاحظات</th>
                     <th>الحالة</th>
                     <th aria-label="الإجراءات" />
                   </tr>
@@ -696,14 +696,18 @@ export default function MasterData() {
                       >
                         <td className="num strong">{entityNumber('CUS', account.serial_number)}</td>
                         <td className="strong">{account.name}</td>
-                        <td className="num muted">{account.phone ?? '—'}</td>
-                        <td className="muted">{account.notes || '—'}</td>
+                        <td className="num muted col-hide-on-detail">{account.phone ?? '—'}</td>
+                        <td className="muted col-hide-on-detail">{account.notes || '—'}</td>
                         <td>
-                          {account.is_active ? <span className="status-badge paid">نشط</span> : <span className="status-badge unpaid">موقوف</span>}
+                          <StatusBadge variant={account.is_active ? 'paid' : 'unpaid'}>
+                            {account.is_active ? 'نشط' : 'موقوف'}
+                          </StatusBadge>
                         </td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {can('data.customers.edit') && <button type="button" className="link" onClick={() => startAccountEdit(account)}>تعديل</button>}
-                          {can('data.customers.delete') && <button type="button" className="link danger" onClick={() => removeAccount(account)}>حذف</button>}
+                          <RowActions
+                            onEdit={can('data.customers.edit') ? () => startAccountEdit(account) : undefined}
+                            onDelete={can('data.customers.delete') ? () => void removeAccount(account) : undefined}
+                          />
                         </td>
                       </tr>
                     );
@@ -729,8 +733,8 @@ export default function MasterData() {
                       onSort={(s) => setSortOrder(s as MasterSort)}
                       defaultDirection="asc"
                     />
-                    <th>الهاتف</th>
-                    <th>ملاحظات</th>
+                    <th className="col-hide-on-detail">الهاتف</th>
+                    <th className="col-hide-on-detail">ملاحظات</th>
                     <th>الحالة</th>
                     <th aria-label="الإجراءات" />
                   </tr>
@@ -752,14 +756,18 @@ export default function MasterData() {
                       >
                         <td className="num strong">{entityNumber('SUP', account.serial_number)}</td>
                         <td className="strong">{account.name}</td>
-                        <td className="num muted">{account.phone ?? '—'}</td>
-                        <td className="muted">{account.notes || '—'}</td>
+                        <td className="num muted col-hide-on-detail">{account.phone ?? '—'}</td>
+                        <td className="muted col-hide-on-detail">{account.notes || '—'}</td>
                         <td>
-                          {account.is_active ? <span className="status-badge paid">نشط</span> : <span className="status-badge unpaid">موقوف</span>}
+                          <StatusBadge variant={account.is_active ? 'paid' : 'unpaid'}>
+                            {account.is_active ? 'نشط' : 'موقوف'}
+                          </StatusBadge>
                         </td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {can('data.suppliers.edit') && <button type="button" className="link" onClick={() => startAccountEdit(account)}>تعديل</button>}
-                          {can('data.suppliers.delete') && <button type="button" className="link danger" onClick={() => removeAccount(account)}>حذف</button>}
+                          <RowActions
+                            onEdit={can('data.suppliers.edit') ? () => startAccountEdit(account) : undefined}
+                            onDelete={can('data.suppliers.delete') ? () => void removeAccount(account) : undefined}
+                          />
                         </td>
                       </tr>
                     );
@@ -778,7 +786,7 @@ export default function MasterData() {
                       currentSort={sortOrder}
                       onSort={(s) => setSortOrder(s as MasterSort)}
                     />
-                    <th>الكود</th>
+                    <th className="col-hide-on-detail">الكود</th>
                     <SortableHeader
                       label="الاسم"
                       field="name"
@@ -786,7 +794,7 @@ export default function MasterData() {
                       onSort={(s) => setSortOrder(s as MasterSort)}
                       defaultDirection="asc"
                     />
-                    <th>الوحدة</th>
+                    <th className="col-hide-on-detail">الوحدة</th>
                     <SortableHeader
                       label="سعر البيع"
                       field="price"
@@ -795,7 +803,7 @@ export default function MasterData() {
                       align="end"
                       className="num"
                     />
-                    <th className="num">سعر الشراء</th>
+                    <th className="num col-hide-on-detail">سعر الشراء</th>
                     <th>الحالة</th>
                     <th aria-label="الإجراءات" />
                   </tr>
@@ -816,17 +824,21 @@ export default function MasterData() {
                         }}
                       >
                         <td className="num strong">{entityNumber('ITM', item.serial_number)}</td>
-                        <td className="num">{item.code}</td>
+                        <td className="num col-hide-on-detail">{item.code}</td>
                         <td className="strong">{item.name}</td>
-                        <td>{item.unit}</td>
+                        <td className="col-hide-on-detail">{item.unit}</td>
                         <td className="num strong">{money(item.sale_price)}</td>
-                        <td className="num">{money(item.purchase_price)}</td>
+                        <td className="num col-hide-on-detail">{money(item.purchase_price)}</td>
                         <td>
-                          {item.is_active ? <span className="status-badge paid">نشط</span> : <span className="status-badge unpaid">موقوف</span>}
+                          <StatusBadge variant={item.is_active ? 'paid' : 'unpaid'}>
+                            {item.is_active ? 'نشط' : 'موقوف'}
+                          </StatusBadge>
                         </td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {can('data.items.edit') && <button type="button" className="link" onClick={() => startItemEdit(item)}>تعديل</button>}
-                          {can('data.items.delete') && <button type="button" className="link danger" onClick={() => removeItem(item)}>حذف</button>}
+                          <RowActions
+                            onEdit={can('data.items.edit') ? () => startItemEdit(item) : undefined}
+                            onDelete={can('data.items.delete') ? () => void removeItem(item) : undefined}
+                          />
                         </td>
                       </tr>
                     );
@@ -852,8 +864,8 @@ export default function MasterData() {
                       onSort={(s) => setSortOrder(s as MasterSort)}
                       defaultDirection="asc"
                     />
-                    <th>النوع</th>
-                    <th>ملاحظات</th>
+                    <th className="col-hide-on-detail">النوع</th>
+                    <th className="col-hide-on-detail">ملاحظات</th>
                     <th>الحالة</th>
                     <th aria-label="الإجراءات" />
                   </tr>
@@ -875,14 +887,18 @@ export default function MasterData() {
                       >
                         <td className="num strong">{entityNumber('WH', warehouse.serial_number)}</td>
                         <td className="strong">{warehouse.name}</td>
-                        <td>{warehouse.is_primary ? <span className="badge">رئيسي</span> : <span className="muted">فرعي</span>}</td>
-                        <td className="muted">{warehouse.notes || '—'}</td>
+                        <td className="col-hide-on-detail">{warehouse.is_primary ? <span className="badge">رئيسي</span> : <span className="muted">فرعي</span>}</td>
+                        <td className="muted col-hide-on-detail">{warehouse.notes || '—'}</td>
                         <td>
-                          {warehouse.is_active ? <span className="status-badge paid">نشط</span> : <span className="status-badge unpaid">موقوف</span>}
+                          <StatusBadge variant={warehouse.is_active ? 'paid' : 'unpaid'}>
+                            {warehouse.is_active ? 'نشط' : 'موقوف'}
+                          </StatusBadge>
                         </td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {can('data.warehouses.edit') && <button type="button" className="link" onClick={() => startWarehouseForm(warehouse)}>تعديل</button>}
-                          {can('data.warehouses.delete') && !warehouse.is_primary && <button type="button" className="link danger" onClick={() => void removeWarehouse(warehouse)}>حذف</button>}
+                          <RowActions
+                            onEdit={can('data.warehouses.edit') ? () => startWarehouseForm(warehouse) : undefined}
+                            onDelete={can('data.warehouses.delete') && !warehouse.is_primary ? () => void removeWarehouse(warehouse) : undefined}
+                          />
                         </td>
                       </tr>
                     );
@@ -908,8 +924,8 @@ export default function MasterData() {
                       onSort={(s) => setSortOrder(s as MasterSort)}
                       defaultDirection="asc"
                     />
-                    <th>النوع</th>
-                    <th>ملاحظات</th>
+                    <th className="col-hide-on-detail">النوع</th>
+                    <th className="col-hide-on-detail">ملاحظات</th>
                     <th>الحالة</th>
                     <th aria-label="الإجراءات" />
                   </tr>
@@ -931,14 +947,18 @@ export default function MasterData() {
                       >
                         <td className="num strong">{entityNumber('CBX', box.serial_number)}</td>
                         <td className="strong">{box.name}</td>
-                        <td>{box.is_primary ? <span className="badge">رئيسية</span> : <span className="muted">فرعية</span>}</td>
-                        <td className="muted">{box.notes || '—'}</td>
+                        <td className="col-hide-on-detail">{box.is_primary ? <span className="badge">رئيسية</span> : <span className="muted">فرعية</span>}</td>
+                        <td className="muted col-hide-on-detail">{box.notes || '—'}</td>
                         <td>
-                          {box.is_active ? <span className="status-badge paid">نشطة</span> : <span className="status-badge unpaid">موقوفة</span>}
+                          <StatusBadge variant={box.is_active ? 'paid' : 'unpaid'}>
+                            {box.is_active ? 'نشطة' : 'موقوفة'}
+                          </StatusBadge>
                         </td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                          {can('data.cashBoxes.edit') && <button type="button" className="link" onClick={() => startCashBoxForm(box)}>تعديل</button>}
-                          {can('data.cashBoxes.delete') && !box.is_primary && <button type="button" className="link danger" onClick={() => void removeCashBox(box)}>حذف</button>}
+                          <RowActions
+                            onEdit={can('data.cashBoxes.edit') ? () => startCashBoxForm(box) : undefined}
+                            onDelete={can('data.cashBoxes.delete') && !box.is_primary ? () => void removeCashBox(box) : undefined}
+                          />
                         </td>
                       </tr>
                     );
@@ -1187,9 +1207,9 @@ export default function MasterData() {
               </p>
             )}
 
-            <div className="actions">
+            <div className="form-modal-actions">
               <button type="submit" className="btn primary">
-                {editingAccount ? 'حفظ التعديلات' : 'إضافة'}
+                {editingAccount ? 'حفظ التعديلات' : accountKind === 'customer' ? 'إضافة عميل' : 'إضافة مورد'}
               </button>
               <button type="button" className="btn" onClick={cancelAccountEdit}>
                 إلغاء
@@ -1329,9 +1349,9 @@ export default function MasterData() {
               )}
             </div>
 
-            <div className="actions">
+            <div className="form-modal-actions">
               <button type="submit" className="btn primary">
-                {editingItem ? 'حفظ التعديلات' : 'إضافة'}
+                {editingItem ? 'حفظ التعديلات' : 'إضافة صنف'}
               </button>
               <button type="button" className="btn" onClick={cancelItemEdit}>
                 إلغاء
@@ -1362,7 +1382,7 @@ export default function MasterData() {
                 placeholder="العنوان أو وصف المخزن"
               />
             </label>
-            <div className="actions">
+            <div className="form-modal-actions">
               <button type="submit" className="btn primary">
                 {editingWarehouseId ? 'حفظ التعديلات' : 'إضافة مخزن'}
               </button>
@@ -1405,7 +1425,7 @@ export default function MasterData() {
                 />
               </label>
             )}
-            <div className="actions">
+            <div className="form-modal-actions">
               <button type="submit" className="btn primary">
                 {editingCashBoxId ? 'حفظ التعديلات' : 'إضافة خزنة'}
               </button>

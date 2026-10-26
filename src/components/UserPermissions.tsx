@@ -25,7 +25,12 @@ type CompanyUser = {
 
 type UserFilterStatus = 'all' | 'active' | 'suspended' | 'owner';
 
-export default function UserPermissions() {
+interface UserPermissionsProps {
+  inviteOpen?: boolean;
+  onInviteOpenChange?: (open: boolean) => void;
+}
+
+export default function UserPermissions({ inviteOpen, onInviteOpenChange }: UserPermissionsProps = {}) {
   const [users, setUsers] = useState<CompanyUser[]>([]);
   const [drafts, setDrafts] = useState<Record<string, PermissionKey[]>>({});
   const [loading, setLoading] = useState(true);
@@ -48,7 +53,12 @@ export default function UserPermissions() {
   });
 
   // نافذة دعوة موظف جديد
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [internalInviteOpen, setInternalInviteOpen] = useState(false);
+  const isInviteOpen = inviteOpen !== undefined ? inviteOpen : internalInviteOpen;
+  const setIsInviteOpen = (open: boolean) => {
+    setInternalInviteOpen(open);
+    onInviteOpenChange?.(open);
+  };
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteFullName, setInviteFullName] = useState('');
   const [invitePermissions, setInvitePermissions] = useState<PermissionKey[]>([]);
@@ -609,10 +619,10 @@ export default function UserPermissions() {
               />
             </div>
 
-            <div
-              className="actions"
-              style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}
-            >
+            <div className="form-modal-actions" style={{ marginTop: '14px' }}>
+              <button type="submit" className="btn primary" disabled={busy}>
+                {busy ? 'جارٍ إرسال الدعوة…' : 'إرسال الدعوة'}
+              </button>
               <button
                 type="button"
                 className="btn"
@@ -620,9 +630,6 @@ export default function UserPermissions() {
                 disabled={busy}
               >
                 إلغاء
-              </button>
-              <button type="submit" className="btn primary" disabled={busy}>
-                {busy ? 'جارٍ إرسال الدعوة…' : 'إرسال الدعوة'}
               </button>
             </div>
           </form>
