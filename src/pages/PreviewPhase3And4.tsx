@@ -276,7 +276,7 @@ export default function PreviewPhase3And4() {
               <div className="sidebar-user-name">عبد الرحمن عيد (Capro)</div>
               <div className="sidebar-company-name">شركة الأمل للتجارة والتوزيع</div>
             </div>
-            <button type="button" className="btn ghost sign-out">
+            <button type="button" className="sign-out">
               <LogOut size={16} />
               <span>تسجيل الخروج</span>
             </button>

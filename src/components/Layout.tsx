@@ -448,7 +448,7 @@ export default function Layout() {
             <div className="sidebar-user-name" title={userName || 'المستخدم'}>{userName || 'المستخدم'}</div>
             <div className="sidebar-company-name" title={companyName || 'مكسب بلس'}>{companyName || 'مكسب بلس'}</div>
           </div>
-          <button type="button" className="btn ghost sign-out" onClick={signOut} title="تسجيل الخروج">
+          <button type="button" className="sign-out" onClick={signOut} title="تسجيل الخروج">
             <LogOut size={16} />
             <span>تسجيل الخروج</span>
           </button>
