@@ -20,15 +20,15 @@ export default function AccountBalanceCard({
   deltaLabel = 'صافي مديونية',
   titleAfter = 'الرصيد بعد',
 }: AccountBalanceCardProps) {
-  const isCust = accountKind === 'customer';
+  const isCustomer = accountKind === 'customer';
 
-  // Helper for balance badge
+  // شارة موقف الرصيد (خالص / عليه / له)
   function renderBalanceBadge(amount: number) {
     const rounded = round2(amount);
     if (rounded === 0) {
       return <span className="badge ok">خالص</span>;
     }
-    if (isCust) {
+    if (isCustomer) {
       return rounded > 0 ? (
         <span className="badge danger">عليه</span>
       ) : (
@@ -43,9 +43,9 @@ export default function AccountBalanceCard({
     }
   }
 
-  // Helper for delta badge
-  function renderDeltaBadge(d: number) {
-    const rounded = round2(d);
+  // شارة اتجاه التغير (+ زيادة / - نقصان / • ثبات)
+  function renderDeltaBadge(deltaAmount: number) {
+    const rounded = round2(deltaAmount);
     if (rounded === 0) {
       return (
         <span className="badge neutral symbol-badge symbol-dot" title="ثبات وعدم التغيير" aria-label="ثبات وعدم التغيير">
@@ -67,8 +67,7 @@ export default function AccountBalanceCard({
     );
   }
 
-  const roundedDelta = round2(delta);
-  const deltaFormatted = money(Math.abs(roundedDelta));
+  const deltaFormatted = money(Math.abs(round2(delta)));
 
   return (
     <div className="form-account-balance-card" aria-label="موقف حساب العميل/المورد">

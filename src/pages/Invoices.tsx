@@ -28,6 +28,8 @@ import type {
   WarehouseTransferRow,
 } from '../lib/types';
 import { useAccess } from '../lib/access';
+import { useConfirmDialog } from '../lib/useConfirmDialog';
+import { matchesSearchQuery } from '../lib/search';
 
 type InvoiceTab = InvoiceKind | 'warehouse_transfer';
 
@@ -35,8 +37,6 @@ interface EditingInvoice {
   invoice: InvoiceRow;
   lines: LineDraft[];
 }
-
-interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
 type SaleStatus = 'all' | 'paid' | 'partial' | 'unpaid';
 type SaleSort =
@@ -95,7 +95,7 @@ export default function Invoices() {
   const [viewingTransferLines, setViewingTransferLines] = useState<(WarehouseTransferLine & { unit: string })[]>([]);
   const [transferDetailsLoading, setTransferDetailsLoading] = useState(false);
   const [version, setVersion] = useState(0);
-  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
+  const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
   const [showDeleted, setShowDeleted] = useState(false);
   const [viewing, setViewing] = useState<InvoiceRow | null>(null);
   const [details, setDetails] = useState<InvoiceItemRow[]>([]);
@@ -131,16 +131,6 @@ export default function Invoices() {
     }
   }, [tabParam]);
 
-  function askConfirmation(message: string, confirmLabel: string): Promise<boolean> {
-    return new Promise((resolve) => setConfirmation({ title: 'تأكيد العملية', message, confirmLabel, resolve }));
-  }
-
-  function finishConfirmation(confirmed: boolean) {
-    const request = confirmation;
-    setConfirmation(null);
-    request?.resolve(confirmed);
-  }
-
   const newLabel = isWarehouseTransfer ? 'تحويل بين مخازن' :
     kind === 'waste'
       ? 'فاتورة هالك'
@@ -174,25 +164,26 @@ export default function Invoices() {
   // تصفية الفواتير
   const filteredInvoiceRows = useMemo(() => {
     if (isWarehouseTransfer) return [];
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
     const next = rows.filter((invoice) => {
-      const matchesText = !query || [invoice.number, invoice.account_name, invoice.warehouse_name]
-        .some((value) => value.toLocaleLowerCase('ar').includes(query));
+      const matchesText = matchesSearchQuery(
+        [invoice.number, invoice.account_name, invoice.warehouse_name],
+        searchTerm,
+      );
       const matchesStatus = kind === 'waste' || statusFilter === 'all' || saleStatus(invoice) === statusFilter;
       const matchesFrom = !dateFrom || invoice.invoice_date >= dateFrom;
       const matchesTo = !dateTo || invoice.invoice_date <= dateTo;
       return matchesText && matchesStatus && matchesFrom && matchesTo;
     });
-    return next.sort((a, b) => {
-      if (sortOrder === 'total-desc') return Number(b.total) - Number(a.total);
-      if (sortOrder === 'total-asc') return Number(a.total) - Number(b.total);
-      if (sortOrder === 'number-desc') return b.number.localeCompare(a.number, undefined, { numeric: true });
-      if (sortOrder === 'number-asc') return a.number.localeCompare(b.number, undefined, { numeric: true });
-      if (sortOrder === 'account-desc') return (b.account_name || '').localeCompare(a.account_name || '', 'ar');
-      if (sortOrder === 'account-asc') return (a.account_name || '').localeCompare(b.account_name || '', 'ar');
-      if (sortOrder === 'remaining-desc') return Number(b.remaining) - Number(a.remaining);
-      if (sortOrder === 'remaining-asc') return Number(a.remaining) - Number(b.remaining);
-      const comparison = a.invoice_date.localeCompare(b.invoice_date) || a.number.localeCompare(b.number);
+    return next.sort((firstInvoice, secondInvoice) => {
+      if (sortOrder === 'total-desc') return Number(secondInvoice.total) - Number(firstInvoice.total);
+      if (sortOrder === 'total-asc') return Number(firstInvoice.total) - Number(secondInvoice.total);
+      if (sortOrder === 'number-desc') return secondInvoice.number.localeCompare(firstInvoice.number, undefined, { numeric: true });
+      if (sortOrder === 'number-asc') return firstInvoice.number.localeCompare(secondInvoice.number, undefined, { numeric: true });
+      if (sortOrder === 'account-desc') return (secondInvoice.account_name || '').localeCompare(firstInvoice.account_name || '', 'ar');
+      if (sortOrder === 'account-asc') return (firstInvoice.account_name || '').localeCompare(secondInvoice.account_name || '', 'ar');
+      if (sortOrder === 'remaining-desc') return Number(secondInvoice.remaining) - Number(firstInvoice.remaining);
+      if (sortOrder === 'remaining-asc') return Number(firstInvoice.remaining) - Number(secondInvoice.remaining);
+      const comparison = firstInvoice.invoice_date.localeCompare(secondInvoice.invoice_date) || firstInvoice.number.localeCompare(secondInvoice.number);
       return sortOrder === 'date-asc' ? comparison : -comparison;
     });
   }, [rows, isWarehouseTransfer, searchTerm, statusFilter, dateFrom, dateTo, sortOrder, kind]);
@@ -200,20 +191,21 @@ export default function Invoices() {
   // تصفية التحويلات المخزنية
   const filteredTransferRows = useMemo(() => {
     if (!isWarehouseTransfer) return [];
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
     const next = transferRows.filter((transfer) => {
-      const matchesText = !query || [transfer.number, transfer.source_warehouse_name, transfer.destination_warehouse_name, transfer.notes || '']
-        .some((value) => value.toLocaleLowerCase('ar').includes(query));
+      const matchesText = matchesSearchQuery(
+        [transfer.number, transfer.source_warehouse_name, transfer.destination_warehouse_name, transfer.notes],
+        searchTerm,
+      );
       const matchesFrom = !dateFrom || transfer.transfer_date >= dateFrom;
       const matchesTo = !dateTo || transfer.transfer_date <= dateTo;
       return matchesText && matchesFrom && matchesTo;
     });
-    return next.sort((a, b) => {
-      if (sortOrder === 'total-desc') return Number(b.total_value) - Number(a.total_value);
-      if (sortOrder === 'total-asc') return Number(a.total_value) - Number(b.total_value);
-      if (sortOrder === 'number-desc') return b.number.localeCompare(a.number, undefined, { numeric: true });
-      if (sortOrder === 'number-asc') return a.number.localeCompare(b.number, undefined, { numeric: true });
-      const comparison = a.transfer_date.localeCompare(b.transfer_date) || a.number.localeCompare(b.number);
+    return next.sort((firstTransfer, secondTransfer) => {
+      if (sortOrder === 'total-desc') return Number(secondTransfer.total_value) - Number(firstTransfer.total_value);
+      if (sortOrder === 'total-asc') return Number(firstTransfer.total_value) - Number(secondTransfer.total_value);
+      if (sortOrder === 'number-desc') return secondTransfer.number.localeCompare(firstTransfer.number, undefined, { numeric: true });
+      if (sortOrder === 'number-asc') return firstTransfer.number.localeCompare(secondTransfer.number, undefined, { numeric: true });
+      const comparison = firstTransfer.transfer_date.localeCompare(secondTransfer.transfer_date) || firstTransfer.number.localeCompare(secondTransfer.number);
       return sortOrder === 'date-asc' ? comparison : -comparison;
     });
   }, [transferRows, isWarehouseTransfer, searchTerm, dateFrom, dateTo, sortOrder]);

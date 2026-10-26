@@ -12,6 +12,8 @@ import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 import type { AccountKind, AccountRow, ItemRow, WarehouseOption } from '../lib/types';
 import { useAccess } from '../lib/access';
+import { useConfirmDialog } from '../lib/useConfirmDialog';
+import { matchesSearchQuery } from '../lib/search';
 
 type Tab = 'customers' | 'suppliers' | 'items';
 interface WarehouseRecord extends WarehouseOption { is_active: boolean; notes: string | null }
@@ -19,7 +21,6 @@ interface CashBoxRecord { id: string; serial_number: number; name: string; is_ac
 interface MasterItemRecord extends Omit<ItemRow, 'qty'> { notes: string | null }
 type LocationsTab = Tab | 'warehouses' | 'cashBoxes';
 type FormModal = 'account' | 'item' | 'warehouse' | 'cashBox' | null;
-interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
 type MasterSort =
   | 'name-asc'
@@ -54,7 +55,7 @@ export default function MasterData() {
   }
   const [version, setVersion] = useState(0);
   const [formModal, setFormModal] = useState<FormModal>(null);
-  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
+  const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
 
   // الفلاتر والبحث
   const [searchTerm, setSearchTerm] = useState('');
@@ -125,16 +126,6 @@ export default function MasterData() {
     setPage(1);
   }
 
-  function askConfirmation(message: string, confirmLabel = 'حذف'): Promise<boolean> {
-    return new Promise((resolve) => setConfirmation({ title: 'تأكيد العملية', message, confirmLabel, resolve }));
-  }
-
-  function finishConfirmation(confirmed: boolean) {
-    const request = confirmation;
-    setConfirmation(null);
-    request?.resolve(confirmed);
-  }
-
   useEffect(() => {
     let alive = true;
 
@@ -184,88 +175,93 @@ export default function MasterData() {
 
   // تصفية العملاء
   const filteredCustomers = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
-    const list = customers.filter((acc) => {
-      const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? acc.is_active : !acc.is_active);
-      const matchQuery = !query || [acc.name, acc.phone || '', String(acc.serial_number), acc.notes || '']
-        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+    const list = customers.filter((account) => {
+      const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? account.is_active : !account.is_active);
+      const matchQuery = matchesSearchQuery(
+        [account.name, account.phone, account.serial_number, account.notes],
+        searchTerm,
+      );
       return matchStatus && matchQuery;
     });
-    return list.sort((a, b) => {
-      if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
-      if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
-      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
-      return a.name.localeCompare(b.name, 'ar');
+    return list.sort((firstAccount, secondAccount) => {
+      if (sortOrder === 'serial-desc') return (secondAccount.serial_number ?? 0) - (firstAccount.serial_number ?? 0);
+      if (sortOrder === 'serial-asc') return (firstAccount.serial_number ?? 0) - (secondAccount.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return secondAccount.name.localeCompare(firstAccount.name, 'ar');
+      return firstAccount.name.localeCompare(secondAccount.name, 'ar');
     });
   }, [customers, searchTerm, statusFilter, sortOrder]);
 
   // تصفية الموردين
   const filteredSuppliers = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
-    const list = suppliers.filter((acc) => {
-      const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? acc.is_active : !acc.is_active);
-      const matchQuery = !query || [acc.name, acc.phone || '', String(acc.serial_number), acc.notes || '']
-        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+    const list = suppliers.filter((account) => {
+      const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? account.is_active : !account.is_active);
+      const matchQuery = matchesSearchQuery(
+        [account.name, account.phone, account.serial_number, account.notes],
+        searchTerm,
+      );
       return matchStatus && matchQuery;
     });
-    return list.sort((a, b) => {
-      if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
-      if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
-      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
-      return a.name.localeCompare(b.name, 'ar');
+    return list.sort((firstAccount, secondAccount) => {
+      if (sortOrder === 'serial-desc') return (secondAccount.serial_number ?? 0) - (firstAccount.serial_number ?? 0);
+      if (sortOrder === 'serial-asc') return (firstAccount.serial_number ?? 0) - (secondAccount.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return secondAccount.name.localeCompare(firstAccount.name, 'ar');
+      return firstAccount.name.localeCompare(secondAccount.name, 'ar');
     });
   }, [suppliers, searchTerm, statusFilter, sortOrder]);
 
   // تصفية الأصناف
   const filteredItems = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
-    const list = items.filter((itm) => {
-      const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? itm.is_active : !itm.is_active);
-      const matchQuery = !query || [itm.name, itm.code, String(itm.serial_number), itm.notes || '']
-        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+    const list = items.filter((item) => {
+      const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? item.is_active : !item.is_active);
+      const matchQuery = matchesSearchQuery(
+        [item.name, item.code, item.serial_number, item.notes],
+        searchTerm,
+      );
       return matchStatus && matchQuery;
     });
-    return list.sort((a, b) => {
-      if (sortOrder === 'price-desc') return Number(b.sale_price) - Number(a.sale_price);
-      if (sortOrder === 'price-asc') return Number(a.sale_price) - Number(b.sale_price);
-      if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
-      if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
-      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
-      return a.name.localeCompare(b.name, 'ar');
+    return list.sort((firstItem, secondItem) => {
+      if (sortOrder === 'price-desc') return Number(secondItem.sale_price) - Number(firstItem.sale_price);
+      if (sortOrder === 'price-asc') return Number(firstItem.sale_price) - Number(secondItem.sale_price);
+      if (sortOrder === 'serial-desc') return (secondItem.serial_number ?? 0) - (firstItem.serial_number ?? 0);
+      if (sortOrder === 'serial-asc') return (firstItem.serial_number ?? 0) - (secondItem.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return secondItem.name.localeCompare(firstItem.name, 'ar');
+      return firstItem.name.localeCompare(secondItem.name, 'ar');
     });
   }, [items, searchTerm, statusFilter, sortOrder]);
 
   // تصفية المخازن
   const filteredWarehouses = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
-    const list = warehouseRows.filter((wh) => {
-      const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? wh.is_active : !wh.is_active);
-      const matchQuery = !query || [wh.name, String(wh.serial_number), wh.notes || '']
-        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+    const list = warehouseRows.filter((warehouse) => {
+      const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? warehouse.is_active : !warehouse.is_active);
+      const matchQuery = matchesSearchQuery(
+        [warehouse.name, warehouse.serial_number, warehouse.notes],
+        searchTerm,
+      );
       return matchStatus && matchQuery;
     });
-    return list.sort((a, b) => {
-      if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
-      if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
-      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
-      return a.name.localeCompare(b.name, 'ar');
+    return list.sort((firstWarehouse, secondWarehouse) => {
+      if (sortOrder === 'serial-desc') return (secondWarehouse.serial_number ?? 0) - (firstWarehouse.serial_number ?? 0);
+      if (sortOrder === 'serial-asc') return (firstWarehouse.serial_number ?? 0) - (secondWarehouse.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return secondWarehouse.name.localeCompare(firstWarehouse.name, 'ar');
+      return firstWarehouse.name.localeCompare(secondWarehouse.name, 'ar');
     });
   }, [warehouseRows, searchTerm, statusFilter, sortOrder]);
 
   // تصفية الخزن
   const filteredCashBoxes = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
     const list = cashBoxes.filter((box) => {
       const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? box.is_active : !box.is_active);
-      const matchQuery = !query || [box.name, String(box.serial_number), box.notes || '']
-        .some((val) => val.toLocaleLowerCase('ar').includes(query));
+      const matchQuery = matchesSearchQuery(
+        [box.name, box.serial_number, box.notes],
+        searchTerm,
+      );
       return matchStatus && matchQuery;
     });
-    return list.sort((a, b) => {
-      if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
-      if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
-      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
-      return a.name.localeCompare(b.name, 'ar');
+    return list.sort((firstBox, secondBox) => {
+      if (sortOrder === 'serial-desc') return (secondBox.serial_number ?? 0) - (firstBox.serial_number ?? 0);
+      if (sortOrder === 'serial-asc') return (firstBox.serial_number ?? 0) - (secondBox.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return secondBox.name.localeCompare(firstBox.name, 'ar');
+      return firstBox.name.localeCompare(secondBox.name, 'ar');
     });
   }, [cashBoxes, searchTerm, statusFilter, sortOrder]);
 
@@ -357,7 +353,7 @@ export default function MasterData() {
 
   async function removeAccount(account: AccountRow) {
     const isCustomer = account.kind === 'customer';
-    if (!(await askConfirmation(`حذف ${isCustomer ? 'العميل' : 'المورد'} «${account.name}»؟ لن يُحذف إذا كانت له حركات سابقة.`))) return;
+    if (!(await askConfirmation(`حذف ${isCustomer ? 'العميل' : 'المورد'} «${account.name}»؟ لن يُحذف إذا كانت له حركات سابقة.`, 'حذف'))) return;
     setError('');
     const { error: deleteError } = await supabase.rpc('delete_account', { p_account_id: account.id });
     if (deleteError) return setError(translateDbError(deleteError.message));
@@ -442,7 +438,7 @@ export default function MasterData() {
   }
 
   async function removeItem(item: MasterItemRecord) {
-    if (!(await askConfirmation(`حذف الصنف «${item.name}»؟ لن يُحذف إذا كانت له حركات أو رصيد.`))) return;
+    if (!(await askConfirmation(`حذف الصنف «${item.name}»؟ لن يُحذف إذا كانت له حركات أو رصيد.`, 'حذف'))) return;
     setError('');
     const { error: deleteError } = await supabase.rpc('delete_item', { p_item_id: item.id });
     if (deleteError) return setError(translateDbError(deleteError.message));
@@ -494,7 +490,7 @@ export default function MasterData() {
   }
 
   async function removeWarehouse(warehouse: WarehouseRecord) {
-    if (!(await askConfirmation(`حذف المخزن «${warehouse.name}»؟ لا يمكن حذفه إذا كان يحتوي على حركات سابقة.`))) return;
+    if (!(await askConfirmation(`حذف المخزن «${warehouse.name}»؟ لا يمكن حذفه إذا كان يحتوي على حركات سابقة.`, 'حذف'))) return;
     setError('');
     const { error: deleteError } = await supabase.rpc('delete_warehouse', { p_warehouse_id: warehouse.id });
     if (deleteError) return setError(translateDbError(deleteError.message));
@@ -547,7 +543,7 @@ export default function MasterData() {
   }
 
   async function removeCashBox(box: CashBoxRecord) {
-    if (!(await askConfirmation(`حذف الخزنة «${box.name}»؟ لا يمكن حذفها إذا كانت تحتوي على حركات سابقة.`))) return;
+    if (!(await askConfirmation(`حذف الخزنة «${box.name}»؟ لا يمكن حذفها إذا كانت تحتوي على حركات سابقة.`, 'حذف'))) return;
     setError('');
     const { error: deleteError } = await supabase.rpc('delete_cash_box', { p_cash_box_id: box.id });
     if (deleteError) return setError(translateDbError(deleteError.message));

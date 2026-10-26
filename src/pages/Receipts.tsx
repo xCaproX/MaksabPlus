@@ -23,12 +23,12 @@ import type {
   CashBoxTransferRow,
 } from '../lib/types';
 import { useAccess } from '../lib/access';
+import { useConfirmDialog } from '../lib/useConfirmDialog';
+import { matchesSearchQuery } from '../lib/search';
 
 function linkKind(kind: ReceiptRow['invoice_kind']) {
   return kind === 'sale_return' || kind === 'purchase_return' ? 'مرتجع' : 'فاتورة';
 }
-
-interface ConfirmationRequest { title: string; message: string; confirmLabel: string; resolve: (confirmed: boolean) => void }
 
 type ReceiptSort =
   | 'date-desc'
@@ -70,7 +70,7 @@ export default function Receipts() {
   const [viewingTransfer, setViewingTransfer] = useState<CashBoxTransferRow | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
   const [version, setVersion] = useState(0);
-  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
+  const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
 
   // الفلاتر والبحث
   const [searchTerm, setSearchTerm] = useState('');
@@ -113,16 +113,6 @@ export default function Receipts() {
     }
   }, [tabParam]);
 
-  function askConfirmation(message: string, confirmLabel: string): Promise<boolean> {
-    return new Promise((resolve) => setConfirmation({ title: 'تأكيد العملية', message, confirmLabel, resolve }));
-  }
-
-  function finishConfirmation(confirmed: boolean) {
-    const request = confirmation;
-    setConfirmation(null);
-    request?.resolve(confirmed);
-  }
-
   const isCashBoxTransfer = tab === 'cash_box_transfer';
   const isIn = direction === 'in';
   const selectableAccounts = accounts.filter(
@@ -135,23 +125,24 @@ export default function Receipts() {
   // تصفية إيصالات القبض والصرف
   const filteredReceiptRows = useMemo(() => {
     if (isCashBoxTransfer) return [];
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
     const next = rows.filter((receipt) => {
-      const matchesText = !query || [receipt.number, receipt.account_name, receipt.cash_box_name, receipt.statement || '', receipt.notes || '']
-        .some((value) => value.toLocaleLowerCase('ar').includes(query));
+      const matchesText = matchesSearchQuery(
+        [receipt.number, receipt.account_name, receipt.cash_box_name, receipt.statement, receipt.notes],
+        searchTerm,
+      );
       const matchesCashBox = cashBoxFilter === 'all' || receipt.cash_box_id === cashBoxFilter;
       const matchesFrom = !dateFrom || receipt.receipt_date >= dateFrom;
       const matchesTo = !dateTo || receipt.receipt_date <= dateTo;
       return matchesText && matchesCashBox && matchesFrom && matchesTo;
     });
-    return next.sort((a, b) => {
-      if (sortOrder === 'amount-desc') return Number(b.amount) - Number(a.amount);
-      if (sortOrder === 'amount-asc') return Number(a.amount) - Number(b.amount);
-      if (sortOrder === 'number-desc') return b.number.localeCompare(a.number, undefined, { numeric: true });
-      if (sortOrder === 'number-asc') return a.number.localeCompare(b.number, undefined, { numeric: true });
-      if (sortOrder === 'account-desc') return (b.account_name || '').localeCompare(a.account_name || '', 'ar');
-      if (sortOrder === 'account-asc') return (a.account_name || '').localeCompare(b.account_name || '', 'ar');
-      const comparison = a.receipt_date.localeCompare(b.receipt_date) || a.number.localeCompare(b.number);
+    return next.sort((firstReceipt, secondReceipt) => {
+      if (sortOrder === 'amount-desc') return Number(secondReceipt.amount) - Number(firstReceipt.amount);
+      if (sortOrder === 'amount-asc') return Number(firstReceipt.amount) - Number(secondReceipt.amount);
+      if (sortOrder === 'number-desc') return secondReceipt.number.localeCompare(firstReceipt.number, undefined, { numeric: true });
+      if (sortOrder === 'number-asc') return firstReceipt.number.localeCompare(secondReceipt.number, undefined, { numeric: true });
+      if (sortOrder === 'account-desc') return (secondReceipt.account_name || '').localeCompare(firstReceipt.account_name || '', 'ar');
+      if (sortOrder === 'account-asc') return (firstReceipt.account_name || '').localeCompare(secondReceipt.account_name || '', 'ar');
+      const comparison = firstReceipt.receipt_date.localeCompare(secondReceipt.receipt_date) || firstReceipt.number.localeCompare(secondReceipt.number);
       return sortOrder === 'date-asc' ? comparison : -comparison;
     });
   }, [rows, isCashBoxTransfer, searchTerm, cashBoxFilter, dateFrom, dateTo, sortOrder]);
@@ -159,21 +150,22 @@ export default function Receipts() {
   // تصفية تحويلات الخزن
   const filteredTransferRows = useMemo(() => {
     if (!isCashBoxTransfer) return [];
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
     const next = transferRows.filter((transfer) => {
-      const matchesText = !query || [transfer.number, transfer.source_cash_box_name, transfer.destination_cash_box_name, transfer.notes || '']
-        .some((value) => value.toLocaleLowerCase('ar').includes(query));
+      const matchesText = matchesSearchQuery(
+        [transfer.number, transfer.source_cash_box_name, transfer.destination_cash_box_name, transfer.notes],
+        searchTerm,
+      );
       const matchesCashBox = cashBoxFilter === 'all' || transfer.source_cash_box_id === cashBoxFilter || transfer.destination_cash_box_id === cashBoxFilter;
       const matchesFrom = !dateFrom || transfer.transfer_date >= dateFrom;
       const matchesTo = !dateTo || transfer.transfer_date <= dateTo;
       return matchesText && matchesCashBox && matchesFrom && matchesTo;
     });
-    return next.sort((a, b) => {
-      if (sortOrder === 'amount-desc') return Number(b.amount) - Number(a.amount);
-      if (sortOrder === 'amount-asc') return Number(a.amount) - Number(b.amount);
-      if (sortOrder === 'number-desc') return b.number.localeCompare(a.number, undefined, { numeric: true });
-      if (sortOrder === 'number-asc') return a.number.localeCompare(b.number, undefined, { numeric: true });
-      const comparison = a.transfer_date.localeCompare(b.transfer_date) || a.number.localeCompare(b.number);
+    return next.sort((firstTransfer, secondTransfer) => {
+      if (sortOrder === 'amount-desc') return Number(secondTransfer.amount) - Number(firstTransfer.amount);
+      if (sortOrder === 'amount-asc') return Number(firstTransfer.amount) - Number(secondTransfer.amount);
+      if (sortOrder === 'number-desc') return secondTransfer.number.localeCompare(firstTransfer.number, undefined, { numeric: true });
+      if (sortOrder === 'number-asc') return firstTransfer.number.localeCompare(secondTransfer.number, undefined, { numeric: true });
+      const comparison = firstTransfer.transfer_date.localeCompare(secondTransfer.transfer_date) || firstTransfer.number.localeCompare(secondTransfer.number);
       return sortOrder === 'date-asc' ? comparison : -comparison;
     });
   }, [transferRows, isCashBoxTransfer, searchTerm, cashBoxFilter, dateFrom, dateTo, sortOrder]);

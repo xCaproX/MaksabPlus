@@ -13,9 +13,9 @@ const MasterData = lazy(() => import('./pages/MasterData'));
 const Balances = lazy(() => import('./pages/Balances'));
 const Management = lazy(() => import('./pages/Management'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
-import PreviewInvoice from './pages/PreviewInvoice';
-import PreviewReceipt from './pages/PreviewReceipt';
-import PreviewPhase3And4 from './pages/PreviewPhase3And4';
+const PreviewInvoice = lazy(() => import('./pages/PreviewInvoice'));
+const PreviewReceipt = lazy(() => import('./pages/PreviewReceipt'));
+const PreviewPhase3And4 = lazy(() => import('./pages/PreviewPhase3And4'));
 
 function PageSuspense({ children, fullScreen = false }: { children: ReactNode; fullScreen?: boolean }) {
   return (

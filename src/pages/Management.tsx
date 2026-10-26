@@ -10,6 +10,7 @@ import UserPermissions from '../components/UserPermissions';
 import SearchableSelect from '../components/SearchableSelect';
 import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
+import { matchesSearchQuery } from '../lib/search';
 
 type ManagementTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes' | 'users';
 type ManagementSort = 'name-asc' | 'name-desc' | 'serial-desc' | 'serial-asc';
@@ -155,48 +156,42 @@ export default function Management() {
 
   // تصفية الحسابات
   const filteredAccounts = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
-    const list = visibleAccounts.filter((acc) => {
-      return !query || [acc.name, acc.phone || '', String(acc.serial_number)]
-        .some((val) => val.toLocaleLowerCase('ar').includes(query));
-    });
-    return list.sort((a, b) => {
-      if (sortOrder === 'serial-desc') return (b.serial_number ?? 0) - (a.serial_number ?? 0);
-      if (sortOrder === 'serial-asc') return (a.serial_number ?? 0) - (b.serial_number ?? 0);
-      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
-      return a.name.localeCompare(b.name, 'ar');
+    const list = visibleAccounts.filter((account) =>
+      matchesSearchQuery([account.name, account.phone, account.serial_number], searchTerm),
+    );
+    return list.sort((firstAccount, secondAccount) => {
+      if (sortOrder === 'serial-desc') return (secondAccount.serial_number ?? 0) - (firstAccount.serial_number ?? 0);
+      if (sortOrder === 'serial-asc') return (firstAccount.serial_number ?? 0) - (secondAccount.serial_number ?? 0);
+      if (sortOrder === 'name-desc') return secondAccount.name.localeCompare(firstAccount.name, 'ar');
+      return firstAccount.name.localeCompare(secondAccount.name, 'ar');
     });
   }, [visibleAccounts, searchTerm, sortOrder]);
 
   // تصفية المخزون
   const filteredStockRows = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
     const list = stockRows.filter((row) => {
-      const matchWh = row.warehouse_id === selectedWarehouseId;
-      const matchQuery = !query || [row.item_name, row.item_code, String(row.item_number)]
-        .some((val) => val.toLocaleLowerCase('ar').includes(query));
-      return matchWh && matchQuery;
+      const matchWarehouse = row.warehouse_id === selectedWarehouseId;
+      const matchSearch = matchesSearchQuery([row.item_name, row.item_code, row.item_number], searchTerm);
+      return matchWarehouse && matchSearch;
     });
-    return list.sort((a, b) => {
-      if (sortOrder === 'serial-desc') return b.item_number - a.item_number;
-      if (sortOrder === 'serial-asc') return a.item_number - b.item_number;
-      if (sortOrder === 'name-desc') return b.item_name.localeCompare(a.item_name, 'ar');
-      return a.item_name.localeCompare(b.item_name, 'ar');
+    return list.sort((firstRow, secondRow) => {
+      if (sortOrder === 'serial-desc') return secondRow.item_number - firstRow.item_number;
+      if (sortOrder === 'serial-asc') return firstRow.item_number - secondRow.item_number;
+      if (sortOrder === 'name-desc') return secondRow.item_name.localeCompare(firstRow.item_name, 'ar');
+      return firstRow.item_name.localeCompare(secondRow.item_name, 'ar');
     });
   }, [stockRows, selectedWarehouseId, searchTerm, sortOrder]);
 
   // تصفية الخزن
   const filteredCashBoxes = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase('ar');
-    const list = cashBoxes.filter((box) => {
-      return !query || [box.name, String(box.serial_number)]
-        .some((val) => val.toLocaleLowerCase('ar').includes(query));
-    });
-    return list.sort((a, b) => {
-      if (sortOrder === 'serial-desc') return b.serial_number - a.serial_number;
-      if (sortOrder === 'serial-asc') return a.serial_number - b.serial_number;
-      if (sortOrder === 'name-desc') return b.name.localeCompare(a.name, 'ar');
-      return a.name.localeCompare(b.name, 'ar');
+    const list = cashBoxes.filter((box) =>
+      matchesSearchQuery([box.name, box.serial_number], searchTerm),
+    );
+    return list.sort((firstBox, secondBox) => {
+      if (sortOrder === 'serial-desc') return secondBox.serial_number - firstBox.serial_number;
+      if (sortOrder === 'serial-asc') return firstBox.serial_number - secondBox.serial_number;
+      if (sortOrder === 'name-desc') return secondBox.name.localeCompare(firstBox.name, 'ar');
+      return firstBox.name.localeCompare(secondBox.name, 'ar');
     });
   }, [cashBoxes, searchTerm, sortOrder]);
 
