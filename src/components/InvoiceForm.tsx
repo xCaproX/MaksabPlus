@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { X } from 'lucide-react';
+import { Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
 import ConfirmDialog from './ConfirmDialog';
-import AccountBalanceCard from './AccountBalanceCard';
 import { toast } from './Toast';
 import type {
   AccountKind,
@@ -55,6 +54,7 @@ export default function InvoiceForm({
   const isPurchase = kind === 'purchase' || kind === 'purchase_return';
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
   const isWaste = kind === 'waste';
+
   const defaultSystemKey = isWaste
     ? 'waste'
     : kind === 'sale' || kind === 'sale_return'
@@ -84,6 +84,7 @@ export default function InvoiceForm({
   );
   const [busy, setBusy] = useState(false);
   const [confirmZeroPriceOpen, setConfirmZeroPriceOpen] = useState(false);
+
   const itemSearchRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const quantityRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [focusSearchKey, setFocusSearchKey] = useState<string | null>(null);
@@ -127,6 +128,10 @@ export default function InvoiceForm({
     editingTotal: Number(editing?.invoice.total || 0),
     editingPaid: Number(editing?.invoice.paid || 0),
   });
+
+  const accountNotesDisplay = selectedAccount
+    ? [selectedAccount.notes, selectedAccount.phone ? `هاتف: ${selectedAccount.phone}` : ''].filter(Boolean).join(' — ')
+    : '';
 
   function handleAccountKindChange(nextKind: AccountKind) {
     setAccountKind(nextKind);
@@ -173,13 +178,17 @@ export default function InvoiceForm({
           : line,
       );
 
-      // Auto-append a new empty row if the last row now has an item selected
+      // Auto-append empty row if last row selected
       const lastLine = updated[updated.length - 1];
       if (itemId && lastLine && lastLine.item_id) {
         return [...updated, emptyLine()];
       }
       return updated;
     });
+  }
+
+  function addEmptyLine() {
+    setLines((current) => [...current, emptyLine()]);
   }
 
   function moveFromQuantity(event: KeyboardEvent<HTMLInputElement>) {
@@ -208,6 +217,17 @@ export default function InvoiceForm({
       }
       return remaining;
     });
+  }
+
+  function handleResetNew() {
+    setLines([emptyLine()]);
+    setPaid('0');
+    setNotes('');
+    if (!editing) {
+      setAccountId(defaultAccountId);
+      setAccountKind(defaultAccountKind);
+    }
+    toast.info('تم مسح الفاتورة وبدء فاتورة جديدة');
   }
 
   async function executeSave() {
@@ -240,14 +260,13 @@ export default function InvoiceForm({
 
     onSaved(
       editing
-        ? `تم تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'}${paidNumber > 0 ? ' وتحديث الإيصال' : ''}`
-        : `تم حفظ ${isReturn ? 'المرتجع' : 'الفاتورة'}${paidNumber > 0 ? ' وإنشاء الإيصال' : ''}`,
+        ? `تم تعديل ${isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}${paidNumber > 0 ? ' وتحديث الإيصال' : ''}`
+        : `تم حفظ ${isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}${paidNumber > 0 ? ' وإنشاء الإيصال' : ''}`,
     );
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     const activeLines = lines.filter((line) => line.item_id);
 
     if (!accountId) return toast.error(isWaste ? 'حساب الهالك الثابت غير موجود' : 'اختر الحساب');
@@ -284,295 +303,404 @@ export default function InvoiceForm({
 
   return (
     <>
-      <form className="invoice-form" onSubmit={submit}>
-        <div className="form-header-bar">
-          <div className="form-header-fields">
-            {!isWaste && (
-              <label className="field-account-kind">
-                نوع الحساب
+      <form className="invoice-form invoice-two-parts-layout" onSubmit={submit}>
+        {/* ====================================================================
+            الجزء اليمين: نوع الحساب - الحساب - ملاحظات الحساب - الرصيد قبل - الرصيد بعد - صافي المديونية - المخزن - الاصناف
+            ==================================================================== */}
+        <div className="invoice-part-right">
+          {/* كارت رأس الحساب والبيانات الأساسية */}
+          <div className="right-card">
+            {/* الصف الأول: نوع الحساب - الحساب - ملاحظات الحساب */}
+            <div className="account-header-grid">
+              {!isWaste && (
+                <label className="field-account-kind">
+                  <span>نوع الحساب</span>
+                  <SearchableSelect
+                    value={accountKind}
+                    options={[
+                      { value: 'customer', label: 'عميل' },
+                      { value: 'supplier', label: 'مورد' },
+                    ]}
+                    onChange={(val) => handleAccountKindChange(val as AccountKind)}
+                    placeholder="اختر النوع…"
+                    searchPlaceholder="بحث في الأنواع…"
+                    required
+                  />
+                </label>
+              )}
+
+              {!isWaste && (
+                <label className="field-account-select">
+                  <span>الحساب</span>
+                  <SearchableSelect
+                    value={accountId}
+                    options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
+                    onChange={handleAccountChange}
+                    placeholder="اختر الحساب…"
+                    searchPlaceholder="اكتب للبحث عن حساب…"
+                    emptyMessage="لا توجد حسابات مطابقة"
+                    required
+                  />
+                </label>
+              )}
+
+              {!isWaste && (
+                <label className="field-account-notes">
+                  <span>ملاحظات الحساب</span>
+                  <input
+                    type="text"
+                    readOnly
+                    value={accountNotesDisplay}
+                    placeholder="لا توجد ملاحظات على الحساب"
+                    className="account-notes-input"
+                    title={accountNotesDisplay || 'لا توجد ملاحظات على الحساب'}
+                  />
+                </label>
+              )}
+            </div>
+
+            {/* الصف الثاني: الرصيد قبل - الرصيد بعد - صافي المديونية - المخزن */}
+            <div className="balance-warehouse-strip">
+              {selectedAccount && !isWaste && (
+                <>
+                  <div className="stat-pill">
+                    <span>الرصيد قبل:</span>
+                    <strong
+                      dir="ltr"
+                      className={`num ${balanceBefore > 0 ? 'text-due' : balanceBefore < 0 ? 'text-credit' : ''}`}
+                    >
+                      {money(Math.abs(balanceBefore))}
+                    </strong>
+                    <span className="stat-pill-tag">
+                      {balanceBefore > 0
+                        ? accountKind === 'customer' ? 'مدين (عليه)' : 'دائن (له)'
+                        : balanceBefore < 0
+                        ? accountKind === 'customer' ? 'دائن (له)' : 'مدين (عنده)'
+                        : 'خالص'}
+                    </span>
+                  </div>
+
+                  <div className="stat-pill">
+                    <span>الرصيد بعد:</span>
+                    <strong
+                      dir="ltr"
+                      className={`num ${balanceAfter > 0 ? 'text-due' : balanceAfter < 0 ? 'text-credit' : ''}`}
+                    >
+                      {money(Math.abs(balanceAfter))}
+                    </strong>
+                    <span className="stat-pill-tag">
+                      {balanceAfter > 0
+                        ? accountKind === 'customer' ? 'مدين (عليه)' : 'دائن (له)'
+                        : balanceAfter < 0
+                        ? accountKind === 'customer' ? 'دائن (له)' : 'مدين (عنده)'
+                        : 'خالص'}
+                    </span>
+                  </div>
+
+                  <div className="stat-pill highlight">
+                    <span>صافي المديونية:</span>
+                    <strong dir="ltr" className="num">
+                      {money(netInvoiceDebt)}
+                    </strong>
+                  </div>
+                </>
+              )}
+
+              <label className="field-warehouse-select" style={{ marginInlineStart: 'auto', minWidth: '200px' }}>
+                <span>المخزن</span>
                 <SearchableSelect
-                  value={accountKind}
-                  options={[
-                    { value: 'customer', label: 'عميل' },
-                    { value: 'supplier', label: 'مورد' },
-                  ]}
-                  onChange={(val) => handleAccountKindChange(val as AccountKind)}
-                  placeholder="اختر النوع…"
-                  searchPlaceholder="بحث في الأنواع…"
+                  value={warehouseId}
+                  options={selectableWarehouses.map((warehouse) => ({
+                    value: warehouse.id,
+                    label: `${warehouse.name}${warehouse.is_active === false ? ' — موقوف' : ''}`,
+                  }))}
+                  onChange={setWarehouseId}
+                  placeholder={selectableWarehouses.length === 0 ? 'لا يوجد مخزن نشط' : 'اختر المخزن…'}
+                  searchPlaceholder="اكتب للبحث عن مخزن…"
+                  emptyMessage="لا يوجد مخزن مطابق"
                   required
                 />
               </label>
-            )}
-
-            {!isWaste && (
-              <label className="field-account-select">
-                {accountKind === 'customer' ? 'العميل' : 'المورد'}
-                <SearchableSelect
-                  value={accountId}
-                  options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
-                  onChange={handleAccountChange}
-                  placeholder="اختر الحساب…"
-                  searchPlaceholder="اكتب للبحث عن حساب…"
-                  emptyMessage="لا توجد حسابات مطابقة"
-                  required
-                />
-              </label>
-            )}
-
-            <label className="field-warehouse-select">
-              المخزن
-              <SearchableSelect
-                value={warehouseId}
-                options={selectableWarehouses.map((warehouse) => ({
-                  value: warehouse.id,
-                  label: `${warehouse.name}${warehouse.is_active === false ? ' — موقوف (للفواتير القديمة)' : ''}`,
-                }))}
-                onChange={setWarehouseId}
-                placeholder={selectableWarehouses.length === 0 ? 'لا يوجد مخزن نشط' : 'اختر المخزن…'}
-                searchPlaceholder="اكتب للبحث عن مخزن…"
-                emptyMessage="لا يوجد مخزن مطابق"
-                required
-              />
-            </label>
+            </div>
           </div>
 
-          {selectedAccount && !isWaste && (
-            <AccountBalanceCard
-              accountKind={selectedAccount.kind}
-              balanceBefore={balanceBefore}
-              delta={netInvoiceDebt}
-              balanceAfter={balanceAfter}
-              titleBefore="الرصيد قبل"
-              deltaLabel="صافي مديونية"
-              titleAfter="الرصيد بعد"
-            />
-          )}
-        </div>
+          {/* جدول الأصناف */}
+          <div className="right-card items-table-card">
+            <div className="table-header-title-bar">
+              <span className="items-title">الأصناف</span>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={addEmptyLine}
+                title="إضافة سطر صنف جديد"
+              >
+                <Plus size={14} /> إضافة سطر
+              </button>
+            </div>
 
-        <div className="lines">
-          <div className="lines-wrap">
-            <table className="lines-table">
-              <thead>
-                <tr>
-                  <th className="w-num center">#</th>
-                  <th>الصنف</th>
-                  <th className="w-qty">الكمية</th>
-                  <th className="w-price">{isWaste ? 'سعر البيع' : 'السعر'}</th>
-                  <th className="w-total">الإجمالي</th>
-                  <th className="w-action center">حذف</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => {
-                  const selectedItem = items.find((item) => item.id === line.item_id);
-                  const lineTotal = round2(
-                    Number(line.qty || 0) * Number(line.unit_price || 0),
-                  );
+            <div className="lines-wrap">
+              <table className="lines-table">
+                <thead>
+                  <tr>
+                    <th className="w-num center">#</th>
+                    <th>الصنف</th>
+                    <th className="w-qty">الكمية</th>
+                    <th className="w-price">{isWaste ? 'سعر البيع' : 'السعر'}</th>
+                    <th className="w-total">الإجمالي</th>
+                    <th className="w-action center">حذف</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((line, index) => {
+                    const selectedItem = items.find((item) => item.id === line.item_id);
+                    const lineTotal = round2(
+                      Number(line.qty || 0) * Number(line.unit_price || 0),
+                    );
 
-                  // فحص المخزون المتاح للتحذير الحي
-                  const stockRow = stockRows.find(
-                    (row) => row.item_id === line.item_id && row.warehouse_id === warehouseId,
-                  );
-                  const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
-                  const isStockExceeded =
-                    Boolean(line.item_id) &&
-                    (kind === 'sale' || kind === 'waste' || kind === 'purchase_return') &&
-                    Number(line.qty) > availableStock;
+                    const stockRow = stockRows.find(
+                      (row) => row.item_id === line.item_id && row.warehouse_id === warehouseId,
+                    );
+                    const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
+                    const isStockExceeded =
+                      Boolean(line.item_id) &&
+                      (kind === 'sale' || kind === 'waste' || kind === 'purchase_return') &&
+                      Number(line.qty) > availableStock;
 
-                  const isEmptyLine = !line.item_id;
+                    const isEmptyLine = !line.item_id;
 
-                  return (
-                    <tr key={line.key} className={isEmptyLine ? 'empty-line-row' : ''}>
-                      <td className="w-num center line-index-cell" data-label="#">
-                        {index + 1}
-                      </td>
-                      <td data-label="الصنف">
-                        <SearchableSelect
-                          inputRef={(element) => { itemSearchRefs.current[line.key] = element; }}
-                          value={line.item_id}
-                          options={items.map((item) => ({
-                            value: item.id,
-                            label: `${item.code} — ${item.name} — متاح: ${formatQty(stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0)} ${item.unit}`,
-                          }))}
-                          onChange={(value) => {
-                            if (lines.some((candidate) => candidate.key !== line.key && candidate.item_id === value)) {
-                              toast.warning('هذا الصنف موجود بالفعل في الفاتورة. اختَر صنفًا آخر.');
-                              return;
-                            }
-                            selectItem(line.key, value);
-                            if (value) quantityRefs.current[line.key]?.focus();
-                          }}
-                          placeholder="اختر صنفًا…"
-                          searchPlaceholder="ابحث باسم أو كود الصنف…"
-                          emptyMessage="لا توجد أصناف مطابقة"
-                        />
-                      </td>
-                      <td data-label={selectedItem ? `الكمية (${selectedItem.unit})` : 'الكمية'}>
-                        <div className="line-qty-group">
+                    return (
+                      <tr key={line.key} className={isEmptyLine ? 'empty-line-row' : ''}>
+                        <td className="w-num center line-index-cell" data-label="#">
+                          {index + 1}
+                        </td>
+                        <td data-label="الصنف">
+                          <SearchableSelect
+                            inputRef={(element) => { itemSearchRefs.current[line.key] = element; }}
+                            value={line.item_id}
+                            options={items.map((item) => ({
+                              value: item.id,
+                              label: `${item.code} — ${item.name} — متاح: ${formatQty(stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0)} ${item.unit}`,
+                            }))}
+                            onChange={(value) => {
+                              if (lines.some((candidate) => candidate.key !== line.key && candidate.item_id === value)) {
+                                toast.warning('هذا الصنف موجود بالفعل في الفاتورة. اختَر صنفًا آخر.');
+                                return;
+                              }
+                              selectItem(line.key, value);
+                              if (value) quantityRefs.current[line.key]?.focus();
+                            }}
+                            placeholder="اختر صنفًا…"
+                            searchPlaceholder="ابحث باسم أو كود الصنف…"
+                            emptyMessage="لا توجد أصناف مطابقة"
+                          />
+                        </td>
+                        <td data-label={selectedItem ? `الكمية (${selectedItem.unit})` : 'الكمية'}>
+                          <div className="line-qty-group">
+                            <input
+                              ref={(element) => { quantityRefs.current[line.key] = element; }}
+                              aria-label={`الكمية${selectedItem ? ` — ${selectedItem.name} (${selectedItem.unit})` : ''}`}
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              step="0.0001"
+                              dir="ltr"
+                              value={line.qty}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => updateLine(line.key, { qty: e.target.value })}
+                              onKeyDown={moveFromQuantity}
+                              className="no-spinner num"
+                            />
+                            <span className="line-unit-suffix">{selectedItem ? selectedItem.unit : 'قطعة'}</span>
+                          </div>
+                          {isStockExceeded && (
+                            <span className="stock-warning-text" role="alert">
+                              تنبيه: الكمية ({line.qty}) تتجاوز المتاح ({formatQty(availableStock)})
+                            </span>
+                          )}
+                        </td>
+                        <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
                           <input
-                            ref={(element) => { quantityRefs.current[line.key] = element; }}
-                            aria-label={`الكمية${selectedItem ? ` — ${selectedItem.name} (${selectedItem.unit})` : ''}`}
+                            aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
                             type="number"
                             inputMode="decimal"
                             min="0"
-                            step="0.0001"
+                            step="0.01"
                             dir="ltr"
-                            value={line.qty}
+                            placeholder="0.00"
+                            value={line.unit_price}
                             onFocus={(e) => e.target.select()}
-                            onChange={(e) => updateLine(line.key, { qty: e.target.value })}
-                            onKeyDown={moveFromQuantity}
+                            onChange={(e) => updateLine(line.key, { unit_price: e.target.value })}
+                            onKeyDown={addLineFromPrice}
+                            disabled={isWaste}
                             className="no-spinner num"
                           />
-                          <span className="line-unit-suffix">{selectedItem ? selectedItem.unit : 'قطعة'}</span>
-                        </div>
-                        {isStockExceeded && (
-                          <span className="stock-warning-text" role="alert">
-                            تنبيه: الكمية ({line.qty}) تتجاوز المتاح بالمخزن ({formatQty(availableStock)})
-                          </span>
-                        )}
-                      </td>
-                      <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
-                        <input
-                          aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="0.01"
-                          dir="ltr"
-                          placeholder="0.00"
-                          value={line.unit_price}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => updateLine(line.key, { unit_price: e.target.value })}
-                          onKeyDown={addLineFromPrice}
-                          disabled={isWaste}
-                          className="no-spinner num"
-                        />
-                      </td>
-                      <td className="line-total" data-label="الإجمالي">
-                        <span dir="ltr" className="num">{money(lineTotal)}</span>
-                      </td>
-                      <td className="center" data-label="إجراء">
-                        <button
-                          type="button"
-                          className="line-delete-btn"
-                          title="حذف هذا الصنف"
-                          aria-label="حذف سطر الصنف"
-                          onClick={() => removeLine(line.key)}
-                          disabled={lines.length === 1 && !line.item_id}
-                        >
-                          <X size={15} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="line-total" data-label="الإجمالي">
+                          <span dir="ltr" className="num">{money(lineTotal)}</span>
+                        </td>
+                        <td className="center" data-label="إجراء">
+                          <button
+                            type="button"
+                            className="line-delete-btn"
+                            title="حذف هذا الصنف"
+                            aria-label="حذف سطر الصنف"
+                            onClick={() => removeLine(line.key)}
+                            disabled={lines.length === 1 && !line.item_id}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <div className="form-footer">
-          <div className="invoice-totals-bar">
-            <div className="total-stat-box grand-total">
-              <span className="stat-box-title">إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}</span>
-              <strong dir="ltr" className="stat-box-num num">{money(total)}</strong>
-            </div>
-
-            {!isWaste && (
-              <div className="total-input-box">
-                <label>
-                  <span className="stat-box-title">{isReturn ? 'المبلغ المسترد' : 'المبلغ المدفوع'}</span>
-                  <div className="input-with-action-wrap">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      step="0.01"
-                      dir="ltr"
-                      placeholder="0.00"
-                      value={paid}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => setPaid(e.target.value)}
-                      className="no-spinner num"
-                    />
-                    {total > 0 && Number(paid) !== total && (
-                      <button
-                        type="button"
-                        className="btn-pay-full-pill"
-                        title="سداد كامل إجمالي الفاتورة"
-                        onClick={() => setPaid(String(total))}
-                      >
-                        دفع بالكامل
-                      </button>
-                    )}
-                  </div>
-                </label>
-              </div>
-            )}
-
-            {!isWaste && (
-              <div className={`total-stat-box ${remaining === 0 ? 'paid-full' : 'has-remaining'} status-display-card`}>
-                <div className="stat-status-row">
-                  <span className="stat-box-title">
-                    {isReturn ? 'حالة الاسترداد' : 'حالة السداد'}
-                  </span>
-                  <span className={`status-badge ${remaining === 0 ? 'paid' : 'unpaid'}`}>
-                    {isReturn
-                      ? remaining === 0 ? 'مسترد بالكامل' : 'غير مسترد'
-                      : remaining === 0 ? 'خالص بالكامل' : 'المتبقي آجل'}
-                  </span>
-                </div>
-                <strong dir="ltr" className="stat-box-num num">{money(remaining)}</strong>
-              </div>
-            )}
-
-            {!isWaste && (
-              <div className={`total-input-box ${paidNumber <= 0 ? 'disabled' : ''}`}>
-                <label>
-                  <span className="stat-box-title">
-                    {isReturn ? 'الخزنة المنصرف منها' : 'الخزنة المستلمة'}
-                    {paidNumber <= 0 && (
-                      <span className="muted-text" style={{ fontSize: '10px', fontWeight: 'normal', marginInlineStart: '4px' }}>
-                        (مُعطلة — لا يوجد مدفوع)
-                      </span>
-                    )}
-                  </span>
-                  <SearchableSelect
-                    value={effectiveCashBoxId}
-                    options={selectableCashBoxes.map((box) => ({
-                      value: box.id,
-                      label: `${box.name} (${money(box.balance)})`,
-                    }))}
-                    onChange={(val) => setCashBoxId(val)}
-                    placeholder="اختر الخزنة…"
-                    searchPlaceholder="اكتب للبحث عن خزنة…"
-                    emptyMessage="لا توجد خزنة مطابقة"
-                    disabled={paidNumber <= 0}
-                    required={paidNumber > 0}
-                  />
-                </label>
-              </div>
-            )}
+        {/* ====================================================================
+            الجزء عاليسار: اجمالي الفاتورة - المدفوع - المتبقي - الخزنة - ملاحظات الفاتورة - حفظ الفاتورة - مسح/جديد
+            ==================================================================== */}
+        <div className="invoice-part-left">
+          {/* 1. إجمالي الفاتورة */}
+          <div className="left-hero-total">
+            <span className="hero-label">إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}</span>
+            <strong dir="ltr" className="hero-num num">{money(total)}</strong>
           </div>
 
-          <div className="invoice-notes-row">
+          {/* 2. المدفوع */}
+          {!isWaste && (
+            <div className="left-field-box">
+              <label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{isReturn ? 'المبلغ المسترد' : 'المدفوع'}</span>
+                  {total > 0 && Number(paid) !== total && (
+                    <button
+                      type="button"
+                      className="btn-pay-full-pill"
+                      onClick={() => setPaid(String(total))}
+                    >
+                      دفع بالكامل
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  dir="ltr"
+                  placeholder="0.00"
+                  value={paid}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setPaid(e.target.value)}
+                  className="no-spinner num left-paid-input"
+                />
+              </label>
+            </div>
+          )}
+
+          {/* 3. المتبقي */}
+          {!isWaste && (
+            <div className={`left-stat-box ${remaining === 0 ? 'is-zero' : 'is-due'}`}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span>{isReturn ? 'حالة الاسترداد:' : 'المتبقي:'}</span>
+                <span className={`status-badge ${remaining === 0 ? 'paid' : 'unpaid'}`} style={{ fontSize: '11px' }}>
+                  {isReturn
+                    ? remaining === 0 ? 'مسترد بالكامل' : 'غير مسترد'
+                    : remaining === 0 ? 'خالص بالكامل' : 'المتبقي آجل'}
+                </span>
+              </div>
+              <strong dir="ltr" className="num" style={{ fontSize: '18px', marginTop: '4px' }}>
+                {money(remaining)}
+              </strong>
+            </div>
+          )}
+
+          {/* 4. الخزنة */}
+          {!isWaste && (
+            <div className={`left-field-box ${paidNumber <= 0 ? 'disabled' : ''}`}>
+              <label>
+                <span>
+                  {isReturn ? 'الخزنة المنصرف منها' : 'الخزنة'}
+                  {paidNumber <= 0 && (
+                    <span className="muted-text" style={{ fontSize: '10px', marginInlineStart: '4px' }}>
+                      (لا يوجد مدفوع)
+                    </span>
+                  )}
+                </span>
+                <SearchableSelect
+                  value={effectiveCashBoxId}
+                  options={selectableCashBoxes.map((box) => ({
+                    value: box.id,
+                    label: `${box.name} (${money(box.balance)})`,
+                  }))}
+                  onChange={(val) => setCashBoxId(val)}
+                  placeholder="اختر الخزنة…"
+                  searchPlaceholder="اكتب للبحث عن خزنة…"
+                  emptyMessage="لا توجد خزنة مطابقة"
+                  disabled={paidNumber <= 0}
+                  required={paidNumber > 0}
+                />
+              </label>
+            </div>
+          )}
+
+          {/* 5. ملاحظات الفاتورة */}
+          <div className="left-field-box">
             <label>
               <span>ملاحظات الفاتورة</span>
-              <input
-                type="text"
+              <textarea
+                rows={3}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="ملاحظات إضافية على الفاتورة (اختياري)…"
+                placeholder="ملاحظات اختيارية على الفاتورة…"
+                className="left-notes-textarea"
               />
             </label>
           </div>
 
-          <div className="form-modal-actions">
-            <button type="submit" className="btn primary" disabled={busy}>
-              {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : `حفظ ${isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}`}
+          {/* 6. حفظ الفاتورة & 7. مسح/جديد */}
+          <div className="left-actions-group">
+            <button
+              type="submit"
+              className="btn primary btn-invoice-save"
+              disabled={busy}
+            >
+              <Save size={16} />
+              <span>
+                {busy
+                  ? 'جارٍ الحفظ…'
+                  : editing
+                  ? 'حفظ التعديلات'
+                  : isReturn
+                  ? 'حفظ المرتجع'
+                  : isWaste
+                  ? 'حفظ الهالك'
+                  : 'حفظ الفاتورة'}
+              </span>
             </button>
-            <button type="button" className="btn" onClick={onCancel} disabled={busy}>
-              إلغاء
+
+            <button
+              type="button"
+              className="btn btn-invoice-clear"
+              onClick={handleResetNew}
+              disabled={busy}
+              title="مسح بيانات الفاتورة الحالية والبدء من جديد"
+            >
+              <RotateCcw size={14} />
+              <span>مسح / جديد</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={onCancel}
+              disabled={busy}
+              style={{ fontSize: '12px', minHeight: '32px' }}
+            >
+              إلغاء النافذة
             </button>
           </div>
         </div>

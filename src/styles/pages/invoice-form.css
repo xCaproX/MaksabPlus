@@ -862,3 +862,276 @@
   .invoice-form .actions .btn.primary { flex: 1; }
   .invoice-form .form-footer { bottom: calc(-18px - env(safe-area-inset-bottom)); margin-inline: -13px; padding-inline: 13px; }
 }
+
+/* =============================================================
+   Invoice Two-Parts Layout (Maksab Split POS Cockpit)
+   ============================================================= */
+.invoice-two-parts-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 330px !important;
+  gap: 16px;
+  align-items: stretch;
+}
+
+@media (max-width: 1080px) {
+  .invoice-two-parts-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Right Part (Transactions & Items) */
+.invoice-part-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.right-card {
+  background: #ffffff;
+  border: 1px solid var(--erp-border, #cbd5e1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.account-header-grid {
+  display: grid;
+  grid-template-columns: 130px minmax(180px, 1fr) minmax(180px, 1.2fr);
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.account-notes-input {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-size: 12.5px !important;
+}
+
+.balance-warehouse-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.stat-pill span {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.stat-pill strong {
+  font-weight: 750;
+  color: var(--erp-text, #1e293b);
+}
+
+.stat-pill strong.text-due {
+  color: #dc2626;
+}
+
+.stat-pill strong.text-credit {
+  color: #16a34a;
+}
+
+.stat-pill-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.stat-pill.highlight {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.stat-pill.highlight strong {
+  color: #1d4ed8;
+}
+
+.items-table-card {
+  flex: 1;
+  min-height: 280px;
+}
+
+.table-header-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.items-title {
+  font-size: 14px;
+  font-weight: 750;
+  color: #1e293b;
+}
+
+/* Left Part (Totals & Settlement) */
+.invoice-part-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--erp-border, #cbd5e1);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
+}
+
+.left-hero-total {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1.5px solid #86efac;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.left-hero-total .hero-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #166534;
+}
+
+.left-hero-total .hero-num {
+  font-size: 24px;
+  font-weight: 850;
+  color: #14532d;
+}
+
+.left-field-box label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.invoice-part-left .btn-pay-full-pill {
+  min-height: 24px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.left-paid-input {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  text-align: center;
+  height: 42px !important;
+}
+
+.left-stat-box {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid var(--erp-border, #cbd5e1);
+  border-radius: 8px;
+}
+
+.left-stat-box span {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.left-stat-box.is-due {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.left-stat-box.is-due strong {
+  color: #991b1b;
+}
+
+.left-stat-box.is-zero {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.left-stat-box.is-zero strong {
+  color: #166534;
+}
+
+.left-notes-textarea {
+  resize: vertical;
+  min-height: 60px;
+  padding: 8px 12px;
+  border: 1px solid var(--erp-border, #cbd5e1);
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  background: #ffffff;
+  color: #1e293b;
+}
+
+.left-notes-textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(46, 66, 92, 0.12);
+}
+
+.left-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-invoice-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  font-size: 15px;
+  font-weight: 750;
+  border-radius: 8px;
+}
+
+.btn-invoice-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  font-size: 13px;
+  font-weight: 650;
+  background: #ffffff;
+  border: 1px solid var(--erp-border, #cbd5e1);
+  border-radius: 8px;
+  color: #475569;
+  cursor: pointer;
+}
+
+.btn-invoice-clear:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
