@@ -71,7 +71,6 @@ async function main() {
   vite.stderr.on('data', (d) => console.error('vite err:', d.toString().trim()));
 
   const phaseUrl = `http://localhost:${port}/preview-phase3-4`;
-  const invoiceUrl = `http://localhost:${port}/preview-invoice`;
   const receiptUrl = `http://localhost:${port}/preview-receipt`;
 
   const ready = await waitForServer(phaseUrl);
@@ -88,9 +87,7 @@ async function main() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
   const tasks = [
-    { name: 'balance-card-1280px.png', w: 1280, h: 920, url: invoiceUrl },
-    { name: 'balance-card-1920px.png', w: 1920, h: 1080, url: invoiceUrl },
-    { name: 'balance-card-600px.png', w: 600, h: 960, url: invoiceUrl },
+    { name: 'phase3-4-1280px.png', w: 1280, h: 920, url: phaseUrl },
     { name: 'balance-card-receipt-1280px.png', w: 1280, h: 920, url: receiptUrl },
   ];
 

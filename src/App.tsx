@@ -13,7 +13,6 @@ const MasterData = lazy(() => import('./pages/MasterData'));
 const Balances = lazy(() => import('./pages/Balances'));
 const Management = lazy(() => import('./pages/Management'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
-const PreviewInvoice = lazy(() => import('./pages/PreviewInvoice'));
 const PreviewReceipt = lazy(() => import('./pages/PreviewReceipt'));
 const PreviewPhase3And4 = lazy(() => import('./pages/PreviewPhase3And4'));
 
@@ -42,14 +41,6 @@ export default function App() {
 
     return () => listener.subscription.unsubscribe();
   }, []);
-
-  if (window.location.pathname === '/preview-invoice') {
-    return (
-      <PageSuspense fullScreen>
-        <PreviewInvoice />
-      </PageSuspense>
-    );
-  }
 
   if (window.location.pathname === '/preview-receipt') {
     return (
