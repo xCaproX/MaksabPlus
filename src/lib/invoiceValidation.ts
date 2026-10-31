@@ -1,0 +1,82 @@
+/**
+-- ============================================================================
+-- قواعد التحقق والتصحيح التلقائي لفواتير المبيعات وبنودها والمدفوعات
+-- ============================================================================
+ */
+
+export interface ClampQuantityOptions {
+  availableStock?: number;
+  isStockLimited?: boolean;
+}
+
+/**
+ * تصحيح حقل الكمية بحيث:
+ * 1. لا يقل عن 1 (إذا قل عن 1 يعود إلى 1)
+ * 2. لا يتجاوز الكمية المتاحة في المخزن لحركات الصرف (البيع/الهالك/مرتجع الشراء)
+ */
+export function clampQuantity(
+  rawQty: number | string,
+  options: ClampQuantityOptions = {},
+): string {
+  const num = typeof rawQty === 'number' ? rawQty : parseFloat(rawQty);
+  if (isNaN(num) || num < 1) {
+    return '1';
+  }
+
+  const { availableStock, isStockLimited = true } = options;
+  if (isStockLimited && typeof availableStock === 'number' && availableStock > 0) {
+    if (num > availableStock) {
+      return String(availableStock);
+    }
+  }
+
+  return String(num);
+}
+
+export interface ClampPaidOptions {
+  total: number;
+  isCashAccount?: boolean;
+  minDecimals?: number;
+}
+
+/**
+ * تصحيح حقل المدفوع بحيث:
+ * 1. لا يقل عن الصفر
+ * 2. لا يتجاوز إجمالي الفاتورة
+ * 3. بالنسبة للعميل/المورد النقدي: لا يقل عن إجمالي الفاتورة (المدفوع = الإجمالي دائمًا)
+ */
+export function clampPaid(
+  rawPaid: number | string,
+  options: ClampPaidOptions,
+): string {
+  const { total, isCashAccount = false, minDecimals = 2 } = options;
+  let num = typeof rawPaid === 'number' ? rawPaid : parseFloat(rawPaid);
+
+  if (isNaN(num) || num < 0) {
+    num = 0;
+  }
+
+  if (num > total) {
+    num = total;
+  }
+
+  if (isCashAccount && num < total) {
+    num = total;
+  }
+
+  return num.toFixed(minDecimals);
+}
+
+/**
+ * التحقق مما إذا كان الصنف متوفرًا في المخزن المحدد (رصيده > 0)
+ */
+export function isItemInStock(
+  itemId: string,
+  warehouseId: string,
+  stockRows: Array<{ item_id: string; warehouse_id: string; current_qty: number | string }>,
+): boolean {
+  if (!itemId || !warehouseId) return false;
+  const row = stockRows.find((r) => r.item_id === itemId && r.warehouse_id === warehouseId);
+  const qty = row ? Number(row.current_qty) : 0;
+  return qty > 0;
+}
