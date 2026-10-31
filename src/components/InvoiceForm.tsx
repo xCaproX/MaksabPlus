@@ -565,7 +565,7 @@ export default function InvoiceForm({
         <div className="invoice-part-left">
           {/* 1. إجمالي الفاتورة والخانة على نفس السطر */}
           <div className="left-row-strip left-total-strip">
-            <span className="strip-label">إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}:</span>
+            <span className="strip-label">إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}</span>
             <div className="strip-value-box">
               <strong dir="ltr" className="strip-value strip-value-total num">{money(total)}</strong>
             </div>
@@ -574,7 +574,7 @@ export default function InvoiceForm({
           {/* 2. المدفوع والخانة على نفس السطر */}
           {!isWaste && (
             <div className="left-row-strip left-paid-strip">
-              <span className="strip-label">{isReturn ? 'المسترد:' : 'المدفوع:'}</span>
+              <span className="strip-label">{isReturn ? 'المسترد' : 'المدفوع'}</span>
               <div className="strip-center-slot">
                 <div className="paid-quick-actions">
                   <button
@@ -618,7 +618,7 @@ export default function InvoiceForm({
           {/* 3. المتبقي والخانة على نفس السطر */}
           {!isWaste && (
             <div className={`left-row-strip left-remaining-strip ${remaining === 0 ? 'is-zero' : 'is-due'}`}>
-              <span className="strip-label">{isReturn ? 'حالة الاسترداد:' : 'المتبقي:'}</span>
+              <span className="strip-label">{isReturn ? 'حالة الاسترداد' : 'المتبقي'}</span>
               <div className="strip-center-slot">
                 <span className={`status-badge ${remaining === 0 ? 'paid' : 'unpaid'}`} style={{ fontSize: '10.5px' }}>
                   {isReturn
