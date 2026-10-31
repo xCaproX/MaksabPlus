@@ -1011,30 +1011,34 @@
   color: var(--erp-text, #1e293b);
 }
 
-.stat-pill strong.text-due {
-  color: #dc2626;
-}
-
-.stat-pill strong.text-credit {
-  color: #16a34a;
-}
-
 .stat-pill-tag {
   font-size: 10.5px;
-  font-weight: 700;
-  padding: 1px 5px;
+  font-weight: 750;
+  padding: 1px 7px;
   border-radius: 4px;
-  background: #e2e8f0;
-  color: #334155;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.4;
 }
 
-.stat-pill.highlight {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+.stat-pill-tag.tag-settled {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
 }
 
-.stat-pill.highlight strong {
-  color: #1d4ed8;
+.stat-pill-tag.tag-debit {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.stat-pill-tag.tag-credit {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #15803d;
 }
 
 /* Items Card & Table with internal scroll ONLY */

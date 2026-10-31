@@ -136,6 +136,17 @@ export default function InvoiceForm({
     ? [selectedAccount.notes, selectedAccount.phone ? `هاتف: ${selectedAccount.phone}` : ''].filter(Boolean).join(' — ')
     : '';
 
+  function getBalanceStatus(balance: number, kind: AccountKind): { text: string; type: 'settled' | 'debit' | 'credit' } {
+    if (balance === 0) return { text: 'خالص', type: 'settled' };
+    if (kind === 'customer') {
+      return balance > 0 ? { text: 'عليه', type: 'debit' } : { text: 'له', type: 'credit' };
+    }
+    return balance > 0 ? { text: 'له', type: 'credit' } : { text: 'عليه', type: 'debit' };
+  }
+
+  const statusBefore = getBalanceStatus(balanceBefore, accountKind);
+  const statusAfter = getBalanceStatus(balanceAfter, accountKind);
+
   function handleAccountKindChange(nextKind: AccountKind) {
     setAccountKind(nextKind);
     const nextCashKey = nextKind === 'customer' ? 'cash_customer' : 'cash_supplier';
@@ -384,22 +395,15 @@ export default function InvoiceForm({
                 <div className="account-balance-pills">
                   <div className="stat-pill">
                     <span>الرصيد قبل:</span>
-                    <strong
-                      dir="ltr"
-                      className={`num ${balanceBefore > 0 ? 'text-due' : balanceBefore < 0 ? 'text-credit' : ''}`}
-                    >
+                    <strong dir="ltr" className="num">
                       {money(Math.abs(balanceBefore))}
                     </strong>
-                    <span className="stat-pill-tag">
-                      {balanceBefore > 0
-                        ? accountKind === 'customer' ? 'مدين (عليه)' : 'دائن (له)'
-                        : balanceBefore < 0
-                        ? accountKind === 'customer' ? 'دائن (له)' : 'مدين (عنده)'
-                        : 'خالص'}
+                    <span className={`stat-pill-tag tag-${statusBefore.type}`}>
+                      {statusBefore.text}
                     </span>
                   </div>
 
-                  <div className="stat-pill highlight">
+                  <div className="stat-pill">
                     <span>صافي المديونية:</span>
                     <strong dir="ltr" className="num">
                       {money(netInvoiceDebt)}
@@ -408,18 +412,11 @@ export default function InvoiceForm({
 
                   <div className="stat-pill">
                     <span>الرصيد بعد:</span>
-                    <strong
-                      dir="ltr"
-                      className={`num ${balanceAfter > 0 ? 'text-due' : balanceAfter < 0 ? 'text-credit' : ''}`}
-                    >
+                    <strong dir="ltr" className="num">
                       {money(Math.abs(balanceAfter))}
                     </strong>
-                    <span className="stat-pill-tag">
-                      {balanceAfter > 0
-                        ? accountKind === 'customer' ? 'مدين (عليه)' : 'دائن (له)'
-                        : balanceAfter < 0
-                        ? accountKind === 'customer' ? 'دائن (له)' : 'مدين (عنده)'
-                        : 'خالص'}
+                    <span className={`stat-pill-tag tag-${statusAfter.type}`}>
+                      {statusAfter.text}
                     </span>
                   </div>
                 </div>
