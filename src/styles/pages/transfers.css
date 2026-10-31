@@ -1,5 +1,6 @@
 /* =============================================================
    Maksab Warehouse & Cash Box Transfers Forms
+   Inherits master modal-head, account-header-card, and stat-pill standards
    ============================================================= */
 
 /* Warehouse Transfer Form */
@@ -16,10 +17,7 @@
 }
 
 .transfer-header-grid label,
-.transfer-notes-field,
-.box-card-label,
-.transfer-date-label,
-.transfer-notes-block {
+.box-card-label {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -28,64 +26,11 @@
   color: #334155;
 }
 
-.transfer-notes-input {
-  min-height: 38px;
-  height: 38px;
-  padding: 0 10px;
-  border-radius: 6px;
-  border: 1px solid var(--erp-border, #cbd5e1);
-  font-size: 13px;
-  background: #ffffff;
-  width: 100%;
-}
-
 .transfer-lines-card {
   border-radius: 8px;
   border: 1px solid var(--erp-border, #cbd5e1);
   overflow: hidden;
   background: #ffffff;
-}
-
-.transfer-actions-bar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.btn-transfer-save {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 42px;
-  height: 42px;
-  padding: 0 20px;
-  font-weight: 750;
-  font-size: 14px;
-  border-radius: 7px;
-}
-
-.btn-transfer-clear {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 38px;
-  height: 38px;
-  padding: 0 14px;
-  font-weight: 700;
-  font-size: 13px;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  color: #475569;
-  border-radius: 6px;
-}
-
-.btn-transfer-clear:hover {
-  background: #f1f5f9;
-  color: #1e293b;
 }
 
 /* Cash Box Transfer Form */
@@ -101,110 +46,25 @@
   gap: 12px;
 }
 
-.box-card {
-  background: #ffffff;
-  border: 1px solid var(--erp-border, #cbd5e1);
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.box-card-clean {
+  padding: 10px 12px;
 }
 
-.box-balance-dynamic-strip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-
-.bal-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  font-size: 12px;
-  color: #475569;
-}
-
-.bal-pill.is-danger {
+.overdraft-warning-badge {
   background: #fef2f2;
-  border-color: #fecaca;
-  color: #b91c1c;
-}
-
-.bal-pill.is-increase {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #047857;
-}
-
-.cashbox-transfer-amount-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) 180px;
-  gap: 12px;
-  align-items: flex-end;
-}
-
-.transfer-amount-card {
-  background: #fefce8;
-  border: 1.5px solid #fef08a;
-  border-radius: 8px;
-  padding: 8px 14px;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-height: 56px;
-}
-
-.transfer-amount-card .card-title {
-  font-size: 13.5px;
-  font-weight: 750;
-  color: #854d0e;
-  white-space: nowrap;
-}
-
-.amount-input-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.amount-quick-btns {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.transfer-amount-input {
-  width: 140px;
-  min-height: 38px;
-  height: 38px;
-  padding: 0 10px;
-  background: #ffffff;
-  border: 1px solid #fef08a;
-  border-radius: 6px;
-  font-size: 17px;
-  font-weight: 850;
-  text-align: right;
-  color: #854d0e;
-}
-
-.transfer-amount-input:focus {
-  border-color: #eab308;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.25);
 }
 
 @media (max-width: 768px) {
   .transfer-header-grid,
-  .cashbox-transfer-boxes-grid,
-  .cashbox-transfer-amount-row {
+  .cashbox-transfer-boxes-grid {
     grid-template-columns: 1fr;
   }
 }

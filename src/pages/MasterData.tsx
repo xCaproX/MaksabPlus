@@ -1150,81 +1150,83 @@ export default function MasterData() {
       {formModal === 'account' && (
         <Modal title={editingAccount ? 'تعديل حساب' : accountKind === 'customer' ? 'إضافة عميل' : 'إضافة مورد'} className="master-data-modal" backdropClassName="master-data-backdrop" onClose={cancelAccountEdit}>
           <form className="stack" onSubmit={saveAccount}>
-            <div className="form-grid">
-              <label>
-                الاسم
-                <input
-                  type="text"
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  required
-                />
-              </label>
-
-              <label>
-                الهاتف
-                <input
-                  type="text"
-                  value={accountPhone}
-                  onChange={(e) => setAccountPhone(e.target.value)}
-                  placeholder="اختياري"
-                />
-              </label>
-
-              {!editingAccount && (
-                <label className="span-2">
-                  <span>الرصيد الافتتاحي</span>
-                  <div className="opening-balance-input-wrap">
-                    <input
-                      type="number"
-                      step="0.0001"
-                      min="0"
-                      className="num no-spinner"
-                      dir="ltr"
-                      value={accountOpeningBalance}
-                      onChange={(e) => setAccountOpeningBalance(e.target.value)}
-                      placeholder="0.00"
-                    />
-                    <div className="opening-type-toggle">
-                      <button
-                        type="button"
-                        className={`btn-toggle-badge ${accountOpeningType === 'debit' ? 'active-debit' : ''}`}
-                        onClick={() => setAccountOpeningType('debit')}
-                      >
-                        {accountKind === 'customer' ? 'عليه (مستحق على العميل)' : 'عليه (مقدم طرف المورد)'}
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn-toggle-badge ${accountOpeningType === 'credit' ? 'active-credit' : ''}`}
-                        onClick={() => setAccountOpeningType('credit')}
-                      >
-                        {accountKind === 'customer' ? 'له (رصيد لصالحه)' : 'له (مستحق للمورد)'}
-                      </button>
-                    </div>
-                  </div>
-                </label>
-              )}
-
-              <label className="span-2">
-                ملاحظات
-                <input
-                  type="text"
-                  value={accountNotes}
-                  onChange={(e) => setAccountNotes(e.target.value)}
-                  placeholder="اختياري"
-                />
-              </label>
-
-              {editingAccount && (
-                <label className="checkbox span-2">
+            <div className="account-header-card">
+              <div className="form-grid">
+                <label>
+                  الاسم
                   <input
-                    type="checkbox"
-                    checked={accountActive}
-                    onChange={(e) => setAccountActive(e.target.checked)}
+                    type="text"
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    required
                   />
-                  حساب نشط (يمكن استخدامه في الفواتير والإيصالات)
                 </label>
-              )}
+
+                <label>
+                  الهاتف
+                  <input
+                    type="text"
+                    value={accountPhone}
+                    onChange={(e) => setAccountPhone(e.target.value)}
+                    placeholder="اختياري"
+                  />
+                </label>
+
+                {!editingAccount && (
+                  <label className="span-2">
+                    <span>الرصيد الافتتاحي</span>
+                    <div className="opening-balance-input-wrap">
+                      <input
+                        type="number"
+                        step="0.0001"
+                        min="0"
+                        className="num no-spinner"
+                        dir="ltr"
+                        value={accountOpeningBalance}
+                        onChange={(e) => setAccountOpeningBalance(e.target.value)}
+                        placeholder="0.00"
+                      />
+                      <div className="opening-type-toggle">
+                        <button
+                          type="button"
+                          className={`btn-toggle-badge ${accountOpeningType === 'debit' ? 'active-debit' : ''}`}
+                          onClick={() => setAccountOpeningType('debit')}
+                        >
+                          {accountKind === 'customer' ? 'عليه (مستحق على العميل)' : 'عليه (مقدم طرف المورد)'}
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn-toggle-badge ${accountOpeningType === 'credit' ? 'active-credit' : ''}`}
+                          onClick={() => setAccountOpeningType('credit')}
+                        >
+                          {accountKind === 'customer' ? 'له (رصيد لصالحه)' : 'له (مستحق للمورد)'}
+                        </button>
+                      </div>
+                    </div>
+                  </label>
+                )}
+
+                <label className="span-2">
+                  ملاحظات
+                  <input
+                    type="text"
+                    value={accountNotes}
+                    onChange={(e) => setAccountNotes(e.target.value)}
+                    placeholder="اختياري"
+                  />
+                </label>
+
+                {editingAccount && (
+                  <label className="checkbox span-2">
+                    <input
+                      type="checkbox"
+                      checked={accountActive}
+                      onChange={(e) => setAccountActive(e.target.checked)}
+                    />
+                    حساب نشط (يمكن استخدامه في الفواتير والإيصالات)
+                  </label>
+                )}
+              </div>
             </div>
 
             <div className="form-modal-actions">
@@ -1242,131 +1244,133 @@ export default function MasterData() {
       {formModal === 'item' && (
         <Modal title={editingItem ? 'تعديل صنف' : 'إضافة صنف'} className="master-data-modal" backdropClassName="master-data-backdrop" onClose={cancelItemEdit}>
           <form className="stack" onSubmit={saveItem}>
-            <div className="form-grid">
-              <label>
-                اسم الصنف
-                <input
-                  type="text"
-                  value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
-                  required
-                />
-              </label>
-
-              <label>
-                كود الصنف (الباركود)
-                <input
-                  type="text"
-                  value={itemCode}
-                  onChange={(e) => setItemCode(e.target.value)}
-                  placeholder="اختياري — يتولد تلقائيًا إذا تُرِك فارغًا"
-                />
-              </label>
-
-              <label>
-                الوحدة
-                <input
-                  type="text"
-                  value={itemUnit}
-                  onChange={(e) => setItemUnit(e.target.value)}
-                  placeholder="قطعة، كرتونة، كجم…"
-                  required
-                />
-              </label>
-
-              <label>
-                سعر البيع الافتراضي
-                <input
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  value={salePrice}
-                  onChange={(e) => setSalePrice(e.target.value)}
-                  placeholder="0.00"
-                  required
-                />
-              </label>
-
-              <label>
-                سعر الشراء الافتراضي
-                <input
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  value={purchasePrice}
-                  onChange={(e) => setPurchasePrice(e.target.value)}
-                  placeholder="0.00"
-                  required
-                />
-              </label>
-
-              <label className="span-2">
-                ملاحظات الصنف
-                <input
-                  type="text"
-                  value={itemNotes}
-                  onChange={(e) => setItemNotes(e.target.value)}
-                  placeholder="اختياري"
-                />
-              </label>
-
-              {!editingItem && (
-                <>
-                  <label>
-                    المخزن لرصيد أول المدة
-                    <SearchableSelect
-                      value={itemOpeningWarehouseId}
-                      options={[
-                        { value: '', label: 'لا يوجد رصيد أول مدة' },
-                        ...warehouseRows.filter((w) => w.is_active).map((w) => ({
-                          value: w.id,
-                          label: w.name,
-                        })),
-                      ]}
-                      onChange={setItemOpeningWarehouseId}
-                      placeholder="اختر المخزن لرصيد أول المدة…"
-                      searchPlaceholder="اكتب للبحث عن مخزن…"
-                      emptyMessage="لا توجد مخازن نشطة"
-                    />
-                  </label>
-
-                  {itemOpeningWarehouseId && (
-                    <>
-                      <label>
-                        الكمية الافتتاحية
-                        <input
-                          type="number"
-                          step="0.0001"
-                          min="0"
-                          value={itemOpeningQty}
-                          onChange={(e) => setItemOpeningQty(e.target.value)}
-                        />
-                      </label>
-                      <label>
-                        تكلفة الوحدة الافتتاحية
-                        <input
-                          type="number"
-                          step="0.0001"
-                          min="0"
-                          value={itemOpeningCost}
-                          onChange={(e) => setItemOpeningCost(e.target.value)}
-                        />
-                      </label>
-                    </>
-                  )}
-                </>
-              )}
-
-              {editingItem && (
-                <label className="checkbox span-2">
+            <div className="account-header-card">
+              <div className="form-grid">
+                <label>
+                  اسم الصنف
                   <input
-                    type="checkbox"
-                    checked={itemActive}
-                    onChange={(e) => setItemActive(e.target.checked)}
+                    type="text"
+                    value={itemName}
+                    onChange={(e) => setItemName(e.target.value)}
+                    required
                   />
-                  صنف نشط (يظهر في فواتير البيع والشراء)
                 </label>
-              )}
+
+                <label>
+                  كود الصنف (الباركود)
+                  <input
+                    type="text"
+                    value={itemCode}
+                    onChange={(e) => setItemCode(e.target.value)}
+                    placeholder="اختياري — يتولد تلقائيًا إذا تُرِك فارغًا"
+                  />
+                </label>
+
+                <label>
+                  الوحدة
+                  <input
+                    type="text"
+                    value={itemUnit}
+                    onChange={(e) => setItemUnit(e.target.value)}
+                    placeholder="قطعة، كرتونة، كجم…"
+                    required
+                  />
+                </label>
+
+                <label>
+                  سعر البيع الافتراضي
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={salePrice}
+                    onChange={(e) => setSalePrice(e.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </label>
+
+                <label>
+                  سعر الشراء الافتراضي
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={purchasePrice}
+                    onChange={(e) => setPurchasePrice(e.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </label>
+
+                <label className="span-2">
+                  ملاحظات الصنف
+                  <input
+                    type="text"
+                    value={itemNotes}
+                    onChange={(e) => setItemNotes(e.target.value)}
+                    placeholder="اختياري"
+                  />
+                </label>
+
+                {!editingItem && (
+                  <>
+                    <label>
+                      المخزن لرصيد أول المدة
+                      <SearchableSelect
+                        value={itemOpeningWarehouseId}
+                        options={[
+                          { value: '', label: 'لا يوجد رصيد أول مدة' },
+                          ...warehouseRows.filter((w) => w.is_active).map((w) => ({
+                            value: w.id,
+                            label: w.name,
+                          })),
+                        ]}
+                        onChange={setItemOpeningWarehouseId}
+                        placeholder="اختر المخزن لرصيد أول المدة…"
+                        searchPlaceholder="اكتب للبحث عن مخزن…"
+                        emptyMessage="لا توجد مخازن نشطة"
+                      />
+                    </label>
+
+                    {itemOpeningWarehouseId && (
+                      <>
+                        <label>
+                          الكمية الافتتاحية
+                          <input
+                            type="number"
+                            step="0.0001"
+                            min="0"
+                            value={itemOpeningQty}
+                            onChange={(e) => setItemOpeningQty(e.target.value)}
+                          />
+                        </label>
+                        <label>
+                          تكلفة الوحدة الافتتاحية
+                          <input
+                            type="number"
+                            step="0.0001"
+                            min="0"
+                            value={itemOpeningCost}
+                            onChange={(e) => setItemOpeningCost(e.target.value)}
+                          />
+                        </label>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {editingItem && (
+                  <label className="checkbox span-2">
+                    <input
+                      type="checkbox"
+                      checked={itemActive}
+                      onChange={(e) => setItemActive(e.target.checked)}
+                    />
+                    صنف نشط (يظهر في فواتير البيع والشراء)
+                  </label>
+                )}
+              </div>
             </div>
 
             <div className="form-modal-actions">
@@ -1384,24 +1388,26 @@ export default function MasterData() {
       {formModal === 'warehouse' && (
         <Modal title={editingWarehouseId ? 'تعديل مخزن' : 'إضافة مخزن'} className="master-data-modal" backdropClassName="master-data-backdrop" onClose={() => setFormModal(null)}>
           <form className="stack" onSubmit={saveWarehouse}>
-            <label>
-              اسم المخزن
-              <input
-                type="text"
-                value={warehouseName}
-                onChange={(e) => setWarehouseName(e.target.value)}
-                required
-              />
-            </label>
-            <label>
-              ملاحظات المخزن
-              <input
-                type="text"
-                value={warehouseNotes}
-                onChange={(e) => setWarehouseNotes(e.target.value)}
-                placeholder="العنوان أو وصف المخزن"
-              />
-            </label>
+            <div className="account-header-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label>
+                اسم المخزن
+                <input
+                  type="text"
+                  value={warehouseName}
+                  onChange={(e) => setWarehouseName(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                ملاحظات المخزن
+                <input
+                  type="text"
+                  value={warehouseNotes}
+                  onChange={(e) => setWarehouseNotes(e.target.value)}
+                  placeholder="العنوان أو وصف المخزن"
+                />
+              </label>
+            </div>
             <div className="form-modal-actions">
               <button type="submit" className="btn primary">
                 {editingWarehouseId ? 'حفظ التعديلات' : 'إضافة مخزن'}
@@ -1415,36 +1421,38 @@ export default function MasterData() {
       {formModal === 'cashBox' && (
         <Modal title={editingCashBoxId ? 'تعديل خزنة' : 'إضافة خزنة'} className="master-data-modal" backdropClassName="master-data-backdrop" onClose={() => setFormModal(null)}>
           <form className="stack" onSubmit={saveCashBox}>
-            <label>
-              اسم الخزنة
-              <input
-                type="text"
-                value={cashBoxName}
-                onChange={(e) => setCashBoxName(e.target.value)}
-                required
-              />
-            </label>
-            <label>
-              ملاحظات الخزنة
-              <input
-                type="text"
-                value={cashBoxNotes}
-                onChange={(e) => setCashBoxNotes(e.target.value)}
-                placeholder="وصف الخزنة ومكانها"
-              />
-            </label>
-            {!editingCashBoxId && (
+            <div className="account-header-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <label>
-                الرصيد الافتتاحي
+                اسم الخزنة
                 <input
-                  type="number"
-                  step="0.0001"
-                  value={cashBoxOpeningBalance}
-                  onChange={(e) => setCashBoxOpeningBalance(e.target.value)}
-                  placeholder="0.00"
+                  type="text"
+                  value={cashBoxName}
+                  onChange={(e) => setCashBoxName(e.target.value)}
+                  required
                 />
               </label>
-            )}
+              <label>
+                ملاحظات الخزنة
+                <input
+                  type="text"
+                  value={cashBoxNotes}
+                  onChange={(e) => setCashBoxNotes(e.target.value)}
+                  placeholder="وصف الخزنة ومكانها"
+                />
+              </label>
+              {!editingCashBoxId && (
+                <label>
+                  الرصيد الافتتاحي
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={cashBoxOpeningBalance}
+                    onChange={(e) => setCashBoxOpeningBalance(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </label>
+              )}
+            </div>
             <div className="form-modal-actions">
               <button type="submit" className="btn primary">
                 {editingCashBoxId ? 'حفظ التعديلات' : 'إضافة خزنة'}

@@ -102,75 +102,77 @@ export default function ChangePasswordModal({
   return (
     <Modal title={title} onClose={handleClose}>
       <form className="stack change-password-form" onSubmit={handleSubmit}>
-        <p className="hint" style={{ margin: 0, fontSize: '13px', color: 'var(--erp-muted, #64748b)' }}>
-          {isTargetMode
-            ? `أدخل كلمة المرور الجديدة للموظف (${targetUser?.email}). سيتمكن من تسجيل الدخول بها فورًا.`
-            : 'أدخل كلمة المرور الجديدة لتسجيل الدخول إلى حسابك في مكسب بلس.'}
-        </p>
+        <div className="account-header-card">
+          <p className="hint" style={{ margin: 0, fontSize: '13px', color: 'var(--erp-muted, #64748b)' }}>
+            {isTargetMode
+              ? `أدخل كلمة المرور الجديدة للموظف (${targetUser?.email}). سيتمكن من تسجيل الدخول بها فورًا.`
+              : 'أدخل كلمة المرور الجديدة لتسجيل الدخول إلى حسابك في مكسب بلس.'}
+          </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 650 }}>كلمة المرور الجديدة</span>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '4px' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 650 }}>كلمة المرور الجديدة</span>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                  dir="ltr"
+                  placeholder="••••••••"
+                  disabled={busy}
+                  style={{ width: '100%', paddingInlineEnd: '40px' }}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="icon-btn"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  title={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  style={{
+                    position: 'absolute',
+                    insetInlineEnd: '6px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--erp-muted, #64748b)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '4px',
+                  }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <span style={{ fontSize: '11.5px', color: 'var(--erp-muted, #64748b)' }}>
+                يجب ألا تقل عن 8 أحرف أو أرقام.
+              </span>
+            </label>
+
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 650 }}>تأكيد كلمة المرور الجديدة</span>
               <input
                 type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"
                 minLength={8}
                 required
                 dir="ltr"
                 placeholder="••••••••"
                 disabled={busy}
-                style={{ width: '100%', paddingInlineEnd: '40px' }}
-                autoFocus
+                style={{ width: '100%' }}
               />
-              <button
-                type="button"
-                className="icon-btn"
-                tabIndex={-1}
-                onClick={() => setShowPassword((prev) => !prev)}
-                title={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
-                aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
-                style={{
-                  position: 'absolute',
-                  insetInlineEnd: '6px',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--erp-muted, #64748b)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '4px',
-                }}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            <span style={{ fontSize: '11.5px', color: 'var(--erp-muted, #64748b)' }}>
-              يجب ألا تقل عن 8 أحرف أو أرقام.
-            </span>
-          </label>
-
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 650 }}>تأكيد كلمة المرور الجديدة</span>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              autoComplete="new-password"
-              minLength={8}
-              required
-              dir="ltr"
-              placeholder="••••••••"
-              disabled={busy}
-              style={{ width: '100%' }}
-            />
-          </label>
+            </label>
+          </div>
         </div>
 
-        <div className="form-modal-actions" style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
-          <button type="submit" className="btn primary" disabled={busy} style={{ flex: 1 }}>
+        <div className="form-modal-actions">
+          <button type="submit" className="btn primary" disabled={busy}>
             <KeyRound size={16} />
             <span>{busy ? 'جارٍ الحفظ…' : 'حفظ كلمة المرور'}</span>
           </button>

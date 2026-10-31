@@ -28,11 +28,11 @@ export default function ConfirmDialog({
           <p className="confirm-message">{message}</p>
         </div>
       </div>
-      <div className="actions confirm-actions">
+      <div className="form-modal-actions confirm-actions">
         <button type="button" className={danger ? 'btn danger' : 'btn primary'} onClick={onConfirm}>
           {confirmLabel}
         </button>
-        <button type="button" className="btn outline" onClick={onCancel}>
+        <button type="button" className="btn" onClick={onCancel}>
           إلغاء
         </button>
       </div>

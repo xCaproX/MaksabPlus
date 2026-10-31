@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
-import { Check, RotateCcw, Save, X } from 'lucide-react';
+import { Check, RotateCcw, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { money, round2, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
+import { tafqeet } from '../lib/tafqeet';
 import { toast } from './Toast';
 import SearchableSelect from './SearchableSelect';
-import DateInput from './DateInput';
 import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
 
 interface Props {
@@ -25,12 +25,13 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
   const [destinationId, setDestinationId] = useState(
     editing?.destination_cash_box_id ?? activeBoxes.find((box) => box.id !== sourceId)?.id ?? '',
   );
-  const [date, setDate] = useState(editing?.transfer_date ?? today());
+  const [date] = useState(editing?.transfer_date ?? today());
   const [amount, setAmount] = useState(editing ? String(Number(editing.amount)) : '');
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [busy, setBusy] = useState(false);
 
   const numAmount = Number(amount || 0);
+  const tafqeetText = numAmount > 0 ? tafqeet(numAmount) : '';
 
   // حساب الأرصدة قبل وبعد
   const sourceBox = cashBoxes.find((box) => box.id === sourceId);
@@ -99,10 +100,10 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
 
   return (
     <form className="cashbox-transfer-form" onSubmit={submit}>
-      {/* شبكة الخزنتين وبطاقات الأرصدة الديناميكية */}
+      {/* شبكة الخزنتين وبطاقات الأرصدة الموحدة */}
       <div className="cashbox-transfer-boxes-grid">
         {/* خزنة المصدر */}
-        <div className="box-card source-box-card">
+        <div className="account-header-card box-card-clean">
           <label className="box-card-label">
             <span>من خزنة (المصدر)</span>
             <SearchableSelect
@@ -124,21 +125,24 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
             />
           </label>
           {sourceBox && (
-            <div className="box-balance-dynamic-strip">
-              <div className="bal-pill">
+            <div className="account-balance-pills" style={{ marginTop: '8px' }}>
+              <div className="stat-pill">
                 <span>الرصيد المتاح:</span>
                 <strong dir="ltr" className="num">{money(sourceAvailableBalance)}</strong>
               </div>
-              <div className={`bal-pill ${sourceBalanceAfter < 0 ? 'is-danger' : ''}`}>
-                <span>الرصيد بعد التحويل:</span>
+              <div className="stat-pill">
+                <span>الرصيد بعد:</span>
                 <strong dir="ltr" className="num">{money(sourceBalanceAfter)}</strong>
+                {sourceBalanceAfter < 0 && (
+                  <span className="stat-pill-tag tag-debit">عجز</span>
+                )}
               </div>
             </div>
           )}
         </div>
 
         {/* خزنة الوجهة */}
-        <div className="box-card dest-box-card">
+        <div className="account-header-card box-card-clean">
           <label className="box-card-label">
             <span>إلى خزنة (الوجهة)</span>
             <SearchableSelect
@@ -157,65 +161,63 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
             />
           </label>
           {destBox && (
-            <div className="box-balance-dynamic-strip">
-              <div className="bal-pill">
+            <div className="account-balance-pills" style={{ marginTop: '8px' }}>
+              <div className="stat-pill">
                 <span>الرصيد الحالي:</span>
                 <strong dir="ltr" className="num">{money(destInitialBalance)}</strong>
               </div>
-              <div className="bal-pill is-increase">
-                <span>الرصيد بعد التحويل:</span>
+              <div className="stat-pill">
+                <span>الرصيد بعد:</span>
                 <strong dir="ltr" className="num">{money(destBalanceAfter)}</strong>
+                <span className="stat-pill-tag tag-credit">زيادة</span>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* صف المبلغ والتاريخ */}
-      <div className="cashbox-transfer-amount-row">
-        <div className="transfer-amount-card">
-          <span className="card-title">المبلغ المراد تحويله</span>
-          <div className="amount-input-wrap">
-            <div className="amount-quick-btns">
-              <button
-                type="button"
-                className="btn-paid-quick btn-paid-all"
-                onClick={handleSettleAll}
-                title="نقل كامل رصيد خزنة المصدر"
-                aria-label="نقل كامل الرصيد"
-              >
-                <Check size={14} strokeWidth={2.5} />
-              </button>
-              <button
-                type="button"
-                className="btn-paid-quick btn-paid-zero"
-                onClick={() => setAmount('0.00')}
-                title="تصفير المبلغ"
-                aria-label="تصفير المبلغ"
-              >
-                <X size={14} strokeWidth={2.5} />
-              </button>
-            </div>
-            <input
-              aria-label="المبلغ المنقول"
-              type="number"
-              min="0.0001"
-              step="0.0001"
-              dir="ltr"
-              placeholder="0.00"
-              value={amount}
-              onFocus={(e) => e.target.select()}
-              onChange={(e) => setAmount(e.target.value)}
-              className="transfer-amount-input no-spinner num"
-              required
-            />
+      {/* بطاقة المبلغ المراد تحويله والتفقيط بالعربي */}
+      <div className="receipt-amount-card">
+        <div className="row-amount-tafqeet">
+          <div className="field-amount-slot">
+            <label>
+              <span>المبلغ المراد تحويله</span>
+              <div className="amount-input-with-action">
+                <input
+                  aria-label="المبلغ المراد تحويله"
+                  type="number"
+                  inputMode="decimal"
+                  min="0.0001"
+                  step="0.0001"
+                  dir="ltr"
+                  placeholder="0.00"
+                  value={amount}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="receipt-amount-input no-spinner num"
+                  required
+                />
+                <button
+                  type="button"
+                  className="btn-settle-all-action"
+                  onClick={handleSettleAll}
+                  title="نقل كامل رصيد خزنة المصدر"
+                  aria-label="نقل كامل رصيد خزنة المصدر"
+                >
+                  <Check size={14} strokeWidth={2.5} />
+                  <span>كامل الرصيد</span>
+                </button>
+              </div>
+            </label>
+          </div>
+
+          <div className="field-tafqeet-card" title={tafqeetText || 'المبلغ بالحروف'}>
+            <span className="tafqeet-label">المبلغ بالحروف</span>
+            <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
+              {tafqeetText || 'سيظهر تفقيط المبلغ بالعربية هنا…'}
+            </span>
           </div>
         </div>
-
-        <label className="transfer-date-label">
-          <span>تاريخ التحويل</span>
-          <DateInput value={date} onChange={setDate} required />
-        </label>
       </div>
 
       {isOverdraft && (
@@ -224,24 +226,24 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
         </div>
       )}
 
-      {/* الملاحظات */}
-      <label className="transfer-notes-block">
-        <span>ملاحظات التحويل</span>
+      {/* ملاحظات التحويل */}
+      <div className="account-header-card" style={{ padding: '8px 12px' }}>
         <input
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="ملاحظات اختيارية على عملية التحويل…"
-          className="transfer-notes-input"
+          className="account-notes-input"
+          aria-label="ملاحظات التحويل"
         />
-      </label>
+      </div>
 
-      {/* أزرار الإجراءات */}
-      <div className="transfer-actions-bar">
-        <button type="submit" className="btn primary btn-transfer-save" disabled={busy || isOverdraft}>
+      {/* أزرار الإجراءات الموحدة */}
+      <div className="form-modal-actions">
+        <button type="submit" className="btn primary" disabled={busy || isOverdraft}>
           <Save size={16} />
           <span>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل بين الخزن'}</span>
         </button>
-        <button type="button" className="btn btn-transfer-clear" onClick={handleReset} disabled={busy}>
+        <button type="button" className="btn" onClick={handleReset} disabled={busy}>
           <RotateCcw size={14} />
           <span>مسح / جديد</span>
         </button>

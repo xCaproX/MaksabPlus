@@ -896,27 +896,7 @@
   color: #1e40af;
 }
 
-/* Modal Bottom Sticky Actions */
-.form-modal-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  padding-top: 12px;
-  border-top: 1px solid var(--erp-border, #e5e9f0);
-}
 
-.form-modal-actions .btn {
-  min-height: 40px;
-  padding: 8px 24px;
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 8px;
-}
-
-.form-modal-actions .btn.primary {
-  min-width: 140px;
-}
 
 @media (max-width: 760px) {
   .totals {

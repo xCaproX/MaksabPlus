@@ -268,60 +268,64 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
 
   return (
     <form className="warehouse-transfer-form" onSubmit={submit}>
-      {/* صف المخازن والملاحظات */}
-      <div className="transfer-header-grid">
-        <label className="field-transfer-source">
-          <span>من مخزن (المصدر)</span>
-          <SearchableSelect
-            value={sourceId}
-            options={choices.map((warehouse) => ({
-              value: warehouse.id,
-              label: warehouse.name,
-            }))}
-            onChange={(next) => {
-              setSourceId(next);
-              setLines([]);
-              setEntryItemId('');
-              setEntryQty('1');
-              if (next === destinationId) {
-                setDestinationId(activeWarehouses.find((warehouse) => warehouse.id !== next)?.id ?? '');
-              }
-            }}
-            placeholder="اختر مخزن المصدر…"
-            searchPlaceholder="ابحث باسم مخزن المصدر…"
-            emptyMessage="لا توجد مخازن متاحة"
-            required
-          />
-        </label>
-
-        <label className="field-transfer-destination">
-          <span>إلى مخزن (الوجهة)</span>
-          <SearchableSelect
-            value={destinationId}
-            options={choices
-              .filter((warehouse) => warehouse.id !== sourceId)
-              .map((warehouse) => ({
+      {/* بطاقة المخازن والملاحظات الموحدة */}
+      <div className="account-header-card">
+        <div className="transfer-header-grid">
+          <label className="field-transfer-source">
+            <span>من مخزن (المصدر)</span>
+            <SearchableSelect
+              value={sourceId}
+              options={choices.map((warehouse) => ({
                 value: warehouse.id,
                 label: warehouse.name,
               }))}
-            onChange={setDestinationId}
-            placeholder="اختر مخزن الوجهة…"
-            searchPlaceholder="ابحث باسم مخزن الوجهة…"
-            emptyMessage="لا توجد مخازن متاحة"
-            required
-          />
-        </label>
-      </div>
+              onChange={(next) => {
+                setSourceId(next);
+                setLines([]);
+                setEntryItemId('');
+                setEntryQty('1');
+                if (next === destinationId) {
+                  setDestinationId(activeWarehouses.find((warehouse) => warehouse.id !== next)?.id ?? '');
+                }
+              }}
+              placeholder="اختر مخزن المصدر…"
+              searchPlaceholder="ابحث باسم مخزن المصدر…"
+              emptyMessage="لا توجد مخازن متاحة"
+              required
+            />
+          </label>
 
-      <label className="transfer-notes-field">
-        <span>ملاحظات التحويل</span>
-        <input
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          placeholder="ملاحظات اختيارية على أمر التحويل…"
-          className="transfer-notes-input"
-        />
-      </label>
+          <label className="field-transfer-destination">
+            <span>إلى مخزن (الوجهة)</span>
+            <SearchableSelect
+              value={destinationId}
+              options={choices
+                .filter((warehouse) => warehouse.id !== sourceId)
+                .map((warehouse) => ({
+                  value: warehouse.id,
+                  label: warehouse.name,
+                }))}
+              onChange={setDestinationId}
+              placeholder="اختر مخزن الوجهة…"
+              searchPlaceholder="ابحث باسم مخزن الوجهة…"
+              emptyMessage="لا توجد مخازن متاحة"
+              required
+            />
+          </label>
+        </div>
+
+        <div className="account-header-row2">
+          <div className="field-account-notes">
+            <input
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="ملاحظات اختيارية على أمر التحويل…"
+              className="account-notes-input"
+              aria-label="ملاحظات التحويل"
+            />
+          </div>
+        </div>
+      </div>
 
       {/* جدول الأصناف وشريط الإدخال الثابت */}
       <div className="transfer-lines-card">
@@ -504,13 +508,13 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
         </div>
       </div>
 
-      {/* أزرار الإجراءات */}
-      <div className="transfer-actions-bar">
-        <button type="submit" className="btn primary btn-transfer-save" disabled={busy}>
+      {/* أزرار الإجراءات الموحدة */}
+      <div className="form-modal-actions">
+        <button type="submit" className="btn primary" disabled={busy}>
           <Save size={16} />
           <span>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل المخزني'}</span>
         </button>
-        <button type="button" className="btn btn-transfer-clear" onClick={handleReset} disabled={busy}>
+        <button type="button" className="btn" onClick={handleReset} disabled={busy}>
           <RotateCcw size={14} />
           <span>مسح / جديد</span>
         </button>

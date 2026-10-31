@@ -17,6 +17,8 @@ import {
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import Modal from '../components/Modal';
 import InvoiceForm from '../components/InvoiceForm';
+import WarehouseTransferForm from '../components/WarehouseTransferForm';
+import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import DateInput from '../components/DateInput';
 import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
@@ -34,6 +36,18 @@ export default function PreviewPhase3And4() {
   });
   const [changePasswordOpen, setChangePasswordOpen] = useState(() => {
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('modal') === 'password') {
+      return true;
+    }
+    return false;
+  });
+  const [warehouseTransferOpen, setWarehouseTransferOpen] = useState(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('modal') === 'warehouse-transfer') {
+      return true;
+    }
+    return false;
+  });
+  const [cashBoxTransferOpen, setCashBoxTransferOpen] = useState(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('modal') === 'cashbox-transfer') {
       return true;
     }
     return false;
@@ -608,6 +622,52 @@ export default function PreviewPhase3And4() {
               editing={null}
               onSaved={() => setInvoiceFormOpen(false)}
               onCancel={() => setInvoiceFormOpen(false)}
+            />
+          </Modal>
+        )}
+
+        {warehouseTransferOpen && (
+          <Modal
+            className="transaction-entry-modal"
+            backdropClassName="transaction-entry-backdrop"
+            title="تحويل مخزني جديد"
+            onClose={() => setWarehouseTransferOpen(false)}
+          >
+            <WarehouseTransferForm
+              warehouses={[
+                { id: 'wh-1', name: 'المخزن الرئيسي', is_active: true, is_primary: true, serial_number: 1 },
+                { id: 'wh-2', name: 'مخزن المعرض', is_active: true, is_primary: false, serial_number: 2 },
+              ] as any}
+              items={[
+                { id: 'itm-1', serial_number: 1, code: 'ITM-001', name: 'شاي العروسة 250 جم', unit: 'كرتونة', sale_price: 180, purchase_price: 150, qty: 45, is_active: true },
+                { id: 'itm-2', serial_number: 2, code: 'ITM-002', name: 'سكر أبيض نقي 1 كجم', unit: 'كجم', sale_price: 32.5, purchase_price: 28, qty: 120, is_active: true },
+              ] as any}
+              stockRows={[
+                { item_id: 'itm-1', warehouse_id: 'wh-1', current_qty: 45 },
+                { item_id: 'itm-2', warehouse_id: 'wh-1', current_qty: 120 },
+              ] as any}
+              editing={null}
+              onSaved={() => setWarehouseTransferOpen(false)}
+              onCancel={() => setWarehouseTransferOpen(false)}
+            />
+          </Modal>
+        )}
+
+        {cashBoxTransferOpen && (
+          <Modal
+            className="transaction-entry-modal"
+            backdropClassName="transaction-entry-backdrop"
+            title="تحويل جديد بين الخزن"
+            onClose={() => setCashBoxTransferOpen(false)}
+          >
+            <CashBoxTransferForm
+              cashBoxes={[
+                { id: 'cb-1', name: 'خزينة المعرض الرئيسية', balance: 24500, is_active: true, is_primary: true, serial_number: 1, opening_balance: 0, notes: null },
+                { id: 'cb-2', name: 'خزينة الإدارة', balance: 85000, is_active: true, is_primary: false, serial_number: 2, opening_balance: 0, notes: null },
+              ] as any}
+              editing={null}
+              onSaved={() => setCashBoxTransferOpen(false)}
+              onCancel={() => setCashBoxTransferOpen(false)}
             />
           </Modal>
         )}
