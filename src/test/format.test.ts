@@ -3,16 +3,16 @@ import { money, qty, round2, formatDate, entityNumber } from '../lib/format';
 
 describe('format - دوال التنسيق المحاسبي والتواريخ', () => {
   describe('money', () => {
-    it('ينسق المبالغ النقدية بفاصلة الآلاف ومنزلتين عشريتين ولاحقة ج.م', () => {
-      expect(money(1234.5)).toBe('1,234.50 ج.م');
-      expect(money(0)).toBe('0.00 ج.م');
-      expect(money('1000000')).toBe('1,000,000.00 ج.م');
+    it('ينسق المبالغ النقدية بفاصلة الآلاف ومنزلتين عشريتين', () => {
+      expect(money(1234.5)).toBe('1,234.50');
+      expect(money(0)).toBe('0.00');
+      expect(money('1000000')).toBe('1,000,000.00');
     });
 
     it('يتعامل بأمان مع القيم الفارغة أو غير المعرفة', () => {
-      expect(money(null)).toBe('0.00 ج.م');
-      expect(money(undefined)).toBe('0.00 ج.م');
-      expect(money('invalid')).toBe('0.00 ج.م');
+      expect(money(null)).toBe('0.00');
+      expect(money(undefined)).toBe('0.00');
+      expect(money('invalid')).toBe('0.00');
     });
   });
 

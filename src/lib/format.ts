@@ -7,11 +7,11 @@ const qtyFormat = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 4,
 });
 
-/** 1234.5 => "1,234.50 ج.م" */
+/** 1234.5 => "1,234.50" */
 export function money(value: number | string | null | undefined): string {
   const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) return '0.00 ج.م';
-  return `${moneyFormat.format(n)} ج.م`;
+  if (!Number.isFinite(n)) return '0.00';
+  return moneyFormat.format(n);
 }
 
 /** 12.5 => "12.5" */

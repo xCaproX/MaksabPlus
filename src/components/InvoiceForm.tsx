@@ -134,9 +134,7 @@ export default function InvoiceForm({
     editingPaid: Number(editing?.invoice.paid || 0),
   });
 
-  const accountNotesDisplay = selectedAccount
-    ? [selectedAccount.notes, selectedAccount.phone ? `هاتف: ${selectedAccount.phone}` : ''].filter(Boolean).join(' — ')
-    : '';
+  const accountNotesDisplay = selectedAccount?.notes || '';
 
   function getBalanceStatus(balance: number, kind: AccountKind): { text: string; type: 'settled' | 'debit' | 'credit' } {
     if (balance === 0) return { text: 'خالص', type: 'settled' };
@@ -431,7 +429,10 @@ export default function InvoiceForm({
                   <span>الحساب</span>
                   <SearchableSelect
                     value={accountId}
-                    options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
+                    options={selectableAccounts.map((account) => ({
+                      value: account.id,
+                      label: account.phone ? `${account.name} — ${account.phone}` : account.name,
+                    }))}
                     onChange={handleAccountChange}
                     placeholder="اختر الحساب…"
                     searchPlaceholder="اكتب للبحث عن حساب…"
@@ -846,7 +847,7 @@ export default function InvoiceForm({
       {confirmZeroPriceOpen && (
         <ConfirmDialog
           title="تأكيد حفظ صنف بسعر صفر"
-          message="يوجد صنف أو أكثر في الفاتورة بسعر 0.00 ج.م. هل أنت متأكد من حفظ الفاتورة بهذا السعر؟"
+          message="يوجد صنف أو أكثر في الفاتورة بسعر 0.00. هل أنت متأكد من حفظ الفاتورة بهذا السعر؟"
           confirmLabel="نعم، احفظ بسعر صفر"
           danger={false}
           onConfirm={() => {

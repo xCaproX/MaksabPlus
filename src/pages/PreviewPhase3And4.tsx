@@ -582,7 +582,7 @@ export default function PreviewPhase3And4() {
               kind="sale"
               accounts={[
                 { id: 'acc-1', name: 'عميل نقدي عام', kind: 'customer', balance: 0, is_active: true, notes: 'عميل نقدي فوري', phone: '01000000000', serial_number: 1, opening_balance: 0, invoiced: 0, paid: 0, has_documents: false, system_key: 'cash_customer' },
-                { id: 'acc-2', name: 'شركة النور للتجارة والتوريدات', kind: 'customer', balance: 3450, is_active: true, notes: 'عميل آجل معتمد بحد ائتماني 50,000 ج.م', phone: '01234567890', serial_number: 2, opening_balance: 0, invoiced: 8450, paid: 5000, has_documents: true, system_key: null },
+                { id: 'acc-2', name: 'شركة النور للتجارة والتوريدات', kind: 'customer', balance: 3450, is_active: true, notes: 'عميل آجل معتمد بحد ائتماني 50,000', phone: '01234567890', serial_number: 2, opening_balance: 0, invoiced: 8450, paid: 5000, has_documents: true, system_key: null },
                 { id: 'acc-3', name: 'مؤسسة الفجر للمقاولات', kind: 'customer', balance: 14200, is_active: true, notes: 'دفع نصف شهري', phone: '01112223334', serial_number: 3, opening_balance: 0, invoiced: 14200, paid: 0, has_documents: true, system_key: null },
               ] as any}
               warehouses={[
