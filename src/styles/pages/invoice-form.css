@@ -419,7 +419,7 @@
 .lines-table thead th.w-num { width: 44px; text-align: center; }
 .lines-table thead th.w-qty { width: 140px; }
 .lines-table thead th.w-price { width: 130px; }
-.lines-table thead th.w-total { width: 140px; text-align: end; padding-inline-end: 14px; }
+.lines-table thead th.w-total { width: 120px; text-align: start; padding-inline-start: 12px; }
 .lines-table thead th.w-action { width: 88px; text-align: center; }
 
 .lines-table select,
@@ -602,9 +602,11 @@
   font-weight: 700;
   font-size: 13.5px;
   color: #0f172a;
-  text-align: end;
-  padding-inline-end: 14px;
+  text-align: start;
+  padding-inline-start: 12px;
+  padding-inline-end: 20px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .line-qty-group {
