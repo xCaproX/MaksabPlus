@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
+import { Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
+import ChangePasswordModal from './ChangePasswordModal';
 
 type NavSection = 'goods' | 'money' | 'data' | 'balances' | 'management';
 
@@ -55,6 +56,7 @@ export default function Layout() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Record<NavSection, boolean>>(() => {
     const current = getInitialSection(location.pathname);
     return makeSingleOpen(current || 'goods');
@@ -448,6 +450,15 @@ export default function Layout() {
             <div className="sidebar-user-name" title={userName || 'المستخدم'}>{userName || 'المستخدم'}</div>
             <div className="sidebar-company-name" title={companyName || 'مكسب بلس'}>{companyName || 'مكسب بلس'}</div>
           </div>
+          <button
+            type="button"
+            className="sidebar-user-btn"
+            onClick={() => setChangePasswordOpen(true)}
+            title="تغيير كلمة المرور"
+          >
+            <KeyRound size={15} />
+            <span>تغيير كلمة المرور</span>
+          </button>
           <button type="button" className="sign-out" onClick={signOut} title="تسجيل الخروج">
             <LogOut size={16} />
             <span>تسجيل الخروج</span>
@@ -458,6 +469,11 @@ export default function Layout() {
       <main className="content">
         <Outlet />
       </main>
+
+      <ChangePasswordModal
+        isOpen={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import Modal from './Modal';
 import SearchableSelect from './SearchableSelect';
+import ChangePasswordModal from './ChangePasswordModal';
 import { toast } from './Toast';
 import {
   sections,
@@ -54,6 +56,7 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
 
   // نافذة دعوة موظف جديد
   const [internalInviteOpen, setInternalInviteOpen] = useState(false);
+  const [passwordTargetUser, setPasswordTargetUser] = useState<CompanyUser | null>(null);
   const isInviteOpen = inviteOpen !== undefined ? inviteOpen : internalInviteOpen;
   const setIsInviteOpen = (open: boolean) => {
     setInternalInviteOpen(open);
@@ -378,6 +381,16 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
                     <div className="head-actions">
                       <button
                         type="button"
+                        className="btn"
+                        disabled={busy}
+                        onClick={() => setPasswordTargetUser(selectedUser)}
+                        title="تغيير كلمة مرور الموظف"
+                      >
+                        <KeyRound size={14} />
+                        <span>تغيير كلمة المرور</span>
+                      </button>
+                      <button
+                        type="button"
                         className={selectedUser.is_active ? 'btn' : 'btn primary'}
                         disabled={busy}
                         onClick={() => void toggleActive(selectedUser)}
@@ -628,6 +641,20 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
           </form>
         </Modal>
       )}
+
+      <ChangePasswordModal
+        isOpen={Boolean(passwordTargetUser)}
+        targetUser={
+          passwordTargetUser
+            ? {
+                id: passwordTargetUser.user_id,
+                name: passwordTargetUser.full_name,
+                email: passwordTargetUser.email,
+              }
+            : null
+        }
+        onClose={() => setPasswordTargetUser(null)}
+      />
     </div>
   );
 }

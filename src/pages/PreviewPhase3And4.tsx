@@ -12,7 +12,9 @@ import {
   Receipt as ReceiptIcon,
   ExternalLink,
   X,
+  KeyRound,
 } from 'lucide-react';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 import DateInput from '../components/DateInput';
 import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
@@ -22,6 +24,12 @@ import SortableHeader from '../components/SortableHeader';
 import { money } from '../lib/format';
 
 export default function PreviewPhase3And4() {
+  const [changePasswordOpen, setChangePasswordOpen] = useState(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('modal') === 'password') {
+      return true;
+    }
+    return false;
+  });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [sortOrder, setSortOrder] = useState('date-desc');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -276,12 +284,26 @@ export default function PreviewPhase3And4() {
               <div className="sidebar-user-name">عبد الرحمن عيد (Capro)</div>
               <div className="sidebar-company-name">شركة الأمل للتجارة والتوزيع</div>
             </div>
+            <button
+              type="button"
+              className="sidebar-user-btn"
+              onClick={() => setChangePasswordOpen(true)}
+              title="تغيير كلمة المرور"
+            >
+              <KeyRound size={15} />
+              <span>تغيير كلمة المرور</span>
+            </button>
             <button type="button" className="sign-out">
               <LogOut size={16} />
               <span>تسجيل الخروج</span>
             </button>
           </div>
         </header>
+
+        <ChangePasswordModal
+          isOpen={changePasswordOpen}
+          onClose={() => setChangePasswordOpen(false)}
+        />
 
         {/* Main Content Workspace */}
         <main className="content">

@@ -91,6 +91,18 @@ Deno.serve(async (request) => {
       return json({ ok: true });
     }
 
+    if (body.action === 'password') {
+      const userId = typeof body.user_id === 'string' ? body.user_id : '';
+      const password = typeof body.password === 'string' ? body.password : '';
+      if (!userId || !password || password.length < 8) return json({ error: 'invalid_password' }, 400);
+      const { error: rpcErr } = await caller.rpc('set_company_user_password', { p_user_id: userId, p_password: password });
+      if (rpcErr) {
+        const { error: updateError } = await admin.auth.admin.updateUserById(userId, { password });
+        if (updateError) throw updateError;
+      }
+      return json({ ok: true });
+    }
+
     return json({ error: 'unknown_action' }, 400);
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : 'request_failed' }, 400);
