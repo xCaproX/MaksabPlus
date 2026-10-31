@@ -566,7 +566,9 @@ export default function InvoiceForm({
           {/* 1. إجمالي الفاتورة والخانة على نفس السطر */}
           <div className="left-row-strip left-total-strip">
             <span className="strip-label">إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}</span>
-            <strong dir="ltr" className="strip-value strip-value-total num">{money(total)}</strong>
+            <div className="strip-value-box">
+              <strong dir="ltr" className="strip-value strip-value-total num">{money(total)}</strong>
+            </div>
           </div>
 
           {/* 2. المدفوع والخانة على نفس السطر */}
@@ -622,9 +624,11 @@ export default function InvoiceForm({
                     : remaining === 0 ? 'خالص' : 'آجل'}
                 </span>
               </div>
-              <strong dir="ltr" className="strip-value strip-value-remaining num">
-                {money(remaining)}
-              </strong>
+              <div className="strip-value-box">
+                <strong dir="ltr" className="strip-value strip-value-remaining num">
+                  {money(remaining)}
+                </strong>
+              </div>
             </div>
           )}
 

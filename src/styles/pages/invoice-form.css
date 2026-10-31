@@ -1064,17 +1064,20 @@
   overflow-y: auto;
 }
 
-/* 1-Line Strips on Left Part */
+/* 1-Line Strips on Left Part (Symmetric Dimensions) */
 .left-row-strip {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 7px 12px;
+  padding: 0 12px;
   border-radius: 8px;
-  border: 1px solid var(--erp-border, #cbd5e1);
+  border: 1.5px solid var(--erp-border, #cbd5e1);
   background: #ffffff;
-  min-height: 40px;
+  height: 46px;
+  min-height: 46px;
+  max-height: 46px;
+  box-sizing: border-box;
 }
 
 .left-row-strip .strip-label {
@@ -1084,25 +1087,45 @@
   white-space: nowrap;
 }
 
+/* Symmetric container for values across all 3 rows */
+.strip-value-box {
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
 .left-total-strip {
   background: linear-gradient(135deg, #fefce8 0%, #fef08a 100%);
-  border: 1.5px solid #facc15;
+  border-color: #facc15;
   box-shadow: 0 1px 3px rgba(161, 98, 7, 0.08);
 }
 
 .left-total-strip .strip-label {
   color: #713f12;
-  font-size: 13.5px;
+}
+
+.left-total-strip .strip-value-box {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(234, 179, 8, 0.4);
 }
 
 .strip-value-total {
-  font-size: 20px;
+  font-size: 16.5px;
   font-weight: 850;
   color: #854d0e;
 }
 
 .left-paid-strip {
   background: #ffffff;
+  border-color: #cbd5e1;
 }
 
 .paid-label-group {
@@ -1121,10 +1144,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  border-radius: 6px;
+  border-radius: 5px;
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -1157,14 +1180,18 @@
 }
 
 .left-paid-input {
-  width: 125px;
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
   height: 34px !important;
-  font-size: 15px !important;
+  font-size: 16px !important;
   font-weight: 800 !important;
   text-align: center;
-  padding: 3px 8px !important;
+  padding: 0 8px !important;
   border: 1.5px solid #cbd5e1 !important;
   border-radius: 6px !important;
+  background: #ffffff;
+  box-sizing: border-box;
 }
 
 .left-paid-input:focus {
@@ -1188,6 +1215,11 @@
   border-color: #bbf7d0;
 }
 
+.left-remaining-strip.is-zero .strip-value-box {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
 .left-remaining-strip.is-zero .strip-value-remaining {
   color: #166534;
 }
@@ -1195,6 +1227,11 @@
 .left-remaining-strip.is-due {
   background: #fef2f2;
   border-color: #fecaca;
+}
+
+.left-remaining-strip.is-due .strip-value-box {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(239, 68, 68, 0.25);
 }
 
 .left-remaining-strip.is-due .strip-value-remaining {
