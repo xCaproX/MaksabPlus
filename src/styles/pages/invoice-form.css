@@ -1131,10 +1131,14 @@
   border-color: #cbd5e1;
 }
 
-.paid-label-group {
+/* Center slot between label and value box */
+.strip-center-slot {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 4px;
 }
 
 .paid-quick-actions {
@@ -1218,12 +1222,6 @@
   outline: none !important;
   border: none !important;
   box-shadow: none !important;
-}
-
-.remaining-label-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .strip-value-remaining {
