@@ -1085,19 +1085,20 @@
 }
 
 .left-total-strip {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  border: 1.5px solid #86efac;
+  background: linear-gradient(135deg, #fefce8 0%, #fef08a 100%);
+  border: 1.5px solid #facc15;
+  box-shadow: 0 1px 3px rgba(161, 98, 7, 0.08);
 }
 
 .left-total-strip .strip-label {
-  color: #166534;
+  color: #713f12;
   font-size: 13.5px;
 }
 
 .strip-value-total {
   font-size: 20px;
   font-weight: 850;
-  color: #14532d;
+  color: #854d0e;
 }
 
 .left-paid-strip {
@@ -1107,15 +1108,52 @@
 .paid-label-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-.invoice-part-left .btn-pay-full-pill {
-  min-height: 22px;
-  height: 22px;
-  padding: 0 8px;
-  font-size: 10.5px;
-  line-height: 1;
+.paid-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-paid-quick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-paid-quick.btn-paid-all {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+.btn-paid-quick.btn-paid-all:hover {
+  background: #bbf7d0;
+  border-color: #4ade80;
+  color: #166534;
+  transform: scale(1.05);
+}
+
+.btn-paid-quick.btn-paid-zero {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.btn-paid-quick.btn-paid-zero:hover {
+  background: #fecaca;
+  border-color: #f87171;
+  color: #991b1b;
+  transform: scale(1.05);
 }
 
 .left-paid-input {

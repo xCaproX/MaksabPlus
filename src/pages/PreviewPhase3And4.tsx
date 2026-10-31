@@ -581,30 +581,31 @@ export default function PreviewPhase3And4() {
             <InvoiceForm
               kind="sale"
               accounts={[
-                { id: 'acc-1', name: 'عميل نقدي عام', kind: 'customer', balance: 0, is_active: true, notes: 'عميل نقدي فوري', phone: '01000000000', created_at: '', updated_at: '', company_id: '' },
-                { id: 'acc-2', name: 'شركة النور للتجارة والتوريدات', kind: 'customer', balance: 3450, is_active: true, notes: 'عميل آجل معتمد بحد ائتماني 50,000 ج.م', phone: '01234567890', created_at: '', updated_at: '', company_id: '' },
-                { id: 'acc-3', name: 'مؤسسة الفجر للمقاولات', kind: 'customer', balance: 14200, is_active: true, notes: 'دفع نصف شهري', phone: '01112223334', created_at: '', updated_at: '', company_id: '' },
-              ]}
+                { id: 'acc-1', name: 'عميل نقدي عام', kind: 'customer', balance: 0, is_active: true, notes: 'عميل نقدي فوري', phone: '01000000000', serial_number: 1, opening_balance: 0, invoiced: 0, paid: 0, has_documents: false, system_key: 'cash_customer' },
+                { id: 'acc-2', name: 'شركة النور للتجارة والتوريدات', kind: 'customer', balance: 3450, is_active: true, notes: 'عميل آجل معتمد بحد ائتماني 50,000 ج.م', phone: '01234567890', serial_number: 2, opening_balance: 0, invoiced: 8450, paid: 5000, has_documents: true, system_key: null },
+                { id: 'acc-3', name: 'مؤسسة الفجر للمقاولات', kind: 'customer', balance: 14200, is_active: true, notes: 'دفع نصف شهري', phone: '01112223334', serial_number: 3, opening_balance: 0, invoiced: 14200, paid: 0, has_documents: true, system_key: null },
+              ] as any}
               warehouses={[
-                { id: 'wh-1', name: 'المخزن الرئيسي', is_active: true, is_default: true, company_id: '', created_at: '', updated_at: '' },
-                { id: 'wh-2', name: 'مخزن المعرض', is_active: true, is_default: false, company_id: '', created_at: '', updated_at: '' },
-              ]}
+                { id: 'wh-1', name: 'المخزن الرئيسي', is_active: true, is_primary: true, serial_number: 1 },
+                { id: 'wh-2', name: 'مخزن المعرض', is_active: true, is_primary: false, serial_number: 2 },
+              ] as any}
               cashBoxes={[
-                { id: 'cb-1', name: 'خزينة المعرض الرئيسية', balance: 24500, is_active: true, is_default: true, company_id: '', created_at: '', updated_at: '' },
-                { id: 'cb-2', name: 'خزينة الإدارة', balance: 85000, is_active: true, is_default: false, company_id: '', created_at: '', updated_at: '' },
-              ]}
+                { id: 'cb-1', name: 'خزينة المعرض الرئيسية', balance: 24500, is_active: true, is_primary: true, serial_number: 1, opening_balance: 0, notes: null },
+                { id: 'cb-2', name: 'خزينة الإدارة', balance: 85000, is_active: true, is_primary: false, serial_number: 2, opening_balance: 0, notes: null },
+              ] as any}
               items={[
-                { id: 'itm-1', code: 'ITM-001', name: 'شاي العروسة 250 جم', unit: 'كرتونة', sale_price: 180, purchase_price: 150, min_stock: 5, is_active: true, company_id: '', created_at: '', updated_at: '' },
-                { id: 'itm-2', code: 'ITM-002', name: 'سكر أبيض نقي 1 كجم', unit: 'كجم', sale_price: 32.5, purchase_price: 28, min_stock: 10, is_active: true, company_id: '', created_at: '', updated_at: '' },
-                { id: 'itm-3', code: 'ITM-003', name: 'زيت عباد الشمس 800 مل', unit: 'زجاجة', sale_price: 65, purchase_price: 54, min_stock: 8, is_active: true, company_id: '', created_at: '', updated_at: '' },
-                { id: 'itm-4', code: 'ITM-004', name: 'أرز فاخر عريض الحبة 5 كجم', unit: 'شيكارة', sale_price: 175, purchase_price: 145, min_stock: 12, is_active: true, company_id: '', created_at: '', updated_at: '' },
-              ]}
+                { id: 'itm-1', serial_number: 1, code: 'ITM-001', name: 'شاي العروسة 250 جم', unit: 'كرتونة', sale_price: 180, purchase_price: 150, qty: 45, is_active: true },
+                { id: 'itm-2', serial_number: 2, code: 'ITM-002', name: 'سكر أبيض نقي 1 كجم', unit: 'كجم', sale_price: 32.5, purchase_price: 28, qty: 120, is_active: true },
+                { id: 'itm-3', serial_number: 3, code: 'ITM-003', name: 'زيت عباد الشمس 800 مل', unit: 'زجاجة', sale_price: 65, purchase_price: 54, qty: 60, is_active: true },
+                { id: 'itm-4', serial_number: 4, code: 'ITM-004', name: 'أرز فاخر عريض الحبة 5 كجم', unit: 'شيكارة', sale_price: 175, purchase_price: 145, qty: 30, is_active: true },
+              ] as any}
               stockRows={[
                 { item_id: 'itm-1', warehouse_id: 'wh-1', current_qty: 45 },
                 { item_id: 'itm-2', warehouse_id: 'wh-1', current_qty: 120 },
                 { item_id: 'itm-3', warehouse_id: 'wh-1', current_qty: 60 },
                 { item_id: 'itm-4', warehouse_id: 'wh-1', current_qty: 30 },
-              ]}
+              ] as any}
+              editing={null}
               onSaved={() => setInvoiceFormOpen(false)}
               onCancel={() => setInvoiceFormOpen(false)}
             />

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { Check, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
@@ -574,16 +574,26 @@ export default function InvoiceForm({
             <div className="left-row-strip left-paid-strip">
               <div className="paid-label-group">
                 <span className="strip-label">{isReturn ? 'المسترد' : 'المدفوع'}</span>
-                {total > 0 && Number(paid) !== total && (
+                <div className="paid-quick-actions">
                   <button
                     type="button"
-                    className="btn-pay-full-pill"
+                    className="btn-paid-quick btn-paid-all"
                     onClick={() => setPaid(String(total))}
-                    title="دفع كامل المبلغ"
+                    title={isReturn ? 'استرداد بالكامل' : 'دفع بالكامل'}
+                    aria-label={isReturn ? 'استرداد بالكامل' : 'دفع بالكامل'}
                   >
-                    بالكامل
+                    <Check size={14} strokeWidth={2.5} />
                   </button>
-                )}
+                  <button
+                    type="button"
+                    className="btn-paid-quick btn-paid-zero"
+                    onClick={() => setPaid('0')}
+                    title="عدم دفع شيء (صفر)"
+                    aria-label="عدم دفع شيء (تصفير)"
+                  >
+                    <X size={14} strokeWidth={2.5} />
+                  </button>
+                </div>
               </div>
               <input
                 type="number"
