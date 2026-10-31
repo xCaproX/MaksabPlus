@@ -89,6 +89,8 @@ async function main() {
   const tasks = [
     { name: 'sales-invoice-no-scroll-1280px.png', w: 1280, h: 800, url: `${phaseUrl}?modal=invoice` },
     { name: 'sales-invoice-no-scroll-1920px.png', w: 1920, h: 1080, url: `${phaseUrl}?modal=invoice` },
+    { name: 'receipt-cockpit-1280px.png', w: 1280, h: 800, url: receiptUrl },
+    { name: 'receipt-cockpit-1920px.png', w: 1920, h: 1080, url: receiptUrl },
   ];
 
   const artifactDir = path.resolve(

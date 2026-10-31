@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { X, ExternalLink, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { creationTime, formatDate, money, today } from '../lib/format';
+import { creationTime, formatDate, money } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
+import ReceiptForm from '../components/ReceiptForm';
 import ConfirmDialog from '../components/ConfirmDialog';
-import AccountBalanceCard from '../components/AccountBalanceCard';
 import DateInput from '../components/DateInput';
 import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
@@ -16,7 +16,6 @@ import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 import type {
   AccountRow,
-  AccountKind,
   CashBoxRow,
   ReceiptDirection,
   ReceiptRow,
@@ -85,15 +84,7 @@ export default function Receipts() {
   const [sortOrder, setSortOrder] = useState<ReceiptSort>('date-desc');
   const [page, setPage] = useState(1);
 
-  // حقول نموذج الإيصال
-  const [accountId, setAccountId] = useState('');
-  const [accountKind, setAccountKind] = useState<AccountKind>('customer');
   const [cashBoxId, setCashBoxId] = useState('');
-  const [date, setDate] = useState(today());
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [notes, setNotes] = useState('');
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const targetTab = (tabParam && VALID_RECEIPT_TABS.includes(tabParam)) ? tabParam : 'in';
@@ -101,7 +92,7 @@ export default function Receipts() {
       setTab(targetTab);
       if (targetTab === 'in' || targetTab === 'out') {
         setDirection(targetTab);
-        resetForm(targetTab);
+        resetForm();
       } else {
         resetForm();
       }
@@ -122,10 +113,6 @@ export default function Receipts() {
   const isIn = direction === 'in';
   const visibleTabs = RECEIPT_TABS.filter((item) => can(`money.${item.value}.view`));
   const canViewCurrentTab = can(`money.${tab}.view`);
-  const selectableAccounts = accounts.filter(
-    (account) => account.kind === accountKind && account.system_key === null,
-  );
-  const selectableCashBoxes = cashBoxes.filter((box) => box.is_active);
 
   const tabTitle = isCashBoxTransfer ? 'تحويلات الخزن' : isIn ? 'إيصالات الاستلام' : 'إيصالات الصرف';
 
@@ -251,16 +238,10 @@ export default function Receipts() {
     if (page > pageCount) setPage(pageCount);
   }, [page, pageCount]);
 
-  function resetForm(nextDirection = direction) {
+  function resetForm() {
     setEditing(null);
-    setAccountId('');
-    setAccountKind(nextDirection === 'in' ? 'customer' : 'supplier');
     const defaultBox = cashBoxes.find((box) => box.is_primary && box.is_active) ?? cashBoxes.find((b) => b.is_active);
     setCashBoxId(defaultBox?.id ?? '');
-    setDate(today());
-    setAmount('');
-    setDescription('');
-    setNotes('');
     setError('');
   }
 
@@ -273,7 +254,7 @@ export default function Receipts() {
     setEditingTransfer(null);
     setViewing(null);
     setViewingTransfer(null);
-    resetForm(next);
+    resetForm();
   }
 
   function switchToCashTransfer() {
@@ -313,66 +294,10 @@ export default function Receipts() {
 
   function startEdit(receipt: ReceiptRow) {
     setEditing(receipt);
-    setAccountId(receipt.account_id);
-    setAccountKind(receipt.account_kind as AccountKind);
-    setCashBoxId(receipt.cash_box_id);
-    setDate(receipt.receipt_date);
-    setAmount(String(receipt.amount));
-    setDescription(receipt.statement ?? '');
-    setNotes(receipt.notes ?? '');
     setError('');
     setFormOpen(true);
   }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError('');
-
-    if (editing) {
-      const { error: rpcError } = await supabase.rpc('update_free_receipt', {
-        p_receipt_id: editing.id,
-        p_account_id: accountId,
-        p_cash_box_id: cashBoxId,
-        p_receipt_date: date,
-        p_amount: Number(amount),
-        p_description: description.trim() || null,
-        p_notes: notes.trim() || null,
-      });
-
-      setBusy(false);
-
-      if (rpcError) {
-        setError(translateDbError(rpcError.message));
-        return;
-      }
-
-      setNotice(`تم تعديل الإيصال ${editing.number}`);
-    } else {
-      const { error: rpcError } = await supabase.rpc('create_free_receipt', {
-        p_direction: direction,
-        p_account_id: accountId,
-        p_cash_box_id: cashBoxId,
-        p_receipt_date: date,
-        p_amount: Number(amount),
-        p_description: description.trim() || null,
-        p_notes: notes.trim() || null,
-      });
-
-      setBusy(false);
-
-      if (rpcError) {
-        setError(translateDbError(rpcError.message));
-        return;
-      }
-
-      setNotice(direction === 'in' ? 'تم إنشاء إيصال الاستلام بنجاح' : 'تم إنشاء إيصال الصرف بنجاح');
-    }
-
-    closeForm();
-    setViewing(null);
-    setVersion((current) => current + 1);
-  }
 
   async function remove(receipt: ReceiptRow) {
     const confirmed = await askConfirmation(
@@ -818,163 +743,24 @@ export default function Receipts() {
             />
           </Modal>
         ) : (
-          <Modal
-            className="transaction-entry-modal"
-            backdropClassName="transaction-entry-backdrop"
+<Modal
+            className="receipt-entry-modal"
+            backdropClassName="receipt-entry-backdrop"
             title={editing ? `تعديل الإيصال ${editing.number}` : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`}
             onClose={closeForm}
           >
-            {(() => {
-              const selectedReceiptAccount = accounts.find((a) => a.id === accountId);
-              const numAmount = Number(amount || 0);
-              const isCust = selectedReceiptAccount?.kind === 'customer';
-              const getReceiptEffect = (amt: number) => {
-                if (isCust) {
-                  return isIn ? -amt : amt;
-                } else {
-                  return isIn ? amt : -amt;
-                }
-              };
-              const prevAmount = editing ? Number(editing.amount) : 0;
-              const prevDelta = editing ? getReceiptEffect(prevAmount) : 0;
-              const currentDelta = getReceiptEffect(numAmount);
-              const receiptBalanceBefore = selectedReceiptAccount ? (Number(selectedReceiptAccount.balance) - prevDelta) : 0;
-              const receiptBalanceAfter = receiptBalanceBefore + currentDelta;
-
-              return (
-                <form className="inline-form" onSubmit={submit}>
-                  {/* المجموعة الأولى: الحساب والنوع وموقف الرصيد */}
-                  <div className="form-header-bar" style={{ marginBottom: '16px' }}>
-                    <div className="form-header-fields">
-                      <label className="field-account-kind">
-                        نوع الحساب
-                        <SearchableSelect
-                          value={accountKind}
-                          options={[
-                            { value: 'customer', label: 'عميل' },
-                            { value: 'supplier', label: 'مورد' },
-                          ]}
-                          onChange={(val) => {
-                            setAccountKind(val as AccountKind);
-                            setAccountId('');
-                          }}
-                          placeholder="اختر النوع…"
-                          searchPlaceholder="بحث في الأنواع…"
-                          required
-                        />
-                      </label>
-
-                      <label className="field-account-select">
-                        {isIn ? 'استلام من (الحساب)' : 'صرف إلى (الحساب)'}
-                        <SearchableSelect
-                          value={accountId}
-                          options={selectableAccounts.map((account) => ({ value: account.id, label: account.name }))}
-                          onChange={setAccountId}
-                          placeholder="اختر الحساب…"
-                          required
-                        />
-                      </label>
-                    </div>
-
-                    {selectedReceiptAccount && (
-                      <AccountBalanceCard
-                        accountKind={selectedReceiptAccount.kind}
-                        balanceBefore={receiptBalanceBefore}
-                        delta={currentDelta}
-                        balanceAfter={receiptBalanceAfter}
-                        titleBefore="الرصيد قبل"
-                        deltaLabel="صافي حركة الإيصال"
-                        titleAfter="الرصيد بعد"
-                      />
-                    )}
-                  </div>
-
-                  {/* المجموعة الثانية: الخزنة، المبلغ، والتاريخ */}
-                  <div className="form-grid">
-                    <label className="form-grid-col-4">
-                      الخزنة {isIn ? 'المستلمة' : 'المنصرفة'}
-                      <SearchableSelect
-                        value={cashBoxId}
-                        options={selectableCashBoxes.map((box) => ({
-                          value: box.id,
-                          label: `${box.name} (${money(box.balance)})`,
-                        }))}
-                        onChange={setCashBoxId}
-                        placeholder="اختر الخزنة…"
-                        searchPlaceholder="اكتب للبحث عن خزنة…"
-                        emptyMessage="لا توجد خزنة مطابقة"
-                        required
-                      />
-                    </label>
-
-                    <label className="form-grid-col-4">
-                      المبلغ
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.0001"
-                        min="0.0001"
-                        dir="ltr"
-                        value={amount}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => setAmount(e.target.value)}
-                        placeholder="0.00"
-                        className="no-spinner num"
-                        required
-                      />
-                    </label>
-
-                    <label className="form-grid-col-4">
-                      تاريخ الإيصال
-                      <DateInput
-                        value={date}
-                        onChange={setDate}
-                        required
-                      />
-                    </label>
-
-                    {/* المجموعة الثالثة: البيان والملاحظات بعرض كامل */}
-                    <label className="form-grid-col-12">
-                      البيان
-                      <input
-                        type="text"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder="سبب أو وصف المعاملة…"
-                      />
-                    </label>
-
-                    <label className="form-grid-col-12">
-                      ملاحظات
-                      <input
-                        type="text"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="أي ملاحظات إضافية على الإيصال (اختياري)…"
-                      />
-                    </label>
-                  </div>
-
-                  {Number(amount) > 0 && (
-                    <div className="invoice-totals-bar" style={{ marginTop: '14px' }}>
-                      <div className="total-stat-box grand-total">
-                        <span className="stat-box-title">قيمة الإيصال المحصلة / المنصرفة</span>
-                        <strong dir="ltr" className="stat-box-num num">{money(Number(amount))}</strong>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="form-modal-actions">
-                    <button type="submit" className="btn primary" disabled={busy}>
-                      {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
-                    </button>
-                    <button type="button" className="btn" onClick={closeForm} disabled={busy}>
-                      إلغاء
-                    </button>
-                  </div>
-                </form>
-              );
-            })()}
+            <ReceiptForm
+              direction={direction}
+              accounts={accounts}
+              cashBoxes={cashBoxes}
+              editing={editing}
+              onSaved={(msg) => {
+                setNotice(msg);
+                closeForm();
+                setVersion((v) => v + 1);
+              }}
+              onCancel={closeForm}
+            />
           </Modal>
         )
       )}
