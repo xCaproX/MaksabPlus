@@ -77,7 +77,7 @@ export default function InvoiceForm({
   const [cashBoxId, setCashBoxId] = useState(
     editing?.invoice.cash_box_id ?? cashBoxes.find((box) => box.is_active)?.id ?? '',
   );
-  const [paid, setPaid] = useState(editing ? String(Number(editing.invoice.paid)) : '0');
+  const [paid, setPaid] = useState(editing ? Number(editing.invoice.paid).toFixed(2) : '0.00');
   const [notes, setNotes] = useState(editing?.invoice.notes ?? '');
   const [lines, setLines] = useState<LineDraft[]>(
     editing ? [...editing.lines, emptyLine()] : [emptyLine()],
@@ -105,7 +105,7 @@ export default function InvoiceForm({
   // السداد الكامل التلقائي للحسابات النقدية عند تغير الإجمالي
   useEffect(() => {
     if (cashAccountSelected && !editing) {
-      setPaid(String(total));
+      setPaid(Number(total).toFixed(2));
     }
   }, [total, cashAccountSelected, editing]);
 
@@ -221,7 +221,7 @@ export default function InvoiceForm({
 
   function handleResetNew() {
     setLines([emptyLine()]);
-    setPaid('0');
+    setPaid('0.00');
     setNotes('');
     if (!editing) {
       setAccountId(defaultAccountId);
@@ -580,7 +580,7 @@ export default function InvoiceForm({
                   <button
                     type="button"
                     className="btn-paid-quick btn-paid-all"
-                    onClick={() => setPaid(String(total))}
+                    onClick={() => setPaid(Number(total).toFixed(2))}
                     title={isReturn ? 'استرداد بالكامل' : 'دفع بالكامل'}
                     aria-label={isReturn ? 'استرداد بالكامل' : 'دفع بالكامل'}
                   >
@@ -589,7 +589,7 @@ export default function InvoiceForm({
                   <button
                     type="button"
                     className="btn-paid-quick btn-paid-zero"
-                    onClick={() => setPaid('0')}
+                    onClick={() => setPaid('0.00')}
                     title="عدم دفع شيء (صفر)"
                     aria-label="عدم دفع شيء (تصفير)"
                   >
@@ -599,15 +599,26 @@ export default function InvoiceForm({
               </div>
               <div className="strip-value-box strip-paid-box">
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  min="0"
-                  step="0.01"
                   dir="ltr"
                   placeholder="0.00"
                   value={paid}
                   onFocus={(e) => e.target.select()}
-                  onChange={(e) => setPaid(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/^\d*\.?\d*$/.test(val)) setPaid(val);
+                  }}
+                  onBlur={() => {
+                    const num = parseFloat(paid);
+                    if (isNaN(num)) {
+                      setPaid('0.00');
+                    } else {
+                      const parts = paid.split('.');
+                      const decimals = parts[1] ? Math.max(2, parts[1].length) : 2;
+                      setPaid(num.toFixed(decimals));
+                    }
+                  }}
                   className="no-spinner num left-paid-input"
                   aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
                 />
@@ -641,7 +652,7 @@ export default function InvoiceForm({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>{isReturn ? 'الخزنة المنصرف منها' : 'الخزنة'}</span>
                   {paidNumber <= 0 && (
-                    <span className="muted-text" style={{ fontSize: '10.5px' }}>
+                    <span className="no-paid-hint">
                       (لا يوجد مدفوع)
                     </span>
                   )}
