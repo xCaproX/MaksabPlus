@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { Check, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Check, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
@@ -34,10 +34,6 @@ interface InvoiceFormProps {
   editing: EditingInvoice | null;
   onSaved: (message: string) => void;
   onCancel: () => void;
-}
-
-function emptyLine(): LineDraft {
-  return { key: crypto.randomUUID(), item_id: '', qty: '1', unit_price: '' };
 }
 
 export default function InvoiceForm({
@@ -82,21 +78,24 @@ export default function InvoiceForm({
   );
   const [paid, setPaid] = useState(editing ? Number(editing.invoice.paid).toFixed(2) : '0.00');
   const [notes, setNotes] = useState(editing?.invoice.notes ?? '');
-  const [lines, setLines] = useState<LineDraft[]>(
-    editing ? [...editing.lines, emptyLine()] : [emptyLine()],
-  );
+  const [lines, setLines] = useState<LineDraft[]>(() => {
+    if (editing?.lines?.length) {
+      return editing.lines.filter((l) => Boolean(l.item_id));
+    }
+    return [];
+  });
   const [busy, setBusy] = useState(false);
   const [confirmZeroPriceOpen, setConfirmZeroPriceOpen] = useState(false);
 
-  const itemSearchRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const quantityRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const [focusSearchKey, setFocusSearchKey] = useState<string | null>(null);
+  // حالة شريط الإدخال الثابت أعلى الجدول
+  const [entryItemId, setEntryItemId] = useState('');
+  const [entryQty, setEntryQty] = useState('1');
+  const [entryUnitPrice, setEntryUnitPrice] = useState('');
 
-  useEffect(() => {
-    if (!focusSearchKey) return;
-    itemSearchRefs.current[focusSearchKey]?.focus();
-    setFocusSearchKey(null);
-  }, [focusSearchKey, lines]);
+  const entryItemSearchRef = useRef<HTMLInputElement>(null);
+  const entryQtyInputRef = useRef<HTMLInputElement>(null);
+  const entryPriceInputRef = useRef<HTMLInputElement>(null);
+  const pendingSaveLines = useRef<LineDraft[] | null>(null);
 
   const total = calculateInvoiceSubtotal(lines);
   const paidNumber = Number(paid || 0);
@@ -170,33 +169,59 @@ export default function InvoiceForm({
     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
     if (!isStockLimited) return;
 
+    // التحقق من توفر الصنف قيد الإدخال في المخزن الجديد
+    if (entryItemId) {
+      const stockRow = stockRows.find(
+        (row) => row.item_id === entryItemId && row.warehouse_id === nextWarehouseId,
+      );
+      const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
+      if (availableStock <= 0) {
+        toast.warning('الصنف قيد الإدخال غير متوفر في المخزن المحدد، تم إلغاء اختياره');
+        setEntryItemId('');
+        setEntryQty('1');
+        setEntryUnitPrice('');
+      } else if (Number(entryQty) > availableStock) {
+        toast.warning(`تم تعديل كمية الصنف قيد الإدخال إلى الرصيد المتاح بالمخزن (${formatQty(availableStock)})`);
+        setEntryQty(String(availableStock));
+      }
+    }
+
     setLines((current) =>
-      current.map((line) => {
-        if (!line.item_id) return line;
-        const stockRow = stockRows.find(
-          (row) => row.item_id === line.item_id && row.warehouse_id === nextWarehouseId,
-        );
-        const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
-        if (availableStock <= 0) {
-          toast.warning('أحد الأصناف غير متوفر في المخزن المحدد، تم إلغاء اختياره');
-          return { ...line, item_id: '', unit_price: '' };
-        }
-        if (Number(line.qty) > availableStock) {
-          toast.warning(`تم تعديل كمية الصنف إلى الرصيد المتاح بالمخزن (${formatQty(availableStock)})`);
-          return { ...line, qty: String(availableStock) };
-        }
-        return line;
-      }),
+      current
+        .map((line) => {
+          if (!line.item_id) return line;
+          const stockRow = stockRows.find(
+            (row) => row.item_id === line.item_id && row.warehouse_id === nextWarehouseId,
+          );
+          const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
+          if (availableStock <= 0) {
+            toast.warning('أحد الأصناف المدرجة غير متوفر في المخزن المحدد، تم حذفه');
+            return null as unknown as LineDraft;
+          }
+          if (Number(line.qty) > availableStock) {
+            toast.warning(`تم تعديل كمية الصنف إلى الرصيد المتاح بالمخزن (${formatQty(availableStock)})`);
+            return { ...line, qty: String(availableStock) };
+          }
+          return line;
+        })
+        .filter(Boolean),
     );
   }
 
-  function updateLine(key: string, patch: Partial<LineDraft>) {
-    setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
-  }
+  const entrySelectedItem = items.find((item) => item.id === entryItemId);
+  const entryStockRow = stockRows.find(
+    (row) => row.item_id === entryItemId && row.warehouse_id === warehouseId,
+  );
+  const entryAvailableStock = entryStockRow ? Number(entryStockRow.current_qty) : 0;
+  const entryLineTotal = round2(
+    Number(entryQty || 0) * Number(entryUnitPrice || 0),
+  );
 
-  function selectItem(key: string, itemId: string) {
+  function handleEntryItemSelect(itemId: string) {
     if (!itemId) {
-      updateLine(key, { item_id: '', unit_price: '' });
+      setEntryItemId('');
+      setEntryQty('1');
+      setEntryUnitPrice('');
       return;
     }
 
@@ -218,65 +243,137 @@ export default function InvoiceForm({
         : isPurchase
         ? Number(item.purchase_price)
         : Number(item.sale_price)
-      : undefined;
+      : 0;
 
-    setLines((current) => {
-      const updated = current.map((line) => {
-        if (line.key !== key) return line;
-        let safeQty = line.qty;
-        const currentQtyNum = Number(line.qty || 0);
-        if (isStockLimited && availableStock > 0 && currentQtyNum > availableStock) {
-          safeQty = String(availableStock);
-        } else if (currentQtyNum < 1) {
-          safeQty = '1';
-        }
-        return {
-          ...line,
-          item_id: itemId,
-          qty: safeQty,
-          unit_price: price === undefined ? line.unit_price : String(price),
-        };
-      });
+    setEntryItemId(itemId);
+    setEntryUnitPrice(String(price));
+    setEntryQty('1');
 
-      // Auto-append empty row if last row selected
-      const lastLine = updated[updated.length - 1];
-      if (itemId && lastLine && lastLine.item_id) {
-        return [...updated, emptyLine()];
-      }
-      return updated;
-    });
+    setTimeout(() => {
+      entryQtyInputRef.current?.focus();
+      entryQtyInputRef.current?.select();
+    }, 40);
   }
 
-  function moveFromQuantity(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    const row = event.currentTarget.closest('tr');
-    row?.querySelector<HTMLInputElement>('input[aria-label="سعر الوحدة"]')?.focus();
+  function handleEntryQtyChange(val: string) {
+    if (val === '') {
+      setEntryQty('');
+      return;
+    }
+    const num = parseFloat(val);
+    if (isNaN(num)) {
+      setEntryQty('1');
+      return;
+    }
+    const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+    if (isStockLimited && entryItemId && entryAvailableStock > 0 && num > entryAvailableStock) {
+      setEntryQty(String(entryAvailableStock));
+      toast.warning(`الكمية المتاحة (${formatQty(entryAvailableStock)}) هي الحد الأقصى`);
+      return;
+    }
+    if (num < 1 && val !== '0' && val !== '0.') {
+      setEntryQty('1');
+      return;
+    }
+    setEntryQty(val);
   }
 
-  function addLineFromPrice(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    const row = event.currentTarget.closest('tr');
-    const nextRow = row?.nextElementSibling;
-    const nextSearch = nextRow?.querySelector<HTMLInputElement>('input[role="combobox"]');
-    if (nextSearch) {
-      nextSearch.focus();
+  function handleEntryQtyBlur() {
+    const num = parseFloat(entryQty);
+    const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+    if (isNaN(num) || num < 1) {
+      setEntryQty('1');
+    } else if (isStockLimited && entryItemId && entryAvailableStock > 0 && num > entryAvailableStock) {
+      setEntryQty(String(entryAvailableStock));
     }
   }
 
-  function removeLine(key: string) {
-    setLines((current) => {
-      const remaining = current.filter((line) => line.key !== key);
-      if (remaining.length === 0 || remaining[remaining.length - 1].item_id) {
-        return [...remaining, emptyLine()];
+  function handleInsertLine() {
+    if (!entryItemId) {
+      toast.warning('اختر صنفاً أولاً');
+      entryItemSearchRef.current?.focus();
+      return;
+    }
+
+    let qtyNum = Number(entryQty || 0);
+    if (qtyNum < 1) {
+      toast.warning('الكمية يجب ألا تقل عن 1');
+      setEntryQty('1');
+      entryQtyInputRef.current?.focus();
+      return;
+    }
+
+    const priceNum = Number(entryUnitPrice || 0);
+    if (priceNum < 0) {
+      toast.warning('السعر لا يمكن أن يكون سالباً');
+      entryPriceInputRef.current?.focus();
+      return;
+    }
+
+    const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+    if (isStockLimited) {
+      if (entryAvailableStock <= 0) {
+        toast.warning('الصنف غير متوفر بالمخزن');
+        return;
       }
-      return remaining;
+      const existingInList = lines.find((l) => l.item_id === entryItemId);
+      const currentInList = existingInList ? Number(existingInList.qty || 0) : 0;
+      if (currentInList >= entryAvailableStock) {
+        toast.warning(`الكمية المتاحة بالكامل (${formatQty(entryAvailableStock)}) موجودة بالفعل في الفاتورة`);
+        return;
+      }
+      if (currentInList + qtyNum > entryAvailableStock) {
+        qtyNum = entryAvailableStock - currentInList;
+        toast.warning(`تم تعديل الكمية المضافة إلى ${formatQty(qtyNum)} لتتوافق مع المتبقي من الرصيد المتاح`);
+      }
+    }
+
+    setLines((current) => {
+      const existingIndex = current.findIndex((l) => l.item_id === entryItemId);
+      if (existingIndex >= 0) {
+        const updated = [...current];
+        const existing = updated[existingIndex];
+        const mergedQty = round2(Number(existing.qty || 0) + qtyNum);
+        updated[existingIndex] = {
+          ...existing,
+          qty: String(mergedQty),
+          unit_price: String(priceNum),
+        };
+        toast.info(`تم تحديث كمية "${entrySelectedItem?.name}" إلى (${formatQty(mergedQty)})`);
+        return updated;
+      }
+      return [
+        ...current,
+        {
+          key: crypto.randomUUID(),
+          item_id: entryItemId,
+          qty: String(qtyNum),
+          unit_price: String(priceNum),
+        },
+      ];
     });
+
+    setEntryItemId('');
+    setEntryQty('1');
+    setEntryUnitPrice('');
+    setTimeout(() => {
+      entryItemSearchRef.current?.focus();
+    }, 40);
+  }
+
+  function updateLine(key: string, patch: Partial<LineDraft>) {
+    setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
+  }
+
+  function removeLine(key: string) {
+    setLines((current) => current.filter((line) => line.key !== key));
   }
 
   function handleResetNew() {
-    setLines([emptyLine()]);
+    setLines([]);
+    setEntryItemId('');
+    setEntryQty('1');
+    setEntryUnitPrice('');
     setPaid('0.00');
     setNotes('');
     if (!editing) {
@@ -284,10 +381,13 @@ export default function InvoiceForm({
       setAccountKind(defaultAccountKind);
     }
     toast.info('تم مسح الفاتورة وبدء فاتورة جديدة');
+    setTimeout(() => {
+      entryItemSearchRef.current?.focus();
+    }, 40);
   }
 
-  async function executeSave() {
-    const activeLines = lines.filter((line) => line.item_id);
+  async function executeSave(linesToSave: LineDraft[] = pendingSaveLines.current ?? lines) {
+    const activeLines = linesToSave.filter((line) => line.item_id);
 
     const args = {
       p_account_id: accountId,
@@ -323,7 +423,41 @@ export default function InvoiceForm({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const activeLines = lines.filter((line) => line.item_id);
+    let activeLines = [...lines];
+
+    // إذا كان هناك صنف قيد الإدخال في شريط الإدخال الثابت، ندرجه تلقائياً قبل الحفظ
+    if (entryItemId) {
+      let qtyNum = Number(entryQty || 0);
+      const priceNum = Number(entryUnitPrice || 0);
+      if (qtyNum >= 1 && priceNum >= 0) {
+        const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+        if (isStockLimited && entryAvailableStock > 0 && qtyNum > entryAvailableStock) {
+          qtyNum = entryAvailableStock;
+        }
+        const existingIndex = activeLines.findIndex((l) => l.item_id === entryItemId);
+        if (existingIndex >= 0) {
+          const existing = activeLines[existingIndex];
+          activeLines[existingIndex] = {
+            ...existing,
+            qty: String(round2(Number(existing.qty || 0) + qtyNum)),
+            unit_price: String(priceNum),
+          };
+        } else {
+          activeLines.push({
+            key: crypto.randomUUID(),
+            item_id: entryItemId,
+            qty: String(qtyNum),
+            unit_price: String(priceNum),
+          });
+        }
+        setLines(activeLines);
+        setEntryItemId('');
+        setEntryQty('1');
+        setEntryUnitPrice('');
+      }
+    }
+
+    pendingSaveLines.current = activeLines;
 
     if (!accountId) return toast.error(isWaste ? 'حساب الهالك الثابت غير موجود' : 'اختر الحساب');
     if (!warehouseId) return toast.error('اختر المخزن');
@@ -352,22 +486,19 @@ export default function InvoiceForm({
       }
     }
 
-    const itemIds = activeLines.map((line) => line.item_id);
-    if (new Set(itemIds).size !== itemIds.length) {
-      return toast.error('لا يمكن تكرار نفس الصنف في أكثر من سطر بالفاتورة. يرجى تعديل الكمية في سطر واحد.');
-    }
+    const currentTotal = calculateInvoiceSubtotal(activeLines);
 
     if (!(paidNumber >= 0)) {
       setPaid('0.00');
       return toast.error(`قيمة ${isReturn ? 'المسترد' : 'المدفوع'} غير صحيحة`);
     }
-    if (paidNumber > total) {
-      setPaid(Number(total).toFixed(2));
+    if (paidNumber > currentTotal) {
+      setPaid(Number(currentTotal).toFixed(2));
       return toast.error(`${isReturn ? 'المسترد' : 'المدفوع'} أكبر من إجمالي ${isReturn ? 'المرتجع' : 'الفاتورة'}`);
     }
-    if (cashAccountSelected && paidNumber !== total) {
-      setPaid(Number(total).toFixed(2));
-      return toast.error(`الحساب نقدي: يلزم سداد كامل قيمة المستند (${money(total)})`);
+    if (cashAccountSelected && paidNumber !== currentTotal) {
+      setPaid(Number(currentTotal).toFixed(2));
+      return toast.error(`الحساب نقدي: يلزم سداد كامل قيمة المستند (${money(currentTotal)})`);
     }
 
     // تأكيد صريح في حال وجود صنف بسعر صفر
@@ -377,7 +508,7 @@ export default function InvoiceForm({
       return;
     }
 
-    void executeSave();
+    void executeSave(activeLines);
   }
 
   return (
@@ -503,158 +634,223 @@ export default function InvoiceForm({
                     <th className="w-qty">الكمية</th>
                     <th className="w-price">{isWaste ? 'سعر البيع' : 'السعر'}</th>
                     <th className="w-total">الإجمالي</th>
-                    <th className="w-action center">حذف</th>
+                    <th className="w-action center">إجراء</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {lines.map((line, index) => {
-                    const selectedItem = items.find((item) => item.id === line.item_id);
-                    const lineTotal = round2(
-                      Number(line.qty || 0) * Number(line.unit_price || 0),
-                    );
+                  {/* شريط الإدخال الثابت أعلى الجدول */}
+                  <tr className="entry-line-row">
+                    <td className="w-num center line-index-cell" data-label="#">
+                      <span className="entry-badge" title="سطر إدخال صنف جديد">+</span>
+                    </td>
+                    <td data-label="الصنف">
+                      <SearchableSelect
+                        inputRef={entryItemSearchRef}
+                        value={entryItemId}
+                        options={items.map((item) => {
+                          const stock = stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0;
+                          const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                          const isOut = isStockLimited && Number(stock) <= 0;
+                          return {
+                            value: item.id,
+                            label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                          };
+                        })}
+                        onChange={handleEntryItemSelect}
+                        placeholder="اختر صنفاً للإدراج…"
+                        searchPlaceholder="ابحث باسم أو كود الصنف…"
+                        emptyMessage="لا توجد أصناف مطابقة"
+                      />
+                    </td>
+                    <td data-label={entrySelectedItem ? `الكمية (${entrySelectedItem.unit})` : 'الكمية'}>
+                      <div className="line-qty-group">
+                        <input
+                          ref={entryQtyInputRef}
+                          aria-label={`كمية الصنف${entrySelectedItem ? ` — ${entrySelectedItem.name} (${entrySelectedItem.unit})` : ''}`}
+                          type="number"
+                          inputMode="decimal"
+                          min="1"
+                          step="0.0001"
+                          dir="ltr"
+                          value={entryQty}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => handleEntryQtyChange(e.target.value)}
+                          onBlur={handleEntryQtyBlur}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              entryPriceInputRef.current?.focus();
+                              entryPriceInputRef.current?.select();
+                            }
+                          }}
+                          className="no-spinner num"
+                        />
+                        <span className="line-unit-suffix">{entrySelectedItem ? entrySelectedItem.unit : 'قطعة'}</span>
+                      </div>
+                    </td>
+                    <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
+                      <input
+                        ref={entryPriceInputRef}
+                        aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.01"
+                        dir="ltr"
+                        placeholder="0.00"
+                        value={entryUnitPrice}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setEntryUnitPrice(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleInsertLine();
+                          }
+                        }}
+                        disabled={isWaste}
+                        className="no-spinner num"
+                      />
+                    </td>
+                    <td className="line-total" data-label="الإجمالي">
+                      <span dir="ltr" className="num">{money(entryLineTotal)}</span>
+                    </td>
+                    <td className="center" data-label="إجراء">
+                      <button
+                        type="button"
+                        className="btn-insert-line"
+                        onClick={handleInsertLine}
+                        disabled={!entryItemId}
+                        title="إدراج الصنف في الفاتورة"
+                      >
+                        <Plus size={15} />
+                        <span>إدراج</span>
+                      </button>
+                    </td>
+                  </tr>
 
-                    const stockRow = stockRows.find(
-                      (row) => row.item_id === line.item_id && row.warehouse_id === warehouseId,
-                    );
-                    const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
-                    const isStockExceeded =
-                      Boolean(line.item_id) &&
-                      (kind === 'sale' || kind === 'waste' || kind === 'purchase_return') &&
-                      Number(line.qty) > availableStock;
+                  {/* قائمة الأصناف المدرجة أسفل شريط الإدخال */}
+                  {lines.length === 0 ? (
+                    <tr className="empty-lines-placeholder-row">
+                      <td colSpan={6}>
+                        لم يتم إدراج أصناف بعد. اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.
+                      </td>
+                    </tr>
+                  ) : (
+                    lines.map((line, index) => {
+                      const selectedItem = items.find((item) => item.id === line.item_id);
+                      const lineTotal = round2(
+                        Number(line.qty || 0) * Number(line.unit_price || 0),
+                      );
 
-                    const isEmptyLine = !line.item_id;
+                      const stockRow = stockRows.find(
+                        (row) => row.item_id === line.item_id && row.warehouse_id === warehouseId,
+                      );
+                      const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
+                      const isStockExceeded =
+                        Boolean(line.item_id) &&
+                        (kind === 'sale' || kind === 'waste' || kind === 'purchase_return') &&
+                        Number(line.qty) > availableStock;
 
-                    return (
-                      <tr key={line.key} className={isEmptyLine ? 'empty-line-row' : ''}>
-                        <td className="w-num center line-index-cell" data-label="#">
-                          {index + 1}
-                        </td>
-                        <td data-label="الصنف">
-                          <SearchableSelect
-                            inputRef={(element) => { itemSearchRefs.current[line.key] = element; }}
-                            value={line.item_id}
-                            options={items.map((item) => {
-                              const stock = stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0;
-                              const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                              const isOut = isStockLimited && Number(stock) <= 0;
-                              return {
-                                value: item.id,
-                                label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
-                              };
-                            })}
-                            onChange={(value) => {
-                              if (!value) {
-                                selectItem(line.key, '');
-                                return;
-                              }
-                              const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                              const stock = stockRows.find((row) => row.item_id === value && row.warehouse_id === warehouseId)?.current_qty ?? 0;
-                              if (isStockLimited && Number(stock) <= 0) {
-                                toast.warning('الصنف غير متوفر');
-                                return;
-                              }
-                              if (lines.some((candidate) => candidate.key !== line.key && candidate.item_id === value)) {
-                                toast.warning('هذا الصنف موجود بالفعل في الفاتورة. اختَر صنفًا آخر.');
-                                return;
-                              }
-                              selectItem(line.key, value);
-                              if (value) quantityRefs.current[line.key]?.focus();
-                            }}
-                            placeholder="اختر صنفًا…"
-                            searchPlaceholder="ابحث باسم أو كود الصنف…"
-                            emptyMessage="لا توجد أصناف مطابقة"
-                          />
-                        </td>
-                        <td data-label={selectedItem ? `الكمية (${selectedItem.unit})` : 'الكمية'}>
-                          <div className="line-qty-group">
+                      return (
+                        <tr key={line.key} className="inserted-line-row">
+                          <td className="w-num center line-index-cell" data-label="#">
+                            {index + 1}
+                          </td>
+                          <td data-label="الصنف">
+                            <div className="inserted-item-info">
+                              <span className="item-name">{selectedItem?.name ?? '—'}</span>
+                              {selectedItem?.code && (
+                                <span className="item-code-tag">{selectedItem.code}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td data-label={selectedItem ? `الكمية (${selectedItem.unit})` : 'الكمية'}>
+                            <div className="line-qty-group">
+                              <input
+                                aria-label={`الكمية — ${selectedItem?.name ?? ''} (${selectedItem?.unit ?? 'قطعة'})`}
+                                type="number"
+                                inputMode="decimal"
+                                min="1"
+                                step="0.0001"
+                                dir="ltr"
+                                value={line.qty}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === '') {
+                                    updateLine(line.key, { qty: '' });
+                                    return;
+                                  }
+                                  const num = parseFloat(val);
+                                  if (isNaN(num)) {
+                                    updateLine(line.key, { qty: '1' });
+                                    return;
+                                  }
+                                  const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                                  if (isStockLimited && line.item_id && availableStock > 0 && num > availableStock) {
+                                    updateLine(line.key, { qty: String(availableStock) });
+                                    toast.warning(`الكمية المتاحة (${formatQty(availableStock)}) هي الحد الأقصى`);
+                                    return;
+                                  }
+                                  if (num < 1 && val !== '0' && val !== '0.') {
+                                    updateLine(line.key, { qty: '1' });
+                                    return;
+                                  }
+                                  updateLine(line.key, { qty: val });
+                                }}
+                                onBlur={() => {
+                                  const num = parseFloat(line.qty);
+                                  const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                                  if (isNaN(num) || num < 1) {
+                                    updateLine(line.key, { qty: '1' });
+                                  } else if (isStockLimited && line.item_id && availableStock > 0 && num > availableStock) {
+                                    updateLine(line.key, { qty: String(availableStock) });
+                                  }
+                                }}
+                                className="no-spinner num"
+                              />
+                              <span className="line-unit-suffix">{selectedItem ? selectedItem.unit : 'قطعة'}</span>
+                            </div>
+                            {isStockExceeded && (
+                              <span className="stock-warning-text" role="alert">
+                                تنبيه: الكمية ({line.qty}) تتجاوز المتاح ({formatQty(availableStock)})
+                              </span>
+                            )}
+                          </td>
+                          <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
                             <input
-                              ref={(element) => { quantityRefs.current[line.key] = element; }}
-                              aria-label={`الكمية${selectedItem ? ` — ${selectedItem.name} (${selectedItem.unit})` : ''}`}
+                              aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
                               type="number"
                               inputMode="decimal"
-                              min="1"
-                              step="0.0001"
+                              min="0"
+                              step="0.01"
                               dir="ltr"
-                              value={line.qty}
+                              placeholder="0.00"
+                              value={line.unit_price}
                               onFocus={(e) => e.target.select()}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '') {
-                                  updateLine(line.key, { qty: '' });
-                                  return;
-                                }
-                                const num = parseFloat(val);
-                                if (isNaN(num)) {
-                                  updateLine(line.key, { qty: '1' });
-                                  return;
-                                }
-                                const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                                if (isStockLimited && line.item_id && availableStock > 0 && num > availableStock) {
-                                  updateLine(line.key, { qty: String(availableStock) });
-                                  toast.warning(`الكمية المتاحة (${formatQty(availableStock)}) هي الحد الأقصى`);
-                                  return;
-                                }
-                                if (num < 1 && val !== '0' && val !== '0.') {
-                                  updateLine(line.key, { qty: '1' });
-                                  return;
-                                }
-                                updateLine(line.key, { qty: val });
-                              }}
-                              onBlur={() => {
-                                const num = parseFloat(line.qty);
-                                const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                                if (isNaN(num) || num < 1) {
-                                  updateLine(line.key, { qty: '1' });
-                                } else if (isStockLimited && line.item_id && availableStock > 0 && num > availableStock) {
-                                  updateLine(line.key, { qty: String(availableStock) });
-                                }
-                              }}
-                              onKeyDown={moveFromQuantity}
+                              onChange={(e) => updateLine(line.key, { unit_price: e.target.value })}
+                              disabled={isWaste}
                               className="no-spinner num"
                             />
-                            <span className="line-unit-suffix">{selectedItem ? selectedItem.unit : 'قطعة'}</span>
-                          </div>
-                          {isStockExceeded && (
-                            <span className="stock-warning-text" role="alert">
-                              تنبيه: الكمية ({line.qty}) تتجاوز المتاح ({formatQty(availableStock)})
-                            </span>
-                          )}
-                        </td>
-                        <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
-                          <input
-                            aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
-                            type="number"
-                            inputMode="decimal"
-                            min="0"
-                            step="0.01"
-                            dir="ltr"
-                            placeholder="0.00"
-                            value={line.unit_price}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) => updateLine(line.key, { unit_price: e.target.value })}
-                            onKeyDown={addLineFromPrice}
-                            disabled={isWaste}
-                            className="no-spinner num"
-                          />
-                        </td>
-                        <td className="line-total" data-label="الإجمالي">
-                          <span dir="ltr" className="num">{money(lineTotal)}</span>
-                        </td>
-                        <td className="center" data-label="إجراء">
-                          <button
-                            type="button"
-                            className="line-delete-btn"
-                            title="حذف هذا الصنف"
-                            aria-label="حذف سطر الصنف"
-                            onClick={() => removeLine(line.key)}
-                            disabled={lines.length === 1 && !line.item_id}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                          <td className="line-total" data-label="الإجمالي">
+                            <span dir="ltr" className="num">{money(lineTotal)}</span>
+                          </td>
+                          <td className="center" data-label="إجراء">
+                            <button
+                              type="button"
+                              className="line-delete-btn"
+                              title="حذف هذا الصنف من الفاتورة"
+                              aria-label="حذف سطر الصنف"
+                              onClick={() => removeLine(line.key)}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
