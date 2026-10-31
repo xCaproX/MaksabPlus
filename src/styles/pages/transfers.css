@@ -2,34 +2,6 @@
    Maksab Warehouse & Cash Box Transfers Forms
    ============================================================= */
 
-/* Modal Head polish for all transfers */
-.modal.transaction-entry-modal .modal-head,
-.modal.receipt-transfer-modal .modal-head {
-  background: var(--primary, #2e425c);
-  color: #ffffff;
-  padding: 14px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.modal.transaction-entry-modal .modal-head h2,
-.modal.receipt-transfer-modal .modal-head h2 {
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 750;
-}
-
-.modal.transaction-entry-modal .modal-head .icon-btn,
-.modal.receipt-transfer-modal .modal-head .icon-btn {
-  color: #ffffff;
-  opacity: 0.85;
-}
-
-.modal.transaction-entry-modal .modal-head .icon-btn:hover,
-.modal.receipt-transfer-modal .modal-head .icon-btn:hover {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.15);
-}
-
 /* Warehouse Transfer Form */
 .warehouse-transfer-form {
   display: flex;

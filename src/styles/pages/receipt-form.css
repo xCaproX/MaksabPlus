@@ -1,47 +1,24 @@
 /* =============================================================
    Maksab Receipt Form (Single Unified Layout - 5 Rows)
+   Inherits master modal-head and account-header-card standards
    ============================================================= */
 
-/* Modal Container & Fixed Viewport Behavior */
+/* Modal Container & Viewport Behavior */
 .modal.receipt-entry-modal {
   width: min(780px, 96vw);
   border-radius: 14px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-}
-
-.receipt-entry-modal .modal-head {
-  background: var(--primary, #0f172a);
-  color: #ffffff;
-  padding: 12px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.receipt-entry-modal .modal-head h2 {
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 750;
-  margin: 0;
-}
-
-.receipt-entry-modal .modal-head .icon-btn {
-  color: #ffffff;
-  opacity: 0.85;
-}
-
-.receipt-entry-modal .modal-head .icon-btn:hover {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.15);
 }
 
 .receipt-entry-modal .modal-body {
   padding: 16px 20px 20px;
+  background: #f8fafc;
   overflow-y: auto;
 }
 
-/* Single Unified Layout */
+/* Single Unified Layout Structure */
 .receipt-single-layout {
   display: flex;
   flex-direction: column;
@@ -49,11 +26,7 @@
   width: 100%;
 }
 
-.receipt-single-row {
-  width: 100%;
-}
-
-.receipt-single-row label {
+.receipt-single-layout label {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -62,104 +35,23 @@
   color: #334155;
 }
 
-/* 1. السطر الأول: نوع الحساب - الحساب */
-.row-account-select {
+/* Card 1: Account Header Row 1 (Kind + Account) */
+.receipt-account-row1 {
   display: grid;
   grid-template-columns: 140px minmax(0, 1fr);
   gap: 12px;
   align-items: flex-end;
 }
 
-/* 2. السطر الثاني: ملاحظات الحساب - المديونية قبل - صافي الإيصال - المديونية بعد */
-.row-debt-strip {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-.row-debt-strip .field-account-notes {
-  flex: 1;
-  min-width: 140px;
-}
-
-.row-debt-strip .account-notes-input {
-  background: #ffffff !important;
-  color: #475569 !important;
-  font-size: 12px !important;
-  height: 32px !important;
-  min-height: 32px !important;
-  padding: 0 10px !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 6px !important;
-  box-sizing: border-box !important;
-  width: 100%;
-}
-
-.row-debt-strip .account-balance-pills {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  flex-shrink: 0;
-}
-
-.row-debt-strip .stat-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 10px;
+/* Card 2: Row 3 (Amount + Settle All + Tafqeet) */
+.receipt-amount-card {
   background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 11.5px;
-  white-space: nowrap;
+  border: 1px solid var(--erp-border, #e2e8f0);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.row-debt-strip .stat-pill span {
-  color: #64748b;
-  font-weight: 600;
-}
-
-.row-debt-strip .stat-pill strong {
-  font-weight: 750;
-  color: #1e293b;
-}
-
-.row-debt-strip .stat-pill-tag {
-  font-size: 10.5px;
-  font-weight: 750;
-  padding: 1px 7px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1.4;
-}
-
-.row-debt-strip .stat-pill-tag.tag-settled {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-
-.row-debt-strip .stat-pill-tag.tag-debit {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.row-debt-strip .stat-pill-tag.tag-credit {
-  background: #eff6ff;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
-}
-
-/* 3. السطر الثالث: المبلغ المراد استلامه - زر استلام كامل المديونية - تفقيط المبلغ */
 .row-amount-tafqeet {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
@@ -258,7 +150,15 @@
   color: #0f172a;
 }
 
-/* 4. السطر الرابع: الخزنة المستلمة - ملاحظات */
+/* Card 3: Row 4 (Cashbox + Notes) */
+.receipt-meta-card {
+  background: #ffffff;
+  border: 1px solid var(--erp-border, #e2e8f0);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
 .row-cashbox-notes {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
@@ -283,7 +183,7 @@
   outline: none;
 }
 
-/* تنبيه الرصيد المتاح عند الصرف */
+/* Overdraft and Balance Alerts */
 .cashbox-balance-hint {
   font-size: 12px;
   color: #64748b;
@@ -291,7 +191,7 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  background: #f8fafc;
+  background: #ffffff;
   border-radius: 6px;
   border: 1px solid #e2e8f0;
 }
@@ -313,14 +213,13 @@
   text-align: center;
 }
 
-/* 5. السطر الخامس: حفظ - مسح / جديد */
+/* Row 5: Actions */
 .row-actions-group {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 4px;
-  padding-top: 10px;
-  border-top: 1px solid #f1f5f9;
+  padding-top: 6px;
 }
 
 .btn-receipt-save-full {
@@ -329,9 +228,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 42px;
-  min-height: 42px;
-  font-size: 14px;
+  height: 44px;
+  min-height: 44px;
+  font-size: 14.5px;
   font-weight: 800;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
@@ -342,8 +241,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 42px;
-  min-height: 42px;
+  height: 44px;
+  min-height: 44px;
   padding: 0 18px;
   font-size: 13px;
   font-weight: 700;
@@ -361,16 +260,9 @@
 }
 
 @media (max-width: 680px) {
-  .row-account-select,
+  .receipt-account-row1,
   .row-amount-tafqeet,
   .row-cashbox-notes {
     grid-template-columns: 1fr;
-  }
-  .row-debt-strip {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .row-debt-strip .account-balance-pills {
-    flex-wrap: wrap;
   }
 }

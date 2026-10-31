@@ -166,82 +166,81 @@ export default function ReceiptForm({
   return (
     <form className="receipt-form receipt-single-layout" onSubmit={submit}>
       {/* -------------------------------------------------------------------
-          السطر الأول: نوع الحساب - الحساب
+          بطاقة الحساب الموحدة (السطر الأول: نوع الحساب والحساب + السطر الثاني: الملاحظات والمديونيات)
+          مطابقة تامة وموحدة مع فاتورة المبيعات
           ------------------------------------------------------------------- */}
-      <div className="receipt-single-row row-account-select">
-        <label className="field-account-kind">
-          <span>نوع الحساب</span>
-          <SearchableSelect
-            value={accountKind}
-            options={[
-              { value: 'customer', label: 'عميل' },
-              { value: 'supplier', label: 'مورد' },
-            ]}
-            onChange={(val) => handleAccountKindChange(val as AccountKind)}
-            placeholder="اختر النوع…"
-            searchPlaceholder="بحث في الأنواع…"
-          />
-        </label>
+      <div className="account-header-card">
+        <div className="account-header-row1 receipt-account-row1">
+          <label className="field-account-kind">
+            <span>نوع الحساب</span>
+            <SearchableSelect
+              value={accountKind}
+              options={[
+                { value: 'customer', label: 'عميل' },
+                { value: 'supplier', label: 'مورد' },
+              ]}
+              onChange={(val) => handleAccountKindChange(val as AccountKind)}
+              placeholder="اختر النوع…"
+              searchPlaceholder="بحث في الأنواع…"
+            />
+          </label>
 
-        <label className="field-account-main">
-          <span>{isIn ? 'استلام من (الطرف المسدد)' : 'صرف إلى (المستفيد)'}</span>
-          <SearchableSelect
-            value={accountId}
-            options={selectableAccounts.map((account) => ({
-              value: account.id,
-              label: account.phone ? `${account.name} — ${account.phone}` : account.name,
-            }))}
-            onChange={setAccountId}
-            placeholder="ابحث باسم أو هاتف الحساب…"
-            searchPlaceholder="اكتب اسم أو هاتف الحساب…"
-            emptyMessage="لا يوجد حساب مطابق"
-          />
-        </label>
-      </div>
-
-      {/* -------------------------------------------------------------------
-          السطر الثاني: ملاحظات الحساب - المديونية قبل - صافي الإيصال - المديونية بعد
-          (بنفس أسلوب فاتورة المبيعات)
-          ------------------------------------------------------------------- */}
-      <div className="receipt-single-row account-header-row2 row-debt-strip">
-        <div className="field-account-notes">
-          <input
-            type="text"
-            readOnly
-            value={selectedAccount?.notes || ''}
-            placeholder="لا توجد ملاحظات على الحساب"
-            className="account-notes-input"
-            title={selectedAccount?.notes || 'لا توجد ملاحظات على الحساب'}
-            aria-label="ملاحظات الحساب"
-          />
+          <label className="field-account-main">
+            <span>{isIn ? 'استلام من (الطرف المسدد)' : 'صرف إلى (المستفيد)'}</span>
+            <SearchableSelect
+              value={accountId}
+              options={selectableAccounts.map((account) => ({
+                value: account.id,
+                label: account.phone ? `${account.name} — ${account.phone}` : account.name,
+              }))}
+              onChange={setAccountId}
+              placeholder="ابحث باسم أو هاتف الحساب…"
+              searchPlaceholder="اكتب اسم أو هاتف الحساب…"
+              emptyMessage="لا يوجد حساب مطابق"
+            />
+          </label>
         </div>
 
-        <div className="account-balance-pills">
-          <div className="stat-pill">
-            <span>المديونية قبل:</span>
-            <strong dir="ltr" className="num">
-              {money(Math.abs(balanceBefore))}
-            </strong>
-            <span className={`stat-pill-tag tag-${statusBefore.type}`}>
-              {statusBefore.text}
-            </span>
+        <div className="account-header-row2">
+          <div className="field-account-notes">
+            <input
+              type="text"
+              readOnly
+              value={selectedAccount?.notes || ''}
+              placeholder="لا توجد ملاحظات على الحساب"
+              className="account-notes-input"
+              title={selectedAccount?.notes || 'لا توجد ملاحظات على الحساب'}
+              aria-label="ملاحظات الحساب"
+            />
           </div>
 
-          <div className="stat-pill">
-            <span>صافي الإيصال:</span>
-            <strong dir="ltr" className="num">
-              {money(numAmount)}
-            </strong>
-          </div>
+          <div className="account-balance-pills">
+            <div className="stat-pill">
+              <span>المديونية قبل:</span>
+              <strong dir="ltr" className="num">
+                {money(Math.abs(balanceBefore))}
+              </strong>
+              <span className={`stat-pill-tag tag-${statusBefore.type}`}>
+                {statusBefore.text}
+              </span>
+            </div>
 
-          <div className="stat-pill">
-            <span>المديونية بعد:</span>
-            <strong dir="ltr" className="num">
-              {money(Math.abs(balanceAfter))}
-            </strong>
-            <span className={`stat-pill-tag tag-${statusAfter.type}`}>
-              {statusAfter.text}
-            </span>
+            <div className="stat-pill">
+              <span>صافي الإيصال:</span>
+              <strong dir="ltr" className="num">
+                {money(numAmount)}
+              </strong>
+            </div>
+
+            <div className="stat-pill">
+              <span>المديونية بعد:</span>
+              <strong dir="ltr" className="num">
+                {money(Math.abs(balanceAfter))}
+              </strong>
+              <span className={`stat-pill-tag tag-${statusAfter.type}`}>
+                {statusAfter.text}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -249,76 +248,80 @@ export default function ReceiptForm({
       {/* -------------------------------------------------------------------
           السطر الثالث: المبلغ المراد استلامه - زرار استلام كامل المديونية - تفقيط المبلغ بالعربي
           ------------------------------------------------------------------- */}
-      <div className="receipt-single-row row-amount-tafqeet">
-        <div className="field-amount-slot">
-          <label>
-            <span>{isIn ? 'المبلغ المراد استلامه' : 'المبلغ المراد صرفه'}</span>
-            <div className="amount-input-with-action">
-              <input
-                aria-label="مبلغ الإيصال"
-                type="number"
-                inputMode="decimal"
-                min="0.0001"
-                step="0.0001"
-                dir="ltr"
-                placeholder="0.00"
-                value={amount}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => setAmount(e.target.value)}
-                className="receipt-amount-input no-spinner num"
-                required
-              />
-              <button
-                type="button"
-                className="btn-settle-all-action"
-                onClick={handleSettleAll}
-                title="استلام كامل المديونية"
-                aria-label="استلام كامل المديونية"
-              >
-                <Check size={14} strokeWidth={2.5} />
-                <span>كامل المديونية</span>
-              </button>
-            </div>
-          </label>
-        </div>
+      <div className="receipt-amount-card">
+        <div className="row-amount-tafqeet">
+          <div className="field-amount-slot">
+            <label>
+              <span>{isIn ? 'المبلغ المراد استلامه' : 'المبلغ المراد صرفه'}</span>
+              <div className="amount-input-with-action">
+                <input
+                  aria-label="مبلغ الإيصال"
+                  type="number"
+                  inputMode="decimal"
+                  min="0.0001"
+                  step="0.0001"
+                  dir="ltr"
+                  placeholder="0.00"
+                  value={amount}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="receipt-amount-input no-spinner num"
+                  required
+                />
+                <button
+                  type="button"
+                  className="btn-settle-all-action"
+                  onClick={handleSettleAll}
+                  title="استلام كامل المديونية"
+                  aria-label="استلام كامل المديونية"
+                >
+                  <Check size={14} strokeWidth={2.5} />
+                  <span>كامل المديونية</span>
+                </button>
+              </div>
+            </label>
+          </div>
 
-        <div className="field-tafqeet-card">
-          <span className="tafqeet-label">تفقيط المبلغ:</span>
-          <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
-            {tafqeetText || '—'}
-          </span>
+          <div className="field-tafqeet-card">
+            <span className="tafqeet-label">تفقيط المبلغ:</span>
+            <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
+              {tafqeetText || '—'}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* -------------------------------------------------------------------
           السطر الرابع: الخزنة المستلمة - ملاحظات
           ------------------------------------------------------------------- */}
-      <div className="receipt-single-row row-cashbox-notes">
-        <label className="field-cashbox-select">
-          <span>الخزنة {isIn ? 'المستلمة' : 'المنصرف منها'}</span>
-          <SearchableSelect
-            value={cashBoxId}
-            options={activeCashBoxes.map((box) => ({
-              value: box.id,
-              label: `${box.name} (${money(box.balance)})`,
-            }))}
-            onChange={setCashBoxId}
-            placeholder="اختر الخزنة…"
-            searchPlaceholder="ابحث باسم الخزنة…"
-            emptyMessage="لا توجد خزنة نشطة"
-          />
-        </label>
+      <div className="receipt-meta-card">
+        <div className="row-cashbox-notes">
+          <label className="field-cashbox-select">
+            <span>الخزنة {isIn ? 'المستلمة' : 'المنصرف منها'}</span>
+            <SearchableSelect
+              value={cashBoxId}
+              options={activeCashBoxes.map((box) => ({
+                value: box.id,
+                label: `${box.name} (${money(box.balance)})`,
+              }))}
+              onChange={setCashBoxId}
+              placeholder="اختر الخزنة…"
+              searchPlaceholder="ابحث باسم الخزنة…"
+              emptyMessage="لا توجد خزنة نشطة"
+            />
+          </label>
 
-        <label className="field-receipt-notes">
-          <span>ملاحظات</span>
-          <input
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="ملاحظات اختيارية على الإيصال…"
-            className="receipt-notes-input"
-          />
-        </label>
+          <label className="field-receipt-notes">
+            <span>ملاحظات</span>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="ملاحظات اختيارية على الإيصال…"
+              className="receipt-notes-input"
+            />
+          </label>
+        </div>
       </div>
 
       {/* تنبيه الرصيد المتاح عند الصرف */}
@@ -340,7 +343,7 @@ export default function ReceiptForm({
       {/* -------------------------------------------------------------------
           السطر الخامس: حفظ - مسح / جديد
           ------------------------------------------------------------------- */}
-      <div className="receipt-single-row row-actions-group">
+      <div className="row-actions-group">
         <button
           type="submit"
           className="btn primary btn-receipt-save-full"

@@ -19,7 +19,7 @@ export default function PreviewReceipt() {
       paid: 0,
       has_documents: true,
       is_active: true,
-      notes: null,
+      notes: 'عميل مميز — تعامل تجاري منتظم',
       system_key: null,
     },
     {
@@ -44,6 +44,23 @@ export default function PreviewReceipt() {
     { id: 'cb-2', serial_number: 2, name: 'خزنة الإدارة العامة', balance: 45000, opening_balance: 10000, notes: null, is_active: true, is_primary: false },
   ];
 
+  const mockEditing: any = {
+    id: 'mock-1',
+    serial_number: 1,
+    number: 'REC-00001',
+    receipt_date: '2026-11-01',
+    direction: 'in',
+    account_id: 'acc-1',
+    account_name: 'شركة النور للتجارة (عميل)',
+    account_kind: 'customer',
+    cash_box_id: 'cb-1',
+    cash_box_name: 'خزنة الكاشير الرئيسية',
+    amount: 1500,
+    statement: 'سداد دفعة نقدية',
+    notes: 'ملاحظات اختيارية',
+    is_free: true,
+  };
+
   return (
     <div style={{ padding: '24px', minHeight: '100vh', background: 'var(--bg)' }}>
       {!open && (
@@ -63,7 +80,7 @@ export default function PreviewReceipt() {
             direction="in"
             accounts={mockAccounts}
             cashBoxes={mockCashBoxes}
-            editing={null}
+            editing={mockEditing}
             onSaved={(msg) => alert(msg)}
             onCancel={() => setOpen(false)}
           />
