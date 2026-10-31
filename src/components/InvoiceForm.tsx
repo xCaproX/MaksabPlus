@@ -365,10 +365,9 @@ export default function InvoiceForm({
             </div>
 
             {/* الصف الثاني: ملاحظات الحساب - الرصيد قبل - صافي المديونية - الرصيد بعد */}
-    <div className="account-header-row2">
+            <div className="account-header-row2">
               {!isWaste && (
-                <label className="field-account-notes">
-                  <span>ملاحظات الحساب</span>
+                <div className="field-account-notes">
                   <input
                     type="text"
                     readOnly
@@ -376,8 +375,9 @@ export default function InvoiceForm({
                     placeholder="لا توجد ملاحظات على الحساب"
                     className="account-notes-input"
                     title={accountNotesDisplay || 'لا توجد ملاحظات على الحساب'}
+                    aria-label="ملاحظات الحساب"
                   />
-                </label>
+                </div>
               )}
 
               {selectedAccount && !isWaste && (

@@ -956,7 +956,7 @@
 
 .account-header-row2 {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 12px;
   padding-top: 8px;
   border-top: 1px solid #f1f5f9;
@@ -966,14 +966,6 @@
   flex: 1;
   min-width: 200px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.account-header-row2 .field-account-notes span {
-  font-size: 12px;
-  font-weight: 700;
-  color: #334155;
 }
 
 .account-notes-input {
