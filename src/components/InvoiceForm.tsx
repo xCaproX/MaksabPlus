@@ -375,7 +375,7 @@ export default function InvoiceForm({
               )}
             </div>
 
-            {/* الصف الثاني: ملاحظات الحساب - الرصيد قبل - صافي المديونية - الرصيد بعد */}
+            {/* الصف الثاني: ملاحظات الحساب - المديونية قبل - صافي الفاتورة - المديونية بعد */}
             <div className="account-header-row2">
               {!isWaste && (
                 <div className="field-account-notes">
@@ -394,7 +394,7 @@ export default function InvoiceForm({
               {selectedAccount && !isWaste && (
                 <div className="account-balance-pills">
                   <div className="stat-pill">
-                    <span>الرصيد قبل:</span>
+                    <span>المديونية قبل:</span>
                     <strong dir="ltr" className="num">
                       {money(Math.abs(balanceBefore))}
                     </strong>
@@ -404,14 +404,14 @@ export default function InvoiceForm({
                   </div>
 
                   <div className="stat-pill">
-                    <span>صافي المديونية:</span>
+                    <span>صافي الفاتورة:</span>
                     <strong dir="ltr" className="num">
                       {money(netInvoiceDebt)}
                     </strong>
                   </div>
 
                   <div className="stat-pill">
-                    <span>الرصيد بعد:</span>
+                    <span>المديونية بعد:</span>
                     <strong dir="ltr" className="num">
                       {money(Math.abs(balanceAfter))}
                     </strong>
