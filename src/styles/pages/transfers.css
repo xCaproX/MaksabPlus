@@ -28,7 +28,7 @@
 
 .transfer-lines-card {
   border-radius: 8px;
-  border: 1px solid var(--erp-border, #cbd5e1);
+  border: 1px solid var(--erp-border, #e2e8f0);
   overflow: hidden;
   background: #ffffff;
 }

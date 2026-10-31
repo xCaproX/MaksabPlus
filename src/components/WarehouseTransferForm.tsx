@@ -55,11 +55,25 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
     (warehouse) => warehouse.is_active !== false || warehouse.id === sourceId || warehouse.id === destinationId,
   );
 
+  function getAvailableStock(itemId: string, warehouseId: string): number {
+    const stock = stockRows.find((row) => row.item_id === itemId && row.warehouse_id === warehouseId);
+    let available = stock ? Number(stock.current_qty) : 0;
+    if (editing && editing.source_warehouse_id === warehouseId) {
+      const prevLine = editing.lines?.find((l) => l.item_id === itemId);
+      if (prevLine) {
+        available += Number(prevLine.qty || 0);
+      }
+    }
+    return available;
+  }
+
   const entrySelectedItem = items.find((entry) => entry.id === entryItemId);
-  const entryStockRow = stockRows.find(
-    (row) => row.item_id === entryItemId && row.warehouse_id === sourceId,
+  const entryAvailableStock = entryItemId ? getAvailableStock(entryItemId, sourceId) : 0;
+  const totalTransferQty = lines.reduce((sum, line) => sum + Number(line.qty || 0), 0);
+
+  const selectableItems = items.filter(
+    (item) => item.is_active !== false || lines.some((l) => l.item_id === item.id)
   );
-  const entryAvailableStock = entryStockRow ? Number(entryStockRow.current_qty) : 0;
 
   function handleEntryItemSelect(itemId: string) {
     if (!itemId) {
@@ -68,9 +82,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
       return;
     }
 
-    const stock = stockRows.find((row) => row.item_id === itemId && row.warehouse_id === sourceId);
-    const available = stock ? Number(stock.current_qty) : 0;
-
+    const available = getAvailableStock(itemId, sourceId);
     if (available <= 0) {
       toast.warning('الصنف غير متوفر في مخزن المصدر');
       return;
@@ -99,7 +111,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
       toast.warning(`الكمية المتاحة بمخزن المصدر (${formatQty(entryAvailableStock)}) هي الحد الأقصى`);
       return;
     }
-    if (num < 1 && val !== '0' && val !== '0.') {
+    if (num <= 0 && val !== '0' && val !== '0.') {
       setEntryQty('1');
       return;
     }
@@ -108,7 +120,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
 
   function handleEntryQtyBlur() {
     const num = parseFloat(entryQty);
-    if (isNaN(num) || num < 1) {
+    if (isNaN(num) || num <= 0) {
       setEntryQty('1');
     } else if (entryAvailableStock > 0 && num > entryAvailableStock) {
       setEntryQty(String(entryAvailableStock));
@@ -123,8 +135,8 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
     }
 
     let qtyNum = Number(entryQty || 0);
-    if (qtyNum < 1) {
-      toast.warning('الكمية يجب ألا تقل عن 1');
+    if (!(qtyNum > 0)) {
+      toast.warning('الكمية يجب أن تكون أكبر من صفر');
       setEntryQty('1');
       entryQtyInputRef.current?.focus();
       return;
@@ -177,6 +189,53 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
     }, 40);
   }
 
+  function handleSourceWarehouseChange(nextSourceId: string) {
+    setSourceId(nextSourceId);
+    if (nextSourceId === destinationId) {
+      setDestinationId(activeWarehouses.find((warehouse) => warehouse.id !== nextSourceId)?.id ?? '');
+    }
+
+    if (entryItemId) {
+      const available = getAvailableStock(entryItemId, nextSourceId);
+      if (available <= 0) {
+        toast.warning('الصنف قيد الإدخال غير متوفر في مخزن المصدر الجديد');
+        setEntryItemId('');
+        setEntryQty('1');
+      } else if (Number(entryQty) > available) {
+        toast.warning(`تم تعديل كمية الصنف قيد الإدخال إلى المتاح بمخزن المصدر (${formatQty(available)})`);
+        setEntryQty(String(available));
+      }
+    }
+
+    if (lines.length > 0) {
+      const remainingLines: DraftLine[] = [];
+      let removedCount = 0;
+      let adjustedCount = 0;
+
+      for (const line of lines) {
+        const available = getAvailableStock(line.item_id, nextSourceId);
+        if (available <= 0) {
+          removedCount++;
+        } else {
+          let qty = Number(line.qty);
+          if (qty > available) {
+            qty = available;
+            adjustedCount++;
+          }
+          remainingLines.push({ ...line, qty: String(qty) });
+        }
+      }
+
+      setLines(remainingLines);
+      if (removedCount > 0) {
+        toast.warning(`تم استبعاد ${removedCount} أصناف لعدم توفرها في المخزن الجديد`);
+      }
+      if (adjustedCount > 0) {
+        toast.warning(`تم تعديل كميات ${adjustedCount} أصناف لتتوافق مع المتاح بالمخزن الجديد`);
+      }
+    }
+  }
+
   function updateLine(key: string, patch: Partial<DraftLine>) {
     setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
   }
@@ -227,7 +286,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
     // إدراج الصنف المعلق في شريط الإدخال تلقائياً
     if (entryItemId) {
       let qtyNum = Number(entryQty || 0);
-      if (qtyNum >= 1 && entryAvailableStock > 0) {
+      if (qtyNum > 0 && entryAvailableStock > 0) {
         if (qtyNum > entryAvailableStock) qtyNum = entryAvailableStock;
         const existingIndex = activeLines.findIndex((l) => l.item_id === entryItemId);
         if (existingIndex >= 0) {
@@ -256,10 +315,10 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
 
     // تحقق من كفاية الأرصدة
     for (const line of activeLines) {
-      const stock = stockRows.find((row) => row.item_id === line.item_id && row.warehouse_id === sourceId);
-      const available = stock ? Number(stock.current_qty) : 0;
+      const available = getAvailableStock(line.item_id, sourceId);
       if (Number(line.qty) > available) {
-        return toast.error(`الكمية المنقولة تتجاوز المتاح بمخزن المصدر (${formatQty(available)})`);
+        const item = items.find((i) => i.id === line.item_id);
+        return toast.error(`الكمية المنقولة من "${item?.name ?? 'الصنف'}" تتجاوز المتاح بمخزن المصدر (${formatQty(available)})`);
       }
     }
 
@@ -279,15 +338,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                 value: warehouse.id,
                 label: warehouse.name,
               }))}
-              onChange={(next) => {
-                setSourceId(next);
-                setLines([]);
-                setEntryItemId('');
-                setEntryQty('1');
-                if (next === destinationId) {
-                  setDestinationId(activeWarehouses.find((warehouse) => warehouse.id !== next)?.id ?? '');
-                }
-              }}
+              onChange={handleSourceWarehouseChange}
               placeholder="اختر مخزن المصدر…"
               searchPlaceholder="ابحث باسم مخزن المصدر…"
               emptyMessage="لا توجد مخازن متاحة"
@@ -324,6 +375,18 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
               aria-label="ملاحظات التحويل"
             />
           </div>
+
+          <div className="account-balance-pills">
+            <div className="stat-pill" title="عدد أصناف أمر التحويل">
+              <span>عدد الأصناف:</span>
+              <strong dir="ltr" className="num">{lines.length}</strong>
+            </div>
+
+            <div className="stat-pill" title="إجمالي الكميات المنقولة">
+              <span>إجمالي الكميات:</span>
+              <strong dir="ltr" className="num">{formatQty(totalTransferQty)}</strong>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -350,9 +413,8 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                   <SearchableSelect
                     inputRef={entryItemSearchRef}
                     value={entryItemId}
-                    options={items.map((entry) => {
-                      const stock = stockRows.find((r) => r.item_id === entry.id && r.warehouse_id === sourceId);
-                      const available = stock ? Number(stock.current_qty) : 0;
+                    options={selectableItems.map((entry) => {
+                      const available = getAvailableStock(entry.id, sourceId);
                       const isOut = available <= 0;
                       return {
                         value: entry.id,
@@ -381,7 +443,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                       aria-label="الكمية المنقولة"
                       type="number"
                       inputMode="decimal"
-                      min="1"
+                      min="0.0001"
                       step="0.0001"
                       dir="ltr"
                       value={entryQty}
@@ -422,8 +484,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                 </tr>
               ) : (
                 lines.map((line, index) => {
-                  const stock = stockRows.find((row) => row.item_id === line.item_id && row.warehouse_id === sourceId);
-                  const available = stock ? Number(stock.current_qty) : 0;
+                  const available = getAvailableStock(line.item_id, sourceId);
                   const item = items.find((entry) => entry.id === line.item_id);
 
                   return (
@@ -448,7 +509,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                             aria-label={`الكمية المنقولة — ${item?.name ?? ''}`}
                             type="number"
                             inputMode="decimal"
-                            min="1"
+                            min="0.0001"
                             step="0.0001"
                             dir="ltr"
                             value={line.qty}
@@ -469,7 +530,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                                 toast.warning(`الكمية المتاحة بالمصدر (${formatQty(available)}) هي الحد الأقصى`);
                                 return;
                               }
-                              if (num < 1 && val !== '0' && val !== '0.') {
+                              if (num <= 0 && val !== '0' && val !== '0.') {
                                 updateLine(line.key, { qty: '1' });
                                 return;
                               }
@@ -477,7 +538,7 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                             }}
                             onBlur={() => {
                               const num = parseFloat(line.qty);
-                              if (isNaN(num) || num < 1) {
+                              if (isNaN(num) || num <= 0) {
                                 updateLine(line.key, { qty: '1' });
                               } else if (available > 0 && num > available) {
                                 updateLine(line.key, { qty: String(available) });
