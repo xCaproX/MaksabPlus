@@ -40,7 +40,7 @@ function runEdgeScreenshot(width, height, outputPath, targetUrl) {
       '--headless',
       '--disable-gpu',
       '--hide-scrollbars',
-      '--virtual-time-budget=2000',
+      '--virtual-time-budget=4000',
       `--user-data-dir=${tempProfile}`,
       `--window-size=${width},${height}`,
       `--screenshot=${outputPath}`,

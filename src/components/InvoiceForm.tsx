@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { Check, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import { Check, RotateCcw, Save, Trash2, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
@@ -49,7 +49,7 @@ export default function InvoiceForm({
   stockRows,
   editing,
   onSaved,
-  onCancel,
+  onCancel: _onCancel,
 }: InvoiceFormProps) {
   const isPurchase = kind === 'purchase' || kind === 'purchase_return';
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
@@ -199,10 +199,6 @@ export default function InvoiceForm({
       }
       return updated;
     });
-  }
-
-  function addEmptyLine() {
-    setLines((current) => [...current, emptyLine()]);
   }
 
   function moveFromQuantity(event: KeyboardEvent<HTMLInputElement>) {
@@ -426,18 +422,6 @@ export default function InvoiceForm({
 
           {/* جدول الأصناف */}
           <div className="right-card items-table-card">
-            <div className="table-header-title-bar">
-              <span className="items-title">الأصناف</span>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={addEmptyLine}
-                title="إضافة سطر صنف جديد"
-              >
-                <Plus size={14} /> إضافة سطر
-              </button>
-            </div>
-
             <div className="lines-wrap">
               <table className="lines-table">
                 <thead>
@@ -718,16 +702,6 @@ export default function InvoiceForm({
             >
               <RotateCcw size={14} />
               <span>مسح / جديد</span>
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={onCancel}
-              disabled={busy}
-              style={{ fontSize: '11.5px', minHeight: '28px' }}
-            >
-              إلغاء النافذة
             </button>
           </div>
         </div>
