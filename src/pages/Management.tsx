@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { entityNumber, money, qty as formatQty } from '../lib/format';
+import { entityNumber, getBalanceStatus, money, qty as formatQty } from '../lib/format';
 import { errorMessage, translateDbError } from '../lib/errors';
 import type { AccountRow, CashBoxRow, StockOpeningRow, WarehouseOption } from '../lib/types';
 import { useAccess } from '../lib/access';
@@ -415,7 +415,21 @@ export default function Management() {
                               onChange={(event) => setAccountValues((values) => ({ ...values, [account.id]: event.target.value }))}
                             />
                           </td>
-                          <td className={`num strong ${Number(account.balance) > 0 ? 'remaining' : ''}`}>{money(account.balance)}</td>
+                          <td className="num">
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+                              {(() => {
+                                const status = getBalanceStatus(account.balance, account.kind);
+                                return (
+                                  <span className={`status-badge-mini status-${status.type}`}>
+                                    {status.text}
+                                  </span>
+                                );
+                              })()}
+                              <strong dir="ltr" className={`tabular-nums ${Number(account.balance) > 0 ? 'remaining' : ''}`}>
+                                {money(Math.abs(Number(account.balance || 0)))}
+                              </strong>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
@@ -580,19 +594,41 @@ export default function Management() {
                 <dl className="erp-detail-summary">
                   <div><dt>الرقم</dt><dd className="num">{entityNumber(selectedAccount.kind === 'customer' ? 'CUS' : 'SUP', selectedAccount.serial_number)}</dd></div>
                   <div><dt>الهاتف</dt><dd className="num">{selectedAccount.phone || '—'}</dd></div>
-                  <div><dt>الرصيد الفعلي الحالي</dt><dd className="num strong">{money(selectedAccount.balance)}</dd></div>
+                  <div>
+                    <dt>الرصيد الفعلي الحالي</dt>
+                    <dd className="num" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      {(() => {
+                        const status = getBalanceStatus(selectedAccount.balance, selectedAccount.kind);
+                        return (
+                          <span className={`status-badge-mini status-${status.type}`}>
+                            {status.text}
+                          </span>
+                        );
+                      })()}
+                      <strong dir="ltr" className="tabular-nums">
+                        {money(Math.abs(Number(selectedAccount.balance || 0)))}
+                      </strong>
+                    </dd>
+                  </div>
                 </dl>
 
                 <div className="erp-detail-totals">
                   <span>الرصيد الافتتاحي</span>
-                  <strong className="num remaining">{money(Number(accountValues[selectedAccount.id] ?? selectedAccount.opening_balance))}</strong>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    {(() => {
+                      const openingVal = Number(accountValues[selectedAccount.id] ?? selectedAccount.opening_balance);
+                      const status = getBalanceStatus(openingVal, selectedAccount.kind);
+                      return (
+                        <span className={`status-badge-mini status-${status.type}`}>
+                          {status.text}
+                        </span>
+                      );
+                    })()}
+                    <strong dir="ltr" className="num tabular-nums remaining">
+                      {money(Math.abs(Number(accountValues[selectedAccount.id] ?? selectedAccount.opening_balance)))}
+                    </strong>
+                  </div>
                 </div>
-
-                <p className="hint">
-                  {selectedAccount.kind === 'customer'
-                    ? 'للعميل: المبلغ الموجب يعني رصيد مستحق عليه (مدين)، والسالب يعني رصيد لصالحه (دائن).'
-                    : 'للمورد: المبلغ الموجب يعني رصيد مستحق له (دائن)، والسالب يعني رصيد لصالحك عنده (مدين).'}
-                </p>
 
                 {selectedAccount.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedAccount.notes}</p>}
               </>

@@ -86,6 +86,7 @@ export default function MasterData() {
   const [accountName, setAccountName] = useState('');
   const [accountKind, setAccountKind] = useState<AccountKind>('customer');
   const [accountOpeningBalance, setAccountOpeningBalance] = useState('0');
+  const [accountOpeningType, setAccountOpeningType] = useState<'debit' | 'credit'>('debit');
   const [accountPhone, setAccountPhone] = useState('');
   const [accountNotes, setAccountNotes] = useState('');
   const [accountActive, setAccountActive] = useState(true);
@@ -350,7 +351,14 @@ export default function MasterData() {
         p_kind: accountKind,
         p_phone: accountPhone.trim() || null,
         p_is_active: accountActive,
-        p_opening_balance: Number(accountOpeningBalance) || 0,
+        p_opening_balance: (() => {
+          const raw = Math.abs(Number(accountOpeningBalance) || 0);
+          if (raw === 0) return 0;
+          if (accountKind === 'customer') {
+            return accountOpeningType === 'credit' ? -raw : raw;
+          }
+          return accountOpeningType === 'debit' ? -raw : raw;
+        })(),
         p_notes: accountNotes.trim() || null,
       });
 
@@ -1164,15 +1172,36 @@ export default function MasterData() {
               </label>
 
               {!editingAccount && (
-                <label>
-                  الرصيد الافتتاحي
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={accountOpeningBalance}
-                    onChange={(e) => setAccountOpeningBalance(e.target.value)}
-                    placeholder="0.00"
-                  />
+                <label className="span-2">
+                  <span>الرصيد الافتتاحي</span>
+                  <div className="opening-balance-input-wrap">
+                    <input
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      className="num no-spinner"
+                      dir="ltr"
+                      value={accountOpeningBalance}
+                      onChange={(e) => setAccountOpeningBalance(e.target.value)}
+                      placeholder="0.00"
+                    />
+                    <div className="opening-type-toggle">
+                      <button
+                        type="button"
+                        className={`btn-toggle-badge ${accountOpeningType === 'debit' ? 'active-debit' : ''}`}
+                        onClick={() => setAccountOpeningType('debit')}
+                      >
+                        {accountKind === 'customer' ? 'عليه (مستحق على العميل)' : 'عليه (مقدم طرف المورد)'}
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn-toggle-badge ${accountOpeningType === 'credit' ? 'active-credit' : ''}`}
+                        onClick={() => setAccountOpeningType('credit')}
+                      >
+                        {accountKind === 'customer' ? 'له (رصيد لصالحه)' : 'له (مستحق للمورد)'}
+                      </button>
+                    </div>
+                  </div>
                 </label>
               )}
 
@@ -1197,14 +1226,6 @@ export default function MasterData() {
                 </label>
               )}
             </div>
-
-            {!editingAccount && (
-              <p className="hint">
-                {accountKind === 'customer'
-                  ? 'للعميل: المبلغ الموجب يعني رصيد مستحق عليه، والسالب يعني رصيد لصالحه.'
-                  : 'للمورد: المبلغ الموجب يعني رصيد مستحق له، والسالب يعني رصيد لصالحك عنده.'}
-              </p>
-            )}
 
             <div className="form-modal-actions">
               <button type="submit" className="btn primary">
