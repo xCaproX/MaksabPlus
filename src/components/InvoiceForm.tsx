@@ -565,7 +565,7 @@ export default function InvoiceForm({
         <div className="invoice-part-left">
           {/* 1. إجمالي الفاتورة والخانة على نفس السطر */}
           <div className="left-row-strip left-total-strip">
-            <span className="strip-label">إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}</span>
+            <span className="strip-label">إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}:</span>
             <div className="strip-value-box">
               <strong dir="ltr" className="strip-value strip-value-total num">{money(total)}</strong>
             </div>
@@ -575,7 +575,7 @@ export default function InvoiceForm({
           {!isWaste && (
             <div className="left-row-strip left-paid-strip">
               <div className="paid-label-group">
-                <span className="strip-label">{isReturn ? 'المسترد' : 'المدفوع'}</span>
+                <span className="strip-label">{isReturn ? 'المسترد:' : 'المدفوع:'}</span>
                 <div className="paid-quick-actions">
                   <button
                     type="button"
@@ -597,19 +597,21 @@ export default function InvoiceForm({
                   </button>
                 </div>
               </div>
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                dir="ltr"
-                placeholder="0.00"
-                value={paid}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => setPaid(e.target.value)}
-                className="no-spinner num left-paid-input"
-                aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
-              />
+              <div className="strip-value-box strip-paid-box">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  dir="ltr"
+                  placeholder="0.00"
+                  value={paid}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setPaid(e.target.value)}
+                  className="no-spinner num left-paid-input"
+                  aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
+                />
+              </div>
             </div>
           )}
 
