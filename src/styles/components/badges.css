@@ -92,6 +92,69 @@
   background-color: #64748b;
 }
 
+/* ---------- Status Badge Mini (Tables, Headers, Debt Cards) ---------- */
+.status-badge-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.status-badge-mini.status-settled {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.status-badge-mini.status-debit {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.status-badge-mini.status-credit {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+/* Debt stat pill used in receipt & statements */
+.debt-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.debt-stat-pill .stat-label {
+  color: #64748b;
+  font-size: 11.5px;
+}
+.debt-stat-pill .stat-amount {
+  font-weight: 800;
+  color: #1e293b;
+  font-size: 13px;
+}
+.debt-stat-pill.pill-net-invoice {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.debt-stat-pill.pill-net-invoice .stat-label {
+  color: #166534;
+}
+.debt-stat-pill.pill-net-invoice .stat-amount {
+  color: #15803d;
+}
+
+
 /* Linked receipt link in detail panel */
 .receipt-linked-link {
   display: inline-flex;

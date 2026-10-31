@@ -60,3 +60,21 @@ export function today(): string {
   return `${d.getFullYear()}-${month}-${day}`;
 }
 
+export type BalanceStatusInfo = {
+  text: 'خالص' | 'عليه' | 'له';
+  type: 'settled' | 'debit' | 'credit';
+};
+
+export function getBalanceStatus(
+  balance: number | string | null | undefined,
+  kind?: string | null,
+): BalanceStatusInfo {
+  const rounded = round2(Number(balance || 0));
+  if (rounded === 0) return { text: 'خالص', type: 'settled' };
+  if (kind === 'supplier') {
+    return rounded > 0 ? { text: 'له', type: 'credit' } : { text: 'عليه', type: 'debit' };
+  }
+  return rounded > 0 ? { text: 'عليه', type: 'debit' } : { text: 'له', type: 'credit' };
+}
+
+

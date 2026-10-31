@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { X, Printer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { entityNumber, formatDate, money, qty as formatQty, today } from '../lib/format';
+import { entityNumber, formatDate, getBalanceStatus, money, qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import DateInput from '../components/DateInput';
@@ -418,7 +418,21 @@ export default function Balances() {
                         <td className="num strong">{entityNumber('CUS', account.serial_number)}</td>
                         <td className="strong">{account.name}</td>
                         <td className="num col-hide-on-detail">{account.phone || '—'}</td>
-                        <td className={`num strong ${Number(account.balance) > 0 ? 'remaining' : ''}`}>{money(account.balance)}</td>
+                        <td className="num">
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+                            {(() => {
+                              const status = getBalanceStatus(account.balance, 'customer');
+                              return (
+                                <span className={`status-badge-mini status-${status.type}`}>
+                                  {status.text}
+                                </span>
+                              );
+                            })()}
+                            <strong dir="ltr" className={`tabular-nums ${Number(account.balance) > 0 ? 'remaining' : ''}`}>
+                              {money(Math.abs(Number(account.balance || 0)))}
+                            </strong>
+                          </div>
+                        </td>
                         <td className="muted col-hide-on-detail">{account.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button type="button" className="btn compact" onClick={() => openStatement(account)}>كشف حساب</button>
@@ -478,7 +492,21 @@ export default function Balances() {
                         <td className="num strong">{entityNumber('SUP', account.serial_number)}</td>
                         <td className="strong">{account.name}</td>
                         <td className="num col-hide-on-detail">{account.phone || '—'}</td>
-                        <td className={`num strong ${Number(account.balance) > 0 ? 'remaining' : ''}`}>{money(account.balance)}</td>
+                        <td className="num">
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+                            {(() => {
+                              const status = getBalanceStatus(account.balance, 'supplier');
+                              return (
+                                <span className={`status-badge-mini status-${status.type}`}>
+                                  {status.text}
+                                </span>
+                              );
+                            })()}
+                            <strong dir="ltr" className={`tabular-nums ${Number(account.balance) > 0 ? 'remaining' : ''}`}>
+                              {money(Math.abs(Number(account.balance || 0)))}
+                            </strong>
+                          </div>
+                        </td>
                         <td className="muted col-hide-on-detail">{account.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button type="button" className="btn compact" onClick={() => openStatement(account)}>كشف حساب</button>
@@ -643,14 +671,20 @@ export default function Balances() {
 
               <div className="erp-detail-totals">
                 <span>الرصيد الفعلي</span>
-                <strong className={`num ${Number(selectedAccount.balance) > 0 ? 'remaining' : ''}`}>{money(selectedAccount.balance)}</strong>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                  {(() => {
+                    const status = getBalanceStatus(selectedAccount.balance, selectedAccount.kind);
+                    return (
+                      <span className={`status-badge-mini status-${status.type}`}>
+                        {status.text}
+                      </span>
+                    );
+                  })()}
+                  <strong dir="ltr" className={`num tabular-nums ${Number(selectedAccount.balance) > 0 ? 'remaining' : ''}`}>
+                    {money(Math.abs(Number(selectedAccount.balance || 0)))}
+                  </strong>
+                </div>
               </div>
-
-              <p className="hint">
-                {selectedAccount.kind === 'customer'
-                  ? 'الرصيد الموجب يعني مستحق على العميل (مدين)، والرصيد السالب يعني رصيد لصالحه (دائن).'
-                  : 'الرصيد الموجب يعني مستحق للمورد (دائن)، والرصيد السالب يعني رصيد للشركة طرفه (مدين).'}
-              </p>
 
               {selectedAccount.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedAccount.notes}</p>}
 
@@ -765,6 +799,42 @@ export default function Balances() {
             </div>
             {statementRows.length > 0 && (
               <>
+                {(() => {
+                  const lastRow = statementRows[statementRows.length - 1];
+                  const lastBal = Number(lastRow.running_balance || 0);
+                  const status = getBalanceStatus(lastBal, statementAccount.kind);
+                  return (
+                    <div className="statement-cockpit-strip">
+                      <div className="statement-cockpit-card">
+                        <span className="card-label">إجمالي المسحوبات (مدين)</span>
+                        <div className="card-value-wrap">
+                          <strong dir="ltr" className="card-value num tabular-nums">
+                            {money(statementRows[0].total_debit)}
+                          </strong>
+                        </div>
+                      </div>
+                      <div className="statement-cockpit-card">
+                        <span className="card-label">إجمالي السدادات (دائن)</span>
+                        <div className="card-value-wrap">
+                          <strong dir="ltr" className="card-value num tabular-nums">
+                            {money(statementRows[0].total_credit)}
+                          </strong>
+                        </div>
+                      </div>
+                      <div className="statement-cockpit-card primary-card">
+                        <span className="card-label">رصيد آخر المدة</span>
+                        <div className="card-value-wrap">
+                          <span className={`status-badge-mini status-${status.type}`}>
+                            {status.text}
+                          </span>
+                          <strong dir="ltr" className={`card-value num tabular-nums ${lastBal > 0 ? 'due' : ''}`}>
+                            {money(Math.abs(lastBal))}
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="table-wrap responsive-table">
                   <table className="table account-statement-table">
                     <thead>
@@ -820,6 +890,38 @@ export default function Balances() {
             </div>
             {cashStatementRows.length > 0 && (
               <>
+                {(() => {
+                  const lastRow = cashStatementRows[cashStatementRows.length - 1];
+                  const lastBal = Number(lastRow.running_balance || 0);
+                  return (
+                    <div className="statement-cockpit-strip">
+                      <div className="statement-cockpit-card">
+                        <span className="card-label">إجمالي الوارد</span>
+                        <div className="card-value-wrap">
+                          <strong dir="ltr" className="card-value num tabular-nums">
+                            {money(cashStatementRows[0].total_incoming)}
+                          </strong>
+                        </div>
+                      </div>
+                      <div className="statement-cockpit-card">
+                        <span className="card-label">إجمالي الصادر</span>
+                        <div className="card-value-wrap">
+                          <strong dir="ltr" className="card-value num tabular-nums">
+                            {money(cashStatementRows[0].total_outgoing)}
+                          </strong>
+                        </div>
+                      </div>
+                      <div className="statement-cockpit-card primary-card">
+                        <span className="card-label">رصيد الخزنة الحالي</span>
+                        <div className="card-value-wrap">
+                          <strong dir="ltr" className="card-value num tabular-nums">
+                            {money(lastBal)}
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="table-wrap responsive-table">
                   <table className="table account-statement-table">
                     <thead><tr><th>التاريخ</th><th>البيان</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead>
@@ -877,6 +979,38 @@ export default function Balances() {
             </div>
             {itemStatementRows.length > 0 && (
               <>
+                {(() => {
+                  const lastRow = itemStatementRows[itemStatementRows.length - 1];
+                  const lastQty = Number(lastRow.running_balance || 0);
+                  return (
+                    <div className="statement-cockpit-strip">
+                      <div className="statement-cockpit-card">
+                        <span className="card-label">إجمالي الوارد</span>
+                        <div className="card-value-wrap">
+                          <strong dir="ltr" className="card-value num tabular-nums">
+                            {formatQty(itemStatementRows[0].total_incoming)} {itemStatementRow.unit}
+                          </strong>
+                        </div>
+                      </div>
+                      <div className="statement-cockpit-card">
+                        <span className="card-label">إجمالي الصادر</span>
+                        <div className="card-value-wrap">
+                          <strong dir="ltr" className="card-value num tabular-nums">
+                            {formatQty(itemStatementRows[0].total_outgoing)} {itemStatementRow.unit}
+                          </strong>
+                        </div>
+                      </div>
+                      <div className="statement-cockpit-card primary-card">
+                        <span className="card-label">الرصيد المتبقي</span>
+                        <div className="card-value-wrap">
+                          <strong dir="ltr" className="card-value num tabular-nums">
+                            {formatQty(lastQty)} {itemStatementRow.unit}
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="table-wrap responsive-table">
                   <table className="table account-statement-table">
                     <thead><tr><th>التاريخ</th><th>البيان</th><th>وارد</th><th>صادر</th><th>الرصيد</th></tr></thead>

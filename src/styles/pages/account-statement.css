@@ -31,6 +31,60 @@
   margin-bottom: 16px;
 }
 
+/* Modern Cockpit Summary Strip */
+.statement-cockpit-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.statement-cockpit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+
+.statement-cockpit-card.primary-card {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.statement-cockpit-card .card-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.statement-cockpit-card .card-value-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.statement-cockpit-card .card-value {
+  font-size: 17px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.statement-cockpit-card .card-value.due {
+  color: #b91c1c;
+}
+
+.statement-cockpit-card .card-value.credit {
+  color: #15803d;
+}
+
 .account-statement-totals {
   width: min(100%, 390px);
   margin: 20px 0 0 auto;

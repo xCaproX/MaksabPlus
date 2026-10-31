@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { money, qty, round2, formatDate, entityNumber } from '../lib/format';
+import { money, qty, round2, formatDate, entityNumber, getBalanceStatus } from '../lib/format';
 
 describe('format - دوال التنسيق المحاسبي والتواريخ', () => {
   describe('money', () => {
@@ -54,6 +54,23 @@ describe('format - دوال التنسيق المحاسبي والتواريخ',
       expect(entityNumber('INV', 7)).toBe('INV-00007');
       expect(entityNumber('REC', 123)).toBe('REC-00123');
       expect(entityNumber('CUST', null)).toBe('CUST-00000');
+    });
+  });
+
+  describe('getBalanceStatus - تحديد حالة وحسابات الرصيد الموحدة', () => {
+    it('يحدد حالة خالص عند رصيد صفر', () => {
+      expect(getBalanceStatus(0, 'customer')).toEqual({ text: 'خالص', type: 'settled' });
+      expect(getBalanceStatus(0, 'supplier')).toEqual({ text: 'خالص', type: 'settled' });
+    });
+
+    it('يحدد حالة العميل: موجب = عليه، سالب = له', () => {
+      expect(getBalanceStatus(150, 'customer')).toEqual({ text: 'عليه', type: 'debit' });
+      expect(getBalanceStatus(-80, 'customer')).toEqual({ text: 'له', type: 'credit' });
+    });
+
+    it('يحدد حالة المورد: موجب = له، سالب = عليه', () => {
+      expect(getBalanceStatus(300, 'supplier')).toEqual({ text: 'له', type: 'credit' });
+      expect(getBalanceStatus(-50, 'supplier')).toEqual({ text: 'عليه', type: 'debit' });
     });
   });
 });
