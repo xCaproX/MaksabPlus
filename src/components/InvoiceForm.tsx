@@ -60,12 +60,15 @@ export default function InvoiceForm({
     : kind === 'sale' || kind === 'sale_return'
       ? 'cash_customer'
       : 'cash_supplier';
-  const defaultAccountId = accounts.find((account) => account.system_key === defaultSystemKey)?.id ?? '';
   const defaultAccountKind: AccountKind = editing?.invoice.account_kind ?? (
     isWaste ? 'waste' : kind === 'sale' || kind === 'sale_return' ? 'customer' : 'supplier'
   );
+  const defaultAccountId = accounts.find((account) => account.system_key === defaultSystemKey)?.id
+    ?? accounts.find((account) => account.name.includes('عميل نقدي'))?.id
+    ?? accounts.find((account) => account.kind === defaultAccountKind)?.id
+    ?? '';
   const defaultWarehouse = warehouses.find((w) => w.is_primary && w.is_active !== false)
-    ?? warehouses.find((w) => w.name === 'المخزن الرئيسي' && w.is_active !== false)
+    ?? warehouses.find((w) => w.name.includes('المخزن الرئيسي') && w.is_active !== false)
     ?? warehouses.find((w) => w.is_active !== false);
 
   const [date] = useState(editing?.invoice.invoice_date ?? today());
@@ -310,8 +313,24 @@ export default function InvoiceForm({
         <div className="invoice-part-right">
           {/* كارت رأس الحساب والبيانات الأساسية */}
           <div className="right-card account-header-card">
-            {/* الصف الأول: نوع الحساب - الحساب - ملاحظات الحساب */}
-            <div className="account-header-grid">
+            {/* الصف الأول: المخزن (افتراضي المخزن الرئيسي) - نوع الحساب - الحساب */}
+            <div className="account-header-row1">
+              <label className="field-warehouse-select">
+                <span>المخزن</span>
+                <SearchableSelect
+                  value={warehouseId}
+                  options={selectableWarehouses.map((warehouse) => ({
+                    value: warehouse.id,
+                    label: `${warehouse.name}${warehouse.is_active === false ? ' — موقوف' : ''}`,
+                  }))}
+                  onChange={setWarehouseId}
+                  placeholder={selectableWarehouses.length === 0 ? 'لا يوجد مخزن نشط' : 'اختر المخزن…'}
+                  searchPlaceholder="اكتب للبحث عن مخزن…"
+                  emptyMessage="لا يوجد مخزن مطابق"
+                  required
+                />
+              </label>
+
               {!isWaste && (
                 <label className="field-account-kind">
                   <span>نوع الحساب</span>
@@ -343,7 +362,10 @@ export default function InvoiceForm({
                   />
                 </label>
               )}
+            </div>
 
+            {/* الصف الثاني: ملاحظات الحساب - الرصيد قبل - صافي المديونية - الرصيد بعد */}
+    <div className="account-header-row2">
               {!isWaste && (
                 <label className="field-account-notes">
                   <span>ملاحظات الحساب</span>
@@ -357,12 +379,9 @@ export default function InvoiceForm({
                   />
                 </label>
               )}
-            </div>
 
-            {/* الصف الثاني: الرصيد قبل - الرصيد بعد - صافي المديونية - المخزن */}
-            <div className="balance-warehouse-strip">
               {selectedAccount && !isWaste && (
-                <>
+                <div className="account-balance-pills">
                   <div className="stat-pill">
                     <span>الرصيد قبل:</span>
                     <strong
@@ -378,6 +397,13 @@ export default function InvoiceForm({
                         ? accountKind === 'customer' ? 'دائن (له)' : 'مدين (عنده)'
                         : 'خالص'}
                     </span>
+                  </div>
+
+                  <div className="stat-pill highlight">
+                    <span>صافي المديونية:</span>
+                    <strong dir="ltr" className="num">
+                      {money(netInvoiceDebt)}
+                    </strong>
                   </div>
 
                   <div className="stat-pill">
@@ -396,31 +422,8 @@ export default function InvoiceForm({
                         : 'خالص'}
                     </span>
                   </div>
-
-                  <div className="stat-pill highlight">
-                    <span>صافي المديونية:</span>
-                    <strong dir="ltr" className="num">
-                      {money(netInvoiceDebt)}
-                    </strong>
-                  </div>
-                </>
+                </div>
               )}
-
-              <label className="field-warehouse-select" style={{ marginInlineStart: 'auto', minWidth: '200px' }}>
-                <span>المخزن</span>
-                <SearchableSelect
-                  value={warehouseId}
-                  options={selectableWarehouses.map((warehouse) => ({
-                    value: warehouse.id,
-                    label: `${warehouse.name}${warehouse.is_active === false ? ' — موقوف' : ''}`,
-                  }))}
-                  onChange={setWarehouseId}
-                  placeholder={selectableWarehouses.length === 0 ? 'لا يوجد مخزن نشط' : 'اختر المخزن…'}
-                  searchPlaceholder="اكتب للبحث عن مخزن…"
-                  emptyMessage="لا يوجد مخزن مطابق"
-                  required
-                />
-              </label>
             </div>
           </div>
 
