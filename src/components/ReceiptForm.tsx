@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react';
-import { Check, RotateCcw, Save, X } from 'lucide-react';
+import { Check, RotateCcw, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { money, round2, today } from '../lib/format';
+import { money, round2, today, getBalanceStatus } from '../lib/format';
+import { tafqeet } from '../lib/tafqeet';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
-import DateInput from './DateInput';
 import { toast } from './Toast';
 import type {
   AccountKind,
@@ -40,10 +40,10 @@ export default function ReceiptForm({
   const defaultCashBox = activeCashBoxes.find((b) => b.is_primary) ?? activeCashBoxes[0];
   const [cashBoxId, setCashBoxId] = useState(editing?.cash_box_id ?? defaultCashBox?.id ?? '');
 
-  const [date, setDate] = useState(editing?.receipt_date ?? today());
+  // التاريخ يتم حفظه تلقائياً بالتاريخ الحالي دون الحاجة لحقل إدخال بالواجهة
+  const date = editing?.receipt_date ?? today();
   const [amount, setAmount] = useState(editing ? String(Number(editing.amount)) : '');
-  const [description, setDescription] = useState(editing?.statement ?? '');
-  const [notes, setNotes] = useState(editing?.notes ?? '');
+  const [notes, setNotes] = useState(editing?.notes ?? editing?.statement ?? '');
   const [busy, setBusy] = useState(false);
 
   const selectableAccounts = accounts.filter((account) => account.kind === accountKind);
@@ -72,15 +72,6 @@ export default function ReceiptForm({
     balanceAfter = isIn ? balanceBefore + numAmount : balanceBefore - numAmount;
   }
 
-  function getBalanceStatus(balance: number, kind: AccountKind): { text: string; type: 'settled' | 'debit' | 'credit' } {
-    const rounded = round2(balance);
-    if (rounded === 0) return { text: 'خالص', type: 'settled' };
-    if (kind === 'customer') {
-      return rounded > 0 ? { text: 'عليه', type: 'debit' } : { text: 'له', type: 'credit' };
-    }
-    return rounded > 0 ? { text: 'له', type: 'credit' } : { text: 'عليه', type: 'debit' };
-  }
-
   const statusBefore = getBalanceStatus(balanceBefore, isCust ? 'customer' : 'supplier');
   const statusAfter = getBalanceStatus(balanceAfter, isCust ? 'customer' : 'supplier');
 
@@ -101,7 +92,6 @@ export default function ReceiptForm({
     if (isCust && isIn) {
       if (balanceBefore <= 0) {
         toast.info('العميل ليس عليه مديونية حالياً');
-        setAmount('0.00');
         return;
       }
       setAmount(round2(balanceBefore).toFixed(2));
@@ -109,19 +99,22 @@ export default function ReceiptForm({
     } else if (!isCust && !isIn) {
       if (balanceBefore <= 0) {
         toast.info('المورد ليس له مستحقات حالياً');
-        setAmount('0.00');
         return;
       }
       setAmount(round2(balanceBefore).toFixed(2));
       toast.info(`تم إدراج كامل مستحقات المورد (${money(balanceBefore)})`);
     } else {
-      setAmount(round2(Math.abs(balanceBefore)).toFixed(2));
+      const positiveBal = Math.abs(balanceBefore);
+      if (positiveBal <= 0) {
+        toast.info('لا يوجد رصيد مستحق على هذا الحساب');
+        return;
+      }
+      setAmount(round2(positiveBal).toFixed(2));
     }
   }
 
   function handleResetNew() {
     setAmount('');
-    setDescription('');
     setNotes('');
     if (!editing) {
       setAccountId('');
@@ -133,7 +126,6 @@ export default function ReceiptForm({
     event.preventDefault();
     if (!accountId) return toast.error('اختر الحساب أولاً');
     if (!cashBoxId) return toast.error('اختر الخزنة');
-    if (!date) return toast.error('أدخل التاريخ');
     if (!(numAmount > 0)) return toast.error('أدخل مبلغاً صحيحاً أكبر من صفر');
 
     if (isOverdraft) {
@@ -141,13 +133,14 @@ export default function ReceiptForm({
     }
 
     setBusy(true);
+    const trimmedNotes = notes.trim() || null;
     const args = {
       p_account_id: accountId,
       p_cash_box_id: cashBoxId,
       p_receipt_date: date,
       p_amount: round2(numAmount),
-      p_description: description.trim() || null,
-      p_notes: notes.trim() || null,
+      p_description: trimmedNotes,
+      p_notes: trimmedNotes,
     };
 
     const { error: rpcError } = editing
@@ -168,217 +161,211 @@ export default function ReceiptForm({
     );
   }
 
+  const tafqeetText = numAmount > 0 ? tafqeet(numAmount) : '';
+
   return (
-    <form className="receipt-form receipt-two-parts-layout" onSubmit={submit}>
-      {/* ====================================================================
-          الجانب الأيمن: بيانات الحساب، شريط المديونيات، وتفاصيل الإيصال
-          ==================================================================== */}
-      <div className="receipt-part-right">
-        {/* كارت الحساب وشريط المديونية */}
-        <div className="right-card receipt-account-card">
-          <div className="receipt-account-row1">
-            <label className="field-account-kind">
-              <span>نوع الحساب</span>
-              <SearchableSelect
-                value={accountKind}
-                options={[
-                  { value: 'customer', label: 'عميل' },
-                  { value: 'supplier', label: 'مورد' },
-                ]}
-                onChange={(val) => handleAccountKindChange(val as AccountKind)}
-                placeholder="اختر النوع…"
-                searchPlaceholder="بحث في الأنواع…"
-              />
-            </label>
+    <form className="receipt-form receipt-single-layout" onSubmit={submit}>
+      {/* -------------------------------------------------------------------
+          السطر الأول: نوع الحساب - الحساب
+          ------------------------------------------------------------------- */}
+      <div className="receipt-single-row row-account-select">
+        <label className="field-account-kind">
+          <span>نوع الحساب</span>
+          <SearchableSelect
+            value={accountKind}
+            options={[
+              { value: 'customer', label: 'عميل' },
+              { value: 'supplier', label: 'مورد' },
+            ]}
+            onChange={(val) => handleAccountKindChange(val as AccountKind)}
+            placeholder="اختر النوع…"
+            searchPlaceholder="بحث في الأنواع…"
+          />
+        </label>
 
-            <label className="field-account-select">
-              <span>{isIn ? 'استلام من (الطرف المسدد)' : 'صرف إلى (المستفيد)'}</span>
-              <SearchableSelect
-                value={accountId}
-                options={selectableAccounts.map((account) => ({
-                  value: account.id,
-                  label: account.phone ? `${account.name} — ${account.phone}` : account.name,
-                }))}
-                onChange={setAccountId}
-                placeholder="ابحث باسم أو هاتف الحساب…"
-                searchPlaceholder="اكتب اسم أو هاتف الحساب…"
-                emptyMessage="لا يوجد حساب مطابق"
-              />
-            </label>
-          </div>
+        <label className="field-account-main">
+          <span>{isIn ? 'استلام من (الطرف المسدد)' : 'صرف إلى (المستفيد)'}</span>
+          <SearchableSelect
+            value={accountId}
+            options={selectableAccounts.map((account) => ({
+              value: account.id,
+              label: account.phone ? `${account.name} — ${account.phone}` : account.name,
+            }))}
+            onChange={setAccountId}
+            placeholder="ابحث باسم أو هاتف الحساب…"
+            searchPlaceholder="اكتب اسم أو هاتف الحساب…"
+            emptyMessage="لا يوجد حساب مطابق"
+          />
+        </label>
+      </div>
 
-          {/* شريط المديونيات الموحد (المديونية قبل - صافي الإيصال - المديونية بعد) */}
-          <div className="receipt-debt-strip">
-            <div className="debt-stat-pill">
-              <span className="stat-label">المديونية قبل:</span>
-              <strong dir="ltr" className="stat-amount num">
-                {money(Math.abs(balanceBefore))}
-              </strong>
-              <span className={`status-badge-mini status-${statusBefore.type}`}>
-                {statusBefore.text}
-              </span>
-            </div>
-
-            <div className="debt-stat-pill pill-net-invoice">
-              <span className="stat-label">صافي الإيصال:</span>
-              <strong dir="ltr" className="stat-amount num">
-                {money(numAmount)}
-              </strong>
-            </div>
-
-            <div className="debt-stat-pill">
-              <span className="stat-label">المديونية بعد:</span>
-              <strong dir="ltr" className="stat-amount num">
-                {money(Math.abs(balanceAfter))}
-              </strong>
-              <span className={`status-badge-mini status-${statusAfter.type}`}>
-                {statusAfter.text}
-              </span>
-            </div>
-          </div>
+      {/* -------------------------------------------------------------------
+          السطر الثاني: ملاحظات الحساب - المديونية قبل - صافي الإيصال - المديونية بعد
+          (بنفس أسلوب فاتورة المبيعات)
+          ------------------------------------------------------------------- */}
+      <div className="receipt-single-row account-header-row2 row-debt-strip">
+        <div className="field-account-notes">
+          <input
+            type="text"
+            readOnly
+            value={selectedAccount?.notes || ''}
+            placeholder="لا توجد ملاحظات على الحساب"
+            className="account-notes-input"
+            title={selectedAccount?.notes || 'لا توجد ملاحظات على الحساب'}
+            aria-label="ملاحظات الحساب"
+          />
         </div>
 
-        {/* كارت التفاصيل: التاريخ والبيان والملاحظات */}
-        <div className="right-card receipt-details-card">
-          <div className="receipt-details-row1">
-            <label className="field-receipt-date">
-              <span>تاريخ الإيصال</span>
-              <DateInput value={date} onChange={setDate} required />
-            </label>
-
-            <label className="field-receipt-cashbox">
-              <span>الخزنة {isIn ? 'المستلمة' : 'المنصرفة'}</span>
-              <SearchableSelect
-                value={cashBoxId}
-                options={activeCashBoxes.map((box) => ({
-                  value: box.id,
-                  label: `${box.name} (${money(box.balance)})`,
-                }))}
-                onChange={setCashBoxId}
-                placeholder="اختر الخزنة…"
-                searchPlaceholder="ابحث باسم الخزنة…"
-                emptyMessage="لا توجد خزنة نشطة"
-              />
-            </label>
+        <div className="account-balance-pills">
+          <div className="stat-pill">
+            <span>المديونية قبل:</span>
+            <strong dir="ltr" className="num">
+              {money(Math.abs(balanceBefore))}
+            </strong>
+            <span className={`stat-pill-tag tag-${statusBefore.type}`}>
+              {statusBefore.text}
+            </span>
           </div>
 
-          <label className="receipt-field-block">
-            <span>البيان</span>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="سبب أو وصف المعاملة…"
-              className="receipt-input-full"
-            />
-          </label>
+          <div className="stat-pill">
+            <span>صافي الإيصال:</span>
+            <strong dir="ltr" className="num">
+              {money(numAmount)}
+            </strong>
+          </div>
 
-          <label className="receipt-field-block">
-            <span>ملاحظات</span>
-            <textarea
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="ملاحظات اختيارية على الإيصال…"
-              className="receipt-textarea"
-            />
-          </label>
+          <div className="stat-pill">
+            <span>المديونية بعد:</span>
+            <strong dir="ltr" className="num">
+              {money(Math.abs(balanceAfter))}
+            </strong>
+            <span className={`stat-pill-tag tag-${statusAfter.type}`}>
+              {statusAfter.text}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ====================================================================
-          الجانب الأيسر: كارت المبلغ، أزرار السداد السريع، وزر الحفظ
-          ==================================================================== */}
-      <div className="receipt-part-left">
-        {/* كارت المبلغ الكبير والبارز */}
-        <div className="left-row-strip left-amount-strip">
-          <span className="strip-label">
-            المبلغ المراد {isIn ? 'قبضه' : 'صرفه'}
-          </span>
-          <div className="strip-center-slot">
-            <div className="amount-quick-actions">
+      {/* -------------------------------------------------------------------
+          السطر الثالث: المبلغ المراد استلامه - زرار استلام كامل المديونية - تفقيط المبلغ بالعربي
+          ------------------------------------------------------------------- */}
+      <div className="receipt-single-row row-amount-tafqeet">
+        <div className="field-amount-slot">
+          <label>
+            <span>{isIn ? 'المبلغ المراد استلامه' : 'المبلغ المراد صرفه'}</span>
+            <div className="amount-input-with-action">
+              <input
+                aria-label="مبلغ الإيصال"
+                type="number"
+                inputMode="decimal"
+                min="0.0001"
+                step="0.0001"
+                dir="ltr"
+                placeholder="0.00"
+                value={amount}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setAmount(e.target.value)}
+                className="receipt-amount-input no-spinner num"
+                required
+              />
               <button
                 type="button"
-                className="btn-paid-quick btn-paid-all"
+                className="btn-settle-all-action"
                 onClick={handleSettleAll}
-                title="تسوية كامل المديونية بنقرة واحدة"
-                aria-label="تسوية كامل المديونية"
+                title="استلام كامل المديونية"
+                aria-label="استلام كامل المديونية"
               >
                 <Check size={14} strokeWidth={2.5} />
-              </button>
-              <button
-                type="button"
-                className="btn-paid-quick btn-paid-zero"
-                onClick={() => setAmount('0.00')}
-                title="تصفير المبلغ"
-                aria-label="تصفير المبلغ"
-              >
-                <X size={14} strokeWidth={2.5} />
+                <span>كامل المديونية</span>
               </button>
             </div>
-          </div>
-          <div className="strip-value-box">
-            <input
-              aria-label="مبلغ الإيصال"
-              type="number"
-              inputMode="decimal"
-              min="0.0001"
-              step="0.0001"
-              dir="ltr"
-              placeholder="0.00"
-              value={amount}
-              onFocus={(e) => e.target.select()}
-              onChange={(e) => setAmount(e.target.value)}
-              className="receipt-amount-input no-spinner num"
-              required
-            />
-          </div>
+          </label>
         </div>
 
-        {/* تنبيه الرصيد المتاح عند الصرف */}
-        {!isIn && (
-          <div className={`cashbox-balance-hint ${isOverdraft ? 'is-danger' : ''}`}>
-            <span>رصيد الخزنة المتاح:</span>
-            <strong dir="ltr" className="num">
-              {money(cashBoxAvailableBalance)}
-            </strong>
-          </div>
-        )}
-
-        {isOverdraft && (
-          <div className="overdraft-warning-badge" role="alert">
-            تنبيه: المبلغ يتجاوز الرصيد المتوفر بالخزنة المحددة
-          </div>
-        )}
-
-        {/* أزرار الإجراءات الرئيسية */}
-        <div className="receipt-actions-group">
-          <button
-            type="submit"
-            className="btn primary btn-receipt-save"
-            disabled={busy || isOverdraft}
-          >
-            <Save size={16} />
-            <span>
-              {busy
-                ? 'جارٍ الحفظ…'
-                : editing
-                ? 'حفظ التعديلات'
-                : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-receipt-clear"
-            onClick={handleResetNew}
-            disabled={busy}
-            title="مسح الحقول والبدء من جديد"
-          >
-            <RotateCcw size={14} />
-            <span>مسح / جديد</span>
-          </button>
+        <div className="field-tafqeet-card">
+          <span className="tafqeet-label">تفقيط المبلغ:</span>
+          <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
+            {tafqeetText || '—'}
+          </span>
         </div>
+      </div>
+
+      {/* -------------------------------------------------------------------
+          السطر الرابع: الخزنة المستلمة - ملاحظات
+          ------------------------------------------------------------------- */}
+      <div className="receipt-single-row row-cashbox-notes">
+        <label className="field-cashbox-select">
+          <span>الخزنة {isIn ? 'المستلمة' : 'المنصرف منها'}</span>
+          <SearchableSelect
+            value={cashBoxId}
+            options={activeCashBoxes.map((box) => ({
+              value: box.id,
+              label: `${box.name} (${money(box.balance)})`,
+            }))}
+            onChange={setCashBoxId}
+            placeholder="اختر الخزنة…"
+            searchPlaceholder="ابحث باسم الخزنة…"
+            emptyMessage="لا توجد خزنة نشطة"
+          />
+        </label>
+
+        <label className="field-receipt-notes">
+          <span>ملاحظات</span>
+          <input
+            type="text"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="ملاحظات اختيارية على الإيصال…"
+            className="receipt-notes-input"
+          />
+        </label>
+      </div>
+
+      {/* تنبيه الرصيد المتاح عند الصرف */}
+      {!isIn && (
+        <div className={`cashbox-balance-hint ${isOverdraft ? 'is-danger' : ''}`}>
+          <span>رصيد الخزنة المتاح:</span>
+          <strong dir="ltr" className="num">
+            {money(cashBoxAvailableBalance)}
+          </strong>
+        </div>
+      )}
+
+      {isOverdraft && (
+        <div className="overdraft-warning-badge" role="alert">
+          تنبيه: المبلغ يتجاوز الرصيد المتوفر بالخزنة المحددة
+        </div>
+      )}
+
+      {/* -------------------------------------------------------------------
+          السطر الخامس: حفظ - مسح / جديد
+          ------------------------------------------------------------------- */}
+      <div className="receipt-single-row row-actions-group">
+        <button
+          type="submit"
+          className="btn primary btn-receipt-save-full"
+          disabled={busy || isOverdraft}
+        >
+          <Save size={16} />
+          <span>
+            {busy
+              ? 'جارٍ الحفظ…'
+              : editing
+              ? 'حفظ التعديلات'
+              : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          className="btn btn-receipt-clear-full"
+          onClick={handleResetNew}
+          disabled={busy}
+          title="مسح الحقول والبدء من جديد"
+        >
+          <RotateCcw size={14} />
+          <span>مسح / جديد</span>
+        </button>
       </div>
     </form>
   );

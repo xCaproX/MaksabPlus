@@ -1,21 +1,21 @@
 /* =============================================================
-   Maksab Receipt Form Cockpit (Split View Layout)
+   Maksab Receipt Form (Single Unified Layout - 5 Rows)
    ============================================================= */
 
 /* Modal Container & Fixed Viewport Behavior */
 .modal.receipt-entry-modal {
-  width: min(1060px, 96vw);
+  width: min(780px, 96vw);
   border-radius: 14px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .receipt-entry-modal .modal-head {
-  background: var(--primary, #2e425c);
+  background: var(--primary, #0f172a);
   color: #ffffff;
-  padding: 14px 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -23,6 +23,7 @@
   color: #ffffff;
   font-size: 16px;
   font-weight: 750;
+  margin: 0;
 }
 
 .receipt-entry-modal .modal-head .icon-btn {
@@ -36,36 +37,23 @@
 }
 
 .receipt-entry-modal .modal-body {
-  padding: 14px 18px 18px;
-  overflow: hidden !important;
+  padding: 16px 20px 20px;
+  overflow-y: auto;
 }
 
-/* Two-parts layout */
-.receipt-two-parts-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) 320px;
-  gap: 14px;
-  align-items: stretch;
-}
-
-/* Right Part: Account & Details */
-.receipt-part-right {
+/* Single Unified Layout */
+.receipt-single-layout {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-width: 0;
+  width: 100%;
 }
 
-.receipt-account-row1 {
-  display: grid;
-  grid-template-columns: 130px minmax(0, 1fr);
-  gap: 12px;
-  align-items: flex-end;
+.receipt-single-row {
+  width: 100%;
 }
 
-.receipt-account-row1 label,
-.receipt-details-row1 label,
-.receipt-field-block {
+.receipt-single-row label {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -74,118 +62,244 @@
   color: #334155;
 }
 
-.receipt-debt-strip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-
-.receipt-details-card {
-  flex: 1;
-}
-
-.receipt-details-row1 {
+/* 1. السطر الأول: نوع الحساب - الحساب */
+.row-account-select {
   display: grid;
-  grid-template-columns: 170px minmax(0, 1fr);
+  grid-template-columns: 140px minmax(0, 1fr);
   gap: 12px;
   align-items: flex-end;
 }
 
-.receipt-input-full {
-  min-height: 38px;
-  height: 38px;
-  padding: 0 10px;
-  border-radius: 6px;
-  border: 1px solid var(--erp-border, #cbd5e1);
-  font-size: 13px;
-  background: #ffffff;
-}
-
-.receipt-textarea {
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--erp-border, #cbd5e1);
-  font-size: 13px;
-  background: #ffffff;
-  resize: none;
-}
-
-/* Left Part: Financial Cockpit */
-.receipt-part-left {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.left-amount-strip {
+/* 2. السطر الثاني: ملاحظات الحساب - المديونية قبل - صافي الإيصال - المديونية بعد */
+.row-debt-strip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  background: #fefce8;
-  border: 1.5px solid #fef08a;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 10px 14px;
-  min-height: 60px;
 }
 
-.left-amount-strip .strip-label {
-  font-size: 13.5px;
-  font-weight: 750;
-  color: #854d0e;
+.row-debt-strip .field-account-notes {
+  flex: 1;
+  min-width: 140px;
+}
+
+.row-debt-strip .account-notes-input {
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-size: 12px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 10px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  box-sizing: border-box !important;
+  width: 100%;
+}
+
+.row-debt-strip .account-balance-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.row-debt-strip .stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 11.5px;
   white-space: nowrap;
 }
 
-.left-amount-strip .strip-center-slot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.row-debt-strip .stat-pill span {
+  color: #64748b;
+  font-weight: 600;
 }
 
-.amount-quick-actions {
+.row-debt-strip .stat-pill strong {
+  font-weight: 750;
+  color: #1e293b;
+}
+
+.row-debt-strip .stat-pill-tag {
+  font-size: 10.5px;
+  font-weight: 750;
+  padding: 1px 7px;
+  border-radius: 4px;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  line-height: 1.4;
+}
+
+.row-debt-strip .stat-pill-tag.tag-settled {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.row-debt-strip .stat-pill-tag.tag-debit {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.row-debt-strip .stat-pill-tag.tag-credit {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+/* 3. السطر الثالث: المبلغ المراد استلامه - زر استلام كامل المديونية - تفقيط المبلغ */
+.row-amount-tafqeet {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.amount-input-with-action {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.15s ease;
+}
+
+.amount-input-with-action:focus-within {
+  border-color: var(--primary, #0f172a);
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
 }
 
 .receipt-amount-input {
-  width: 130px;
+  flex: 1;
+  border: none !important;
+  outline: none !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  color: #1e293b;
+  padding: 0 10px !important;
+  background: transparent !important;
+  min-width: 0;
+}
+
+.btn-settle-all-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  height: 38px;
+  background: #f0fdf4;
+  color: #166534;
+  border: none;
+  border-inline-start: 1px solid #bbf7d0;
+  font-size: 11.5px;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-settle-all-action:hover {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.field-tafqeet-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-height: 38px;
   height: 38px;
-  padding: 0 10px;
-  background: #ffffff;
-  border: 1px solid #fef08a;
-  border-radius: 6px;
-  font-size: 17px;
-  font-weight: 850;
-  text-align: right;
-  color: #854d0e;
-}
-
-.receipt-amount-input:focus {
-  border-color: #eab308;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.25);
-}
-
-.cashbox-balance-hint {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: #f1f5f9;
+  padding: 4px 12px;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
-  font-size: 12.5px;
-  color: #475569;
+  box-sizing: border-box;
+}
+
+.field-tafqeet-card .tafqeet-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.field-tafqeet-card .tafqeet-text {
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-tafqeet-card .tafqeet-text.empty {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.field-tafqeet-card .tafqeet-text.has-value {
+  color: #0f172a;
+}
+
+/* 4. السطر الرابع: الخزنة المستلمة - ملاحظات */
+.row-cashbox-notes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.receipt-notes-input {
+  height: 38px;
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #cbd5e1);
+  font-size: 13px;
+  background: #ffffff;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.receipt-notes-input:focus {
+  border-color: var(--primary, #0f172a);
+  outline: none;
+}
+
+/* تنبيه الرصيد المتاح عند الصرف */
+.cashbox-balance-hint {
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
 }
 
 .cashbox-balance-hint.is-danger {
   background: #fef2f2;
   border-color: #fecaca;
-  color: #991b1b;
+  color: #b91c1c;
 }
 
 .overdraft-warning-badge {
@@ -199,48 +313,64 @@
   text-align: center;
 }
 
-.receipt-actions-group {
+/* 5. السطر الخامس: حفظ - مسح / جديد */
+.row-actions-group {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
 }
 
-.btn-receipt-save {
+.btn-receipt-save-full {
+  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  height: 44px;
-  font-size: 14.5px;
+  height: 42px;
+  min-height: 42px;
+  font-size: 14px;
   font-weight: 800;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
 }
 
-.btn-receipt-clear {
+.btn-receipt-clear-full {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 38px;
-  height: 38px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 18px;
   font-size: 13px;
   font-weight: 700;
   color: #475569;
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.btn-receipt-clear:hover {
+.btn-receipt-clear-full:hover {
   background: #f1f5f9;
   color: #1e293b;
 }
 
-@media (max-width: 860px) {
-  .receipt-two-parts-layout {
+@media (max-width: 680px) {
+  .row-account-select,
+  .row-amount-tafqeet,
+  .row-cashbox-notes {
     grid-template-columns: 1fr;
+  }
+  .row-debt-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .row-debt-strip .account-balance-pills {
+    flex-wrap: wrap;
   }
 }
