@@ -309,7 +309,7 @@ export default function InvoiceForm({
             ==================================================================== */}
         <div className="invoice-part-right">
           {/* كارت رأس الحساب والبيانات الأساسية */}
-          <div className="right-card">
+          <div className="right-card account-header-card">
             {/* الصف الأول: نوع الحساب - الحساب - ملاحظات الحساب */}
             <div className="account-header-grid">
               {!isWaste && (
@@ -560,59 +560,59 @@ export default function InvoiceForm({
         </div>
 
         {/* ====================================================================
-            الجزء عاليسار: اجمالي الفاتورة - المدفوع - المتبقي - الخزنة - ملاحظات الفاتورة - حفظ الفاتورة - مسح/جديد
+            الجزء عاليسار: اجمالي الفاتورة - المدفوع - المتبقي - الخزنة - ملاحظات - حفظ الفاتورة - مسح/جديد
             ==================================================================== */}
         <div className="invoice-part-left">
-          {/* 1. إجمالي الفاتورة */}
-          <div className="left-hero-total">
-            <span className="hero-label">إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}</span>
-            <strong dir="ltr" className="hero-num num">{money(total)}</strong>
+          {/* 1. إجمالي الفاتورة والخانة على نفس السطر */}
+          <div className="left-row-strip left-total-strip">
+            <span className="strip-label">إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}</span>
+            <strong dir="ltr" className="strip-value strip-value-total num">{money(total)}</strong>
           </div>
 
-          {/* 2. المدفوع */}
+          {/* 2. المدفوع والخانة على نفس السطر */}
           {!isWaste && (
-            <div className="left-field-box">
-              <label>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>{isReturn ? 'المبلغ المسترد' : 'المدفوع'}</span>
-                  {total > 0 && Number(paid) !== total && (
-                    <button
-                      type="button"
-                      className="btn-pay-full-pill"
-                      onClick={() => setPaid(String(total))}
-                    >
-                      دفع بالكامل
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  dir="ltr"
-                  placeholder="0.00"
-                  value={paid}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setPaid(e.target.value)}
-                  className="no-spinner num left-paid-input"
-                />
-              </label>
+            <div className="left-row-strip left-paid-strip">
+              <div className="paid-label-group">
+                <span className="strip-label">{isReturn ? 'المسترد' : 'المدفوع'}</span>
+                {total > 0 && Number(paid) !== total && (
+                  <button
+                    type="button"
+                    className="btn-pay-full-pill"
+                    onClick={() => setPaid(String(total))}
+                    title="دفع كامل المبلغ"
+                  >
+                    بالكامل
+                  </button>
+                )}
+              </div>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                dir="ltr"
+                placeholder="0.00"
+                value={paid}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setPaid(e.target.value)}
+                className="no-spinner num left-paid-input"
+                aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
+              />
             </div>
           )}
 
-          {/* 3. المتبقي */}
+          {/* 3. المتبقي والخانة على نفس السطر */}
           {!isWaste && (
-            <div className={`left-stat-box ${remaining === 0 ? 'is-zero' : 'is-due'}`}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                <span>{isReturn ? 'حالة الاسترداد:' : 'المتبقي:'}</span>
-                <span className={`status-badge ${remaining === 0 ? 'paid' : 'unpaid'}`} style={{ fontSize: '11px' }}>
+            <div className={`left-row-strip left-remaining-strip ${remaining === 0 ? 'is-zero' : 'is-due'}`}>
+              <div className="remaining-label-group">
+                <span className="strip-label">{isReturn ? 'حالة الاسترداد:' : 'المتبقي:'}</span>
+                <span className={`status-badge ${remaining === 0 ? 'paid' : 'unpaid'}`} style={{ fontSize: '10.5px' }}>
                   {isReturn
                     ? remaining === 0 ? 'مسترد بالكامل' : 'غير مسترد'
-                    : remaining === 0 ? 'خالص بالكامل' : 'المتبقي آجل'}
+                    : remaining === 0 ? 'خالص' : 'آجل'}
                 </span>
               </div>
-              <strong dir="ltr" className="num" style={{ fontSize: '18px', marginTop: '4px' }}>
+              <strong dir="ltr" className="strip-value strip-value-remaining num">
                 {money(remaining)}
               </strong>
             </div>
@@ -622,14 +622,14 @@ export default function InvoiceForm({
           {!isWaste && (
             <div className={`left-field-box ${paidNumber <= 0 ? 'disabled' : ''}`}>
               <label>
-                <span>
-                  {isReturn ? 'الخزنة المنصرف منها' : 'الخزنة'}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{isReturn ? 'الخزنة المنصرف منها' : 'الخزنة'}</span>
                   {paidNumber <= 0 && (
-                    <span className="muted-text" style={{ fontSize: '10px', marginInlineStart: '4px' }}>
+                    <span className="muted-text" style={{ fontSize: '10.5px' }}>
                       (لا يوجد مدفوع)
                     </span>
                   )}
-                </span>
+                </div>
                 <SearchableSelect
                   value={effectiveCashBoxId}
                   options={selectableCashBoxes.map((box) => ({
@@ -647,12 +647,12 @@ export default function InvoiceForm({
             </div>
           )}
 
-          {/* 5. ملاحظات الفاتورة */}
+          {/* 5. ملاحظات */}
           <div className="left-field-box">
             <label>
-              <span>ملاحظات الفاتورة</span>
+              <span>ملاحظات</span>
               <textarea
-                rows={3}
+                rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="ملاحظات اختيارية على الفاتورة…"
@@ -661,7 +661,7 @@ export default function InvoiceForm({
             </label>
           </div>
 
-          {/* 6. حفظ الفاتورة & 7. مسح/جديد */}
+          {/* 6. حفظ الفاتورة & 7. مسح / جديد */}
           <div className="left-actions-group">
             <button
               type="submit"
@@ -698,7 +698,7 @@ export default function InvoiceForm({
               className="btn btn-ghost"
               onClick={onCancel}
               disabled={busy}
-              style={{ fontSize: '12px', minHeight: '32px' }}
+              style={{ fontSize: '11.5px', minHeight: '28px' }}
             >
               إلغاء النافذة
             </button>

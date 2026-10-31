@@ -15,6 +15,8 @@ import {
   KeyRound,
 } from 'lucide-react';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import Modal from '../components/Modal';
+import InvoiceForm from '../components/InvoiceForm';
 import DateInput from '../components/DateInput';
 import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
@@ -24,6 +26,12 @@ import SortableHeader from '../components/SortableHeader';
 import { money } from '../lib/format';
 
 export default function PreviewPhase3And4() {
+  const [invoiceFormOpen, setInvoiceFormOpen] = useState(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('modal') === 'invoice') {
+      return true;
+    }
+    return false;
+  });
   const [changePasswordOpen, setChangePasswordOpen] = useState(() => {
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('modal') === 'password') {
       return true;
@@ -316,7 +324,7 @@ export default function PreviewPhase3And4() {
                 <button type="button" className="btn outline">
                   عرض المحذوفات
                 </button>
-                <button type="button" className="btn primary">
+                <button type="button" className="btn primary" onClick={() => setInvoiceFormOpen(true)}>
                   + فاتورة مبيعات جديدة
                 </button>
               </div>
@@ -561,6 +569,46 @@ export default function PreviewPhase3And4() {
             onConfirm={() => setShowDeleteConfirm(false)}
             onCancel={() => setShowDeleteConfirm(false)}
           />
+        )}
+
+        {invoiceFormOpen && (
+          <Modal
+            className="transaction-entry-modal invoice-entry-modal"
+            backdropClassName="transaction-entry-backdrop"
+            title="فاتورة مبيعات جديدة"
+            onClose={() => setInvoiceFormOpen(false)}
+          >
+            <InvoiceForm
+              kind="sale"
+              accounts={[
+                { id: 'acc-1', name: 'عميل نقدي عام', kind: 'customer', balance: 0, is_active: true, notes: 'عميل نقدي فوري', phone: '01000000000', created_at: '', updated_at: '', company_id: '' },
+                { id: 'acc-2', name: 'شركة النور للتجارة والتوريدات', kind: 'customer', balance: 3450, is_active: true, notes: 'عميل آجل معتمد بحد ائتماني 50,000 ج.م', phone: '01234567890', created_at: '', updated_at: '', company_id: '' },
+                { id: 'acc-3', name: 'مؤسسة الفجر للمقاولات', kind: 'customer', balance: 14200, is_active: true, notes: 'دفع نصف شهري', phone: '01112223334', created_at: '', updated_at: '', company_id: '' },
+              ]}
+              warehouses={[
+                { id: 'wh-1', name: 'المخزن الرئيسي', is_active: true, is_default: true, company_id: '', created_at: '', updated_at: '' },
+                { id: 'wh-2', name: 'مخزن المعرض', is_active: true, is_default: false, company_id: '', created_at: '', updated_at: '' },
+              ]}
+              cashBoxes={[
+                { id: 'cb-1', name: 'خزينة المعرض الرئيسية', balance: 24500, is_active: true, is_default: true, company_id: '', created_at: '', updated_at: '' },
+                { id: 'cb-2', name: 'خزينة الإدارة', balance: 85000, is_active: true, is_default: false, company_id: '', created_at: '', updated_at: '' },
+              ]}
+              items={[
+                { id: 'itm-1', code: 'ITM-001', name: 'شاي العروسة 250 جم', unit: 'كرتونة', sale_price: 180, purchase_price: 150, min_stock: 5, is_active: true, company_id: '', created_at: '', updated_at: '' },
+                { id: 'itm-2', code: 'ITM-002', name: 'سكر أبيض نقي 1 كجم', unit: 'كجم', sale_price: 32.5, purchase_price: 28, min_stock: 10, is_active: true, company_id: '', created_at: '', updated_at: '' },
+                { id: 'itm-3', code: 'ITM-003', name: 'زيت عباد الشمس 800 مل', unit: 'زجاجة', sale_price: 65, purchase_price: 54, min_stock: 8, is_active: true, company_id: '', created_at: '', updated_at: '' },
+                { id: 'itm-4', code: 'ITM-004', name: 'أرز فاخر عريض الحبة 5 كجم', unit: 'شيكارة', sale_price: 175, purchase_price: 145, min_stock: 12, is_active: true, company_id: '', created_at: '', updated_at: '' },
+              ]}
+              stockRows={[
+                { item_id: 'itm-1', warehouse_id: 'wh-1', current_qty: 45 },
+                { item_id: 'itm-2', warehouse_id: 'wh-1', current_qty: 120 },
+                { item_id: 'itm-3', warehouse_id: 'wh-1', current_qty: 60 },
+                { item_id: 'itm-4', warehouse_id: 'wh-1', current_qty: 30 },
+              ]}
+              onSaved={() => setInvoiceFormOpen(false)}
+              onCancel={() => setInvoiceFormOpen(false)}
+            />
+          </Modal>
         )}
       </div>
     </BrowserRouter>
