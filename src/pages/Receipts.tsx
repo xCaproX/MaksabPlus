@@ -217,7 +217,10 @@ export default function Receipts() {
       setTransferRows((transfersRes.data ?? []) as CashBoxTransferRow[]);
 
       if (!cashBoxId && boxes.length > 0) {
-        const defaultBox = boxes.find((box) => box.is_primary && box.is_active) ?? boxes.find((b) => b.is_active);
+        const defaultBox =
+          boxes.find((box) => box.is_primary && box.is_active) ??
+          boxes.find((box) => box.name?.includes('الرئيسية') && box.is_active) ??
+          boxes.find((b) => b.is_active);
         if (defaultBox) setCashBoxId(defaultBox.id);
       }
 
@@ -240,7 +243,10 @@ export default function Receipts() {
 
   function resetForm() {
     setEditing(null);
-    const defaultBox = cashBoxes.find((box) => box.is_primary && box.is_active) ?? cashBoxes.find((b) => b.is_active);
+    const defaultBox =
+      cashBoxes.find((box) => box.is_primary && box.is_active) ??
+      cashBoxes.find((box) => box.name?.includes('الرئيسية') && box.is_active) ??
+      cashBoxes.find((b) => b.is_active);
     setCashBoxId(defaultBox?.id ?? '');
     setError('');
   }

@@ -39,9 +39,11 @@ export default function PreviewReceipt() {
     },
   ];
 
+  const isNew = new URLSearchParams(window.location.search).get('mode') !== 'edit';
+
   const mockCashBoxes: CashBoxRow[] = [
-    { id: 'cb-1', serial_number: 1, name: 'خزنة الكاشير الرئيسية', balance: 12500, opening_balance: 5000, notes: null, is_active: true, is_primary: true },
-    { id: 'cb-2', serial_number: 2, name: 'خزنة الإدارة العامة', balance: 45000, opening_balance: 10000, notes: null, is_active: true, is_primary: false },
+    { id: 'cb-2', serial_number: 2, name: 'خزنة الفرع 2', balance: 45000, opening_balance: 10000, notes: null, is_active: true, is_primary: false },
+    { id: 'cb-1', serial_number: 1, name: 'الخزنة الرئيسية', balance: 12500, opening_balance: 5000, notes: null, is_active: true, is_primary: true },
   ];
 
   const mockEditing: any = {
@@ -80,7 +82,7 @@ export default function PreviewReceipt() {
             direction="in"
             accounts={mockAccounts}
             cashBoxes={mockCashBoxes}
-            editing={mockEditing}
+            editing={isNew ? null : mockEditing}
             onSaved={(msg) => alert(msg)}
             onCancel={() => setOpen(false)}
           />

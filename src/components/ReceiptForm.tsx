@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Check, RotateCcw, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { money, round2, today, getBalanceStatus } from '../lib/format';
@@ -37,8 +37,35 @@ export default function ReceiptForm({
   const [accountId, setAccountId] = useState(editing?.account_id ?? '');
 
   const activeCashBoxes = cashBoxes.filter((box) => box.is_active || box.id === editing?.cash_box_id);
-  const defaultCashBox = activeCashBoxes.find((b) => b.is_primary) ?? activeCashBoxes[0];
+  const defaultCashBox =
+    activeCashBoxes.find((b) => b.is_primary) ??
+    activeCashBoxes.find((b) => b.name?.trim().includes('الرئيسية')) ??
+    activeCashBoxes[0];
   const [cashBoxId, setCashBoxId] = useState(editing?.cash_box_id ?? defaultCashBox?.id ?? '');
+
+  // ترتيب الخزائن بحيث تتصدر الخزنة الرئيسية القائمة
+  const sortedCashBoxes = [...activeCashBoxes].sort((a, b) => {
+    if (a.is_primary && !b.is_primary) return -1;
+    if (!a.is_primary && b.is_primary) return 1;
+    const aMain = a.name?.includes('الرئيسية');
+    const bMain = b.name?.includes('الرئيسية');
+    if (aMain && !bMain) return -1;
+    if (!aMain && bMain) return 1;
+    return a.name.localeCompare(b.name, 'ar');
+  });
+
+  // تعيين الخزنة الرئيسية تلقائياً عند تحميل الخزائن إذا لم تكن محددة
+  useEffect(() => {
+    if (!cashBoxId && !editing && activeCashBoxes.length > 0) {
+      const primaryBox =
+        activeCashBoxes.find((b) => b.is_primary) ??
+        activeCashBoxes.find((b) => b.name?.trim().includes('الرئيسية')) ??
+        activeCashBoxes[0];
+      if (primaryBox) {
+        setCashBoxId(primaryBox.id);
+      }
+    }
+  }, [activeCashBoxes, cashBoxId, editing]);
 
   // التاريخ يتم حفظه تلقائياً بالتاريخ الحالي دون الحاجة لحقل إدخال بالواجهة
   const date = editing?.receipt_date ?? today();
@@ -118,6 +145,11 @@ export default function ReceiptForm({
     setNotes('');
     if (!editing) {
       setAccountId('');
+      const primaryBox =
+        activeCashBoxes.find((b) => b.is_primary) ??
+        activeCashBoxes.find((b) => b.name?.trim().includes('الرئيسية')) ??
+        activeCashBoxes[0];
+      setCashBoxId(primaryBox?.id ?? '');
     }
     toast.info('تم تفريغ الحقول للبدء من جديد');
   }
@@ -282,8 +314,7 @@ export default function ReceiptForm({
             </label>
           </div>
 
-          <div className="field-tafqeet-card">
-            <span className="tafqeet-label">تفقيط المبلغ:</span>
+          <div className="field-tafqeet-card" title={tafqeetText || 'المبلغ بالحروف'}>
             <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
               {tafqeetText || '—'}
             </span>
@@ -300,7 +331,7 @@ export default function ReceiptForm({
             <span>الخزنة {isIn ? 'المستلمة' : 'المنصرف منها'}</span>
             <SearchableSelect
               value={cashBoxId}
-              options={activeCashBoxes.map((box) => ({
+              options={sortedCashBoxes.map((box) => ({
                 value: box.id,
                 label: `${box.name} (${money(box.balance)})`,
               }))}
