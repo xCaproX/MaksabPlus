@@ -42,7 +42,7 @@ export default function App() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  if (window.location.pathname === '/preview-receipt') {
+  if (import.meta.env.DEV && window.location.pathname === '/preview-receipt') {
     return (
       <PageSuspense fullScreen>
         <PreviewReceipt />
@@ -50,7 +50,7 @@ export default function App() {
     );
   }
 
-  if (window.location.pathname === '/preview-phase3-4') {
+  if (import.meta.env.DEV && window.location.pathname === '/preview-phase3-4') {
     return (
       <PageSuspense fullScreen>
         <PreviewPhase3And4 />

@@ -16,6 +16,7 @@ const migrationsDir = join(supabaseDir, 'migrations');
 
 const bootstrapSql = `
 create schema auth;
+create schema extensions;
 
 create table auth.users (
   instance_id uuid,
@@ -28,6 +29,16 @@ create table auth.users (
   created_at timestamptz,
   updated_at timestamptz
 );
+
+create or replace function extensions.gen_salt(p_type text)
+returns text language sql as $$
+  select '$2a$06$mock';
+$$;
+
+create or replace function extensions.crypt(p_key text, p_salt text)
+returns text language sql as $$
+  select '$2a$06$mock$' || md5(p_key);
+$$;
 
 create or replace function auth.uid() returns uuid
 language sql stable
@@ -47,11 +58,14 @@ create role service_role nologin bypassrls;
 
 grant usage on schema public to anon, authenticated, service_role;
 grant usage on schema auth to anon, authenticated, service_role;
+grant usage on schema extensions to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
+grant execute on all functions in schema extensions to anon, authenticated, service_role;
 
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema extensions grant all on functions to anon, authenticated, service_role;
 `;
 
 function sqlFiles(dir) {

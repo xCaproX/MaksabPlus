@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { getCompanyId } from '../lib/company';
 import { entityNumber, money } from '../lib/format';
 import { errorMessage, translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
@@ -53,7 +52,6 @@ export default function MasterData() {
   const [tab, setTab] = useState<LocationsTab>(initialTab);
   const canViewCurrentTab = can(`data.${tab}.view`);
 
-  const [companyId, setCompanyId] = useState('');
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [items, setItems] = useState<MasterItemRecord[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRecord[]>([]);
@@ -146,10 +144,6 @@ export default function MasterData() {
       setLoading(true);
       setError('');
       try {
-        const id = await getCompanyId();
-        if (!alive) return;
-        setCompanyId(id);
-
         const [accountsRes, itemsRes, cashBoxesRes, warehousesRes] = await Promise.all([
           supabase.from('accounts').select('*').order('name'),
           supabase.from('items').select('*').order('name'),
@@ -478,17 +472,17 @@ export default function MasterData() {
     event.preventDefault();
     setError('');
     if (editingWarehouseId) {
-      const { error: updateError } = await supabase
-        .from('warehouses')
-        .update({ name: warehouseName.trim(), notes: warehouseNotes.trim() || null })
-        .eq('id', editingWarehouseId);
+      const { error: updateError } = await supabase.rpc('update_warehouse', {
+        p_warehouse_id: editingWarehouseId,
+        p_name: warehouseName.trim(),
+        p_notes: warehouseNotes.trim() || null,
+      });
       if (updateError) return setError(translateDbError(updateError.message));
       setNotice(`تم تعديل اسم المخزن إلى «${warehouseName.trim()}»`);
     } else {
-      const { error: insertError } = await supabase.from('warehouses').insert({
-        company_id: companyId,
-        name: warehouseName.trim(),
-        notes: warehouseNotes.trim() || null,
+      const { error: insertError } = await supabase.rpc('create_warehouse', {
+        p_name: warehouseName.trim(),
+        p_notes: warehouseNotes.trim() || null,
       });
       if (insertError) return setError(translateDbError(insertError.message));
       setNotice(`تمت إضافة المخزن «${warehouseName.trim()}»`);
@@ -500,10 +494,9 @@ export default function MasterData() {
 
   async function toggleWarehouse(warehouse: WarehouseRecord) {
     setError('');
-    const { error: updateError } = await supabase
-      .from('warehouses')
-      .update({ is_active: !warehouse.is_active })
-      .eq('id', warehouse.id);
+    const { error: updateError } = await supabase.rpc('toggle_warehouse_active', {
+      p_warehouse_id: warehouse.id,
+    });
     if (updateError) return setError(translateDbError(updateError.message));
     setNotice(`تم ${warehouse.is_active ? 'إيقاف' : 'تفعيل'} المخزن «${warehouse.name}»`);
     setVersion((v) => v + 1);
@@ -531,10 +524,11 @@ export default function MasterData() {
     event.preventDefault();
     setError('');
     if (editingCashBoxId) {
-      const { error: updateError } = await supabase
-        .from('cash_boxes')
-        .update({ name: cashBoxName.trim(), notes: cashBoxNotes.trim() || null })
-        .eq('id', editingCashBoxId);
+      const { error: updateError } = await supabase.rpc('update_cash_box', {
+        p_cash_box_id: editingCashBoxId,
+        p_name: cashBoxName.trim(),
+        p_notes: cashBoxNotes.trim() || null,
+      });
       if (updateError) return setError(translateDbError(updateError.message));
       setNotice(`تم تعديل اسم الخزنة إلى «${cashBoxName.trim()}»`);
     } else {
@@ -553,10 +547,9 @@ export default function MasterData() {
 
   async function toggleCashBox(box: CashBoxRecord) {
     setError('');
-    const { error: updateError } = await supabase
-      .from('cash_boxes')
-      .update({ is_active: !box.is_active })
-      .eq('id', box.id);
+    const { error: updateError } = await supabase.rpc('toggle_cash_box_active', {
+      p_cash_box_id: box.id,
+    });
     if (updateError) return setError(translateDbError(updateError.message));
     setNotice(`تم ${box.is_active ? 'إيقاف' : 'تفعيل'} الخزنة «${box.name}»`);
     setVersion((v) => v + 1);
