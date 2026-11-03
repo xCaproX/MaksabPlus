@@ -421,46 +421,43 @@ export default function Receipts() {
     );
   }
 
+  const newLabel = isCashBoxTransfer ? 'تحويل جديد بين الخزن' : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`;
+
   return (
-    <div className="erp-page erp-receipts-page">
-      <header className="erp-page-header">
+    <div className="stack">
+      <div className="page-head">
         <div>
-          <h1>حركة الأموال والخزن</h1>
-          <p className="muted">سندات القبض، سندات الصرف، والتحويل بين الخزن</p>
+          <h1>{showDeleted ? `المحذوفات — ${tabTitle}` : tabTitle}</h1>
         </div>
-        <div className="erp-page-actions">
-          {can(`money.${tab}.create`) && (
+        <div className="actions">
+          {can(`money.${tab}.delete`) && (
+            <button
+              type="button"
+              className="btn outline"
+              onClick={toggleDeleted}
+            >
+              {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
+            </button>
+          )}
+          {!showDeleted && can(`money.${tab}.create`) && (
             <button
               type="button"
               className="btn primary"
               onClick={openNew}
             >
-              {isCashBoxTransfer ? '+ تحويل جديد بين الخزن' : `+ إيصال ${isIn ? 'استلام' : 'صرف'} جديد`}
-            </button>
-          )}
-          {can(`money.${tab}.delete`) && (
-            <button
-              type="button"
-              className={showDeleted ? 'btn active' : 'btn'}
-              onClick={toggleDeleted}
-            >
-              {showDeleted ? 'عرض النشطة' : 'عرض المحذوفات'}
+              + {newLabel}
             </button>
           )}
         </div>
-      </header>
+      </div>
 
-      {/* شريط تبويبات نوع الحركة */}
-      <div className="erp-tabs" role="tablist" aria-label="أنواع الإيصالات">
+      <div className="tabs">
         {visibleTabs.map((item) => (
           <button
             key={item.value}
             type="button"
-            role="tab"
-            className={tab === item.value ? 'tab-btn active' : 'tab-btn'}
-            aria-selected={tab === item.value}
-            aria-pressed={tab === item.value}
-            onClick={() => item.value === 'cash_box_transfer' ? switchToCashTransfer() : switchDirection(item.value)}
+            className={tab === item.value ? 'tab active' : 'tab'}
+            onClick={() => (item.value === 'cash_box_transfer' ? switchToCashTransfer() : switchDirection(item.value))}
           >
             {item.label}
           </button>

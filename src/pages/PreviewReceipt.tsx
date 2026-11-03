@@ -62,7 +62,6 @@ export default function PreviewReceipt() {
   const [receipts, setReceipts] = useState<ReceiptRow[]>([
     {
       id: 'rec-1',
-      serial_number: 1,
       number: 'REC-00001',
       receipt_date: '2026-11-01',
       direction: 'in',
@@ -84,7 +83,6 @@ export default function PreviewReceipt() {
     },
     {
       id: 'rec-2',
-      serial_number: 2,
       number: 'REC-00002',
       receipt_date: '2026-11-02',
       direction: 'in',
@@ -106,7 +104,6 @@ export default function PreviewReceipt() {
     },
     {
       id: 'rec-3',
-      serial_number: 3,
       number: 'REC-00003',
       receipt_date: '2026-11-03',
       direction: 'in',
@@ -143,13 +140,19 @@ export default function PreviewReceipt() {
   }
 
   return (
-    <div className="erp-page erp-receipts-page" style={{ minHeight: '100vh', background: 'var(--erp-bg, #f8fafc)' }}>
-      <header className="erp-page-header">
+    <div className="stack" style={{ minHeight: '100vh', background: 'var(--erp-bg, #f8fafc)', padding: '24px' }}>
+      <div className="page-head">
         <div>
-          <h1>حركة الأموال والخزن</h1>
-          <p className="muted">سندات القبض، سندات الصرف، والتحويل بين الخزن — معمارية موحدة 100%</p>
+          <h1>إيصالات الاستلام</h1>
         </div>
-        <div className="erp-page-actions">
+        <div className="actions">
+          <button
+            type="button"
+            className="btn outline"
+            onClick={() => alert('عرض المحذوفات')}
+          >
+            عرض المحذوفات
+          </button>
           <button
             type="button"
             className="btn primary"
@@ -162,13 +165,13 @@ export default function PreviewReceipt() {
             + إيصال استلام جديد
           </button>
         </div>
-      </header>
+      </div>
 
-      {/* شريط التبويبات */}
-      <div className="erp-tabs" role="tablist">
-        <button type="button" className="tab-btn active">إيصالات استلام</button>
-        <button type="button" className="tab-btn">إيصالات صرف</button>
-        <button type="button" className="tab-btn">تحويل بين الخزن</button>
+      {/* شريط التبويبات القياسي */}
+      <div className="tabs">
+        <button type="button" className="tab active">إيصالات استلام</button>
+        <button type="button" className="tab">إيصالات صرف</button>
+        <button type="button" className="tab">تحويل بين الخزن</button>
       </div>
 
       {/* جدول الإيصالات ممتد 100% بكامل العرض بدون أي لوحة جانبية تضيقه */}
