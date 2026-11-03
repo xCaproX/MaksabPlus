@@ -9,11 +9,7 @@ import {
   LogOut,
   ChevronDown,
   ChevronUp,
-  Receipt as ReceiptIcon,
-  ExternalLink,
-  X,
   KeyRound,
-  CheckCircle2,
 } from 'lucide-react';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import Modal from '../components/Modal';
@@ -67,10 +63,10 @@ export default function PreviewPhase3And4() {
   const [dateFrom, setDateFrom] = useState('2026-10-01');
   const [dateTo, setDateTo] = useState('2026-10-24');
   const [selectedInvoice, setSelectedInvoice] = useState<number | null>(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('detail') === '0') {
-      return null;
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('view') === '1') {
+      return 1;
     }
-    return 1;
+    return null;
   });
 
   const mockInvoices = [
@@ -443,191 +439,84 @@ export default function PreviewPhase3And4() {
                   </div>
                 </div>
               </section>
-
-              {/* Backdrop for Slide-over Drawer */}
-              {current && (
-                <div
-                  className="erp-drawer-backdrop"
-                  onClick={() => setSelectedInvoice(null)}
-                  aria-hidden="true"
-                />
-              )}
-
-              {/* Detail Panel */}
-              {current && (
-                <aside className="erp-detail-panel open" aria-label="تفاصيل المستند">
-                  <div className="erp-drawer-header">
-                    <div className="erp-drawer-title-group">
-                      <span className="erp-slip-badge">فاتورة مبيعات</span>
-                      <h2 className="erp-slip-number" dir="ltr">{current.number}</h2>
-                      <StatusBadge variant={current.status}>{current.statusLabel}</StatusBadge>
-                    </div>
-                    <button
-                      type="button"
-                      className="icon-btn erp-drawer-close"
-                      aria-label="إغلاق التفاصيل"
-                      onClick={() => setSelectedInvoice(null)}
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-
-                  <div className="erp-drawer-body">
-                    <div className="erp-invoice-slip">
-                      <div className="erp-slip-header">
-                        <div className="erp-slip-party">
-                          <span className="erp-slip-label">العميل</span>
-                          <strong className="erp-slip-party-name">{current.customer}</strong>
-                        </div>
-
-                        <div className="erp-slip-meta-grid">
-                          <div className="erp-slip-meta-item">
-                            <span className="erp-slip-label">التاريخ</span>
-                            <span className="num" dir="ltr">{current.date}</span>
-                          </div>
-                          <div className="erp-slip-meta-item">
-                            <span className="erp-slip-label">الوقت</span>
-                            <span className="num" dir="ltr">02:30 م</span>
-                          </div>
-                          <div className="erp-slip-meta-item">
-                            <span className="erp-slip-label">المخزن</span>
-                            <span>{current.warehouse}</span>
-                          </div>
-                          <div className="erp-slip-meta-item">
-                            <span className="erp-slip-label">الخزنة</span>
-                            <span>الخزنة الرئيسية</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="erp-slip-items">
-                        <table className="erp-slip-table">
-                          <thead>
-                            <tr>
-                              <th>الصنف</th>
-                              <th className="num">الكمية</th>
-                              <th className="num">السعر</th>
-                              <th className="num">الإجمالي</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr>
-                              <td>
-                                <span className="item-name">أرز بسمتي هندي ممتاز</span>
-                              </td>
-                              <td className="num">
-                                <bdi>50</bdi> <span className="unit-label">كجم</span>
-                              </td>
-                              <td className="num">
-                                <bdi>{money(65)}</bdi>
-                              </td>
-                              <td className="num font-bold">
-                                <bdi>{money(3250)}</bdi>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td>
-                                <span className="item-name">زيت عباد الشمس 1 لتر</span>
-                              </td>
-                              <td className="num">
-                                <bdi>40</bdi> <span className="unit-label">زجاجة</span>
-                              </td>
-                              <td className="num">
-                                <bdi>{money(75)}</bdi>
-                              </td>
-                              <td className="num font-bold">
-                                <bdi>{money(3000)}</bdi>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td>
-                                <span className="item-name">سكر أبيض ناعم 1 كجم</span>
-                              </td>
-                              <td className="num">
-                                <bdi>60</bdi> <span className="unit-label">كيس</span>
-                              </td>
-                              <td className="num">
-                                <bdi>{money(35)}</bdi>
-                              </td>
-                              <td className="num font-bold">
-                                <bdi>{money(2100)}</bdi>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-
-                      <div className="erp-slip-summary">
-                        <div className="erp-slip-summary-row">
-                          <span>الإجمالي المطلوب</span>
-                          <strong className="num" dir="ltr">{money(current.total)} ج.م</strong>
-                        </div>
-                        <div className="erp-slip-summary-row profit-row">
-                          <span>إجمالي الربح</span>
-                          <span className="num" dir="ltr">{money(1859)} ج.م</span>
-                        </div>
-                        <div className="erp-slip-summary-row">
-                          <span>المدفوع</span>
-                          <span className="num" dir="ltr">{money(current.paid)} ج.م</span>
-                        </div>
-
-                        {Number(current.remaining) > 0 ? (
-                          <div className="erp-slip-remaining-callout warning">
-                            <div className="callout-header">
-                              <span className="callout-title">المبلغ المتبقي للتحصيل</span>
-                              <span className="callout-status">مستحق</span>
-                            </div>
-                            <div className="callout-amount" dir="ltr">
-                              <strong>{money(current.remaining)}</strong>
-                              <span className="currency">ج.م</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="erp-slip-remaining-callout settled">
-                            <CheckCircle2 size={16} />
-                            <span>الفاتورة مسددة بالكامل</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {current.receiptNumber && (
-                        <div className="erp-slip-linked-receipt">
-                          <span className="section-label">السند المالي المرتبط</span>
-                          <span className="receipt-card-link" style={{ cursor: 'pointer' }}>
-                            <div className="receipt-info">
-                              <ReceiptIcon size={16} />
-                              <span className="receipt-num" dir="ltr">إيصال {current.receiptNumber}</span>
-                            </div>
-                            <span className="receipt-amt" dir="ltr">{money(current.receiptAmount)} ج.م</span>
-                            <ExternalLink size={13} />
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="erp-slip-notes">
-                        <span className="notes-label">ملاحظات</span>
-                        <p className="notes-content">دفعة مقدمة نقداً، والمتبقي آجل أسبوع</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="erp-drawer-footer">
-                    <button type="button" className="btn">
-                      تعديل الفاتورة
-                    </button>
-                    <button
-                      type="button"
-                      className="btn danger"
-                      onClick={() => setShowDeleteConfirm(true)}
-                    >
-                      حذف
-                    </button>
-                  </div>
-                </aside>
-              )}
             </div>
           </div>
         </main>
+
+        {/* Unified Invoice View Modal */}
+        {selectedInvoice && current && (
+          <Modal
+            className="transaction-entry-modal invoice-entry-modal"
+            backdropClassName="transaction-entry-backdrop"
+            title={`عرض فاتورة مبيعات — ${current.number}`}
+            onClose={() => setSelectedInvoice(null)}
+          >
+            <InvoiceForm
+              readOnly
+              kind="sale"
+              accounts={[
+                { id: 'acc-1', name: 'عميل نقدي عام', kind: 'customer', balance: 0, is_active: true, notes: 'عميل نقدي فوري', phone: '01000000000', serial_number: 1, opening_balance: 0, invoiced: 0, paid: 0, has_documents: false, system_key: 'cash_customer' },
+                { id: 'acc-2', name: 'شركة النور للتجارة والتوريدات', kind: 'customer', balance: 3450, is_active: true, notes: 'عميل آجل معتمد بحد ائتماني 50,000', phone: '01234567890', serial_number: 2, opening_balance: 0, invoiced: 8450, paid: 5000, has_documents: true, system_key: null },
+              ] as any}
+              warehouses={[
+                { id: 'wh-1', name: 'المخزن الرئيسي', is_active: true, is_primary: true, serial_number: 1 },
+              ] as any}
+              cashBoxes={[
+                { id: 'cb-1', name: 'خزينة المعرض الرئيسية', balance: 24500, is_active: true, is_primary: true, serial_number: 1, opening_balance: 0, notes: null },
+              ] as any}
+              items={[
+                { id: 'itm-1', serial_number: 1, code: 'ITM-001', name: 'شاي العروسة 250 جم', unit: 'كرتونة', sale_price: 180, purchase_price: 150, qty: 45, is_active: true },
+                { id: 'itm-2', serial_number: 2, code: 'ITM-002', name: 'سكر أبيض نقي 1 كجم', unit: 'كجم', sale_price: 32.5, purchase_price: 28, qty: 120, is_active: true },
+                { id: 'itm-3', serial_number: 3, code: 'ITM-003', name: 'زيت عباد الشمس 800 مل', unit: 'زجاجة', sale_price: 65, purchase_price: 54, qty: 60, is_active: true },
+                { id: 'itm-4', serial_number: 4, code: 'ITM-004', name: 'أرز فاخر عريض الحبة 5 كجم', unit: 'شيكارة', sale_price: 175, purchase_price: 145, qty: 30, is_active: true },
+              ] as any}
+              stockRows={[
+                { item_id: 'itm-1', warehouse_id: 'wh-1', current_qty: 45 },
+                { item_id: 'itm-2', warehouse_id: 'wh-1', current_qty: 120 },
+                { item_id: 'itm-3', warehouse_id: 'wh-1', current_qty: 60 },
+                { item_id: 'itm-4', warehouse_id: 'wh-1', current_qty: 30 },
+              ] as any}
+              editing={{
+                invoice: {
+                  id: 'mock-inv-1',
+                  company_id: 'cmp-1',
+                  serial_number: 89,
+                  kind: 'sale',
+                  number: current.number,
+                  invoice_date: current.date,
+                  account_id: 'acc-2',
+                  account_kind: 'customer',
+                  warehouse_id: 'wh-1',
+                  cash_box_id: 'cb-1',
+                  subtotal: current.total,
+                  discount: 0,
+                  total: current.total,
+                  paid: current.paid,
+                  remaining: current.remaining,
+                  notes: current.notes,
+                  created_at: '2026-10-24T14:30:00Z',
+                  updated_at: '2026-10-24T14:30:00Z',
+                  receipt_number: current.receiptNumber,
+                  receipt_amount: current.receiptAmount,
+                  account_name: current.customer,
+                  warehouse_name: current.warehouse,
+                  cash_box_name: 'خزينة المعرض الرئيسية',
+                  profit_total: current.total * 0.22,
+                } as any,
+                lines: [
+                  { key: 'line-1', item_id: 'itm-4', qty: '20', unit_price: '175' },
+                  { key: 'line-2', item_id: 'itm-2', qty: '60', unit_price: '32.5' },
+                  { key: 'line-3', item_id: 'itm-3', qty: '46.1538', unit_price: '65' },
+                ],
+              }}
+              onSaved={() => setSelectedInvoice(null)}
+              onCancel={() => setSelectedInvoice(null)}
+              onEdit={() => {}}
+              onDelete={() => setShowDeleteConfirm(true)}
+              onPrint={() => window.print()}
+            />
+          </Modal>
+        )}
 
         {showDeleteConfirm && current && (
           <ConfirmDialog

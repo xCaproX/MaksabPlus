@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { Plus, RotateCcw, Save, Trash2, Pencil, Printer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -16,13 +16,28 @@ interface Props {
   items: ItemRow[];
   stockRows: StockOpeningRow[];
   editing: EditingWarehouseTransfer | null;
+  readOnly?: boolean;
   onSaved: (message: string) => void;
   onCancel: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onPrint?: () => void;
 }
 
 type DraftLine = Omit<WarehouseTransferLine, 'qty'> & { key: string; qty: string };
 
-export default function WarehouseTransferForm({ warehouses, items, stockRows, editing, onSaved, onCancel: _onCancel }: Props) {
+export default function WarehouseTransferForm({
+  warehouses,
+  items,
+  stockRows,
+  editing,
+  readOnly = false,
+  onSaved,
+  onCancel,
+  onEdit,
+  onDelete,
+  onPrint,
+}: Props) {
   const activeWarehouses = warehouses.filter((warehouse) => warehouse.is_active !== false);
   const [sourceId, setSourceId] = useState(
     editing?.source_warehouse_id ?? activeWarehouses.find((warehouse) => warehouse.is_primary)?.id ?? activeWarehouses[0]?.id ?? '',
@@ -332,48 +347,66 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
         <div className="transfer-header-grid">
           <label className="field-transfer-source">
             <span>من مخزن (المصدر)</span>
-            <SearchableSelect
-              value={sourceId}
-              options={choices.map((warehouse) => ({
-                value: warehouse.id,
-                label: warehouse.name,
-              }))}
-              onChange={handleSourceWarehouseChange}
-              placeholder="اختر مخزن المصدر…"
-              searchPlaceholder="ابحث باسم مخزن المصدر…"
-              emptyMessage="لا توجد مخازن متاحة"
-              required
-            />
+            {readOnly ? (
+              <div className="readonly-val-box">
+                {choices.find((w) => w.id === sourceId)?.name ?? '—'}
+              </div>
+            ) : (
+              <SearchableSelect
+                value={sourceId}
+                options={choices.map((warehouse) => ({
+                  value: warehouse.id,
+                  label: warehouse.name,
+                }))}
+                onChange={handleSourceWarehouseChange}
+                placeholder="اختر مخزن المصدر…"
+                searchPlaceholder="ابحث باسم مخزن المصدر…"
+                emptyMessage="لا توجد مخازن متاحة"
+                required
+              />
+            )}
           </label>
 
           <label className="field-transfer-destination">
             <span>إلى مخزن (الوجهة)</span>
-            <SearchableSelect
-              value={destinationId}
-              options={choices
-                .filter((warehouse) => warehouse.id !== sourceId)
-                .map((warehouse) => ({
-                  value: warehouse.id,
-                  label: warehouse.name,
-                }))}
-              onChange={setDestinationId}
-              placeholder="اختر مخزن الوجهة…"
-              searchPlaceholder="ابحث باسم مخزن الوجهة…"
-              emptyMessage="لا توجد مخازن متاحة"
-              required
-            />
+            {readOnly ? (
+              <div className="readonly-val-box">
+                {choices.find((w) => w.id === destinationId)?.name ?? '—'}
+              </div>
+            ) : (
+              <SearchableSelect
+                value={destinationId}
+                options={choices
+                  .filter((warehouse) => warehouse.id !== sourceId)
+                  .map((warehouse) => ({
+                    value: warehouse.id,
+                    label: warehouse.name,
+                  }))}
+                onChange={setDestinationId}
+                placeholder="اختر مخزن الوجهة…"
+                searchPlaceholder="ابحث باسم مخزن الوجهة…"
+                emptyMessage="لا توجد مخازن متاحة"
+                required
+              />
+            )}
           </label>
         </div>
 
         <div className="account-header-row2">
           <div className="field-account-notes">
-            <input
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="ملاحظات اختيارية على أمر التحويل…"
-              className="account-notes-input"
-              aria-label="ملاحظات التحويل"
-            />
+            {readOnly ? (
+              <div className="readonly-val-box readonly-notes">
+                {notes || 'لا توجد ملاحظات على أمر التحويل'}
+              </div>
+            ) : (
+              <input
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="ملاحظات اختيارية على أمر التحويل…"
+                className="account-notes-input"
+                aria-label="ملاحظات التحويل"
+              />
+            )}
           </div>
 
           <div className="account-balance-pills">
@@ -400,86 +433,88 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                 <th>الصنف</th>
                 <th className="w-qty">المتاح بالمصدر</th>
                 <th className="w-qty">الكمية المنقولة</th>
-                <th className="w-action center">إجراء</th>
+                {!readOnly && <th className="w-action center">إجراء</th>}
               </tr>
             </thead>
             <tbody>
               {/* شريط الإدخال الثابت أعلى جدول التحويل */}
-              <tr className="entry-line-row">
-                <td className="w-num center line-index-cell" data-label="#">
-                  <span className="entry-badge" title="سطر إدخال صنف جديد">+</span>
-                </td>
-                <td data-label="الصنف">
-                  <SearchableSelect
-                    inputRef={entryItemSearchRef}
-                    value={entryItemId}
-                    options={selectableItems.map((entry) => {
-                      const available = getAvailableStock(entry.id, sourceId);
-                      const isOut = available <= 0;
-                      return {
-                        value: entry.id,
-                        label: `${entry.code ? `${entry.code} — ` : ''}${entry.name} — متاح: ${formatQty(available)} ${entry.unit}${isOut ? ' (غير متوفر)' : ''}`,
-                      };
-                    })}
-                    onChange={handleEntryItemSelect}
-                    placeholder="اختر صنفاً للتحويل…"
-                    searchPlaceholder="ابحث باسم أو كود الصنف…"
-                    emptyMessage="لا توجد أصناف مطابقة"
-                  />
-                </td>
-                <td className="num" data-label="المتاح بالمصدر">
-                  {entrySelectedItem ? (
-                    <span dir="ltr">
-                      <strong>{formatQty(entryAvailableStock)}</strong> {entrySelectedItem.unit}
-                    </span>
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td data-label={entrySelectedItem ? `الكمية (${entrySelectedItem.unit})` : 'الكمية المنقولة'}>
-                  <div className="line-qty-group">
-                    <input
-                      ref={entryQtyInputRef}
-                      aria-label="الكمية المنقولة"
-                      type="number"
-                      inputMode="decimal"
-                      min="0.0001"
-                      step="0.0001"
-                      dir="ltr"
-                      value={entryQty}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => handleEntryQtyChange(e.target.value)}
-                      onBlur={handleEntryQtyBlur}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleInsertLine();
-                        }
-                      }}
-                      className="no-spinner num"
+              {!readOnly && (
+                <tr className="entry-line-row">
+                  <td className="w-num center line-index-cell" data-label="#">
+                    <span className="entry-badge" title="سطر إدخال صنف جديد">+</span>
+                  </td>
+                  <td data-label="الصنف">
+                    <SearchableSelect
+                      inputRef={entryItemSearchRef}
+                      value={entryItemId}
+                      options={selectableItems.map((entry) => {
+                        const available = getAvailableStock(entry.id, sourceId);
+                        const isOut = available <= 0;
+                        return {
+                          value: entry.id,
+                          label: `${entry.code ? `${entry.code} — ` : ''}${entry.name} — متاح: ${formatQty(available)} ${entry.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                        };
+                      })}
+                      onChange={handleEntryItemSelect}
+                      placeholder="اختر صنفاً للتحويل…"
+                      searchPlaceholder="ابحث باسم أو كود الصنف…"
+                      emptyMessage="لا توجد أصناف مطابقة"
                     />
-                    <span className="line-unit-suffix">{entrySelectedItem?.unit ?? 'قطعة'}</span>
-                  </div>
-                </td>
-                <td className="center" data-label="إجراء">
-                  <button
-                    type="button"
-                    className="btn-insert-line"
-                    onClick={handleInsertLine}
-                    disabled={!entryItemId}
-                    title="إدراج الصنف في أمر التحويل"
-                  >
-                    <Plus size={15} />
-                    <span>إدراج</span>
-                  </button>
-                </td>
-              </tr>
+                  </td>
+                  <td className="num" data-label="المتاح بالمصدر">
+                    {entrySelectedItem ? (
+                      <span dir="ltr">
+                        <strong>{formatQty(entryAvailableStock)}</strong> {entrySelectedItem.unit}
+                      </span>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                  <td data-label={entrySelectedItem ? `الكمية (${entrySelectedItem.unit})` : 'الكمية المنقولة'}>
+                    <div className="line-qty-group">
+                      <input
+                        ref={entryQtyInputRef}
+                        aria-label="الكمية المنقولة"
+                        type="number"
+                        inputMode="decimal"
+                        min="0.0001"
+                        step="0.0001"
+                        dir="ltr"
+                        value={entryQty}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => handleEntryQtyChange(e.target.value)}
+                        onBlur={handleEntryQtyBlur}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleInsertLine();
+                          }
+                        }}
+                        className="no-spinner num"
+                      />
+                      <span className="line-unit-suffix">{entrySelectedItem?.unit ?? 'قطعة'}</span>
+                    </div>
+                  </td>
+                  <td className="center" data-label="إجراء">
+                    <button
+                      type="button"
+                      className="btn-insert-line"
+                      onClick={handleInsertLine}
+                      disabled={!entryItemId}
+                      title="إدراج الصنف في أمر التحويل"
+                    >
+                      <Plus size={15} />
+                      <span>إدراج</span>
+                    </button>
+                  </td>
+                </tr>
+              )}
 
               {/* قائمة الأصناف المدرجة بالأسفل */}
               {lines.length === 0 ? (
                 <tr className="empty-lines-placeholder-row">
-                  <td colSpan={5}>
-                    لم يتم إدراج أصناف بعد. اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.
+                  <td colSpan={readOnly ? 4 : 5}>
+                    {readOnly ? 'لا توجد أصناف في هذا التحويل.' : 'لم يتم إدراج أصناف بعد. اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.'}
                   </td>
                 </tr>
               ) : (
@@ -504,62 +539,70 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
                         </span>
                       </td>
                       <td data-label={item ? `الكمية (${item.unit})` : 'الكمية المنقولة'}>
-                        <div className="line-qty-group">
-                          <input
-                            aria-label={`الكمية المنقولة — ${item?.name ?? ''}`}
-                            type="number"
-                            inputMode="decimal"
-                            min="0.0001"
-                            step="0.0001"
-                            dir="ltr"
-                            value={line.qty}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === '') {
-                                updateLine(line.key, { qty: '' });
-                                return;
-                              }
-                              const num = parseFloat(val);
-                              if (isNaN(num)) {
-                                updateLine(line.key, { qty: '1' });
-                                return;
-                              }
-                              if (available > 0 && num > available) {
-                                updateLine(line.key, { qty: String(available) });
-                                toast.warning(`الكمية المتاحة بالمصدر (${formatQty(available)}) هي الحد الأقصى`);
-                                return;
-                              }
-                              if (num <= 0 && val !== '0' && val !== '0.') {
-                                updateLine(line.key, { qty: '1' });
-                                return;
-                              }
-                              updateLine(line.key, { qty: val });
-                            }}
-                            onBlur={() => {
-                              const num = parseFloat(line.qty);
-                              if (isNaN(num) || num <= 0) {
-                                updateLine(line.key, { qty: '1' });
-                              } else if (available > 0 && num > available) {
-                                updateLine(line.key, { qty: String(available) });
-                              }
-                            }}
-                            className="no-spinner num"
-                          />
-                          <span className="line-unit-suffix">{item?.unit ?? 'قطعة'}</span>
-                        </div>
+                        {readOnly ? (
+                          <span className="readonly-line-qty num" dir="ltr">
+                            <bdi>{formatQty(line.qty)}</bdi> {item?.unit ?? 'قطعة'}
+                          </span>
+                        ) : (
+                          <div className="line-qty-group">
+                            <input
+                              aria-label={`الكمية المنقولة — ${item?.name ?? ''}`}
+                              type="number"
+                              inputMode="decimal"
+                              min="0.0001"
+                              step="0.0001"
+                              dir="ltr"
+                              value={line.qty}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '') {
+                                  updateLine(line.key, { qty: '' });
+                                  return;
+                                }
+                                const num = parseFloat(val);
+                                if (isNaN(num)) {
+                                  updateLine(line.key, { qty: '1' });
+                                  return;
+                                }
+                                if (available > 0 && num > available) {
+                                  updateLine(line.key, { qty: String(available) });
+                                  toast.warning(`الكمية المتاحة بالمصدر (${formatQty(available)}) هي الحد الأقصى`);
+                                  return;
+                                }
+                                if (num <= 0 && val !== '0' && val !== '0.') {
+                                  updateLine(line.key, { qty: '1' });
+                                  return;
+                                }
+                                updateLine(line.key, { qty: val });
+                              }}
+                              onBlur={() => {
+                                const num = parseFloat(line.qty);
+                                if (isNaN(num) || num <= 0) {
+                                  updateLine(line.key, { qty: '1' });
+                                } else if (available > 0 && num > available) {
+                                  updateLine(line.key, { qty: String(available) });
+                                }
+                              }}
+                              className="no-spinner num"
+                            />
+                            <span className="line-unit-suffix">{item?.unit ?? 'قطعة'}</span>
+                          </div>
+                        )}
                       </td>
-                      <td className="center" data-label="إجراء">
-                        <button
-                          type="button"
-                          className="line-delete-btn"
-                          title="حذف هذا الصنف من أمر التحويل"
-                          aria-label="حذف سطر الصنف"
-                          onClick={() => removeLine(line.key)}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
+                      {!readOnly && (
+                        <td className="center" data-label="إجراء">
+                          <button
+                            type="button"
+                            className="line-delete-btn"
+                            title="حذف هذا الصنف من أمر التحويل"
+                            aria-label="حذف سطر الصنف"
+                            onClick={() => removeLine(line.key)}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })
@@ -570,16 +613,40 @@ export default function WarehouseTransferForm({ warehouses, items, stockRows, ed
       </div>
 
       {/* أزرار الإجراءات الموحدة */}
-      <div className="form-modal-actions">
-        <button type="submit" className="btn primary" disabled={busy}>
-          <Save size={16} />
-          <span>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل المخزني'}</span>
-        </button>
-        <button type="button" className="btn" onClick={handleReset} disabled={busy}>
-          <RotateCcw size={14} />
-          <span>مسح / جديد</span>
-        </button>
-      </div>
+      {readOnly ? (
+        <div className="form-modal-actions readonly-actions-group" style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: '10px' }}>
+          {onEdit && (
+            <button type="button" className="btn primary" onClick={onEdit}>
+              <Pencil size={15} />
+              <span>تعديل التحويل</span>
+            </button>
+          )}
+          <button type="button" className="btn" onClick={onPrint ?? (() => window.print())}>
+            <Printer size={15} />
+            <span>طباعة</span>
+          </button>
+          {onDelete && (
+            <button type="button" className="btn danger" onClick={onDelete}>
+              <Trash2 size={15} />
+              <span>حذف</span>
+            </button>
+          )}
+          <button type="button" className="btn" onClick={onCancel}>
+            <span>إغلاق</span>
+          </button>
+        </div>
+      ) : (
+        <div className="form-modal-actions">
+          <button type="submit" className="btn primary" disabled={busy}>
+            <Save size={16} />
+            <span>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل المخزني'}</span>
+          </button>
+          <button type="button" className="btn" onClick={handleReset} disabled={busy}>
+            <RotateCcw size={14} />
+            <span>مسح / جديد</span>
+          </button>
+        </div>
+      )}
     </form>
   );
 }

@@ -12,6 +12,8 @@
 }
 
 .erp-list-panel { width: 100%; min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
+.erp-table tbody tr { cursor: pointer; transition: background-color var(--transition-fast, 0.15s ease); }
+.erp-table tbody tr:hover td { background-color: #f8fafc; }
 .erp-toolbar {
   display: flex;
   align-items: center;

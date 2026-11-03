@@ -1516,3 +1516,68 @@
     min-height: 280px;
   }
 }
+
+/* ReadOnly View Mode for InvoiceForm & WarehouseTransferForm */
+.readonly-val-box {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--erp-surface-muted, #f8fafc);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink, #0f172a);
+}
+.readonly-val-box.strong {
+  font-weight: 750;
+  color: var(--primary, #2e425c);
+}
+.readonly-val-box.readonly-notes {
+  min-height: 44px;
+  font-weight: 500;
+  color: var(--muted, #64748b);
+  white-space: pre-wrap;
+  align-items: flex-start;
+  padding: 8px 12px;
+}
+.readonly-line-qty,
+.readonly-line-price {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink, #0f172a);
+}
+.readonly-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.readonly-actions-group .btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.linked-receipt-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.linked-receipt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 650;
+}

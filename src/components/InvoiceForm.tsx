@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Check, Plus, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import { Check, Plus, RotateCcw, Save, Trash2, X, Pencil, Printer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { money, qty as formatQty, round2, today } from '../lib/format';
+import { formatDate, money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
@@ -32,8 +32,12 @@ interface InvoiceFormProps {
   items: ItemRow[];
   stockRows: StockOpeningRow[];
   editing: EditingInvoice | null;
+  readOnly?: boolean;
   onSaved: (message: string) => void;
   onCancel: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onPrint?: () => void;
 }
 
 export default function InvoiceForm({
@@ -44,9 +48,14 @@ export default function InvoiceForm({
   items,
   stockRows,
   editing,
+  readOnly = false,
   onSaved,
-  onCancel: _onCancel,
+  onCancel,
+  onEdit,
+  onDelete,
+  onPrint,
 }: InvoiceFormProps) {
+  const isReadOnly = Boolean(readOnly);
   const isPurchase = kind === 'purchase' || kind === 'purchase_return';
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
   const isWaste = kind === 'waste';
@@ -123,6 +132,7 @@ export default function InvoiceForm({
   const effectiveCashBoxId = cashBoxId || editing?.invoice.cash_box_id || cashBoxes.find((box) => box.is_active)?.id || '';
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
+  const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId);
   const { netInvoiceDebt, balanceBefore, balanceAfter } = calculateBalancePreview({
     currentAccountBalance: Number(selectedAccount?.balance || 0),
     isReturn,
@@ -520,56 +530,73 @@ export default function InvoiceForm({
         <div className="invoice-part-right">
           {/* كارت رأس الحساب والبيانات الأساسية */}
           <div className="right-card account-header-card">
-            {/* الصف الأول: المخزن (افتراضي المخزن الرئيسي) - نوع الحساب - الحساب */}
+            {/* الصف الأول: التاريخ - المخزن - نوع الحساب - الحساب */}
             <div className="account-header-row1">
+              <div className="field-date" style={{ minWidth: '130px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 650, color: '#475569', marginBottom: '5px', display: 'block' }}>التاريخ</span>
+                <div className="readonly-val-box num" dir="ltr">{formatDate(date)}</div>
+              </div>
+
               <label className="field-warehouse-select">
                 <span>المخزن</span>
-                <SearchableSelect
-                  value={warehouseId}
-                  options={selectableWarehouses.map((warehouse) => ({
-                    value: warehouse.id,
-                    label: `${warehouse.name}${warehouse.is_active === false ? ' — موقوف' : ''}`,
-                  }))}
-                  onChange={handleWarehouseChange}
-                  placeholder={selectableWarehouses.length === 0 ? 'لا يوجد مخزن نشط' : 'اختر المخزن…'}
-                  searchPlaceholder="اكتب للبحث عن مخزن…"
-                  emptyMessage="لا يوجد مخزن مطابق"
-                  required
-                />
+                {isReadOnly ? (
+                  <div className="readonly-val-box">{selectedWarehouse?.name ?? '—'}</div>
+                ) : (
+                  <SearchableSelect
+                    value={warehouseId}
+                    options={selectableWarehouses.map((warehouse) => ({
+                      value: warehouse.id,
+                      label: `${warehouse.name}${warehouse.is_active === false ? ' — موقوف' : ''}`,
+                    }))}
+                    onChange={handleWarehouseChange}
+                    placeholder={selectableWarehouses.length === 0 ? 'لا يوجد مخزن نشط' : 'اختر المخزن…'}
+                    searchPlaceholder="اكتب للبحث عن مخزن…"
+                    emptyMessage="لا يوجد مخزن مطابق"
+                    required
+                  />
+                )}
               </label>
 
               {!isWaste && (
                 <label className="field-account-kind">
                   <span>نوع الحساب</span>
-                  <SearchableSelect
-                    value={accountKind}
-                    options={[
-                      { value: 'customer', label: 'عميل' },
-                      { value: 'supplier', label: 'مورد' },
-                    ]}
-                    onChange={(val) => handleAccountKindChange(val as AccountKind)}
-                    placeholder="اختر النوع…"
-                    searchPlaceholder="بحث في الأنواع…"
-                    required
-                  />
+                  {isReadOnly ? (
+                    <div className="readonly-val-box">{accountKind === 'customer' ? 'عميل' : 'مورد'}</div>
+                  ) : (
+                    <SearchableSelect
+                      value={accountKind}
+                      options={[
+                        { value: 'customer', label: 'عميل' },
+                        { value: 'supplier', label: 'مورد' },
+                      ]}
+                      onChange={(val) => handleAccountKindChange(val as AccountKind)}
+                      placeholder="اختر النوع…"
+                      searchPlaceholder="بحث في الأنواع…"
+                      required
+                    />
+                  )}
                 </label>
               )}
 
               {!isWaste && (
                 <label className="field-account-select">
                   <span>الحساب</span>
-                  <SearchableSelect
-                    value={accountId}
-                    options={selectableAccounts.map((account) => ({
-                      value: account.id,
-                      label: account.phone ? `${account.name} — ${account.phone}` : account.name,
-                    }))}
-                    onChange={handleAccountChange}
-                    placeholder="اختر الحساب…"
-                    searchPlaceholder="اكتب للبحث عن حساب…"
-                    emptyMessage="لا توجد حسابات مطابقة"
-                    required
-                  />
+                  {isReadOnly ? (
+                    <div className="readonly-val-box strong">{selectedAccount?.name ?? '—'}</div>
+                  ) : (
+                    <SearchableSelect
+                      value={accountId}
+                      options={selectableAccounts.map((account) => ({
+                        value: account.id,
+                        label: account.phone ? `${account.name} — ${account.phone}` : account.name,
+                      }))}
+                      onChange={handleAccountChange}
+                      placeholder="اختر الحساب…"
+                      searchPlaceholder="اكتب للبحث عن حساب…"
+                      emptyMessage="لا توجد حسابات مطابقة"
+                      required
+                    />
+                  )}
                 </label>
               )}
             </div>
@@ -634,105 +661,107 @@ export default function InvoiceForm({
                     <th className="w-qty">الكمية</th>
                     <th className="w-price">{isWaste ? 'سعر البيع' : 'السعر'}</th>
                     <th className="w-total">الإجمالي</th>
-                    <th className="w-action center">إجراء</th>
+                    {!isReadOnly && <th className="w-action center">إجراء</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {/* شريط الإدخال الثابت أعلى الجدول */}
-                  <tr className="entry-line-row">
-                    <td className="w-num center line-index-cell" data-label="#">
-                      <span className="entry-badge" title="سطر إدخال صنف جديد">+</span>
-                    </td>
-                    <td data-label="الصنف">
-                      <SearchableSelect
-                        inputRef={entryItemSearchRef}
-                        value={entryItemId}
-                        options={items.map((item) => {
-                          const stock = stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0;
-                          const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                          const isOut = isStockLimited && Number(stock) <= 0;
-                          return {
-                            value: item.id,
-                            label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
-                          };
-                        })}
-                        onChange={handleEntryItemSelect}
-                        placeholder="اختر صنفاً للإدراج…"
-                        searchPlaceholder="ابحث باسم أو كود الصنف…"
-                        emptyMessage="لا توجد أصناف مطابقة"
-                      />
-                    </td>
-                    <td data-label={entrySelectedItem ? `الكمية (${entrySelectedItem.unit})` : 'الكمية'}>
-                      <div className="line-qty-group">
+                  {!isReadOnly && (
+                    <tr className="entry-line-row">
+                      <td className="w-num center line-index-cell" data-label="#">
+                        <span className="entry-badge" title="سطر إدخال صنف جديد">+</span>
+                      </td>
+                      <td data-label="الصنف">
+                        <SearchableSelect
+                          inputRef={entryItemSearchRef}
+                          value={entryItemId}
+                          options={items.map((item) => {
+                            const stock = stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0;
+                            const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                            const isOut = isStockLimited && Number(stock) <= 0;
+                            return {
+                              value: item.id,
+                              label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                            };
+                          })}
+                          onChange={handleEntryItemSelect}
+                          placeholder="اختر صنفاً للإدراج…"
+                          searchPlaceholder="ابحث باسم أو كود الصنف…"
+                          emptyMessage="لا توجد أصناف مطابقة"
+                        />
+                      </td>
+                      <td data-label={entrySelectedItem ? `الكمية (${entrySelectedItem.unit})` : 'الكمية'}>
+                        <div className="line-qty-group">
+                          <input
+                            ref={entryQtyInputRef}
+                            aria-label={`كمية الصنف${entrySelectedItem ? ` — ${entrySelectedItem.name} (${entrySelectedItem.unit})` : ''}`}
+                            type="number"
+                            inputMode="decimal"
+                            min="1"
+                            step="0.0001"
+                            dir="ltr"
+                            value={entryQty}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => handleEntryQtyChange(e.target.value)}
+                            onBlur={handleEntryQtyBlur}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                entryPriceInputRef.current?.focus();
+                                entryPriceInputRef.current?.select();
+                              }
+                            }}
+                            className="no-spinner num"
+                          />
+                          <span className="line-unit-suffix">{entrySelectedItem ? entrySelectedItem.unit : 'قطعة'}</span>
+                        </div>
+                      </td>
+                      <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
                         <input
-                          ref={entryQtyInputRef}
-                          aria-label={`كمية الصنف${entrySelectedItem ? ` — ${entrySelectedItem.name} (${entrySelectedItem.unit})` : ''}`}
+                          ref={entryPriceInputRef}
+                          aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
                           type="number"
                           inputMode="decimal"
-                          min="1"
-                          step="0.0001"
+                          min="0"
+                          step="0.01"
                           dir="ltr"
-                          value={entryQty}
+                          placeholder="0.00"
+                          value={entryUnitPrice}
                           onFocus={(e) => e.target.select()}
-                          onChange={(e) => handleEntryQtyChange(e.target.value)}
-                          onBlur={handleEntryQtyBlur}
+                          onChange={(e) => setEntryUnitPrice(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              entryPriceInputRef.current?.focus();
-                              entryPriceInputRef.current?.select();
+                              handleInsertLine();
                             }
                           }}
+                          disabled={isWaste}
                           className="no-spinner num"
                         />
-                        <span className="line-unit-suffix">{entrySelectedItem ? entrySelectedItem.unit : 'قطعة'}</span>
-                      </div>
-                    </td>
-                    <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
-                      <input
-                        ref={entryPriceInputRef}
-                        aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="0.01"
-                        dir="ltr"
-                        placeholder="0.00"
-                        value={entryUnitPrice}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => setEntryUnitPrice(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleInsertLine();
-                          }
-                        }}
-                        disabled={isWaste}
-                        className="no-spinner num"
-                      />
-                    </td>
-                    <td className="line-total" data-label="الإجمالي">
-                      <span dir="ltr" className="num">{money(entryLineTotal)}</span>
-                    </td>
-                    <td className="center" data-label="إجراء">
-                      <button
-                        type="button"
-                        className="btn-insert-line"
-                        onClick={handleInsertLine}
-                        disabled={!entryItemId}
-                        title="إدراج الصنف في الفاتورة"
-                      >
-                        <Plus size={15} />
-                        <span>إدراج</span>
-                      </button>
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="line-total" data-label="الإجمالي">
+                        <span dir="ltr" className="num">{money(entryLineTotal)}</span>
+                      </td>
+                      <td className="center" data-label="إجراء">
+                        <button
+                          type="button"
+                          className="btn-insert-line"
+                          onClick={handleInsertLine}
+                          disabled={!entryItemId}
+                          title="إدراج الصنف في الفاتورة"
+                        >
+                          <Plus size={15} />
+                          <span>إدراج</span>
+                        </button>
+                      </td>
+                    </tr>
+                  )}
 
                   {/* قائمة الأصناف المدرجة أسفل شريط الإدخال */}
                   {lines.length === 0 ? (
                     <tr className="empty-lines-placeholder-row">
-                      <td colSpan={6}>
-                        لم يتم إدراج أصناف بعد. اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.
+                      <td colSpan={isReadOnly ? 5 : 6}>
+                        {isReadOnly ? 'لا توجد بنود في هذه الفاتورة.' : 'لم يتم إدراج أصناف بعد. اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.'}
                       </td>
                     </tr>
                   ) : (
@@ -765,88 +794,102 @@ export default function InvoiceForm({
                             </div>
                           </td>
                           <td data-label={selectedItem ? `الكمية (${selectedItem.unit})` : 'الكمية'}>
-                            <div className="line-qty-group">
-                              <input
-                                aria-label={`الكمية — ${selectedItem?.name ?? ''} (${selectedItem?.unit ?? 'قطعة'})`}
-                                type="number"
-                                inputMode="decimal"
-                                min="1"
-                                step="0.0001"
-                                dir="ltr"
-                                value={line.qty}
-                                onFocus={(e) => e.target.select()}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (val === '') {
-                                    updateLine(line.key, { qty: '' });
-                                    return;
-                                  }
-                                  const num = parseFloat(val);
-                                  if (isNaN(num)) {
-                                    updateLine(line.key, { qty: '1' });
-                                    return;
-                                  }
-                                  const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                                  if (isStockLimited && line.item_id && availableStock > 0 && num > availableStock) {
-                                    updateLine(line.key, { qty: String(availableStock) });
-                                    toast.warning(`الكمية المتاحة (${formatQty(availableStock)}) هي الحد الأقصى`);
-                                    return;
-                                  }
-                                  if (num < 1 && val !== '0' && val !== '0.') {
-                                    updateLine(line.key, { qty: '1' });
-                                    return;
-                                  }
-                                  updateLine(line.key, { qty: val });
-                                }}
-                                onBlur={() => {
-                                  const num = parseFloat(line.qty);
-                                  const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                                  if (isNaN(num) || num < 1) {
-                                    updateLine(line.key, { qty: '1' });
-                                  } else if (isStockLimited && line.item_id && availableStock > 0 && num > availableStock) {
-                                    updateLine(line.key, { qty: String(availableStock) });
-                                  }
-                                }}
-                                className="no-spinner num"
-                              />
-                              <span className="line-unit-suffix">{selectedItem ? selectedItem.unit : 'قطعة'}</span>
-                            </div>
-                            {isStockExceeded && (
+                            {isReadOnly ? (
+                              <span className="readonly-line-qty num" dir="ltr">
+                                <bdi>{formatQty(line.qty)}</bdi> {selectedItem ? selectedItem.unit : 'قطعة'}
+                              </span>
+                            ) : (
+                              <div className="line-qty-group">
+                                <input
+                                  aria-label={`الكمية — ${selectedItem?.name ?? ''} (${selectedItem?.unit ?? 'قطعة'})`}
+                                  type="number"
+                                  inputMode="decimal"
+                                  min="1"
+                                  step="0.0001"
+                                  dir="ltr"
+                                  value={line.qty}
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '') {
+                                      updateLine(line.key, { qty: '' });
+                                      return;
+                                    }
+                                    const num = parseFloat(val);
+                                    if (isNaN(num)) {
+                                      updateLine(line.key, { qty: '1' });
+                                      return;
+                                    }
+                                    const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                                    if (isStockLimited && line.item_id && availableStock > 0 && num > availableStock) {
+                                      updateLine(line.key, { qty: String(availableStock) });
+                                      toast.warning(`الكمية المتاحة (${formatQty(availableStock)}) هي الحد الأقصى`);
+                                      return;
+                                    }
+                                    if (num < 1 && val !== '0' && val !== '0.') {
+                                      updateLine(line.key, { qty: '1' });
+                                      return;
+                                    }
+                                    updateLine(line.key, { qty: val });
+                                  }}
+                                  onBlur={() => {
+                                    const num = parseFloat(line.qty);
+                                    const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                                    if (isNaN(num) || num < 1) {
+                                      updateLine(line.key, { qty: '1' });
+                                    } else if (isStockLimited && line.item_id && availableStock > 0 && num > availableStock) {
+                                      updateLine(line.key, { qty: String(availableStock) });
+                                    }
+                                  }}
+                                  className="no-spinner num"
+                                />
+                                <span className="line-unit-suffix">{selectedItem ? selectedItem.unit : 'قطعة'}</span>
+                              </div>
+                            )}
+                            {!isReadOnly && isStockExceeded && (
                               <span className="stock-warning-text" role="alert">
                                 تنبيه: الكمية ({line.qty}) تتجاوز المتاح ({formatQty(availableStock)})
                               </span>
                             )}
                           </td>
                           <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
-                            <input
-                              aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
-                              type="number"
-                              inputMode="decimal"
-                              min="0"
-                              step="0.01"
-                              dir="ltr"
-                              placeholder="0.00"
-                              value={line.unit_price}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => updateLine(line.key, { unit_price: e.target.value })}
-                              disabled={isWaste}
-                              className="no-spinner num"
-                            />
+                            {isReadOnly ? (
+                              <span className="readonly-line-price num" dir="ltr">
+                                <bdi>{money(line.unit_price)}</bdi>
+                              </span>
+                            ) : (
+                              <input
+                                aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                step="0.01"
+                                dir="ltr"
+                                placeholder="0.00"
+                                value={line.unit_price}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => updateLine(line.key, { unit_price: e.target.value })}
+                                disabled={isWaste}
+                                className="no-spinner num"
+                              />
+                            )}
                           </td>
                           <td className="line-total" data-label="الإجمالي">
                             <span dir="ltr" className="num">{money(lineTotal)}</span>
                           </td>
-                          <td className="center" data-label="إجراء">
-                            <button
-                              type="button"
-                              className="line-delete-btn"
-                              title="حذف هذا الصنف من الفاتورة"
-                              aria-label="حذف سطر الصنف"
-                              onClick={() => removeLine(line.key)}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
+                          {!isReadOnly && (
+                            <td className="center" data-label="إجراء">
+                              <button
+                                type="button"
+                                className="line-delete-btn"
+                                title="حذف هذا الصنف من الفاتورة"
+                                aria-label="حذف سطر الصنف"
+                                onClick={() => removeLine(line.key)}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })
@@ -873,72 +916,78 @@ export default function InvoiceForm({
           {!isWaste && (
             <div className="left-row-strip left-paid-strip">
               <span className="strip-label">{isReturn ? 'المسترد' : 'المدفوع'}</span>
-              <div className="strip-center-slot">
-                <div className="paid-quick-actions">
-                  <button
-                    type="button"
-                    className="btn-paid-quick btn-paid-all"
-                    onClick={() => setPaid(Number(total).toFixed(2))}
-                    title={isReturn ? 'استرداد بالكامل' : 'دفع بالكامل'}
-                    aria-label={isReturn ? 'استرداد بالكامل' : 'دفع بالكامل'}
-                  >
-                    <Check size={14} strokeWidth={2.5} />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-paid-quick btn-paid-zero"
-                    onClick={() => {
-                      if (cashAccountSelected) {
-                        toast.warning('العميل النقدي يلزم سداد كامل قيمة الفاتورة ولا يمكن تصفير المدفوع');
+              {!isReadOnly && (
+                <div className="strip-center-slot">
+                  <div className="paid-quick-actions">
+                    <button
+                      type="button"
+                      className="btn-paid-quick btn-paid-all"
+                      onClick={() => setPaid(Number(total).toFixed(2))}
+                      title={isReturn ? 'استرداد بالكامل' : 'دفع بالكامل'}
+                      aria-label={isReturn ? 'استرداد بالكامل' : 'دفع بالكامل'}
+                    >
+                      <Check size={14} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-paid-quick btn-paid-zero"
+                      onClick={() => {
+                        if (cashAccountSelected) {
+                          toast.warning('العميل النقدي يلزم سداد كامل قيمة الفاتورة ولا يمكن تصفير المدفوع');
+                          setPaid(Number(total).toFixed(2));
+                          return;
+                        }
+                        setPaid('0.00');
+                      }}
+                      title={cashAccountSelected ? 'العميل النقدي يلزم سداد كامل الفاتورة' : 'عدم دفع شيء (صفر)'}
+                      aria-label={cashAccountSelected ? 'العميل النقدي يلزم سداد كامل الفاتورة' : 'عدم دفع شيء (تصفير)'}
+                    >
+                      <X size={14} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="strip-value-box strip-paid-box">
+                {isReadOnly ? (
+                  <strong dir="ltr" className="strip-value num">{money(paidNumber)}</strong>
+                ) : (
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    placeholder="0.00"
+                    value={paid}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!/^\d*\.?\d*$/.test(val)) return;
+                      const num = parseFloat(val);
+                      if (!isNaN(num) && num > total) {
                         setPaid(Number(total).toFixed(2));
+                        toast.warning('المدفوع لا يمكن أن يتجاوز إجمالي الفاتورة');
                         return;
                       }
-                      setPaid('0.00');
+                      setPaid(val);
                     }}
-                    title={cashAccountSelected ? 'العميل النقدي يلزم سداد كامل الفاتورة' : 'عدم دفع شيء (صفر)'}
-                    aria-label={cashAccountSelected ? 'العميل النقدي يلزم سداد كامل الفاتورة' : 'عدم دفع شيء (تصفير)'}
-                  >
-                    <X size={14} strokeWidth={2.5} />
-                  </button>
-                </div>
-              </div>
-              <div className="strip-value-box strip-paid-box">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  dir="ltr"
-                  placeholder="0.00"
-                  value={paid}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (!/^\d*\.?\d*$/.test(val)) return;
-                    const num = parseFloat(val);
-                    if (!isNaN(num) && num > total) {
-                      setPaid(Number(total).toFixed(2));
-                      toast.warning('المدفوع لا يمكن أن يتجاوز إجمالي الفاتورة');
-                      return;
-                    }
-                    setPaid(val);
-                  }}
-                  onBlur={() => {
-                    let num = parseFloat(paid);
-                    if (isNaN(num) || num < 0) {
-                      num = 0;
-                    } else if (num > total) {
-                      num = total;
-                    }
-                    if (cashAccountSelected && num < total) {
-                      num = total;
-                      toast.warning('العميل النقدي يلزم سداد كامل قيمة الفاتورة');
-                    }
-                    const parts = paid.split('.');
-                    const decimals = parts[1] ? Math.max(2, parts[1].length) : 2;
-                    setPaid(num.toFixed(decimals));
-                  }}
-                  className="no-spinner num left-paid-input"
-                  aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
-                />
+                    onBlur={() => {
+                      let num = parseFloat(paid);
+                      if (isNaN(num) || num < 0) {
+                        num = 0;
+                      } else if (num > total) {
+                        num = total;
+                      }
+                      if (cashAccountSelected && num < total) {
+                        num = total;
+                        toast.warning('العميل النقدي يلزم سداد كامل قيمة الفاتورة');
+                      }
+                      const parts = paid.split('.');
+                      const decimals = parts[1] ? Math.max(2, parts[1].length) : 2;
+                      setPaid(num.toFixed(decimals));
+                    }}
+                    className="no-spinner num left-paid-input"
+                    aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
+                  />
+                )}
               </div>
             </div>
           )}
@@ -974,19 +1023,25 @@ export default function InvoiceForm({
                     </span>
                   )}
                 </div>
-                <SearchableSelect
-                  value={effectiveCashBoxId}
-                  options={selectableCashBoxes.map((box) => ({
-                    value: box.id,
-                    label: `${box.name} (${money(box.balance)})`,
-                  }))}
-                  onChange={(val) => setCashBoxId(val)}
-                  placeholder="اختر الخزنة…"
-                  searchPlaceholder="اكتب للبحث عن خزنة…"
-                  emptyMessage="لا توجد خزنة مطابقة"
-                  disabled={paidNumber <= 0}
-                  required={paidNumber > 0}
-                />
+                {isReadOnly ? (
+                  <div className="readonly-val-box">
+                    {selectableCashBoxes.find((b) => b.id === effectiveCashBoxId)?.name ?? '—'}
+                  </div>
+                ) : (
+                  <SearchableSelect
+                    value={effectiveCashBoxId}
+                    options={selectableCashBoxes.map((box) => ({
+                      value: box.id,
+                      label: `${box.name} (${money(box.balance)})`,
+                    }))}
+                    onChange={(val) => setCashBoxId(val)}
+                    placeholder="اختر الخزنة…"
+                    searchPlaceholder="اكتب للبحث عن خزنة…"
+                    emptyMessage="لا توجد خزنة مطابقة"
+                    disabled={paidNumber <= 0}
+                    required={paidNumber > 0}
+                  />
+                )}
               </label>
             </div>
           )}
@@ -995,48 +1050,104 @@ export default function InvoiceForm({
           <div className="left-field-box">
             <label>
               <span>ملاحظات</span>
-              <textarea
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="ملاحظات اختيارية على الفاتورة…"
-                className="left-notes-textarea"
-              />
+              {isReadOnly ? (
+                <div className="readonly-val-box readonly-notes">
+                  {notes || 'لا توجد ملاحظات على الفاتورة'}
+                </div>
+              ) : (
+                <textarea
+                  rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="ملاحظات اختيارية على الفاتورة…"
+                  className="left-notes-textarea"
+                />
+              )}
             </label>
           </div>
 
-          {/* 6. حفظ الفاتورة & 7. مسح / جديد */}
-          <div className="left-actions-group">
-            <button
-              type="submit"
-              className="btn primary btn-invoice-save"
-              disabled={busy}
-            >
-              <Save size={16} />
-              <span>
-                {busy
-                  ? 'جارٍ الحفظ…'
-                  : editing
-                  ? 'حفظ التعديلات'
-                  : isReturn
-                  ? 'حفظ المرتجع'
-                  : isWaste
-                  ? 'حفظ الهالك'
-                  : 'حفظ الفاتورة'}
-              </span>
-            </button>
+          {/* السند المالي المرتبط إن وجد */}
+          {editing?.invoice.receipt_number && (
+            <div className="left-field-box linked-receipt-box">
+              <span style={{ fontSize: '12px', fontWeight: 650, color: '#475569' }}>السند المالي المرتبط</span>
+              <div className="linked-receipt-badge" dir="ltr">
+                إيصال {editing.invoice.receipt_number} ({money(editing.invoice.receipt_amount ?? 0)} ج.م)
+              </div>
+            </div>
+          )}
 
-            <button
-              type="button"
-              className="btn btn-invoice-clear"
-              onClick={handleResetNew}
-              disabled={busy}
-              title="مسح بيانات الفاتورة الحالية والبدء من جديد"
-            >
-              <RotateCcw size={14} />
-              <span>مسح / جديد</span>
-            </button>
-          </div>
+          {/* 6. أزرار الإجراءات */}
+          {isReadOnly ? (
+            <div className="left-actions-group readonly-actions-group">
+              {onEdit && (
+                <button
+                  type="button"
+                  className="btn primary btn-invoice-edit"
+                  onClick={onEdit}
+                >
+                  <Pencil size={15} />
+                  <span>تعديل الفاتورة</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-invoice-print"
+                onClick={onPrint ?? (() => window.print())}
+              >
+                <Printer size={15} />
+                <span>طباعة الفاتورة</span>
+              </button>
+              {onDelete && (
+                <button
+                  type="button"
+                  className="btn danger btn-invoice-delete"
+                  onClick={onDelete}
+                >
+                  <Trash2 size={15} />
+                  <span>حذف الفاتورة</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-invoice-close"
+                onClick={onCancel}
+              >
+                <span>إغلاق</span>
+              </button>
+            </div>
+          ) : (
+            <div className="left-actions-group">
+              <button
+                type="submit"
+                className="btn primary btn-invoice-save"
+                disabled={busy}
+              >
+                <Save size={16} />
+                <span>
+                  {busy
+                    ? 'جارٍ الحفظ…'
+                    : editing
+                    ? 'حفظ التعديلات'
+                    : isReturn
+                    ? 'حفظ المرتجع'
+                    : isWaste
+                    ? 'حفظ الهالك'
+                    : 'حفظ الفاتورة'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-invoice-clear"
+                onClick={handleResetNew}
+                disabled={busy}
+                title="مسح بيانات الفاتورة الحالية والبدء من جديد"
+              >
+                <RotateCcw size={14} />
+                <span>مسح / جديد</span>
+              </button>
+            </div>
+          )}
         </div>
       </form>
 
