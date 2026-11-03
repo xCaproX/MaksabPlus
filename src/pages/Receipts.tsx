@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
-import { X, ExternalLink, FileText } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { creationTime, formatDate, money } from '../lib/format';
+import { formatDate, money } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
@@ -66,11 +65,15 @@ export default function Receipts() {
   function setNotice(msg: string) {
     if (msg) toast.success(msg);
   }
+
+  // حالة النافذة المنبثقة الموحدة (عرض، تعديل، إنشاء)
   const [formOpen, setFormOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
+  const openedFromViewRef = useRef(false);
+  const openedTransferFromViewRef = useRef(false);
+
   const [editing, setEditing] = useState<ReceiptRow | null>(null);
   const [editingTransfer, setEditingTransfer] = useState<CashBoxTransferRow | null>(null);
-  const [viewing, setViewing] = useState<ReceiptRow | null>(null);
-  const [viewingTransfer, setViewingTransfer] = useState<CashBoxTransferRow | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
   const [version, setVersion] = useState(0);
   const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
@@ -82,8 +85,6 @@ export default function Receipts() {
   const [dateTo, setDateTo] = useState('');
   const [sortOrder, setSortOrder] = useState<ReceiptSort>('date-desc');
   const [page, setPage] = useState(1);
-
-  const [cashBoxId, setCashBoxId] = useState('');
 
   useEffect(() => {
     const targetTab = (tabParam && VALID_RECEIPT_TABS.includes(tabParam)) ? tabParam : 'in';
@@ -98,8 +99,6 @@ export default function Receipts() {
       setFormOpen(false);
       setEditing(null);
       setEditingTransfer(null);
-      setViewing(null);
-      setViewingTransfer(null);
       setSearchTerm('');
       setCashBoxFilter('all');
       setDateFrom('');
@@ -148,7 +147,10 @@ export default function Receipts() {
         [transfer.number, transfer.source_cash_box_name, transfer.destination_cash_box_name, transfer.notes],
         searchTerm,
       );
-      const matchesCashBox = cashBoxFilter === 'all' || transfer.source_cash_box_id === cashBoxFilter || transfer.destination_cash_box_id === cashBoxFilter;
+      const matchesCashBox =
+        cashBoxFilter === 'all' ||
+        transfer.source_cash_box_id === cashBoxFilter ||
+        transfer.destination_cash_box_id === cashBoxFilter;
       const matchesFrom = !dateFrom || transfer.transfer_date >= dateFrom;
       const matchesTo = !dateTo || transfer.transfer_date <= dateTo;
       return matchesText && matchesCashBox && matchesFrom && matchesTo;
@@ -163,77 +165,62 @@ export default function Receipts() {
     });
   }, [transferRows, isCashBoxTransfer, searchTerm, cashBoxFilter, dateFrom, dateTo, sortOrder]);
 
+  // عدد السجلات المعروضة والصفحات
   const activeTotalCount = isCashBoxTransfer ? filteredTransferRows.length : filteredReceiptRows.length;
   const pageCount = Math.max(1, Math.ceil(activeTotalCount / PAGE_SIZE));
-  const pageReceipts = filteredReceiptRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const pageTransfers = filteredTransferRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => {
-    let alive = true;
+  const pageReceipts = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredReceiptRows.slice(start, start + PAGE_SIZE);
+  }, [filteredReceiptRows, page]);
 
-    async function load() {
-      setLoading(true);
-      setError('');
-
-      const [receiptsRes, transfersRes] = await Promise.all([
-        isCashBoxTransfer
-          ? Promise.resolve({ data: [], error: null })
-          : (showDeleted
-              ? supabase.from('v_receipt_list').select('*').eq('direction', direction).not('deleted_at', 'is', null)
-              : supabase.from('v_receipt_list').select('*').eq('direction', direction).is('deleted_at', null))
-              .order('receipt_date', { ascending: false }).order('number', { ascending: false }),
-        isCashBoxTransfer
-          ? (showDeleted
-              ? supabase.from('v_cash_box_transfer_list').select('*').not('deleted_at', 'is', null)
-              : supabase.from('v_cash_box_transfer_list').select('*').is('deleted_at', null))
-              .order('transfer_date', { ascending: false }).order('number', { ascending: false })
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-
-      if (!alive) return;
-
-      const firstError = receiptsRes.error ?? transfersRes.error;
-      if (firstError) {
-        setError(translateDbError(firstError.message));
-        setLoading(false);
-        return;
-      }
-
-      setRows((receiptsRes.data ?? []) as ReceiptRow[]);
-      setTransferRows((transfersRes.data ?? []) as CashBoxTransferRow[]);
-
-      if (!cashBoxId && cashBoxes.length > 0) {
-        const defaultBox =
-          cashBoxes.find((box) => box.is_primary && box.is_active) ??
-          cashBoxes.find((box) => box.name?.includes('الرئيسية') && box.is_active) ??
-          cashBoxes.find((b) => b.is_active);
-        if (defaultBox) setCashBoxId(defaultBox.id);
-      }
-
-      setLoading(false);
-    }
-
-    void load();
-    return () => {
-      alive = false;
-    };
-  }, [tab, direction, version, showDeleted, isCashBoxTransfer]);
+  const pageTransfers = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredTransferRows.slice(start, start + PAGE_SIZE);
+  }, [filteredTransferRows, page]);
 
   useEffect(() => {
     setPage(1);
   }, [searchTerm, cashBoxFilter, dateFrom, dateTo, sortOrder, tab]);
 
   useEffect(() => {
-    if (page > pageCount) setPage(pageCount);
-  }, [page, pageCount]);
+    let cancelled = false;
+    async function fetchReceipts() {
+      setLoading(true);
+      setError('');
+      try {
+        if (!isCashBoxTransfer) {
+          const query = showDeleted
+            ? supabase.from('v_receipt_list').select('*').eq('direction', direction).not('deleted_at', 'is', null)
+            : supabase.from('v_receipt_list').select('*').eq('direction', direction).is('deleted_at', null);
+          const { data, error: fetchError } = await query;
+          if (fetchError) throw fetchError;
+          if (!cancelled) setRows(data || []);
+        } else {
+          const query = showDeleted
+            ? supabase.from('v_cash_box_transfer_list').select('*').not('deleted_at', 'is', null)
+            : supabase.from('v_cash_box_transfer_list').select('*').is('deleted_at', null);
+          const { data, error: fetchError } = await query;
+          if (fetchError) throw fetchError;
+          if (!cancelled) setTransferRows(data || []);
+        }
+      } catch (err: any) {
+        if (!cancelled) setError(translateDbError(err?.message || 'فشل تحميل البيانات'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    if (canViewCurrentTab) {
+      void fetchReceipts();
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, direction, isCashBoxTransfer, showDeleted, version, canViewCurrentTab]);
 
   function resetForm() {
     setEditing(null);
-    const defaultBox =
-      cashBoxes.find((box) => box.is_primary && box.is_active) ??
-      cashBoxes.find((box) => box.name?.includes('الرئيسية') && box.is_active) ??
-      cashBoxes.find((b) => b.is_active);
-    setCashBoxId(defaultBox?.id ?? '');
     setError('');
   }
 
@@ -242,54 +229,114 @@ export default function Receipts() {
     setDirection(next);
     setTab(next);
     setSearchParams({ tab: next });
-    setFormOpen(false);
-    setEditingTransfer(null);
-    setViewing(null);
-    setViewingTransfer(null);
-    resetForm();
+    closeForm();
   }
 
   function switchToCashTransfer() {
     setTab('cash_box_transfer');
     setSearchParams({ tab: 'cash_box_transfer' });
-    setFormOpen(false);
-    setEditing(null);
-    setEditingTransfer(null);
-    setViewing(null);
-    setViewingTransfer(null);
-    setError('');
+    closeForm();
   }
 
   function toggleDeleted() {
     setShowDeleted((current) => !current);
-    setFormOpen(false);
-    setViewing(null);
-    setViewingTransfer(null);
-    resetForm();
-    setEditingTransfer(null);
+    closeForm();
   }
 
   function openNew() {
+    openedFromViewRef.current = false;
+    openedTransferFromViewRef.current = false;
     if (isCashBoxTransfer) {
       setEditingTransfer(null);
+      setEditing(null);
     } else {
       resetForm();
+      setEditing(null);
+      setEditingTransfer(null);
     }
+    setModalMode('create');
+    setFormOpen(true);
+  }
+
+  function openReceiptModal(receipt: ReceiptRow, mode: 'view' | 'edit' = 'view') {
+    setError('');
+    openedFromViewRef.current = mode === 'view';
+    setEditing(receipt);
+    setEditingTransfer(null);
+    setModalMode(mode);
+    setFormOpen(true);
+  }
+
+  function openTransferModal(transfer: CashBoxTransferRow, mode: 'view' | 'edit' = 'view') {
+    setError('');
+    openedTransferFromViewRef.current = mode === 'view';
+    setEditingTransfer(transfer);
+    setEditing(null);
+    setModalMode(mode);
     setFormOpen(true);
   }
 
   function closeForm() {
     setFormOpen(false);
     resetForm();
+    setEditing(null);
     setEditingTransfer(null);
+    setModalMode('create');
+    openedFromViewRef.current = false;
+    openedTransferFromViewRef.current = false;
   }
 
-  function startEdit(receipt: ReceiptRow) {
-    setEditing(receipt);
-    setError('');
-    setFormOpen(true);
+  function handleCancel() {
+    if (modalMode === 'edit' && openedFromViewRef.current) {
+      setModalMode('view');
+      return;
+    }
+    if (modalMode === 'edit' && openedTransferFromViewRef.current) {
+      setModalMode('view');
+      return;
+    }
+    closeForm();
   }
 
+  async function handleSaved(message: string) {
+    setNotice(message);
+    setVersion((current) => current + 1);
+    void refresh();
+
+    // إذا كان الإيصال مفتوحاً من وضع العرض وتم تعديله، نعيده لوضع العرض مع تحديث البيانات فورياً
+    if (modalMode === 'edit' && openedFromViewRef.current && editing) {
+      const receiptId = editing.id;
+      const { data, error: fetchErr } = await supabase
+        .from('v_receipt_list')
+        .select('*')
+        .eq('id', receiptId)
+        .maybeSingle();
+
+      if (data && !fetchErr) {
+        setEditing(data as ReceiptRow);
+        setModalMode('view');
+        return;
+      }
+    }
+
+    // إذا كان تحويل الخزن مفتوحاً من وضع العرض وتم تعديله، نعيده لوضع العرض
+    if (modalMode === 'edit' && openedTransferFromViewRef.current && editingTransfer) {
+      const transferId = editingTransfer.id;
+      const { data, error: fetchErr } = await supabase
+        .from('v_cash_box_transfer_list')
+        .select('*')
+        .eq('id', transferId)
+        .maybeSingle();
+
+      if (data && !fetchErr) {
+        setEditingTransfer(data as CashBoxTransferRow);
+        setModalMode('view');
+        return;
+      }
+    }
+
+    closeForm();
+  }
 
   async function remove(receipt: ReceiptRow) {
     const confirmed = await askConfirmation(
@@ -310,8 +357,11 @@ export default function Receipts() {
     }
 
     setNotice(`تم نقل الإيصال ${receipt.number} إلى المحذوفات`);
-    setViewing(null);
-    setVersion((current) => current + 1); void refresh();
+    if (editing?.id === receipt.id) {
+      closeForm();
+    }
+    setVersion((current) => current + 1);
+    void refresh();
   }
 
   async function restore(receipt: ReceiptRow) {
@@ -332,8 +382,8 @@ export default function Receipts() {
     }
 
     setNotice(`تم استعادة الإيصال ${receipt.number}`);
-    setViewing(null);
-    setVersion((current) => current + 1); void refresh();
+    setVersion((current) => current + 1);
+    void refresh();
   }
 
   async function removeTransfer(transfer: CashBoxTransferRow) {
@@ -342,8 +392,11 @@ export default function Receipts() {
     const { error: rpcError } = await supabase.rpc('delete_cash_box_transfer', { p_transfer_id: transfer.id });
     if (rpcError) return setError(translateDbError(rpcError.message));
     setNotice(`تم نقل التحويل ${transfer.number} إلى المحذوفات`);
-    setViewingTransfer(null);
-    setVersion((current) => current + 1); void refresh();
+    if (editingTransfer?.id === transfer.id) {
+      closeForm();
+    }
+    setVersion((current) => current + 1);
+    void refresh();
   }
 
   async function restoreTransfer(transfer: CashBoxTransferRow) {
@@ -352,41 +405,60 @@ export default function Receipts() {
     const { error: rpcError } = await supabase.rpc('restore_cash_box_transfer', { p_transfer_id: transfer.id });
     if (rpcError) return setError(translateDbError(rpcError.message));
     setNotice(`تم استعادة التحويل ${transfer.number}`);
-    setViewingTransfer(null);
-    setVersion((current) => current + 1); void refresh();
+    setVersion((current) => current + 1);
+    void refresh();
   }
 
   if (!canViewCurrentTab) {
     const firstAllowedTab = visibleTabs[0];
-    return <Navigate to={firstAllowedTab ? `/receipts?tab=${firstAllowedTab.value}` : '/access-denied'} replace />;
+    if (firstAllowedTab) {
+      return <Navigate to={`/receipts?tab=${firstAllowedTab.value}`} replace />;
+    }
+    return (
+      <div className="erp-page" style={{ padding: '24px' }}>
+        <p className="danger">عفواً، ليس لديك صلاحية عرض سندات القبض أو الصرف أو التحويلات.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="stack">
-      <div className="page-head">
+    <div className="erp-page erp-receipts-page">
+      <header className="erp-page-header">
         <div>
-          <h1>{showDeleted ? `المحذوفات — ${tabTitle}` : tabTitle}</h1>
+          <h1>حركة الأموال والخزن</h1>
+          <p className="muted">سندات القبض، سندات الصرف، والتحويل بين الخزن</p>
         </div>
-        <div className="actions">
+        <div className="erp-page-actions">
+          {can(`money.${tab}.create`) && (
+            <button
+              type="button"
+              className="btn primary"
+              onClick={openNew}
+            >
+              {isCashBoxTransfer ? '+ تحويل جديد بين الخزن' : `+ إيصال ${isIn ? 'استلام' : 'صرف'} جديد`}
+            </button>
+          )}
           {can(`money.${tab}.delete`) && (
-            <button type="button" className="btn outline" onClick={toggleDeleted}>
-              {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
-            </button>
-          )}
-          {!showDeleted && can(`money.${tab}.create`) && (
-            <button type="button" className="btn primary" onClick={openNew}>
-              {isCashBoxTransfer ? '+ تحويل بين الخزن' : `+ إيصال ${isIn ? 'استلام' : 'صرف'}`}
+            <button
+              type="button"
+              className={showDeleted ? 'btn active' : 'btn'}
+              onClick={toggleDeleted}
+            >
+              {showDeleted ? 'عرض النشطة' : 'عرض المحذوفات'}
             </button>
           )}
         </div>
-      </div>
+      </header>
 
-      <div className="tabs">
+      {/* شريط تبويبات نوع الحركة */}
+      <div className="erp-tabs" role="tablist" aria-label="أنواع الإيصالات">
         {visibleTabs.map((item) => (
           <button
             key={item.value}
             type="button"
-            className={tab === item.value ? 'tab active' : 'tab'}
+            role="tab"
+            className={tab === item.value ? 'tab-btn active' : 'tab-btn'}
+            aria-selected={tab === item.value}
             aria-pressed={tab === item.value}
             onClick={() => item.value === 'cash_box_transfer' ? switchToCashTransfer() : switchDirection(item.value)}
           >
@@ -403,8 +475,8 @@ export default function Receipts() {
         </p>
       )}
 
-      {/* الـ ERP Workspace لقسم الفلوس */}
-      <div className={viewing || viewingTransfer ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
+      {/* جدول المعاملات ممتد بكامل العرض 100% بتوافق تام مع فواتير المبيعات */}
+      <div className="erp-sales-workspace">
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
             <div className="erp-filters">
@@ -457,7 +529,7 @@ export default function Receipts() {
                       onSort={(s) => setSortOrder(s as ReceiptSort)}
                     />
                     <th>من خزنة</th>
-                    <th className="col-hide-on-detail">إلى خزنة</th>
+                    <th>إلى خزنة</th>
                     <SortableHeader
                       label="المبلغ"
                       field="amount"
@@ -466,7 +538,7 @@ export default function Receipts() {
                       align="end"
                       className="num"
                     />
-                    <th className="col-hide-on-detail">ملاحظات</th>
+                    <th>ملاحظات</th>
                     <th aria-label="الإجراءات" />
                   </tr>
                 </thead>
@@ -474,23 +546,24 @@ export default function Receipts() {
                   {loading && <tr><td colSpan={7} className="empty">جارٍ التحميل…</td></tr>}
                   {!loading && pageTransfers.length === 0 && <tr><td colSpan={7} className="empty">لا توجد تحويلات تطابق البحث أو الفلاتر.</td></tr>}
                   {!loading && pageTransfers.map((transfer) => {
-                    const isSelected = viewingTransfer?.id === transfer.id;
                     return (
                       <tr
                         key={transfer.id}
-                        className={isSelected ? 'selected' : ''}
                         tabIndex={0}
-                        onClick={() => { setViewing(null); setViewingTransfer(transfer); }}
+                        onClick={() => openTransferModal(transfer, 'view')}
                         onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setViewing(null); setViewingTransfer(transfer); }
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            openTransferModal(transfer, 'view');
+                          }
                         }}
                       >
                         <td className="num strong">{transfer.number}</td>
                         <td className="num">{formatDate(transfer.transfer_date)}</td>
                         <td>{transfer.source_cash_box_name}</td>
-                        <td className="col-hide-on-detail">{transfer.destination_cash_box_name}</td>
+                        <td>{transfer.destination_cash_box_name}</td>
                         <td className="num strong">{money(transfer.amount)}</td>
-                        <td className="col-hide-on-detail">{transfer.notes || '—'}</td>
+                        <td className="muted">{transfer.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                           {showDeleted ? (
                             can(`money.${tab}.delete`) && (
@@ -501,7 +574,7 @@ export default function Receipts() {
                             )
                           ) : (
                             <RowActions
-                              onEdit={can(`money.${tab}.edit`) ? () => { setEditingTransfer(transfer); setFormOpen(true); } : undefined}
+                              onEdit={can(`money.${tab}.edit`) ? () => openTransferModal(transfer, 'edit') : undefined}
                               onDelete={can(`money.${tab}.delete`) ? () => void removeTransfer(transfer) : undefined}
                             />
                           )}
@@ -533,7 +606,7 @@ export default function Receipts() {
                       currentSort={sortOrder}
                       onSort={(s) => setSortOrder(s as ReceiptSort)}
                     />
-                    <th className="col-hide-on-detail">الخزنة</th>
+                    <th>الخزنة</th>
                     <SortableHeader
                       label="المبلغ"
                       field="amount"
@@ -542,8 +615,8 @@ export default function Receipts() {
                       align="end"
                       className="num"
                     />
-                    <th className="col-hide-on-detail">نوع الإيصال</th>
-                    <th className="col-hide-on-detail">البيان</th>
+                    <th>نوع الإيصال</th>
+                    <th>البيان</th>
                     <th aria-label="الإجراءات" />
                   </tr>
                 </thead>
@@ -551,15 +624,16 @@ export default function Receipts() {
                   {loading && <tr><td colSpan={8} className="empty">جارٍ التحميل…</td></tr>}
                   {!loading && pageReceipts.length === 0 && <tr><td colSpan={8} className="empty">لا توجد إيصالات تطابق البحث أو الفلاتر.</td></tr>}
                   {!loading && pageReceipts.map((receipt) => {
-                    const isSelected = viewing?.id === receipt.id;
                     return (
                       <tr
                         key={receipt.id}
-                        className={isSelected ? 'selected' : ''}
                         tabIndex={0}
-                        onClick={() => { setViewingTransfer(null); setViewing(receipt); }}
+                        onClick={() => openReceiptModal(receipt, 'view')}
                         onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setViewingTransfer(null); setViewing(receipt); }
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            openReceiptModal(receipt, 'view');
+                          }
                         }}
                       >
                         <td className="num strong">{receipt.number}</td>
@@ -570,16 +644,16 @@ export default function Receipts() {
                             ({receipt.account_kind === 'customer' ? 'عميل' : receipt.account_kind === 'supplier' ? 'مورد' : 'هالك'})
                           </span>
                         </td>
-                        <td className="col-hide-on-detail">{receipt.cash_box_name}</td>
+                        <td>{receipt.cash_box_name}</td>
                         <td className="num strong">{money(receipt.amount)}</td>
-                        <td className="col-hide-on-detail">
+                        <td>
                           {receipt.is_free ? (
                             <StatusBadge variant="free">إيصال حر</StatusBadge>
                           ) : (
                             <StatusBadge variant="linked">مرتبط بـ{linkKind(receipt.invoice_kind)}</StatusBadge>
                           )}
                         </td>
-                        <td className="muted col-hide-on-detail">{receipt.statement || '—'}</td>
+                        <td className="muted">{receipt.statement || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                           {showDeleted ? (
                             can(`money.${tab}.delete`) ? (
@@ -594,7 +668,7 @@ export default function Receipts() {
                             ) : null
                           ) : receipt.is_free ? (
                             <RowActions
-                              onEdit={can(`money.${tab}.edit`) ? () => startEdit(receipt) : undefined}
+                              onEdit={can(`money.${tab}.edit`) ? () => openReceiptModal(receipt, 'edit') : undefined}
                               onDelete={can(`money.${tab}.delete`) ? () => void remove(receipt) : undefined}
                             />
                           ) : (
@@ -620,138 +694,60 @@ export default function Receipts() {
             </div>
           </div>
         </section>
-
-        {/* اللوحة الجانبية للتفاصيل */}
-        <aside className={viewing || viewingTransfer ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل المعاملة">
-          {viewingTransfer ? (
-            <>
-              <div className="erp-detail-head">
-                <div><span>تحويل بين الخزن</span><h2 className="num">{viewingTransfer.number}</h2></div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewingTransfer(null)}>
-                  <X size={18} />
-                </button>
-              </div>
-              <dl className="erp-detail-summary">
-                <div><dt>من خزنة</dt><dd>{viewingTransfer.source_cash_box_name}</dd></div>
-                <div><dt>إلى خزنة</dt><dd>{viewingTransfer.destination_cash_box_name}</dd></div>
-                <div><dt>التاريخ</dt><dd className="num">{formatDate(viewingTransfer.transfer_date)}</dd></div>
-                <div><dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewingTransfer.created_at)}</dd></div>
-              </dl>
-
-              <div className="erp-detail-totals">
-                <span>المبلغ المحوّل</span><strong className="num">{money(viewingTransfer.amount)}</strong>
-              </div>
-
-              {viewingTransfer.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewingTransfer.notes}</p>}
-
-              <div className="erp-detail-actions">
-                {showDeleted ? (
-                  can(`money.${tab}.delete`) && <button type="button" className="btn" onClick={() => void restoreTransfer(viewingTransfer)}>استعادة التحويل</button>
-                ) : (
-                  <>
-                    {can(`money.${tab}.edit`) && <button type="button" className="btn" onClick={() => { setEditingTransfer(viewingTransfer); setFormOpen(true); }}>تعديل التحويل</button>}
-                    {can(`money.${tab}.delete`) && <button type="button" className="btn danger" onClick={() => void removeTransfer(viewingTransfer)}>حذف</button>}
-                  </>
-                )}
-              </div>
-            </>
-          ) : viewing ? (
-            <>
-              <div className="erp-detail-head">
-                <div><span>{viewing.direction === 'in' ? 'إيصال استلام' : 'إيصال صرف'}</span><h2 className="num">{viewing.number}</h2></div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewing(null)}>
-                  <X size={18} />
-                </button>
-              </div>
-
-              <dl className="erp-detail-summary">
-                <div><dt>الحساب</dt><dd>{viewing.account_name} ({viewing.account_kind === 'customer' ? 'عميل' : 'مورد'})</dd></div>
-                <div><dt>الخزنة</dt><dd>{viewing.cash_box_name}</dd></div>
-                <div><dt>التاريخ</dt><dd className="num">{formatDate(viewing.receipt_date)}</dd></div>
-                <div><dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewing.created_at)}</dd></div>
-                <div>
-                  <dt>الارتباط</dt>
-                  <dd>
-                    {viewing.is_free ? (
-                      <StatusBadge variant="free">إيصال حر</StatusBadge>
-                    ) : (
-                      <Link
-                        to={`/invoices?tab=${viewing.invoice_kind ?? 'sale'}&search=${encodeURIComponent(viewing.invoice_number ?? '')}`}
-                        className="receipt-linked-link"
-                      >
-                        <FileText size={15} />
-                        <span>{linkKind(viewing.invoice_kind)} {viewing.invoice_number}</span>
-                        <ExternalLink size={13} className="link-ext-icon" />
-                      </Link>
-                    )}
-                  </dd>
-                </div>
-              </dl>
-
-              <div className="erp-detail-totals">
-                <span>قيمة الإيصال</span>
-                <strong className={`num ${viewing.direction === 'in' ? 'remaining' : ''}`}>{money(viewing.amount)}</strong>
-              </div>
-
-              {viewing.statement && <p className="erp-detail-notes"><span>البيان</span>{viewing.statement}</p>}
-              {viewing.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewing.notes}</p>}
-
-              <div className="erp-detail-actions">
-                {showDeleted ? (
-                  can(`money.${tab}.delete`) && viewing.is_free && <button type="button" className="btn" onClick={() => void restore(viewing)}>استعادة الإيصال</button>
-                ) : viewing.is_free ? (
-                  <>
-                    {can(`money.${tab}.edit`) && <button type="button" className="btn" onClick={() => startEdit(viewing)}>تعديل الإيصال</button>}
-                    {can(`money.${tab}.delete`) && <button type="button" className="btn danger" onClick={() => void remove(viewing)}>حذف</button>}
-                  </>
-                ) : (
-                  <p className="hint">هذا الإيصال مُنشأ تلقائيًا ومربوط بـ{linkKind(viewing.invoice_kind)}. يمكن تعديله أو حذفه من داخل الفاتورة نفسها.</p>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر {isCashBoxTransfer ? 'تحويلًا' : 'إيصالًا'}</strong>
-              <span>ستظهر تفاصيله وملاحظاته هنا من دون مغادرة القائمة.</span>
-            </div>
-          )}
-        </aside>
       </div>
 
-      {/* نموذج الإضافة والتعديل */}
+      {/* نموذج الإضافة والتعديل والعرض الموحد بالكامل داخل النافذة المنبثقة */}
       {formOpen && !showDeleted && (
         isCashBoxTransfer ? (
           <Modal
             className="transaction-entry-modal"
             backdropClassName="transaction-entry-backdrop"
-            title={editingTransfer ? `تعديل التحويل ${editingTransfer.number}` : 'تحويل جديد بين الخزن'}
+            title={
+              modalMode === 'view'
+                ? `تحويل بين الخزن ${editingTransfer?.number ?? ''}`
+                : editingTransfer
+                ? `تعديل التحويل ${editingTransfer.number}`
+                : 'تحويل جديد بين الخزن'
+            }
             onClose={closeForm}
           >
             <CashBoxTransferForm
+              key={`${editingTransfer?.id ?? 'new-transfer'}-${modalMode}`}
               cashBoxes={cashBoxes}
               editing={editingTransfer}
-              onSaved={(msg) => { setNotice(msg); setFormOpen(false); setEditingTransfer(null); setVersion((v) => v + 1); void refresh(); }}
-              onCancel={closeForm}
+              readOnly={modalMode === 'view'}
+              onEdit={can(`money.${tab}.edit`) ? () => setModalMode('edit') : undefined}
+              onDelete={can(`money.${tab}.delete`) && editingTransfer ? () => void removeTransfer(editingTransfer) : undefined}
+              onPrint={() => window.print()}
+              onSaved={handleSaved}
+              onCancel={handleCancel}
             />
           </Modal>
         ) : (
-<Modal
+          <Modal
             className="receipt-entry-modal"
             backdropClassName="receipt-entry-backdrop"
-            title={editing ? `تعديل الإيصال ${editing.number}` : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`}
+            title={
+              modalMode === 'view'
+                ? `إيصال ${(editing?.direction ?? direction) === 'in' ? 'استلام' : 'صرف'} ${editing?.number ?? ''}`
+                : editing
+                ? `تعديل الإيصال ${editing.number}`
+                : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`
+            }
             onClose={closeForm}
           >
             <ReceiptForm
-              direction={direction}
+              key={`${editing?.id ?? 'new-receipt'}-${modalMode}`}
+              direction={editing?.direction ?? direction}
               accounts={accounts}
               cashBoxes={cashBoxes}
               editing={editing}
-              onSaved={(msg) => {
-                setNotice(msg);
-                closeForm();
-                setVersion((v) => v + 1); void refresh();
-              }}
-              onCancel={closeForm}
+              readOnly={modalMode === 'view'}
+              onEdit={can(`money.${tab}.edit`) && editing?.is_free ? () => setModalMode('edit') : undefined}
+              onDelete={can(`money.${tab}.delete`) && editing?.is_free && editing ? () => void remove(editing) : undefined}
+              onPrint={() => window.print()}
+              onSaved={handleSaved}
+              onCancel={handleCancel}
             />
           </Modal>
         )

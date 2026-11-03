@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import ReceiptForm from '../../components/ReceiptForm';
 
 vi.mock('../../components/Toast', () => ({
@@ -58,14 +59,16 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
 
   it('لا يحتوي على كلمة "تفقيط المبلغ:" ويعرض تفقيط المبلغ بالعربية عند إدخال قيمة', () => {
     render(
-      <ReceiptForm
-        direction="in"
-        accounts={mockAccounts}
-        cashBoxes={mockCashBoxes}
-        editing={null}
-        onSaved={vi.fn()}
-        onCancel={vi.fn()}
-      />
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={null}
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>
     );
 
     // التحقق من حذف كلمة تفقيط المبلغ:
@@ -82,17 +85,121 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
 
   it('يحدد "الخزنة الرئيسية" كخيار افتراضي حتى وإن لم تكن الأولى في مصفوفة الخزائن', () => {
     render(
-      <ReceiptForm
-        direction="in"
-        accounts={mockAccounts}
-        cashBoxes={mockCashBoxes}
-        editing={null}
-        onSaved={vi.fn()}
-        onCancel={vi.fn()}
-      />
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={null}
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>
     );
 
     // الخزنة الرئيسية يجب أن تكون هي المحددة افتراضياً
     expect(screen.getByDisplayValue(/الخزنة الرئيسية/)).toBeInTheDocument();
+  });
+
+  it('يعرض أزرار العرض (تعديل، طباعة، حذف، إغلاق) في وضع القراءة فقط', () => {
+    const handleEdit = vi.fn();
+    const handleDelete = vi.fn();
+    const handlePrint = vi.fn();
+    const handleCancel = vi.fn();
+
+    const mockEditing = {
+      id: 'rec-1',
+      number: 'REC-001',
+      receipt_date: '2026-11-01',
+      amount: 1500,
+      account_id: 'acc-1',
+      account_name: 'عميل تجريبي',
+      account_kind: 'customer',
+      cash_box_id: 'cb-main',
+      cash_box_name: 'الخزنة الرئيسية',
+      is_free: true,
+      notes: 'دفعة نقدية',
+      statement: null,
+      description: null,
+      invoice_id: null,
+      invoice_number: null,
+      invoice_kind: null,
+      direction: 'in',
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+    } as any;
+
+    render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={mockEditing}
+          readOnly={true}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onPrint={handlePrint}
+          onSaved={vi.fn()}
+          onCancel={handleCancel}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('تعديل الإيصال')).toBeInTheDocument();
+    expect(screen.getByText('طباعة الإيصال')).toBeInTheDocument();
+    expect(screen.getByText('حذف الإيصال')).toBeInTheDocument();
+    expect(screen.getByText('إغلاق')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('تعديل الإيصال'));
+    expect(handleEdit).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByText('إغلاق'));
+    expect(handleCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('يعرض زر "إلغاء" بدلاً من "مسح / جديد" في وضع التعديل', () => {
+    const handleCancel = vi.fn();
+    const mockEditing = {
+      id: 'rec-1',
+      number: 'REC-001',
+      receipt_date: '2026-11-01',
+      amount: 1500,
+      account_id: 'acc-1',
+      account_name: 'عميل تجريبي',
+      account_kind: 'customer',
+      cash_box_id: 'cb-main',
+      cash_box_name: 'الخزنة الرئيسية',
+      is_free: true,
+      notes: 'دفعة',
+      statement: null,
+      description: null,
+      invoice_id: null,
+      invoice_number: null,
+      invoice_kind: null,
+      direction: 'in',
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+    } as any;
+
+    render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={mockEditing}
+          readOnly={false}
+          onSaved={vi.fn()}
+          onCancel={handleCancel}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('إلغاء')).toBeInTheDocument();
+    expect(screen.queryByText('مسح / جديد')).toBeNull();
+
+    fireEvent.click(screen.getByText('إلغاء'));
+    expect(handleCancel).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,10 +1,25 @@
 import { useState } from 'react';
 import Modal from '../components/Modal';
 import ReceiptForm from '../components/ReceiptForm';
-import type { AccountRow, CashBoxRow } from '../lib/types';
+import StatusBadge from '../components/StatusBadge';
+import RowActions from '../components/RowActions';
+import SortableHeader from '../components/SortableHeader';
+import { formatDate, money } from '../lib/format';
+import type { AccountRow, CashBoxRow, ReceiptRow } from '../lib/types';
 
 export default function PreviewReceipt() {
-  const [open, setOpen] = useState(true);
+  const [modalOpen, setModalOpen] = useState(() => {
+    const p = new URLSearchParams(window.location.search).get('open');
+    return p !== 'false';
+  });
+
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>(() => {
+    const m = new URLSearchParams(window.location.search).get('mode');
+    return m === 'edit' ? 'edit' : m === 'create' ? 'create' : 'view';
+  });
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState('date-desc');
 
   const mockAccounts: AccountRow[] = [
     {
@@ -39,52 +54,228 @@ export default function PreviewReceipt() {
     },
   ];
 
-  const isNew = new URLSearchParams(window.location.search).get('mode') !== 'edit';
-
   const mockCashBoxes: CashBoxRow[] = [
     { id: 'cb-2', serial_number: 2, name: 'خزنة الفرع 2', balance: 45000, opening_balance: 10000, notes: null, is_active: true, is_primary: false },
     { id: 'cb-1', serial_number: 1, name: 'الخزنة الرئيسية', balance: 12500, opening_balance: 5000, notes: null, is_active: true, is_primary: true },
   ];
 
-  const mockEditing: any = {
-    id: 'mock-1',
-    serial_number: 1,
-    number: 'REC-00001',
-    receipt_date: '2026-11-01',
-    direction: 'in',
-    account_id: 'acc-1',
-    account_name: 'شركة النور للتجارة (عميل)',
-    account_kind: 'customer',
-    cash_box_id: 'cb-1',
-    cash_box_name: 'خزنة الكاشير الرئيسية',
-    amount: 1500,
-    statement: 'سداد دفعة نقدية',
-    notes: 'ملاحظات اختيارية',
-    is_free: true,
-  };
+  const [receipts, setReceipts] = useState<ReceiptRow[]>([
+    {
+      id: 'rec-1',
+      serial_number: 1,
+      number: 'REC-00001',
+      receipt_date: '2026-11-01',
+      direction: 'in',
+      account_id: 'acc-1',
+      account_name: 'شركة النور للتجارة',
+      account_kind: 'customer',
+      cash_box_id: 'cb-1',
+      cash_box_name: 'الخزنة الرئيسية',
+      amount: 1500,
+      statement: 'سداد دفعة نقدية عن فواتير سابقة',
+      notes: 'عميل مميز — تعامل تجاري منتظم',
+      is_free: true,
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+      description: null,
+      invoice_id: null,
+      invoice_number: null,
+      invoice_kind: null,
+    },
+    {
+      id: 'rec-2',
+      serial_number: 2,
+      number: 'REC-00002',
+      receipt_date: '2026-11-02',
+      direction: 'in',
+      account_id: 'acc-2',
+      account_name: 'مؤسسة الأمل للتوريدات',
+      account_kind: 'supplier',
+      cash_box_id: 'cb-1',
+      cash_box_name: 'الخزنة الرئيسية',
+      amount: 3200,
+      statement: 'إشعار تسوية رصيد',
+      notes: null,
+      is_free: false,
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+      description: null,
+      invoice_id: 'inv-1',
+      invoice_number: 'INV-00042',
+      invoice_kind: 'purchase_return',
+    },
+    {
+      id: 'rec-3',
+      serial_number: 3,
+      number: 'REC-00003',
+      receipt_date: '2026-11-03',
+      direction: 'in',
+      account_id: 'acc-1',
+      account_name: 'شركة النور للتجارة',
+      account_kind: 'customer',
+      cash_box_id: 'cb-2',
+      cash_box_name: 'خزنة الفرع 2',
+      amount: 850,
+      statement: 'دفعة حساب نقدي',
+      notes: null,
+      is_free: true,
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+      description: null,
+      invoice_id: null,
+      invoice_number: null,
+      invoice_kind: null,
+    },
+  ]);
+
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRow | null>(receipts[0]);
+
+  function handleOpenView(rec: ReceiptRow) {
+    setSelectedReceipt(rec);
+    setModalMode('view');
+    setModalOpen(true);
+  }
+
+  function handleOpenEdit(rec: ReceiptRow) {
+    setSelectedReceipt(rec);
+    setModalMode('edit');
+    setModalOpen(true);
+  }
 
   return (
-    <div style={{ padding: '24px', minHeight: '100vh', background: 'var(--bg)' }}>
-      {!open && (
-        <button type="button" className="btn primary" onClick={() => setOpen(true)}>
-          فتح نافذة الإيصال
-        </button>
-      )}
+    <div className="erp-page erp-receipts-page" style={{ minHeight: '100vh', background: 'var(--erp-bg, #f8fafc)' }}>
+      <header className="erp-page-header">
+        <div>
+          <h1>حركة الأموال والخزن</h1>
+          <p className="muted">سندات القبض، سندات الصرف، والتحويل بين الخزن — معمارية موحدة 100%</p>
+        </div>
+        <div className="erp-page-actions">
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => {
+              setSelectedReceipt(null);
+              setModalMode('create');
+              setModalOpen(true);
+            }}
+          >
+            + إيصال استلام جديد
+          </button>
+        </div>
+      </header>
 
-      {open && (
+      {/* شريط التبويبات */}
+      <div className="erp-tabs" role="tablist">
+        <button type="button" className="tab-btn active">إيصالات استلام</button>
+        <button type="button" className="tab-btn">إيصالات صرف</button>
+        <button type="button" className="tab-btn">تحويل بين الخزن</button>
+      </div>
+
+      {/* جدول الإيصالات ممتد 100% بكامل العرض بدون أي لوحة جانبية تضيقه */}
+      <div className="erp-sales-workspace">
+        <section className="erp-list-panel" aria-label="قائمة إيصالات الاستلام">
+          <div className="erp-toolbar">
+            <div className="erp-filters">
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="بحث بالرقم أو الحساب أو البيان…"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="erp-table-wrap">
+            <table className="table erp-table">
+              <thead>
+                <tr>
+                  <SortableHeader label="الرقم" field="number" currentSort={sortOrder} onSort={setSortOrder} />
+                  <SortableHeader label="التاريخ" field="date" currentSort={sortOrder} onSort={setSortOrder} />
+                  <SortableHeader label="الحساب" field="account" currentSort={sortOrder} onSort={setSortOrder} />
+                  <th>الخزنة</th>
+                  <SortableHeader label="المبلغ" field="amount" currentSort={sortOrder} onSort={setSortOrder} align="end" className="num" />
+                  <th>نوع الإيصال</th>
+                  <th>البيان</th>
+                  <th aria-label="الإجراءات" />
+                </tr>
+              </thead>
+              <tbody>
+                {receipts.map((rec) => (
+                  <tr
+                    key={rec.id}
+                    tabIndex={0}
+                    onClick={() => handleOpenView(rec)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td className="num strong">{rec.number}</td>
+                    <td className="num">{formatDate(rec.receipt_date)}</td>
+                    <td>
+                      {rec.account_name}{' '}
+                      <span className="muted">
+                        ({rec.account_kind === 'customer' ? 'عميل' : 'مورد'})
+                      </span>
+                    </td>
+                    <td>{rec.cash_box_name}</td>
+                    <td className="num strong">{money(rec.amount)}</td>
+                    <td>
+                      {rec.is_free ? (
+                        <StatusBadge variant="free">إيصال حر</StatusBadge>
+                      ) : (
+                        <StatusBadge variant="linked">مرتبط بمرتجع</StatusBadge>
+                      )}
+                    </td>
+                    <td className="muted">{rec.statement || '—'}</td>
+                    <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
+                      <RowActions
+                        onEdit={rec.is_free ? () => handleOpenEdit(rec) : undefined}
+                        onDelete={rec.is_free ? () => alert(`حذف ${rec.number}`) : undefined}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      {/* المودال الموحد للعرض والتعديل والإنشاء */}
+      {modalOpen && (
         <Modal
           className="receipt-entry-modal"
           backdropClassName="receipt-entry-backdrop"
-          title="إيصال استلام جديد (سند قبض)"
-          onClose={() => setOpen(false)}
+          title={
+            modalMode === 'view'
+              ? `إيصال استلام ${selectedReceipt?.number ?? ''}`
+              : modalMode === 'edit'
+              ? `تعديل الإيصال ${selectedReceipt?.number ?? ''}`
+              : 'إيصال استلام جديد (سند قبض)'
+          }
+          onClose={() => setModalOpen(false)}
         >
           <ReceiptForm
+            key={modalMode}
             direction="in"
             accounts={mockAccounts}
             cashBoxes={mockCashBoxes}
-            editing={isNew ? null : mockEditing}
-            onSaved={(msg) => alert(msg)}
-            onCancel={() => setOpen(false)}
+            editing={modalMode === 'create' ? null : selectedReceipt}
+            readOnly={modalMode === 'view'}
+            onEdit={() => setModalMode('edit')}
+            onDelete={() => {
+              if (confirm(`حذف الإيصال ${selectedReceipt?.number}؟`)) {
+                setReceipts((prev) => prev.filter((r) => r.id !== selectedReceipt?.id));
+                setModalOpen(false);
+              }
+            }}
+            onPrint={() => window.print()}
+            onSaved={(msg) => {
+              alert(msg);
+              setModalMode('view');
+            }}
+            onCancel={() => (modalMode === 'edit' ? setModalMode('view') : setModalOpen(false))}
           />
         </Modal>
       )}

@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
-import { Check, RotateCcw, Save } from 'lucide-react';
+import { Check, Pencil, Printer, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { money, round2, today } from '../lib/format';
+import { money, round2, today, formatDate } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import { tafqeet } from '../lib/tafqeet';
 import { toast } from './Toast';
 import SearchableSelect from './SearchableSelect';
+import DateInput from './DateInput';
 import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
 
 interface Props {
@@ -13,9 +14,23 @@ interface Props {
   editing: CashBoxTransferRow | null;
   onSaved: (message: string) => void;
   onCancel: () => void;
+  readOnly?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onPrint?: () => void;
 }
 
-export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCancel: _onCancel }: Props) {
+export default function CashBoxTransferForm({
+  cashBoxes,
+  editing,
+  onSaved,
+  onCancel,
+  readOnly = false,
+  onEdit,
+  onDelete,
+  onPrint,
+}: Props) {
+  const isReadOnly = Boolean(readOnly);
   const activeBoxes = cashBoxes.filter(
     (box) => box.is_active || box.id === editing?.source_cash_box_id || box.id === editing?.destination_cash_box_id,
   );
@@ -25,7 +40,7 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
   const [destinationId, setDestinationId] = useState(
     editing?.destination_cash_box_id ?? activeBoxes.find((box) => box.id !== sourceId)?.id ?? '',
   );
-  const [date] = useState(editing?.transfer_date ?? today());
+  const [date, setDate] = useState(editing?.transfer_date ?? today());
   const [amount, setAmount] = useState(editing ? String(Number(editing.amount)) : '');
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [busy, setBusy] = useState(false);
@@ -47,7 +62,7 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
   const sourceBalanceAfter = sourceAvailableBalance - numAmount;
   const destBalanceAfter = destInitialBalance + numAmount;
 
-  const isOverdraft = numAmount > sourceAvailableBalance;
+  const isOverdraft = !isReadOnly && numAmount > sourceAvailableBalance;
 
   function handleSettleAll() {
     if (!sourceId) {
@@ -71,6 +86,7 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isReadOnly) return;
     if (!sourceId || !destinationId || sourceId === destinationId) {
       return toast.error('اختر خزنتين مختلفتين (خزنة المصدر وخزنة الوجهة)');
     }
@@ -99,30 +115,50 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
   }
 
   return (
-    <form className="cashbox-transfer-form" onSubmit={submit}>
+    <form className={`cashbox-transfer-form ${isReadOnly ? 'is-readonly' : ''}`} onSubmit={submit}>
+      {/* سطر التاريخ */}
+      <div className="account-header-card" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>تاريخ التحويل:</span>
+        {isReadOnly ? (
+          <div className="readonly-val-box num" dir="ltr" style={{ minHeight: '34px', padding: '0 10px' }}>
+            {formatDate(date)}
+          </div>
+        ) : (
+          <div style={{ width: '160px' }}>
+            <DateInput value={date} onChange={setDate} />
+          </div>
+        )}
+      </div>
+
       {/* شبكة الخزنتين وبطاقات الأرصدة الموحدة */}
       <div className="cashbox-transfer-boxes-grid">
         {/* خزنة المصدر */}
         <div className="account-header-card box-card-clean">
           <label className="box-card-label">
             <span>من خزنة (المصدر)</span>
-            <SearchableSelect
-              value={sourceId}
-              options={activeBoxes.map((box) => ({
-                value: box.id,
-                label: `${box.name} (${money(box.balance)})`,
-              }))}
-              onChange={(next) => {
-                setSourceId(next);
-                if (next === destinationId) {
-                  setDestinationId(activeBoxes.find((box) => box.id !== next)?.id ?? '');
-                }
-              }}
-              placeholder="اختر خزنة المصدر…"
-              searchPlaceholder="ابحث باسم الخزنة…"
-              emptyMessage="لا توجد خزن متاحة"
-              required
-            />
+            {isReadOnly ? (
+              <div className="readonly-val-box strong">
+                {sourceBox?.name ?? editing?.source_cash_box_name ?? '—'}
+              </div>
+            ) : (
+              <SearchableSelect
+                value={sourceId}
+                options={activeBoxes.map((box) => ({
+                  value: box.id,
+                  label: `${box.name} (${money(box.balance)})`,
+                }))}
+                onChange={(next) => {
+                  setSourceId(next);
+                  if (next === destinationId) {
+                    setDestinationId(activeBoxes.find((box) => box.id !== next)?.id ?? '');
+                  }
+                }}
+                placeholder="اختر خزنة المصدر…"
+                searchPlaceholder="ابحث باسم الخزنة…"
+                emptyMessage="لا توجد خزن متاحة"
+                required
+              />
+            )}
           </label>
           {sourceBox && (
             <div className="account-balance-pills" style={{ marginTop: '8px' }}>
@@ -145,20 +181,26 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
         <div className="account-header-card box-card-clean">
           <label className="box-card-label">
             <span>إلى خزنة (الوجهة)</span>
-            <SearchableSelect
-              value={destinationId}
-              options={activeBoxes
-                .filter((box) => box.id !== sourceId)
-                .map((box) => ({
-                  value: box.id,
-                  label: `${box.name} (${money(box.balance)})`,
-                }))}
-              onChange={setDestinationId}
-              placeholder="اختر خزنة الوجهة…"
-              searchPlaceholder="ابحث باسم الخزنة…"
-              emptyMessage="لا توجد خزن متاحة"
-              required
-            />
+            {isReadOnly ? (
+              <div className="readonly-val-box strong">
+                {destBox?.name ?? editing?.destination_cash_box_name ?? '—'}
+              </div>
+            ) : (
+              <SearchableSelect
+                value={destinationId}
+                options={activeBoxes
+                  .filter((box) => box.id !== sourceId)
+                  .map((box) => ({
+                    value: box.id,
+                    label: `${box.name} (${money(box.balance)})`,
+                  }))}
+                onChange={setDestinationId}
+                placeholder="اختر خزنة الوجهة…"
+                searchPlaceholder="ابحث باسم الخزنة…"
+                emptyMessage="لا توجد خزن متاحة"
+                required
+              />
+            )}
           </label>
           {destBox && (
             <div className="account-balance-pills" style={{ marginTop: '8px' }}>
@@ -181,33 +223,43 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
         <div className="row-amount-tafqeet">
           <div className="field-amount-slot">
             <label>
-              <span>المبلغ المراد تحويله</span>
-              <div className="amount-input-with-action">
-                <input
-                  aria-label="المبلغ المراد تحويله"
-                  type="number"
-                  inputMode="decimal"
-                  min="0.0001"
-                  step="0.0001"
+              <span>المبلغ المحوّل</span>
+              {isReadOnly ? (
+                <div
+                  className="readonly-val-box num strong"
                   dir="ltr"
-                  placeholder="0.00"
-                  value={amount}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="receipt-amount-input no-spinner num"
-                  required
-                />
-                <button
-                  type="button"
-                  className="btn-settle-all-action"
-                  onClick={handleSettleAll}
-                  title="نقل كامل رصيد خزنة المصدر"
-                  aria-label="نقل كامل رصيد خزنة المصدر"
+                  style={{ fontSize: '16px', color: 'var(--primary, #0f172a)' }}
                 >
-                  <Check size={14} strokeWidth={2.5} />
-                  <span>كامل الرصيد</span>
-                </button>
-              </div>
+                  {money(numAmount)}
+                </div>
+              ) : (
+                <div className="amount-input-with-action">
+                  <input
+                    aria-label="المبلغ المراد تحويله"
+                    type="number"
+                    inputMode="decimal"
+                    min="0.0001"
+                    step="0.0001"
+                    dir="ltr"
+                    placeholder="0.00"
+                    value={amount}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="receipt-amount-input no-spinner num"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="btn-settle-all-action"
+                    onClick={handleSettleAll}
+                    title="نقل كامل رصيد خزنة المصدر"
+                    aria-label="نقل كامل رصيد خزنة المصدر"
+                  >
+                    <Check size={14} strokeWidth={2.5} />
+                    <span>كامل الرصيد</span>
+                  </button>
+                </div>
+              )}
             </label>
           </div>
 
@@ -228,26 +280,62 @@ export default function CashBoxTransferForm({ cashBoxes, editing, onSaved, onCan
 
       {/* ملاحظات التحويل */}
       <div className="account-header-card" style={{ padding: '8px 12px' }}>
-        <input
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          placeholder="ملاحظات اختيارية على عملية التحويل…"
-          className="account-notes-input"
-          aria-label="ملاحظات التحويل"
-        />
+        {isReadOnly ? (
+          <div className="readonly-val-box readonly-notes" style={{ minHeight: '38px' }}>
+            {notes || 'لا توجد ملاحظات على التحويل'}
+          </div>
+        ) : (
+          <input
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="ملاحظات اختيارية على عملية التحويل…"
+            className="account-notes-input"
+            aria-label="ملاحظات التحويل"
+          />
+        )}
       </div>
 
       {/* أزرار الإجراءات الموحدة */}
-      <div className="form-modal-actions">
-        <button type="submit" className="btn primary" disabled={busy || isOverdraft}>
-          <Save size={16} />
-          <span>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل بين الخزن'}</span>
-        </button>
-        <button type="button" className="btn" onClick={handleReset} disabled={busy}>
-          <RotateCcw size={14} />
-          <span>مسح / جديد</span>
-        </button>
-      </div>
+      {isReadOnly ? (
+        <div className="form-modal-actions readonly-actions-group" style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: '10px' }}>
+          {onEdit && (
+            <button type="button" className="btn primary" onClick={onEdit}>
+              <Pencil size={15} />
+              <span>تعديل التحويل</span>
+            </button>
+          )}
+          <button type="button" className="btn" onClick={onPrint ?? (() => window.print())}>
+            <Printer size={15} />
+            <span>طباعة</span>
+          </button>
+          {onDelete && (
+            <button type="button" className="btn danger" onClick={onDelete}>
+              <Trash2 size={15} />
+              <span>حذف</span>
+            </button>
+          )}
+          <button type="button" className="btn" onClick={onCancel}>
+            <span>إغلاق</span>
+          </button>
+        </div>
+      ) : (
+        <div className="form-modal-actions">
+          <button type="submit" className="btn primary" disabled={busy || isOverdraft}>
+            <Save size={16} />
+            <span>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل بين الخزن'}</span>
+          </button>
+          {editing ? (
+            <button type="button" className="btn" onClick={onCancel} disabled={busy}>
+              <span>إلغاء</span>
+            </button>
+          ) : (
+            <button type="button" className="btn" onClick={handleReset} disabled={busy}>
+              <RotateCcw size={14} />
+              <span>مسح / جديد</span>
+            </button>
+          )}
+        </div>
+      )}
     </form>
   );
 }

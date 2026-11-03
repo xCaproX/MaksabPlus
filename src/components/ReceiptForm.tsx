@@ -1,10 +1,12 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { Check, RotateCcw, Save } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Check, ExternalLink, FileText, Pencil, Printer, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { money, round2, today, getBalanceStatus } from '../lib/format';
+import { money, round2, today, formatDate, getBalanceStatus } from '../lib/format';
 import { tafqeet } from '../lib/tafqeet';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
+import DateInput from './DateInput';
 import { toast } from './Toast';
 import type {
   AccountKind,
@@ -21,6 +23,18 @@ interface ReceiptFormProps {
   editing: ReceiptRow | null;
   onSaved: (message: string) => void;
   onCancel: () => void;
+  readOnly?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onPrint?: () => void;
+}
+
+function linkKind(k: string | null | undefined) {
+  if (k === 'sale') return 'فاتورة مبيعات';
+  if (k === 'purchase') return 'فاتورة مشتريات';
+  if (k === 'sale_return') return 'مرتجع مبيعات';
+  if (k === 'purchase_return') return 'مرتجع مشتريات';
+  return 'فاتورة';
 }
 
 export default function ReceiptForm({
@@ -29,8 +43,13 @@ export default function ReceiptForm({
   cashBoxes,
   editing,
   onSaved,
-  onCancel: _onCancel,
+  onCancel,
+  readOnly = false,
+  onEdit,
+  onDelete,
+  onPrint,
 }: ReceiptFormProps) {
+  const isReadOnly = Boolean(readOnly);
   const isIn = direction === 'in';
   const defaultAccountKind: AccountKind = editing?.account_kind ?? (isIn ? 'customer' : 'supplier');
   const [accountKind, setAccountKind] = useState<AccountKind>(defaultAccountKind);
@@ -67,8 +86,7 @@ export default function ReceiptForm({
     }
   }, [activeCashBoxes, cashBoxId, editing]);
 
-  // التاريخ يتم حفظه تلقائياً بالتاريخ الحالي دون الحاجة لحقل إدخال بالواجهة
-  const date = editing?.receipt_date ?? today();
+  const [date, setDate] = useState(editing?.receipt_date ?? today());
   const [amount, setAmount] = useState(editing ? String(Number(editing.amount)) : '');
   const [notes, setNotes] = useState(editing?.notes ?? editing?.statement ?? '');
   const [busy, setBusy] = useState(false);
@@ -104,7 +122,7 @@ export default function ReceiptForm({
 
   const selectedCashBox = cashBoxes.find((b) => b.id === cashBoxId);
   const cashBoxAvailableBalance = Number(selectedCashBox?.balance || 0) + (editing && editing.cash_box_id === cashBoxId ? prevAmount : 0);
-  const isOverdraft = !isIn && numAmount > cashBoxAvailableBalance;
+  const isOverdraft = !isIn && !isReadOnly && numAmount > cashBoxAvailableBalance;
 
   function handleAccountKindChange(nextKind: AccountKind) {
     setAccountKind(nextKind);
@@ -156,6 +174,7 @@ export default function ReceiptForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isReadOnly) return;
     if (!accountId) return toast.error('اختر الحساب أولاً');
     if (!cashBoxId) return toast.error('اختر الخزنة');
     if (!(numAmount > 0)) return toast.error('أدخل مبلغاً صحيحاً أكبر من صفر');
@@ -196,40 +215,63 @@ export default function ReceiptForm({
   const tafqeetText = numAmount > 0 ? tafqeet(numAmount) : '';
 
   return (
-    <form className="receipt-form receipt-single-layout" onSubmit={submit}>
+    <form className={`receipt-form receipt-single-layout ${isReadOnly ? 'is-readonly' : ''}`} onSubmit={submit}>
       {/* -------------------------------------------------------------------
-          بطاقة الحساب الموحدة (السطر الأول: نوع الحساب والحساب + السطر الثاني: الملاحظات والمديونيات)
+          بطاقة الحساب الموحدة (السطر الأول: التاريخ، نوع الحساب، والحساب + السطر الثاني: الملاحظات والمديونيات)
           مطابقة تامة وموحدة مع فاتورة المبيعات
           ------------------------------------------------------------------- */}
       <div className="account-header-card">
         <div className="account-header-row1 receipt-account-row1">
+          <label className="field-receipt-date">
+            <span>تاريخ الإيصال</span>
+            {isReadOnly ? (
+              <div className="readonly-val-box num" dir="ltr">
+                {formatDate(date)}
+              </div>
+            ) : (
+              <DateInput value={date} onChange={setDate} />
+            )}
+          </label>
+
           <label className="field-account-kind">
             <span>نوع الحساب</span>
-            <SearchableSelect
-              value={accountKind}
-              options={[
-                { value: 'customer', label: 'عميل' },
-                { value: 'supplier', label: 'مورد' },
-              ]}
-              onChange={(val) => handleAccountKindChange(val as AccountKind)}
-              placeholder="اختر النوع…"
-              searchPlaceholder="بحث في الأنواع…"
-            />
+            {isReadOnly ? (
+              <div className="readonly-val-box">
+                {accountKind === 'customer' ? 'عميل' : 'مورد'}
+              </div>
+            ) : (
+              <SearchableSelect
+                value={accountKind}
+                options={[
+                  { value: 'customer', label: 'عميل' },
+                  { value: 'supplier', label: 'مورد' },
+                ]}
+                onChange={(val) => handleAccountKindChange(val as AccountKind)}
+                placeholder="اختر النوع…"
+                searchPlaceholder="بحث في الأنواع…"
+              />
+            )}
           </label>
 
           <label className="field-account-main">
             <span>{isIn ? 'استلام من (الطرف المسدد)' : 'صرف إلى (المستفيد)'}</span>
-            <SearchableSelect
-              value={accountId}
-              options={selectableAccounts.map((account) => ({
-                value: account.id,
-                label: account.phone ? `${account.name} — ${account.phone}` : account.name,
-              }))}
-              onChange={setAccountId}
-              placeholder="ابحث باسم أو هاتف الحساب…"
-              searchPlaceholder="اكتب اسم أو هاتف الحساب…"
-              emptyMessage="لا يوجد حساب مطابق"
-            />
+            {isReadOnly ? (
+              <div className="readonly-val-box strong">
+                {selectedAccount?.name ?? editing?.account_name ?? '—'}
+              </div>
+            ) : (
+              <SearchableSelect
+                value={accountId}
+                options={selectableAccounts.map((account) => ({
+                  value: account.id,
+                  label: account.phone ? `${account.name} — ${account.phone}` : account.name,
+                }))}
+                onChange={setAccountId}
+                placeholder="ابحث باسم أو هاتف الحساب…"
+                searchPlaceholder="اكتب اسم أو هاتف الحساب…"
+                emptyMessage="لا يوجد حساب مطابق"
+              />
+            )}
           </label>
         </div>
 
@@ -278,39 +320,52 @@ export default function ReceiptForm({
       </div>
 
       {/* -------------------------------------------------------------------
-          السطر الثالث: المبلغ المراد استلامه - زرار استلام كامل المديونية - تفقيط المبلغ بالعربي
+          السطر الثالث: المبلغ - زرار استلام كامل المديونية - تفقيط المبلغ بالعربي
           ------------------------------------------------------------------- */}
       <div className="receipt-amount-card">
         <div className="row-amount-tafqeet">
           <div className="field-amount-slot">
             <label>
-              <span>{isIn ? 'المبلغ المراد استلامه' : 'المبلغ المراد صرفه'}</span>
-              <div className="amount-input-with-action">
-                <input
-                  aria-label="مبلغ الإيصال"
-                  type="number"
-                  inputMode="decimal"
-                  min="0.0001"
-                  step="0.0001"
+              <span>{isIn ? 'المبلغ المستلم' : 'المبلغ المصروف'}</span>
+              {isReadOnly ? (
+                <div
+                  className="readonly-val-box num strong"
                   dir="ltr"
-                  placeholder="0.00"
-                  value={amount}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="receipt-amount-input no-spinner num"
-                  required
-                />
-                <button
-                  type="button"
-                  className="btn-settle-all-action"
-                  onClick={handleSettleAll}
-                  title="استلام كامل المديونية"
-                  aria-label="استلام كامل المديونية"
+                  style={{
+                    fontSize: '16px',
+                    color: isIn ? 'var(--success, #059669)' : 'var(--primary, #0f172a)',
+                  }}
                 >
-                  <Check size={14} strokeWidth={2.5} />
-                  <span>كامل المديونية</span>
-                </button>
-              </div>
+                  {money(numAmount)}
+                </div>
+              ) : (
+                <div className="amount-input-with-action">
+                  <input
+                    aria-label="مبلغ الإيصال"
+                    type="number"
+                    inputMode="decimal"
+                    min="0.0001"
+                    step="0.0001"
+                    dir="ltr"
+                    placeholder="0.00"
+                    value={amount}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="receipt-amount-input no-spinner num"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="btn-settle-all-action"
+                    onClick={handleSettleAll}
+                    title="استلام كامل المديونية"
+                    aria-label="استلام كامل المديونية"
+                  >
+                    <Check size={14} strokeWidth={2.5} />
+                    <span>كامل المديونية</span>
+                  </button>
+                </div>
+              )}
             </label>
           </div>
 
@@ -329,34 +384,46 @@ export default function ReceiptForm({
         <div className="row-cashbox-notes">
           <label className="field-cashbox-select">
             <span>الخزنة {isIn ? 'المستلمة' : 'المنصرف منها'}</span>
-            <SearchableSelect
-              value={cashBoxId}
-              options={sortedCashBoxes.map((box) => ({
-                value: box.id,
-                label: `${box.name} (${money(box.balance)})`,
-              }))}
-              onChange={setCashBoxId}
-              placeholder="اختر الخزنة…"
-              searchPlaceholder="ابحث باسم الخزنة…"
-              emptyMessage="لا توجد خزنة نشطة"
-            />
+            {isReadOnly ? (
+              <div className="readonly-val-box">
+                {selectedCashBox?.name ?? editing?.cash_box_name ?? '—'}
+              </div>
+            ) : (
+              <SearchableSelect
+                value={cashBoxId}
+                options={sortedCashBoxes.map((box) => ({
+                  value: box.id,
+                  label: `${box.name} (${money(box.balance)})`,
+                }))}
+                onChange={setCashBoxId}
+                placeholder="اختر الخزنة…"
+                searchPlaceholder="ابحث باسم الخزنة…"
+                emptyMessage="لا توجد خزنة نشطة"
+              />
+            )}
           </label>
 
           <label className="field-receipt-notes">
             <span>ملاحظات</span>
-            <input
-              type="text"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="ملاحظات اختيارية على الإيصال…"
-              className="receipt-notes-input"
-            />
+            {isReadOnly ? (
+              <div className="readonly-val-box readonly-notes">
+                {notes || 'لا توجد ملاحظات'}
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="ملاحظات اختيارية على الإيصال…"
+                className="receipt-notes-input"
+              />
+            )}
           </label>
         </div>
       </div>
 
       {/* تنبيه الرصيد المتاح عند الصرف */}
-      {!isIn && (
+      {!isIn && !isReadOnly && (
         <div className={`cashbox-balance-hint ${isOverdraft ? 'is-danger' : ''}`}>
           <span>رصيد الخزنة المتاح:</span>
           <strong dir="ltr" className="num">
@@ -371,36 +438,107 @@ export default function ReceiptForm({
         </div>
       )}
 
-      {/* -------------------------------------------------------------------
-          السطر الخامس: حفظ - مسح / جديد
-          ------------------------------------------------------------------- */}
-      <div className="row-actions-group">
-        <button
-          type="submit"
-          className="btn primary btn-receipt-save-full"
-          disabled={busy || isOverdraft}
-        >
-          <Save size={16} />
-          <span>
-            {busy
-              ? 'جارٍ الحفظ…'
-              : editing
-              ? 'حفظ التعديلات'
-              : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
+      {/* بطاقة الربط بفاتورة إن كان الإيصال مرتبطاً */}
+      {editing && !editing.is_free && (
+        <div className="linked-receipt-box">
+          <span className="linked-receipt-label">هذا الإيصال مُنشأ تلقائيًا ومربوط بـ:</span>
+          <Link
+            to={`/invoices?tab=${editing.invoice_kind ?? 'sale'}&search=${encodeURIComponent(editing.invoice_number ?? '')}`}
+            className="receipt-linked-link"
+            onClick={onCancel}
+          >
+            <FileText size={15} />
+            <span>{linkKind(editing.invoice_kind)} {editing.invoice_number}</span>
+            <ExternalLink size={13} className="link-ext-icon" />
+          </Link>
+          <span className="muted" style={{ fontSize: '12px', marginInlineStart: 'auto' }}>
+            يتم تعديله أو حذفه من داخل الفاتورة نفسها
           </span>
-        </button>
+        </div>
+      )}
 
-        <button
-          type="button"
-          className="btn btn-receipt-clear-full"
-          onClick={handleResetNew}
-          disabled={busy}
-          title="مسح الحقول والبدء من جديد"
-        >
-          <RotateCcw size={14} />
-          <span>مسح / جديد</span>
-        </button>
-      </div>
+      {/* -------------------------------------------------------------------
+          السطر الخامس: أزرار الإجراءات (قراءة فقط أو تحرير/إضافة)
+          ------------------------------------------------------------------- */}
+      {isReadOnly ? (
+        <div className="row-actions-group readonly-actions-group">
+          {onEdit && editing?.is_free && (
+            <button
+              type="button"
+              className="btn primary btn-receipt-edit"
+              onClick={onEdit}
+            >
+              <Pencil size={15} />
+              <span>تعديل الإيصال</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-receipt-print"
+            onClick={onPrint ?? (() => window.print())}
+          >
+            <Printer size={15} />
+            <span>طباعة الإيصال</span>
+          </button>
+          {onDelete && editing?.is_free && (
+            <button
+              type="button"
+              className="btn danger btn-receipt-delete"
+              onClick={onDelete}
+            >
+              <Trash2 size={15} />
+              <span>حذف الإيصال</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-receipt-close"
+            onClick={onCancel}
+          >
+            <span>إغلاق</span>
+          </button>
+        </div>
+      ) : (
+        <div className="row-actions-group">
+          <button
+            type="submit"
+            className="btn primary btn-receipt-save-full"
+            disabled={busy || isOverdraft}
+          >
+            <Save size={16} />
+            <span>
+              {busy
+                ? 'جارٍ الحفظ…'
+                : editing
+                ? 'حفظ التعديلات'
+                : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
+            </span>
+          </button>
+
+          {editing ? (
+            <button
+              type="button"
+              className="btn btn-receipt-clear-full"
+              onClick={onCancel}
+              disabled={busy}
+              title="إلغاء التعديل والعودة"
+            >
+              <span>إلغاء</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-receipt-clear-full"
+              onClick={handleResetNew}
+              disabled={busy}
+              title="مسح الحقول والبدء من جديد"
+            >
+              <RotateCcw size={14} />
+              <span>مسح / جديد</span>
+            </button>
+          )}
+        </div>
+      )}
     </form>
   );
 }
