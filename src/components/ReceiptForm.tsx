@@ -26,6 +26,7 @@ interface ReceiptFormProps {
   readOnly?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onRestore?: () => void;
   onPrint?: () => void;
 }
 
@@ -47,6 +48,7 @@ export default function ReceiptForm({
   readOnly = false,
   onEdit,
   onDelete,
+  onRestore,
   onPrint,
 }: ReceiptFormProps) {
   const isReadOnly = Boolean(readOnly);
@@ -462,6 +464,16 @@ export default function ReceiptForm({
           ------------------------------------------------------------------- */}
       {isReadOnly ? (
         <div className="row-actions-group readonly-actions-group">
+          {onRestore && (
+            <button
+              type="button"
+              className="btn primary btn-receipt-restore"
+              onClick={onRestore}
+            >
+              <RotateCcw size={15} />
+              <span>استعادة الإيصال</span>
+            </button>
+          )}
           {onEdit && editing?.is_free && (
             <button
               type="button"

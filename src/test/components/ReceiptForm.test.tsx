@@ -202,4 +202,46 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     fireEvent.click(screen.getByText('إلغاء'));
     expect(handleCancel).toHaveBeenCalledTimes(1);
   });
+
+  it('في وضع العرض readOnly لإيصال محذوف: يظهر زر "استعادة الإيصال" عند تمرير onRestore', () => {
+    const onRestore = vi.fn();
+    const mockEditing = {
+      id: 'rec-1',
+      number: 'REC-001',
+      receipt_date: '2026-11-01',
+      amount: 1500,
+      account_id: 'acc-1',
+      account_name: 'عميل تجريبي',
+      account_kind: 'customer',
+      cash_box_id: 'cb-main',
+      cash_box_name: 'الخزنة الرئيسية',
+      is_free: true,
+      notes: 'دفعة',
+      statement: null,
+      description: null,
+      invoice_id: null,
+      invoice_number: null,
+      invoice_kind: null,
+      direction: 'in',
+      created_at: new Date().toISOString(),
+      deleted_at: '2026-11-02T00:00:00Z',
+    } as any;
+
+    render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={mockEditing}
+          readOnly={true}
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+          onRestore={onRestore}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('استعادة الإيصال')).toBeInTheDocument();
+  });
 });

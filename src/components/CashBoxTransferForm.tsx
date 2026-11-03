@@ -17,6 +17,7 @@ interface Props {
   readOnly?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onRestore?: () => void;
   onPrint?: () => void;
 }
 
@@ -28,6 +29,7 @@ export default function CashBoxTransferForm({
   readOnly = false,
   onEdit,
   onDelete,
+  onRestore,
   onPrint,
 }: Props) {
   const isReadOnly = Boolean(readOnly);
@@ -298,6 +300,12 @@ export default function CashBoxTransferForm({
       {/* أزرار الإجراءات الموحدة */}
       {isReadOnly ? (
         <div className="form-modal-actions readonly-actions-group" style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: '10px' }}>
+          {onRestore && (
+            <button type="button" className="btn primary" onClick={onRestore}>
+              <RotateCcw size={15} />
+              <span>استعادة التحويل</span>
+            </button>
+          )}
           {onEdit && (
             <button type="button" className="btn primary" onClick={onEdit}>
               <Pencil size={15} />

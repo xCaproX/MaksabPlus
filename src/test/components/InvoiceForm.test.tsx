@@ -116,4 +116,25 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     // التحقق من ظهور ملاحظات الفاتورة
     expect(screen.getByText('ملاحظة تجريبية للفاتورة')).toBeInTheDocument();
   });
+
+  it('في وضع العرض readOnly لمستند محذوف: يظهر زر "استعادة الفاتورة" عند تمرير onRestore', () => {
+    const onRestore = vi.fn();
+    render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={mockEditingInvoice}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+        onRestore={onRestore}
+      />
+    );
+
+    expect(screen.getByText('استعادة الفاتورة')).toBeInTheDocument();
+  });
 });

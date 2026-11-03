@@ -94,5 +94,43 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
     const availableCells = screen.getAllByText('10');
     expect(availableCells.length).toBeGreaterThan(0);
   });
+
+  it('في وضع العرض readOnly لمستند محذوف: يظهر زر "استعادة أمر التحويل" عند تمرير onRestore', () => {
+    const onRestore = vi.fn();
+    const mockEditing = {
+      id: 'wtr-1',
+      serial_number: 1,
+      number: 'WTR-0001',
+      transfer_date: '2026-11-01',
+      source_warehouse_id: 'wh-1',
+      source_warehouse_name: 'المخزن الرئيسي',
+      destination_warehouse_id: 'wh-2',
+      destination_warehouse_name: 'مخزن المعرض',
+      notes: null,
+      deleted_at: '2026-11-02T00:00:00Z',
+      created_at: '2026-11-01T00:00:00Z',
+      updated_at: '2026-11-01T00:00:00Z',
+      line_count: 0,
+      total_qty: 0,
+      total_value: 0,
+      items_summary: '',
+      lines: [],
+    };
+
+    render(
+      <WarehouseTransferForm
+        warehouses={mockWarehouses}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={mockEditing}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+        onRestore={onRestore}
+      />
+    );
+
+    expect(screen.getByText('استعادة أمر التحويل')).toBeInTheDocument();
+  });
 });
 

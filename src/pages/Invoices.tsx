@@ -160,10 +160,10 @@ export default function Invoices() {
   const partyHeader = kind === 'sale' || kind === 'sale_return' ? 'العميل' : kind === 'purchase' || kind === 'purchase_return' ? 'المورد' : 'الحساب';
 
   const formTitle = editingTransfer
-    ? (modalMode === 'view' ? `تحويل بين مخازن — ${editingTransfer.number}` : `تعديل التحويل ${editingTransfer.number}`)
+    ? (modalMode === 'view' ? `${showDeleted ? 'محذوف — ' : ''}تحويل بين مخازن — ${editingTransfer.number}` : `تعديل التحويل ${editingTransfer.number}`)
     : editing
     ? (modalMode === 'view'
-        ? `${newLabel} — ${editing.invoice.number}`
+        ? `${showDeleted ? 'محذوف — ' : ''}${newLabel} — ${editing.invoice.number}`
         : `تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'} ${editing.invoice.number}`)
     : `${newLabel} ${isWarehouseTransfer ? 'جديد' : 'جديدة'}`;
 
@@ -774,10 +774,19 @@ export default function Invoices() {
                   setEditingTransfer(null);
                 }
               }}
-              onEdit={can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
+              onEdit={!showDeleted && can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
               onDelete={
-                can(`goods.${kind}.delete`) && editingTransfer
+                !showDeleted && can(`goods.${kind}.delete`) && editingTransfer
                   ? () => void removeTransfer(editingTransfer)
+                  : undefined
+              }
+              onRestore={
+                showDeleted && can(`goods.${kind}.delete`) && editingTransfer
+                  ? async () => {
+                      await restoreTransfer(editingTransfer);
+                      setFormOpen(false);
+                      setEditingTransfer(null);
+                    }
                   : undefined
               }
               onPrint={() => window.print()}
@@ -802,10 +811,19 @@ export default function Invoices() {
                   setEditing(null);
                 }
               }}
-              onEdit={can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
+              onEdit={!showDeleted && can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
               onDelete={
-                can(`goods.${kind}.delete`) && editing
+                !showDeleted && can(`goods.${kind}.delete`) && editing
                   ? () => void remove(editing.invoice)
+                  : undefined
+              }
+              onRestore={
+                showDeleted && can(`goods.${kind}.delete`) && editing
+                  ? async () => {
+                      await restore(editing.invoice);
+                      setFormOpen(false);
+                      setEditing(null);
+                    }
                   : undefined
               }
               onPrint={() => window.print()}

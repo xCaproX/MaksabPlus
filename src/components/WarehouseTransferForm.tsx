@@ -22,6 +22,7 @@ interface Props {
   onCancel: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onRestore?: () => void;
   onPrint?: () => void;
 }
 
@@ -37,6 +38,7 @@ export default function WarehouseTransferForm({
   onCancel,
   onEdit,
   onDelete,
+  onRestore,
   onPrint,
 }: Props) {
   const activeWarehouses = warehouses.filter((warehouse) => warehouse.is_active !== false);
@@ -615,6 +617,12 @@ export default function WarehouseTransferForm({
       {/* أزرار الإجراءات الموحدة */}
       {readOnly ? (
         <div className="form-modal-actions readonly-actions-group" style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: '10px' }}>
+          {onRestore && (
+            <button type="button" className="btn primary" onClick={onRestore}>
+              <RotateCcw size={15} />
+              <span>استعادة أمر التحويل</span>
+            </button>
+          )}
           {onEdit && (
             <button type="button" className="btn primary" onClick={onEdit}>
               <Pencil size={15} />

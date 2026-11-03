@@ -694,14 +694,14 @@ export default function Receipts() {
       </div>
 
       {/* نموذج الإضافة والتعديل والعرض الموحد بالكامل داخل النافذة المنبثقة */}
-      {formOpen && !showDeleted && (
+      {formOpen && (
         isCashBoxTransfer ? (
           <Modal
             className="transaction-entry-modal"
             backdropClassName="transaction-entry-backdrop"
             title={
               modalMode === 'view'
-                ? `تحويل بين الخزن ${editingTransfer?.number ?? ''}`
+                ? `${showDeleted ? 'محذوف — ' : ''}تحويل بين الخزن ${editingTransfer?.number ?? ''}`
                 : editingTransfer
                 ? `تعديل التحويل ${editingTransfer.number}`
                 : 'تحويل جديد بين الخزن'
@@ -713,8 +713,16 @@ export default function Receipts() {
               cashBoxes={cashBoxes}
               editing={editingTransfer}
               readOnly={modalMode === 'view'}
-              onEdit={can(`money.${tab}.edit`) ? () => setModalMode('edit') : undefined}
-              onDelete={can(`money.${tab}.delete`) && editingTransfer ? () => void removeTransfer(editingTransfer) : undefined}
+              onEdit={!showDeleted && can(`money.${tab}.edit`) ? () => setModalMode('edit') : undefined}
+              onDelete={!showDeleted && can(`money.${tab}.delete`) && editingTransfer ? () => void removeTransfer(editingTransfer) : undefined}
+              onRestore={
+                showDeleted && can(`money.${tab}.delete`) && editingTransfer
+                  ? async () => {
+                      await restoreTransfer(editingTransfer);
+                      closeForm();
+                    }
+                  : undefined
+              }
               onPrint={() => window.print()}
               onSaved={handleSaved}
               onCancel={handleCancel}
@@ -726,7 +734,7 @@ export default function Receipts() {
             backdropClassName="receipt-entry-backdrop"
             title={
               modalMode === 'view'
-                ? `إيصال ${(editing?.direction ?? direction) === 'in' ? 'استلام' : 'صرف'} ${editing?.number ?? ''}`
+                ? `${showDeleted ? 'محذوف — ' : ''}إيصال ${(editing?.direction ?? direction) === 'in' ? 'استلام' : 'صرف'} ${editing?.number ?? ''}`
                 : editing
                 ? `تعديل الإيصال ${editing.number}`
                 : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`
@@ -740,8 +748,16 @@ export default function Receipts() {
               cashBoxes={cashBoxes}
               editing={editing}
               readOnly={modalMode === 'view'}
-              onEdit={can(`money.${tab}.edit`) && editing?.is_free ? () => setModalMode('edit') : undefined}
-              onDelete={can(`money.${tab}.delete`) && editing?.is_free && editing ? () => void remove(editing) : undefined}
+              onEdit={!showDeleted && can(`money.${tab}.edit`) && editing?.is_free ? () => setModalMode('edit') : undefined}
+              onDelete={!showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing ? () => void remove(editing) : undefined}
+              onRestore={
+                showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
+                  ? async () => {
+                      await restore(editing);
+                      closeForm();
+                    }
+                  : undefined
+              }
               onPrint={() => window.print()}
               onSaved={handleSaved}
               onCancel={handleCancel}

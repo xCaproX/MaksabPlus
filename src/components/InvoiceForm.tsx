@@ -38,6 +38,7 @@ interface InvoiceFormProps {
   onCancel: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onRestore?: () => void;
   onPrint?: () => void;
 }
 
@@ -54,6 +55,7 @@ export default function InvoiceForm({
   onCancel,
   onEdit,
   onDelete,
+  onRestore,
   onPrint,
 }: InvoiceFormProps) {
   const isReadOnly = Boolean(readOnly);
@@ -1076,6 +1078,16 @@ export default function InvoiceForm({
           {/* 6. أزرار الإجراءات */}
           {isReadOnly ? (
             <div className="left-actions-group readonly-actions-group">
+              {onRestore && (
+                <button
+                  type="button"
+                  className="btn primary btn-invoice-restore"
+                  onClick={onRestore}
+                >
+                  <RotateCcw size={15} />
+                  <span>استعادة {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}</span>
+                </button>
+              )}
               {onEdit && (
                 <button
                   type="button"

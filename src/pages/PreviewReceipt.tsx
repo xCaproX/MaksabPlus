@@ -13,6 +13,10 @@ export default function PreviewReceipt() {
     return p !== 'false';
   });
 
+  const [showDeleted, setShowDeleted] = useState(() => {
+    return new URLSearchParams(window.location.search).get('deleted') === 'true';
+  });
+
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>(() => {
     const m = new URLSearchParams(window.location.search).get('mode');
     return m === 'edit' ? 'edit' : m === 'create' ? 'create' : 'view';
@@ -117,7 +121,7 @@ export default function PreviewReceipt() {
       notes: null,
       is_free: true,
       created_at: new Date().toISOString(),
-      deleted_at: null,
+      deleted_at: '2026-11-03T18:00:00Z',
       description: null,
       invoice_id: null,
       invoice_number: null,
@@ -125,7 +129,11 @@ export default function PreviewReceipt() {
     },
   ]);
 
-  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRow | null>(receipts[0]);
+  const visibleReceipts = receipts.filter((r) => showDeleted ? Boolean(r.deleted_at) : !r.deleted_at);
+
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRow | null>(
+    showDeleted ? (receipts.find((r) => r.deleted_at) ?? receipts[0]) : receipts[0],
+  );
 
   function handleOpenView(rec: ReceiptRow) {
     setSelectedReceipt(rec);
@@ -143,27 +151,33 @@ export default function PreviewReceipt() {
     <div className="stack" style={{ minHeight: '100vh', background: 'var(--erp-bg, #f8fafc)', padding: '24px' }}>
       <div className="page-head">
         <div>
-          <h1>إيصالات الاستلام</h1>
+          <h1>{showDeleted ? 'المحذوفات — إيصالات الاستلام' : 'إيصالات الاستلام'}</h1>
         </div>
         <div className="actions">
           <button
             type="button"
             className="btn outline"
-            onClick={() => alert('عرض المحذوفات')}
-          >
-            عرض المحذوفات
-          </button>
-          <button
-            type="button"
-            className="btn primary"
             onClick={() => {
-              setSelectedReceipt(null);
-              setModalMode('create');
-              setModalOpen(true);
+              const next = !showDeleted;
+              setShowDeleted(next);
+              setModalOpen(false);
             }}
           >
-            + إيصال استلام جديد
+            {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
           </button>
+          {!showDeleted && (
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => {
+                setSelectedReceipt(null);
+                setModalMode('create');
+                setModalOpen(true);
+              }}
+            >
+              + إيصال استلام جديد
+            </button>
+          )}
         </div>
       </div>
 
@@ -206,7 +220,7 @@ export default function PreviewReceipt() {
                 </tr>
               </thead>
               <tbody>
-                {receipts.map((rec) => (
+                {visibleReceipts.map((rec) => (
                   <tr
                     key={rec.id}
                     tabIndex={0}
@@ -232,10 +246,21 @@ export default function PreviewReceipt() {
                     </td>
                     <td className="muted">{rec.statement || '—'}</td>
                     <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
-                      <RowActions
-                        onEdit={rec.is_free ? () => handleOpenEdit(rec) : undefined}
-                        onDelete={rec.is_free ? () => alert(`حذف ${rec.number}`) : undefined}
-                      />
+                      {showDeleted ? (
+                        <RowActions
+                          onRestore={() => {
+                            setReceipts((prev) => prev.map((r) => r.id === rec.id ? { ...r, deleted_at: null } : r));
+                          }}
+                          restoreLabel="استعادة الإيصال"
+                        />
+                      ) : (
+                        <RowActions
+                          onEdit={rec.is_free ? () => handleOpenEdit(rec) : undefined}
+                          onDelete={rec.is_free ? () => {
+                            setReceipts((prev) => prev.map((r) => r.id === rec.id ? { ...r, deleted_at: new Date().toISOString() } : r));
+                          } : undefined}
+                        />
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -252,7 +277,7 @@ export default function PreviewReceipt() {
           backdropClassName="receipt-entry-backdrop"
           title={
             modalMode === 'view'
-              ? `إيصال استلام ${selectedReceipt?.number ?? ''}`
+              ? `${showDeleted ? 'محذوف — ' : ''}إيصال استلام ${selectedReceipt?.number ?? ''}`
               : modalMode === 'edit'
               ? `تعديل الإيصال ${selectedReceipt?.number ?? ''}`
               : 'إيصال استلام جديد (سند قبض)'
@@ -260,19 +285,32 @@ export default function PreviewReceipt() {
           onClose={() => setModalOpen(false)}
         >
           <ReceiptForm
-            key={modalMode}
+            key={`${selectedReceipt?.id ?? 'receipt'}-${modalMode}`}
             direction="in"
             accounts={mockAccounts}
             cashBoxes={mockCashBoxes}
             editing={modalMode === 'create' ? null : selectedReceipt}
             readOnly={modalMode === 'view'}
-            onEdit={() => setModalMode('edit')}
-            onDelete={() => {
-              if (confirm(`حذف الإيصال ${selectedReceipt?.number}؟`)) {
-                setReceipts((prev) => prev.filter((r) => r.id !== selectedReceipt?.id));
-                setModalOpen(false);
-              }
-            }}
+            onEdit={!showDeleted ? () => setModalMode('edit') : undefined}
+            onDelete={
+              !showDeleted
+                ? () => {
+                    if (confirm(`حذف الإيصال ${selectedReceipt?.number}؟`)) {
+                      setReceipts((prev) => prev.map((r) => r.id === selectedReceipt?.id ? { ...r, deleted_at: new Date().toISOString() } : r));
+                      setModalOpen(false);
+                    }
+                  }
+                : undefined
+            }
+            onRestore={
+              showDeleted
+                ? () => {
+                    alert(`تم استعادة الإيصال ${selectedReceipt?.number}`);
+                    setReceipts((prev) => prev.map((r) => r.id === selectedReceipt?.id ? { ...r, deleted_at: null } : r));
+                    setModalOpen(false);
+                  }
+                : undefined
+            }
             onPrint={() => window.print()}
             onSaved={(msg) => {
               alert(msg);
