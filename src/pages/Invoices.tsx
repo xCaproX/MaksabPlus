@@ -417,13 +417,63 @@ export default function Invoices() {
     void refresh();
   }
 
-  function handleSaved(message: string) {
+  async function handleSaved(message: string) {
     setNotice(message);
+    setVersion((current) => current + 1);
+    void refresh();
+
+    // إذا كانت الفاتورة مفتوحة من وضع العرض وتم تعديلها، نُعيدها لوضع العرض مع تحديث البيانات
+    if (modalMode === 'edit' && openedFromViewRef.current && editing) {
+      const invoiceId = editing.invoice.id;
+      const [invRes, linesRes] = await Promise.all([
+        supabase.from('v_invoice_list').select('*').eq('id', invoiceId).maybeSingle(),
+        supabase
+          .from('invoice_items')
+          .select('item_id, qty, unit_price')
+          .eq('invoice_id', invoiceId)
+          .order('created_at'),
+      ]);
+
+      if (invRes.data && !invRes.error && linesRes.data && !linesRes.error) {
+        const lines = ((linesRes.data ?? []) as { item_id: string; qty: number; unit_price: number }[]).map(
+          (line) => ({
+            key: crypto.randomUUID(),
+            item_id: line.item_id,
+            qty: String(Number(line.qty)),
+            unit_price: String(Number(line.unit_price)),
+          }),
+        );
+        setEditing({ invoice: invRes.data as InvoiceRow, lines });
+        setModalMode('view');
+        return;
+      }
+    }
+
+    // إذا كان أمر التحويل مفتوحاً من وضع العرض، نُعيده لوضع العرض بعد التعديل (Sibling Parity)
+    if (modalMode === 'edit' && openedTransferFromViewRef.current && editingTransfer) {
+      const transferId = editingTransfer.id;
+      const [trRes, linesRes] = await Promise.all([
+        supabase.from('v_warehouse_transfer_list').select('*').eq('id', transferId).maybeSingle(),
+        supabase
+          .from('warehouse_transfer_items')
+          .select('item_id, qty, unit_cost')
+          .eq('transfer_id', transferId)
+          .order('item_id'),
+      ]);
+
+      if (trRes.data && !trRes.error && linesRes.data && !linesRes.error) {
+        setEditingTransfer({
+          ...(trRes.data as WarehouseTransferRow),
+          lines: (linesRes.data ?? []) as WarehouseTransferLine[],
+        });
+        setModalMode('view');
+        return;
+      }
+    }
+
     setFormOpen(false);
     setEditing(null);
     setEditingTransfer(null);
-    setVersion((current) => current + 1);
-    void refresh();
   }
 
   if (!canViewCurrentTab) {

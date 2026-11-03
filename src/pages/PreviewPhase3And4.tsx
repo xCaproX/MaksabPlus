@@ -516,7 +516,10 @@ export default function PreviewPhase3And4() {
                   { key: 'line-3', item_id: 'itm-3', qty: '46.1538', unit_price: '65' },
                 ],
               }}
-              onSaved={() => { setSelectedInvoice(null); setModalMode('view'); }}
+              onSaved={() => {
+                if (modalMode === 'edit') setModalMode('view');
+                else setSelectedInvoice(null);
+              }}
               onCancel={() => {
                 if (modalMode === 'edit') setModalMode('view');
                 else setSelectedInvoice(null);
