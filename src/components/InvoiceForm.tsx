@@ -791,7 +791,7 @@ export default function InvoiceForm({
                             {isReadOnly ? (
                               <div className="readonly-line-qty-box">
                                 <bdi className="num" dir="ltr">{formatQty(line.qty)}</bdi>
-                                <span className="line-unit-suffix">{selectedItem ? selectedItem.unit : 'قطعة'}</span>
+                                <span className="readonly-unit-text">{selectedItem ? selectedItem.unit : 'قطعة'}</span>
                               </div>
                             ) : (
                               <div className="line-qty-group">
@@ -1133,16 +1133,29 @@ export default function InvoiceForm({
                 </span>
               </button>
 
-              <button
-                type="button"
-                className="btn btn-invoice-clear"
-                onClick={handleResetNew}
-                disabled={busy}
-                title="مسح بيانات الفاتورة الحالية والبدء من جديد"
-              >
-                <RotateCcw size={14} />
-                <span>مسح / جديد</span>
-              </button>
+              {editing ? (
+                <button
+                  type="button"
+                  className="btn btn-invoice-clear"
+                  onClick={onCancel}
+                  disabled={busy}
+                  title="إلغاء التعديل والعودة"
+                >
+                  <X size={15} />
+                  <span>إلغاء</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-invoice-clear"
+                  onClick={handleResetNew}
+                  disabled={busy}
+                  title="مسح بيانات الفاتورة الحالية والبدء من جديد"
+                >
+                  <RotateCcw size={14} />
+                  <span>مسح / جديد</span>
+                </button>
+              )}
             </div>
           )}
         </div>

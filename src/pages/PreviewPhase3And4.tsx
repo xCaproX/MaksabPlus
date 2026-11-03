@@ -68,6 +68,12 @@ export default function PreviewPhase3And4() {
     }
     return null;
   });
+  const [modalMode, setModalMode] = useState<'view' | 'edit'>(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('edit') === '1') {
+      return 'edit';
+    }
+    return 'view';
+  });
 
   const mockInvoices = [
     {
@@ -448,11 +454,12 @@ export default function PreviewPhase3And4() {
           <Modal
             className="transaction-entry-modal invoice-entry-modal"
             backdropClassName="transaction-entry-backdrop"
-            title={`عرض فاتورة مبيعات — ${current.number}`}
-            onClose={() => setSelectedInvoice(null)}
+            title={modalMode === 'view' ? `عرض فاتورة مبيعات — ${current.number}` : `تعديل الفاتورة ${current.number}`}
+            onClose={() => { setSelectedInvoice(null); setModalMode('view'); }}
           >
             <InvoiceForm
-              readOnly
+              key={`preview-inv-${modalMode}`}
+              readOnly={modalMode === 'view'}
               kind="sale"
               accounts={[
                 { id: 'acc-1', name: 'عميل نقدي عام', kind: 'customer', balance: 0, is_active: true, notes: 'عميل نقدي فوري', phone: '01000000000', serial_number: 1, opening_balance: 0, invoiced: 0, paid: 0, has_documents: false, system_key: 'cash_customer' },
@@ -509,9 +516,12 @@ export default function PreviewPhase3And4() {
                   { key: 'line-3', item_id: 'itm-3', qty: '46.1538', unit_price: '65' },
                 ],
               }}
-              onSaved={() => setSelectedInvoice(null)}
-              onCancel={() => setSelectedInvoice(null)}
-              onEdit={() => {}}
+              onSaved={() => { setSelectedInvoice(null); setModalMode('view'); }}
+              onCancel={() => {
+                if (modalMode === 'edit') setModalMode('view');
+                else setSelectedInvoice(null);
+              }}
+              onEdit={() => setModalMode('edit')}
               onDelete={() => setShowDeleteConfirm(true)}
               onPrint={() => window.print()}
             />

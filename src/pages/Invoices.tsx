@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { formatDate, money, qty as formatQty } from '../lib/format';
@@ -97,6 +97,8 @@ export default function Invoices() {
   }
   const [formOpen, setFormOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
+  const openedFromViewRef = useRef(false);
+  const openedTransferFromViewRef = useRef(false);
   const [editing, setEditing] = useState<EditingInvoice | null>(null);
   const [editingTransfer, setEditingTransfer] = useState<(WarehouseTransferRow & { lines: WarehouseTransferLine[] }) | null>(null);
   const [version, setVersion] = useState(0);
@@ -288,12 +290,15 @@ export default function Invoices() {
   function openNew() {
     setEditing(null);
     setEditingTransfer(null);
+    openedFromViewRef.current = false;
+    openedTransferFromViewRef.current = false;
     setModalMode('create');
     setFormOpen(true);
   }
 
   async function openTransferModal(transfer: WarehouseTransferRow, mode: 'view' | 'edit' = 'view') {
     setError('');
+    openedTransferFromViewRef.current = mode === 'view';
     const { data, error: linesError } = await supabase.from('warehouse_transfer_items')
       .select('item_id, qty, unit_cost').eq('transfer_id', transfer.id).order('item_id');
     if (linesError) return setError(translateDbError(linesError.message));
@@ -305,6 +310,7 @@ export default function Invoices() {
 
   async function openInvoiceModal(invoice: InvoiceRow, mode: 'view' | 'edit' = 'view') {
     setError('');
+    openedFromViewRef.current = mode === 'view';
     const { data, error: linesError } = await supabase
       .from('invoice_items')
       .select('item_id, qty, unit_price')
@@ -710,7 +716,14 @@ export default function Invoices() {
               editing={editingTransfer}
               readOnly={modalMode === 'view'}
               onSaved={handleSaved}
-              onCancel={() => { setFormOpen(false); setEditingTransfer(null); }}
+              onCancel={() => {
+                if (modalMode === 'edit' && openedTransferFromViewRef.current) {
+                  setModalMode('view');
+                } else {
+                  setFormOpen(false);
+                  setEditingTransfer(null);
+                }
+              }}
               onEdit={can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
               onDelete={
                 can(`goods.${kind}.delete`) && editingTransfer
@@ -731,7 +744,14 @@ export default function Invoices() {
               editing={editing}
               readOnly={modalMode === 'view'}
               onSaved={handleSaved}
-              onCancel={() => { setFormOpen(false); setEditing(null); }}
+              onCancel={() => {
+                if (modalMode === 'edit' && openedFromViewRef.current) {
+                  setModalMode('view');
+                } else {
+                  setFormOpen(false);
+                  setEditing(null);
+                }
+              }}
               onEdit={can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
               onDelete={
                 can(`goods.${kind}.delete`) && editing

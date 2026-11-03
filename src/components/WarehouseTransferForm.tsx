@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { Plus, RotateCcw, Save, Trash2, Pencil, Printer } from 'lucide-react';
+import { Plus, RotateCcw, Save, Trash2, Pencil, Printer, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -539,9 +539,10 @@ export default function WarehouseTransferForm({
                       </td>
                       <td data-label={item ? `الكمية (${item.unit})` : 'الكمية المنقولة'}>
                         {readOnly ? (
-                          <span className="readonly-line-qty num" dir="ltr">
-                            <bdi>{formatQty(line.qty)}</bdi> {item?.unit ?? 'قطعة'}
-                          </span>
+                          <div className="readonly-line-qty-box">
+                            <bdi className="num" dir="ltr">{formatQty(line.qty)}</bdi>
+                            <span className="readonly-unit-text">{item?.unit ?? 'قطعة'}</span>
+                          </div>
                         ) : (
                           <div className="line-qty-group">
                             <input
@@ -640,10 +641,29 @@ export default function WarehouseTransferForm({
             <Save size={16} />
             <span>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل المخزني'}</span>
           </button>
-          <button type="button" className="btn" onClick={handleReset} disabled={busy}>
-            <RotateCcw size={14} />
-            <span>مسح / جديد</span>
-          </button>
+          {editing ? (
+            <button
+              type="button"
+              className="btn"
+              onClick={onCancel}
+              disabled={busy}
+              title="إلغاء التعديل والعودة"
+            >
+              <X size={15} />
+              <span>إلغاء</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn"
+              onClick={handleReset}
+              disabled={busy}
+              title="مسح بيانات التحويل الحالية والبدء من جديد"
+            >
+              <RotateCcw size={14} />
+              <span>مسح / جديد</span>
+            </button>
+          )}
         </div>
       )}
     </form>
