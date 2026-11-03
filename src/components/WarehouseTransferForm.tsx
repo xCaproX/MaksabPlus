@@ -3,6 +3,7 @@ import { Plus, RotateCcw, Save, Trash2, Pencil, Printer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
+import { calculateAvailableStock } from '../lib/invoiceValidation';
 import SearchableSelect from './SearchableSelect';
 import { toast } from './Toast';
 import type { ItemRow, StockOpeningRow, WarehouseOption, WarehouseTransferLine, WarehouseTransferRow } from '../lib/types';
@@ -70,16 +71,14 @@ export default function WarehouseTransferForm({
     (warehouse) => warehouse.is_active !== false || warehouse.id === sourceId || warehouse.id === destinationId,
   );
 
-  function getAvailableStock(itemId: string, warehouseId: string): number {
-    const stock = stockRows.find((row) => row.item_id === itemId && row.warehouse_id === warehouseId);
-    let available = stock ? Number(stock.current_qty) : 0;
-    if (editing && editing.source_warehouse_id === warehouseId) {
-      const prevLine = editing.lines?.find((l) => l.item_id === itemId);
-      if (prevLine) {
-        available += Number(prevLine.qty || 0);
-      }
-    }
-    return available;
+  function getAvailableStock(itemId: string, targetWarehouseId: string): number {
+    return calculateAvailableStock({
+      itemId,
+      warehouseId: targetWarehouseId,
+      stockRows,
+      editingWarehouseId: editing?.source_warehouse_id,
+      editingLines: editing?.lines,
+    });
   }
 
   const entrySelectedItem = items.find((entry) => entry.id === entryItemId);
@@ -296,7 +295,7 @@ export default function WarehouseTransferForm({
       return toast.error('اختر مخزنين مختلفين (مخزن المصدر ومخزن الوجهة)');
     }
 
-    let activeLines = [...lines];
+    const activeLines = [...lines];
 
     // إدراج الصنف المعلق في شريط الإدخال تلقائياً
     if (entryItemId) {

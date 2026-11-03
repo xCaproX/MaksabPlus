@@ -92,7 +92,7 @@ export default function ReceiptForm({
   const numAmount = Number(amount || 0);
 
   // الرصيد بعد المعاملة الحالية
-  let balanceAfter = balanceBefore;
+  let balanceAfter: number;
   if (isCust) {
     balanceAfter = isIn ? balanceBefore - numAmount : balanceBefore + numAmount;
   } else {

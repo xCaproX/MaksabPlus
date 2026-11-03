@@ -80,3 +80,39 @@ export function isItemInStock(
   const qty = row ? Number(row.current_qty) : 0;
   return qty > 0;
 }
+
+export interface CalculateAvailableStockOptions {
+  itemId: string;
+  warehouseId: string;
+  stockRows: Array<{ item_id: string; warehouse_id: string; current_qty: number | string }>;
+  editingWarehouseId?: string;
+  editingLines?: Array<{ item_id: string; qty: number | string }>;
+}
+
+/**
+ * حساب الرصيد المتاح للصنف في المخزن مع مراعاة وضع التعديل:
+ * عند تعديل مستند مسجل مسبقاً (فاتورة بيع، أمر تحويل...) في نفس المخزن،
+ * الكمية المحجوزة مسبقاً في هذا المستند تُضاف للرصيد المتاح لأنها كانت مخصومة بسببه.
+ */
+export function calculateAvailableStock(options: CalculateAvailableStockOptions): number {
+  const {
+    itemId,
+    warehouseId,
+    stockRows,
+    editingWarehouseId,
+    editingLines,
+  } = options;
+
+  if (!itemId || !warehouseId) return 0;
+  const row = stockRows.find((r) => r.item_id === itemId && r.warehouse_id === warehouseId);
+  let available = row ? Number(row.current_qty) : 0;
+
+  if (editingWarehouseId && editingWarehouseId === warehouseId && editingLines) {
+    const prevQty = editingLines
+      .filter((l) => l.item_id === itemId)
+      .reduce((sum, l) => sum + Number(l.qty || 0), 0);
+    available += prevQty;
+  }
+
+  return available;
+}

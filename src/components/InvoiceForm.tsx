@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { formatDate, money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { translateDbError } from '../lib/errors';
+import { calculateAvailableStock } from '../lib/invoiceValidation';
 import SearchableSelect from './SearchableSelect';
 import ConfirmDialog from './ConfirmDialog';
 import { toast } from './Toast';
@@ -174,6 +175,17 @@ export default function InvoiceForm({
     }
   }
 
+    function getItemAvailableStock(itemId: string, targetWarehouseId = warehouseId): number {
+    const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+    return calculateAvailableStock({
+      itemId,
+      warehouseId: targetWarehouseId,
+      stockRows,
+      editingWarehouseId: isStockLimited ? editing?.invoice.warehouse_id : undefined,
+      editingLines: editing?.lines,
+    });
+  }
+
   function handleWarehouseChange(nextWarehouseId: string) {
     setWarehouseId(nextWarehouseId);
     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
@@ -181,10 +193,7 @@ export default function InvoiceForm({
 
     // التحقق من توفر الصنف قيد الإدخال في المخزن الجديد
     if (entryItemId) {
-      const stockRow = stockRows.find(
-        (row) => row.item_id === entryItemId && row.warehouse_id === nextWarehouseId,
-      );
-      const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
+      const availableStock = getItemAvailableStock(entryItemId, nextWarehouseId);
       if (availableStock <= 0) {
         toast.warning('الصنف قيد الإدخال غير متوفر في المخزن المحدد، تم إلغاء اختياره');
         setEntryItemId('');
@@ -200,10 +209,7 @@ export default function InvoiceForm({
       current
         .map((line) => {
           if (!line.item_id) return line;
-          const stockRow = stockRows.find(
-            (row) => row.item_id === line.item_id && row.warehouse_id === nextWarehouseId,
-          );
-          const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
+          const availableStock = getItemAvailableStock(line.item_id, nextWarehouseId);
           if (availableStock <= 0) {
             toast.warning('أحد الأصناف المدرجة غير متوفر في المخزن المحدد، تم حذفه');
             return null as unknown as LineDraft;
@@ -219,10 +225,7 @@ export default function InvoiceForm({
   }
 
   const entrySelectedItem = items.find((item) => item.id === entryItemId);
-  const entryStockRow = stockRows.find(
-    (row) => row.item_id === entryItemId && row.warehouse_id === warehouseId,
-  );
-  const entryAvailableStock = entryStockRow ? Number(entryStockRow.current_qty) : 0;
+  const entryAvailableStock = entryItemId ? getItemAvailableStock(entryItemId, warehouseId) : 0;
   const entryLineTotal = round2(
     Number(entryQty || 0) * Number(entryUnitPrice || 0),
   );
@@ -236,10 +239,7 @@ export default function InvoiceForm({
     }
 
     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-    const stockRow = stockRows.find(
-      (row) => row.item_id === itemId && row.warehouse_id === warehouseId,
-    );
-    const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
+    const availableStock = getItemAvailableStock(itemId, warehouseId);
 
     if (isStockLimited && availableStock <= 0) {
       toast.warning('الصنف غير متوفر');
@@ -433,7 +433,7 @@ export default function InvoiceForm({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    let activeLines = [...lines];
+    const activeLines = [...lines];
 
     // إذا كان هناك صنف قيد الإدخال في شريط الإدخال الثابت، ندرجه تلقائياً قبل الحفظ
     if (entryItemId) {
@@ -483,10 +483,7 @@ export default function InvoiceForm({
     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
     if (isStockLimited) {
       for (const line of activeLines) {
-        const stockRow = stockRows.find(
-          (row) => row.item_id === line.item_id && row.warehouse_id === warehouseId,
-        );
-        const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
+        const availableStock = getItemAvailableStock(line.item_id, warehouseId);
         if (availableStock <= 0) {
           return toast.error('أحد الأصناف المختارة غير متوفر بالمخزن');
         }
@@ -676,7 +673,7 @@ export default function InvoiceForm({
                           inputRef={entryItemSearchRef}
                           value={entryItemId}
                           options={items.map((item) => {
-                            const stock = stockRows.find((row) => row.item_id === item.id && row.warehouse_id === warehouseId)?.current_qty ?? 0;
+                            const stock = getItemAvailableStock(item.id, warehouseId);
                             const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
                             const isOut = isStockLimited && Number(stock) <= 0;
                             return {
@@ -771,10 +768,7 @@ export default function InvoiceForm({
                         Number(line.qty || 0) * Number(line.unit_price || 0),
                       );
 
-                      const stockRow = stockRows.find(
-                        (row) => row.item_id === line.item_id && row.warehouse_id === warehouseId,
-                      );
-                      const availableStock = stockRow ? Number(stockRow.current_qty) : 0;
+                      const availableStock = getItemAvailableStock(line.item_id, warehouseId);
                       const isStockExceeded =
                         Boolean(line.item_id) &&
                         (kind === 'sale' || kind === 'waste' || kind === 'purchase_return') &&

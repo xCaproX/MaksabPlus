@@ -3,6 +3,7 @@ import {
   clampQuantity,
   clampPaid,
   isItemInStock,
+  calculateAvailableStock,
 } from '../lib/invoiceValidation';
 
 describe('invoiceValidation - قواعد التحقق والتصحيح التلقائي للفاتورة', () => {
@@ -71,6 +72,53 @@ describe('invoiceValidation - قواعد التحقق والتصحيح التل�
       expect(isItemInStock('item-2', 'wh-1', stockRows)).toBe(false);
       expect(isItemInStock('item-1', 'wh-2', stockRows)).toBe(false);
       expect(isItemInStock('item-unknown', 'wh-1', stockRows)).toBe(false);
+    });
+  });
+
+  describe('calculateAvailableStock - حساب الرصيد المتاح مع مراعاة وضع التعديل', () => {
+    const stockRows = [
+      { item_id: 'item-1', warehouse_id: 'wh-1', current_qty: 2 },
+      { item_id: 'item-2', warehouse_id: 'wh-1', current_qty: 12 },
+      { item_id: 'item-1', warehouse_id: 'wh-2', current_qty: 5 },
+    ];
+
+    it('عند إنشاء فاتورة جديدة: يُرجع الرصيد الفعلي الحالي بالمخزن', () => {
+      const available = calculateAvailableStock({
+        itemId: 'item-1',
+        warehouseId: 'wh-1',
+        stockRows,
+      });
+      expect(available).toBe(2);
+    });
+
+    it('عند تعديل فاتورة مسجلة في نفس المخزن: يضيف الكمية السابقة في الفاتورة إلى الرصيد المتاح بالمخزن', () => {
+      // الصنف item-1 رصيده الحالي 2، لكن الفاتورة الحالية قيد التعديل بها 7 قطع منه
+      const available = calculateAvailableStock({
+        itemId: 'item-1',
+        warehouseId: 'wh-1',
+        stockRows,
+        editingWarehouseId: 'wh-1',
+        editingLines: [
+          { item_id: 'item-1', qty: '7' },
+          { item_id: 'item-2', qty: '37' },
+        ],
+      });
+      // الرصيد المتاح لهذه الفاتورة المعدلة يجب أن يكون 2 + 7 = 9
+      expect(available).toBe(9);
+    });
+
+    it('عند تعديل فاتورة واختيار مخزن مختلف: لا يضيف الكمية السابقة لأنها تخص مخزن آخر', () => {
+      const available = calculateAvailableStock({
+        itemId: 'item-1',
+        warehouseId: 'wh-2', // مخزن جديد مختلف
+        stockRows,
+        editingWarehouseId: 'wh-1', // المخزن الأصلي للفاتورة
+        editingLines: [
+          { item_id: 'item-1', qty: '7' },
+        ],
+      });
+      // الرصيد المتاح في wh-2 هو فقط رصيد wh-2 (5)
+      expect(available).toBe(5);
     });
   });
 });
