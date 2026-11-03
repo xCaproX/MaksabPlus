@@ -532,10 +532,10 @@ export default function InvoiceForm({
           <div className="right-card account-header-card">
             {/* الصف الأول: التاريخ - المخزن - نوع الحساب - الحساب */}
             <div className="account-header-row1">
-              <div className="field-date" style={{ minWidth: '130px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 650, color: '#475569', marginBottom: '5px', display: 'block' }}>التاريخ</span>
+              <label className="field-date">
+                <span>التاريخ</span>
                 <div className="readonly-val-box num" dir="ltr">{formatDate(date)}</div>
-              </div>
+              </label>
 
               <label className="field-warehouse-select">
                 <span>المخزن</span>
@@ -795,9 +795,10 @@ export default function InvoiceForm({
                           </td>
                           <td data-label={selectedItem ? `الكمية (${selectedItem.unit})` : 'الكمية'}>
                             {isReadOnly ? (
-                              <span className="readonly-line-qty num" dir="ltr">
-                                <bdi>{formatQty(line.qty)}</bdi> {selectedItem ? selectedItem.unit : 'قطعة'}
-                              </span>
+                              <div className="readonly-line-qty-box">
+                                <bdi className="num" dir="ltr">{formatQty(line.qty)}</bdi>
+                                <span className="line-unit-suffix">{selectedItem ? selectedItem.unit : 'قطعة'}</span>
+                              </div>
                             ) : (
                               <div className="line-qty-group">
                                 <input
@@ -1070,8 +1071,10 @@ export default function InvoiceForm({
           {editing?.invoice.receipt_number && (
             <div className="left-field-box linked-receipt-box">
               <span style={{ fontSize: '12px', fontWeight: 650, color: '#475569' }}>السند المالي المرتبط</span>
-              <div className="linked-receipt-badge" dir="ltr">
-                إيصال {editing.invoice.receipt_number} ({money(editing.invoice.receipt_amount ?? 0)} ج.م)
+              <div className="linked-receipt-badge">
+                <span>إيصال</span>
+                <bdi className="num" dir="ltr">{editing.invoice.receipt_number}</bdi>
+                <span>(<bdi className="num" dir="ltr">{money(editing.invoice.receipt_amount ?? 0)}</bdi> ج.م)</span>
               </div>
             </div>
           )}

@@ -1065,10 +1065,9 @@
 }
 
 .account-header-row1 {
-  display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) 120px minmax(220px, 1.8fr);
-  gap: 10px;
+  display: flex;
   align-items: flex-end;
+  gap: 12px;
 }
 
 .account-header-row1 label {
@@ -1078,6 +1077,26 @@
   font-size: 12px;
   font-weight: 700;
   color: #334155;
+}
+
+.account-header-row1 .field-date {
+  width: 130px;
+  flex-shrink: 0;
+}
+
+.account-header-row1 .field-warehouse-select {
+  flex: 1;
+  min-width: 170px;
+}
+
+.account-header-row1 .field-account-kind {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.account-header-row1 .field-account-select {
+  flex: 1.6;
+  min-width: 210px;
 }
 
 .account-header-row2 {
@@ -1549,20 +1568,26 @@
   color: var(--ink, #0f172a);
 }
 .readonly-actions-group {
-  display: flex;
-  flex-direction: column;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   width: 100%;
+  margin-top: auto;
 }
 .readonly-actions-group .btn {
   width: 100%;
+  min-height: 38px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 40px;
-  font-size: 13.5px;
-  font-weight: 700;
+  gap: 6px;
+  white-space: nowrap;
+}
+.readonly-actions-group .btn:last-child:nth-child(odd) {
+  grid-column: span 2;
 }
 .linked-receipt-box {
   display: flex;
