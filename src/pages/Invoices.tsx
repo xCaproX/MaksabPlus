@@ -142,6 +142,17 @@ export default function Invoices() {
     }
   }, [tabParam]);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && (viewing || viewingTransfer)) {
+        setViewing(null);
+        setViewingTransfer(null);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewing, viewingTransfer]);
+
   const newLabel = isWarehouseTransfer ? 'تحويل بين مخازن' :
     kind === 'waste'
       ? 'فاتورة هالك'
@@ -752,156 +763,165 @@ export default function Invoices() {
           </div>
         </section>
 
-        {/* اللوحة الجانبية للتفاصيل */}
-        <aside className={viewing || viewingTransfer ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل المستند">
-          {viewingTransfer ? (
-            <>
-              <div className="erp-detail-head">
-                <div><span>تحويل بين مخازن</span><h2 className="num">{viewingTransfer.number}</h2></div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewingTransfer(null)}>
-                  <X size={18} />
-                </button>
-              </div>
-              {transferDetailsLoading ? <p className="erp-detail-empty">جارٍ تحميل الأصناف…</p> : (
-                <>
-                  <dl className="erp-detail-summary">
-                    <div><dt>من مخزن</dt><dd>{viewingTransfer.source_warehouse_name}</dd></div>
-                    <div><dt>إلى مخزن</dt><dd>{viewingTransfer.destination_warehouse_name}</dd></div>
-                    <div><dt>التاريخ</dt><dd className="num">{formatDate(viewingTransfer.transfer_date)}</dd></div>
-                    <div><dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewingTransfer.created_at)}</dd></div>
-                  </dl>
+        {/* خلفية شبه شفافة عند فتح الدرج الجانبي */}
+        {(viewing || viewingTransfer) && (
+          <div
+            className="erp-drawer-backdrop"
+            onClick={() => {
+              setViewing(null);
+              setViewingTransfer(null);
+            }}
+            aria-hidden="true"
+          />
+        )}
 
-                  <div className="erp-detail-lines">
-                    {viewingTransferLines.length === 0 ? <p className="muted">لا توجد أصناف.</p> : (
-                      <table className="table subtable">
-                        <thead><tr><th>الصنف</th><th className="num">الكمية</th><th className="num">تكلفة الوحدة</th></tr></thead>
-                        <tbody>
-                          {viewingTransferLines.map((line) => (
-                            <tr key={line.item_id}>
-                              <td>{line.item_name}</td>
-                              <td className="num">{formatQty(line.qty)} {line.unit}</td>
-                              <td className="num">{money(line.unit_cost ?? 0)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
+        {/* اللوحة الجانبية للتفاصيل كـ Slide-Over Drawer */}
+        {(viewing || viewingTransfer) && (
+          <aside className="erp-detail-panel open" aria-label="تفاصيل المستند">
+            {viewingTransfer ? (
+              <>
+                <div className="erp-detail-head">
+                  <div><span>تحويل بين مخازن</span><h2 className="num">{viewingTransfer.number}</h2></div>
+                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewingTransfer(null)}>
+                    <X size={18} />
+                  </button>
+                </div>
+                {transferDetailsLoading ? <p className="erp-detail-empty">جارٍ تحميل الأصناف…</p> : (
+                  <>
+                    <dl className="erp-detail-summary">
+                      <div><dt>من مخزن</dt><dd>{viewingTransfer.source_warehouse_name}</dd></div>
+                      <div><dt>إلى مخزن</dt><dd>{viewingTransfer.destination_warehouse_name}</dd></div>
+                      <div><dt>التاريخ</dt><dd className="num">{formatDate(viewingTransfer.transfer_date)}</dd></div>
+                      <div><dt>وقت الإنشاء</dt><dd className="num">{creationTime(viewingTransfer.created_at)}</dd></div>
+                    </dl>
 
-                  <div className="erp-detail-totals">
-                    <span>عدد الأصناف</span><strong className="num">{viewingTransfer.line_count}</strong>
-                    <span>إجمالي الكميات</span><strong className="num">{formatQty(viewingTransfer.total_qty)}</strong>
-                    <span>قيمة التكلفة</span><strong className="num">{money(viewingTransfer.total_value)}</strong>
-                  </div>
-
-                  {viewingTransfer.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewingTransfer.notes}</p>}
-
-                  <div className="erp-detail-actions">
-                    {showDeleted ? (
-                      can(`goods.${kind}.delete`) && <button type="button" className="btn" onClick={() => void restoreTransfer(viewingTransfer)}>استعادة التحويل</button>
-                    ) : (
-                      <>
-                        {can(`goods.${kind}.edit`) && <button type="button" className="btn" onClick={() => void startEditTransfer(viewingTransfer)}>تعديل التحويل</button>}
-                        {can(`goods.${kind}.delete`) && <button type="button" className="btn danger" onClick={() => void removeTransfer(viewingTransfer)}>حذف</button>}
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-            </>
-          ) : viewing ? (
-            <>
-              <div className="erp-detail-head">
-                <div><span>{newLabel}</span><h2 className="num">{viewing.number}</h2></div>
-                <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewing(null)}>
-                  <X size={18} />
-                </button>
-              </div>
-              {detailsLoading ? <p className="erp-detail-empty">جارٍ تحميل التفاصيل…</p> : (
-                <>
-                  <dl className="erp-detail-summary">
-                    <div><dt>{partyHeader}</dt><dd>{viewing.account_name}</dd></div>
-                    <div><dt>التاريخ</dt><dd className="num">{formatDate(viewing.invoice_date)}</dd></div>
-                    <div><dt>المخزن</dt><dd>{viewing.warehouse_name}</dd></div>
-                    {viewing.cash_box_name && <div><dt>الخزنة</dt><dd>{viewing.cash_box_name}</dd></div>}
-                    {kind !== 'waste' && (
-                      <div><dt>{isReturn ? 'الاسترداد' : 'السداد'}</dt><dd><span className={`status-badge ${saleStatus(viewing)}`}>{saleStatusLabel(saleStatus(viewing), isReturn)}</span></dd></div>
-                    )}
-                  </dl>
-
-                  <div className="erp-detail-lines">
-                    {details.length === 0 ? <p className="muted">لا توجد سطور.</p> : (
-                      <table className="table subtable">
-                        <thead>
-                          <tr>
-                            <th>الصنف</th>
-                            <th className="num">الكمية</th>
-                            <th className="num">السعر</th>
-                            <th className="num">الإجمالي</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {details.map((line) => (
-                            <tr key={line.id}>
-                              <td>{line.item_name}</td>
-                              <td className="num">{formatQty(line.qty)} {line.unit}</td>
-                              <td className="num">{money(line.unit_price)}</td>
-                              <td className="num strong">{money(line.line_total)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-
-                  <div className="erp-detail-totals">
-                    <span>الإجمالي</span><strong className="num">{money(viewing.total)}</strong>
-                    {kind === 'waste' ? (
-                      <><span>الخسارة</span><strong className="num">{money(viewing.cost_total)}</strong></>
-                    ) : (
-                      <>
-                        <span>{isReturn ? 'المسترد' : 'المدفوع'}</span><strong className="num">{money(viewing.paid)}</strong>
-                        <span>{isReturn ? 'غير المسترد' : 'المتبقي'}</span><strong className="num remaining">{money(viewing.remaining)}</strong>
-                      </>
-                    )}
-                  </div>
-
-                  {viewing.receipt_number && (
-                    <div className="erp-detail-notes">
-                      <span>الإيصال المرتبط</span>
-                      <Link
-                        to={`/receipts?search=${encodeURIComponent(viewing.receipt_number)}`}
-                        className="receipt-linked-link"
-                      >
-                        <ReceiptIcon size={15} />
-                        <span>إيصال {viewing.receipt_number} ({money(viewing.receipt_amount ?? 0)})</span>
-                        <ExternalLink size={13} className="link-ext-icon" />
-                      </Link>
+                    <div className="erp-detail-lines">
+                      {viewingTransferLines.length === 0 ? <p className="muted">لا توجد أصناف.</p> : (
+                        <table className="table subtable">
+                          <thead><tr><th>الصنف</th><th className="num">الكمية</th><th className="num">تكلفة الوحدة</th></tr></thead>
+                          <tbody>
+                            {viewingTransferLines.map((line) => (
+                              <tr key={line.item_id}>
+                                <td>{line.item_name}</td>
+                                <td className="num">{formatQty(line.qty)} {line.unit}</td>
+                                <td className="num">{money(line.unit_cost ?? 0)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
-                  )}
 
-                  {viewing.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewing.notes}</p>}
+                    <div className="erp-detail-totals">
+                      <span>عدد الأصناف</span><strong className="num">{viewingTransfer.line_count}</strong>
+                      <span>إجمالي الكميات</span><strong className="num">{formatQty(viewingTransfer.total_qty)}</strong>
+                      <span>قيمة التكلفة</span><strong className="num">{money(viewingTransfer.total_value)}</strong>
+                    </div>
 
-                  <div className="erp-detail-actions">
-                    {showDeleted ? (
-                      can(`goods.${kind}.delete`) && <button type="button" className="btn" onClick={() => void restore(viewing)}>استعادة {newLabel}</button>
-                    ) : (
-                      <>
-                        {can(`goods.${kind}.edit`) && <button type="button" className="btn" onClick={() => void startEdit(viewing)}>تعديل {newLabel}</button>}
-                        {can(`goods.${kind}.delete`) && <button type="button" className="btn danger" onClick={() => void remove(viewing)}>حذف</button>}
-                      </>
+                    {viewingTransfer.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewingTransfer.notes}</p>}
+
+                    <div className="erp-detail-actions">
+                      {showDeleted ? (
+                        can(`goods.${kind}.delete`) && <button type="button" className="btn" onClick={() => void restoreTransfer(viewingTransfer)}>استعادة التحويل</button>
+                      ) : (
+                        <>
+                          {can(`goods.${kind}.edit`) && <button type="button" className="btn" onClick={() => void startEditTransfer(viewingTransfer)}>تعديل التحويل</button>}
+                          {can(`goods.${kind}.delete`) && <button type="button" className="btn danger" onClick={() => void removeTransfer(viewingTransfer)}>حذف</button>}
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+              </>
+            ) : viewing ? (
+              <>
+                <div className="erp-detail-head">
+                  <div><span>{newLabel}</span><h2 className="num">{viewing.number}</h2></div>
+                  <button type="button" className="icon-btn" aria-label="إغلاق التفاصيل" onClick={() => setViewing(null)}>
+                    <X size={18} />
+                  </button>
+                </div>
+                {detailsLoading ? <p className="erp-detail-empty">جارٍ تحميل التفاصيل…</p> : (
+                  <>
+                    <dl className="erp-detail-summary">
+                      <div><dt>{partyHeader}</dt><dd>{viewing.account_name}</dd></div>
+                      <div><dt>التاريخ</dt><dd className="num">{formatDate(viewing.invoice_date)}</dd></div>
+                      <div><dt>المخزن</dt><dd>{viewing.warehouse_name}</dd></div>
+                      {viewing.cash_box_name && <div><dt>الخزنة</dt><dd>{viewing.cash_box_name}</dd></div>}
+                      {kind !== 'waste' && (
+                        <div><dt>{isReturn ? 'الاسترداد' : 'السداد'}</dt><dd><span className={`status-badge ${saleStatus(viewing)}`}>{saleStatusLabel(saleStatus(viewing), isReturn)}</span></dd></div>
+                      )}
+                    </dl>
+
+                    <div className="erp-detail-lines">
+                      {details.length === 0 ? <p className="muted">لا توجد سطور.</p> : (
+                        <table className="table subtable">
+                          <thead>
+                            <tr>
+                              <th>الصنف</th>
+                              <th className="num">الكمية</th>
+                              <th className="num">السعر</th>
+                              <th className="num">الإجمالي</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {details.map((line) => (
+                              <tr key={line.id}>
+                                <td>{line.item_name}</td>
+                                <td className="num">{formatQty(line.qty)} {line.unit}</td>
+                                <td className="num">{money(line.unit_price)}</td>
+                                <td className="num strong">{money(line.line_total)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+
+                    <div className="erp-detail-totals">
+                      <span>الإجمالي</span><strong className="num">{money(viewing.total)}</strong>
+                      {kind === 'waste' ? (
+                        <><span>الخسارة</span><strong className="num">{money(viewing.cost_total)}</strong></>
+                      ) : (
+                        <>
+                          <span>{isReturn ? 'المسترد' : 'المدفوع'}</span><strong className="num">{money(viewing.paid)}</strong>
+                          <span>{isReturn ? 'غير المسترد' : 'المتبقي'}</span><strong className="num remaining">{money(viewing.remaining)}</strong>
+                        </>
+                      )}
+                    </div>
+
+                    {viewing.receipt_number && (
+                      <div className="erp-detail-notes">
+                        <span>الإيصال المرتبط</span>
+                        <Link
+                          to={`/receipts?search=${encodeURIComponent(viewing.receipt_number)}`}
+                          className="receipt-linked-link"
+                        >
+                          <ReceiptIcon size={15} />
+                          <span>إيصال {viewing.receipt_number} ({money(viewing.receipt_amount ?? 0)})</span>
+                          <ExternalLink size={13} className="link-ext-icon" />
+                        </Link>
+                      </div>
                     )}
-                  </div>
-                </>
-              )}
-            </>
-          ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر {isWarehouseTransfer ? 'تحويلًا' : 'مستندًا'}</strong>
-              <span>ستظهر تفاصيله هنا من دون مغادرة القائمة.</span>
-            </div>
-          )}
-        </aside>
+
+                    {viewing.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{viewing.notes}</p>}
+
+                    <div className="erp-detail-actions">
+                      {showDeleted ? (
+                        can(`goods.${kind}.delete`) && <button type="button" className="btn" onClick={() => void restore(viewing)}>استعادة {newLabel}</button>
+                      ) : (
+                        <>
+                          {can(`goods.${kind}.edit`) && <button type="button" className="btn" onClick={() => void startEdit(viewing)}>تعديل {newLabel}</button>}
+                          {can(`goods.${kind}.delete`) && <button type="button" className="btn danger" onClick={() => void remove(viewing)}>حذف</button>}
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+              </>
+            ) : null}
+          </aside>
+        )}
       </div>
 
       {/* نموذج الإضافة أو التعديل */}

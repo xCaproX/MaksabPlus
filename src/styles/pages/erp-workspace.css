@@ -1,16 +1,17 @@
 /* ---------- ERP Workspace System (List & Detail Panels) ---------- */
 .erp-sales-workspace {
-  display: grid;
-  grid-template-columns: minmax(560px, 1fr) minmax(300px, 350px);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
   min-height: max(600px, calc(100dvh - 175px));
-  overflow: hidden;
   border: 1px solid var(--erp-border);
   background: var(--erp-surface);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(25, 45, 68, .08);
 }
 
-.erp-list-panel { min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
+.erp-list-panel { width: 100%; min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
 .erp-toolbar {
   display: flex;
   align-items: center;
@@ -69,7 +70,72 @@
 .erp-date { display: inline-flex; align-items: center; gap: 4px; color: var(--erp-muted); font-size: 11px; font-weight: 650; flex-shrink: 0; }
 .erp-date input { width: 115px; }
 
-.erp-detail-panel { display: flex; flex-direction: column; min-width: 0; border-inline-start: 1px solid var(--erp-border); background: var(--erp-surface); }
+/* Slide-over Drawer for Details */
+.erp-detail-panel {
+  display: none;
+}
+
+.erp-detail-panel.open {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 490px;
+  max-width: 92vw;
+  background: var(--erp-surface);
+  border-inline-start: 1px solid var(--erp-border);
+  box-shadow: 0 0 32px rgba(15, 23, 42, 0.22);
+  z-index: 100;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+[dir="rtl"] .erp-detail-panel.open {
+  animation: erpSlideInRtl 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes erpSlideInRtl {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+[dir="ltr"] .erp-detail-panel.open {
+  animation: erpSlideInLtr 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes erpSlideInLtr {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Backdrop */
+.erp-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.36);
+  backdrop-filter: blur(2px);
+  z-index: 95;
+  animation: erpFadeIn 0.18s ease;
+}
+
+@keyframes erpFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .erp-detail-head {
   display: flex;
   align-items: center;
@@ -116,10 +182,6 @@
 .erp-detail-actions { display: flex; gap: 7px; padding: var(--erp-space-2) var(--erp-space-3) var(--erp-space-3); }
 .erp-detail-actions .btn { min-height: 33px; padding: 5px 10px; font-size: 12px; }
 
-@media (max-width: 1200px) {
-  .erp-sales-workspace { grid-template-columns: minmax(540px, 1fr) 320px; }
-}
-
 @media (max-width: 760px) {
   .erp-sales-workspace { display: block; min-height: auto; overflow: visible; border-radius: 8px; }
   .erp-toolbar { padding: 10px; }
@@ -135,8 +197,7 @@
   .erp-date-range { display: flex; width: 100%; gap: 8px; }
   .erp-date { flex: 1 1 calc(50% - 4px); justify-content: space-between; }
   .erp-date input { flex: 1; }
-  .erp-detail-panel { display: none; }
-  .erp-detail-panel.open { display: flex; position: fixed; inset: 0; z-index: 50; border: 0; }
+  .erp-detail-panel.open { width: 100vw; max-width: 100vw; border: 0; }
   .erp-detail-head { position: sticky; inset-block-start: 0; z-index: 1; }
   .erp-detail-lines { max-height: none; }
 }

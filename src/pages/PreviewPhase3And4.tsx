@@ -443,6 +443,15 @@ export default function PreviewPhase3And4() {
                 </div>
               </section>
 
+              {/* Backdrop for Slide-over Drawer */}
+              {current && (
+                <div
+                  className="erp-drawer-backdrop"
+                  onClick={() => setSelectedInvoice(null)}
+                  aria-hidden="true"
+                />
+              )}
+
               {/* Detail Panel */}
               {current && (
                 <aside className="erp-detail-panel open" aria-label="تفاصيل المستند">
