@@ -15,8 +15,6 @@ import RowActions from '../components/RowActions';
 import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 import type {
-  AccountRow,
-  CashBoxRow,
   ReceiptDirection,
   ReceiptRow,
   CashBoxTransferRow,
@@ -24,6 +22,7 @@ import type {
 import { useAccess } from '../lib/access';
 import { useConfirmDialog } from '../lib/useConfirmDialog';
 import { matchesSearchQuery } from '../lib/search';
+import { useMasterData } from '../context/MasterDataContext';
 
 function linkKind(kind: ReceiptRow['invoice_kind']) {
   return kind === 'sale_return' || kind === 'purchase_return' ? 'مرتجع' : 'فاتورة';
@@ -58,8 +57,8 @@ export default function Receipts() {
 
   const [rows, setRows] = useState<ReceiptRow[]>([]);
   const [transferRows, setTransferRows] = useState<CashBoxTransferRow[]>([]);
-  const [accounts, setAccounts] = useState<AccountRow[]>([]);
-  const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
+  const { accounts: rawAccounts, cashBoxes, refresh } = useMasterData();
+  const accounts = useMemo(() => rawAccounts.filter((a) => a.is_active), [rawAccounts]);
   const [loading, setLoading] = useState(true);
   function setError(msg: string) {
     if (msg) toast.error(msg);
@@ -176,16 +175,6 @@ export default function Receipts() {
       setLoading(true);
       setError('');
 
-      const [accountsRes, cashBoxesRes] = await Promise.all([
-        supabase
-          .from('v_account_balances')
-          .select('*')
-          .eq('is_active', true)
-          .order('kind')
-          .order('name'),
-        supabase.from('v_cash_box_balances').select('*').order('name'),
-      ]);
-
       const [receiptsRes, transfersRes] = await Promise.all([
         isCashBoxTransfer
           ? Promise.resolve({ data: [], error: null })
@@ -203,24 +192,21 @@ export default function Receipts() {
 
       if (!alive) return;
 
-      const firstError = accountsRes.error ?? cashBoxesRes.error ?? receiptsRes.error ?? transfersRes.error;
+      const firstError = receiptsRes.error ?? transfersRes.error;
       if (firstError) {
         setError(translateDbError(firstError.message));
         setLoading(false);
         return;
       }
 
-      setAccounts((accountsRes.data ?? []) as AccountRow[]);
-      const boxes = (cashBoxesRes.data ?? []) as CashBoxRow[];
-      setCashBoxes(boxes);
       setRows((receiptsRes.data ?? []) as ReceiptRow[]);
       setTransferRows((transfersRes.data ?? []) as CashBoxTransferRow[]);
 
-      if (!cashBoxId && boxes.length > 0) {
+      if (!cashBoxId && cashBoxes.length > 0) {
         const defaultBox =
-          boxes.find((box) => box.is_primary && box.is_active) ??
-          boxes.find((box) => box.name?.includes('الرئيسية') && box.is_active) ??
-          boxes.find((b) => b.is_active);
+          cashBoxes.find((box) => box.is_primary && box.is_active) ??
+          cashBoxes.find((box) => box.name?.includes('الرئيسية') && box.is_active) ??
+          cashBoxes.find((b) => b.is_active);
         if (defaultBox) setCashBoxId(defaultBox.id);
       }
 
@@ -325,7 +311,7 @@ export default function Receipts() {
 
     setNotice(`تم نقل الإيصال ${receipt.number} إلى المحذوفات`);
     setViewing(null);
-    setVersion((current) => current + 1);
+    setVersion((current) => current + 1); void refresh();
   }
 
   async function restore(receipt: ReceiptRow) {
@@ -347,7 +333,7 @@ export default function Receipts() {
 
     setNotice(`تم استعادة الإيصال ${receipt.number}`);
     setViewing(null);
-    setVersion((current) => current + 1);
+    setVersion((current) => current + 1); void refresh();
   }
 
   async function removeTransfer(transfer: CashBoxTransferRow) {
@@ -357,7 +343,7 @@ export default function Receipts() {
     if (rpcError) return setError(translateDbError(rpcError.message));
     setNotice(`تم نقل التحويل ${transfer.number} إلى المحذوفات`);
     setViewingTransfer(null);
-    setVersion((current) => current + 1);
+    setVersion((current) => current + 1); void refresh();
   }
 
   async function restoreTransfer(transfer: CashBoxTransferRow) {
@@ -367,7 +353,7 @@ export default function Receipts() {
     if (rpcError) return setError(translateDbError(rpcError.message));
     setNotice(`تم استعادة التحويل ${transfer.number}`);
     setViewingTransfer(null);
-    setVersion((current) => current + 1);
+    setVersion((current) => current + 1); void refresh();
   }
 
   if (!canViewCurrentTab) {
@@ -744,7 +730,7 @@ export default function Receipts() {
             <CashBoxTransferForm
               cashBoxes={cashBoxes}
               editing={editingTransfer}
-              onSaved={(msg) => { setNotice(msg); setFormOpen(false); setEditingTransfer(null); setVersion((v) => v + 1); }}
+              onSaved={(msg) => { setNotice(msg); setFormOpen(false); setEditingTransfer(null); setVersion((v) => v + 1); void refresh(); }}
               onCancel={closeForm}
             />
           </Modal>
@@ -763,7 +749,7 @@ export default function Receipts() {
               onSaved={(msg) => {
                 setNotice(msg);
                 closeForm();
-                setVersion((v) => v + 1);
+                setVersion((v) => v + 1); void refresh();
               }}
               onCancel={closeForm}
             />

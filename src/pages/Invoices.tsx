@@ -15,21 +15,17 @@ import SearchableSelect from '../components/SearchableSelect';
 import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 import type {
-  AccountRow,
-  CashBoxRow,
   InvoiceItemRow,
   InvoiceKind,
   InvoiceRow,
-  ItemRow,
   LineDraft,
-  StockOpeningRow,
-  WarehouseOption,
   WarehouseTransferLine,
   WarehouseTransferRow,
 } from '../lib/types';
 import { useAccess } from '../lib/access';
 import { useConfirmDialog } from '../lib/useConfirmDialog';
 import { matchesSearchQuery } from '../lib/search';
+import { useMasterData } from '../context/MasterDataContext';
 
 type InvoiceTab = InvoiceKind | 'warehouse_transfer';
 
@@ -84,11 +80,16 @@ export default function Invoices() {
 
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [transferRows, setTransferRows] = useState<WarehouseTransferRow[]>([]);
-  const [accounts, setAccounts] = useState<AccountRow[]>([]);
-  const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
-  const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
-  const [items, setItems] = useState<ItemRow[]>([]);
-  const [stockRows, setStockRows] = useState<StockOpeningRow[]>([]);
+  const {
+    accounts: rawAccounts,
+    warehouses,
+    items: rawItems,
+    cashBoxes,
+    stockRows,
+    refresh,
+  } = useMasterData();
+  const accounts = useMemo(() => rawAccounts.filter((a) => a.is_active), [rawAccounts]);
+  const items = useMemo(() => rawItems.filter((i) => i.is_active), [rawItems]);
   const [loading, setLoading] = useState(true);
   function setError(msg: string) {
     if (msg) toast.error(msg);
@@ -231,18 +232,6 @@ export default function Invoices() {
     async function load() {
       setLoading(true);
       setError('');
-      const [accountsRes, warehousesRes, itemsRes, cashBoxesRes, stockRowsRes] = await Promise.all([
-        supabase
-          .from('v_account_balances')
-          .select('*')
-          .eq('is_active', true)
-          .order('kind')
-          .order('name'),
-        supabase.from('warehouses').select('id, name, is_active, is_primary').order('name'),
-        supabase.from('v_item_stock').select('*').eq('is_active', true).order('name'),
-        supabase.from('v_cash_box_balances').select('*').order('name'),
-        supabase.from('v_stock_opening_balances').select('*').order('warehouse_name').order('item_name'),
-      ]);
 
       const [documentsRes, transfersRes] = await Promise.all([
         invoiceKind
@@ -261,9 +250,7 @@ export default function Invoices() {
 
       if (!alive) return;
 
-      const firstError =
-        documentsRes.error ?? transfersRes.error ?? accountsRes.error ?? warehousesRes.error ?? itemsRes.error ?? cashBoxesRes.error ?? stockRowsRes.error;
-
+      const firstError = documentsRes.error ?? transfersRes.error;
       if (firstError) {
         setError(translateDbError(firstError.message));
         setLoading(false);
@@ -272,11 +259,6 @@ export default function Invoices() {
 
       setRows((documentsRes.data ?? []) as InvoiceRow[]);
       setTransferRows((transfersRes.data ?? []) as WarehouseTransferRow[]);
-      setAccounts((accountsRes.data ?? []) as AccountRow[]);
-      setWarehouses((warehousesRes.data ?? []) as WarehouseOption[]);
-      setItems((itemsRes.data ?? []) as ItemRow[]);
-      setCashBoxes((cashBoxesRes.data ?? []) as CashBoxRow[]);
-      setStockRows((stockRowsRes.data ?? []) as StockOpeningRow[]);
       setLoading(false);
     }
 
@@ -434,6 +416,7 @@ export default function Invoices() {
     setNotice(`تم نقل ${label} ${invoice.number} إلى المحذوفات`);
     setViewing(null);
     setVersion((current) => current + 1);
+    void refresh();
   }
 
   async function restore(invoice: InvoiceRow) {
@@ -460,6 +443,7 @@ export default function Invoices() {
 
     setNotice(`تم استعادة ${label} ${invoice.number}`);
     setVersion((current) => current + 1);
+    void refresh();
   }
 
   async function removeTransfer(transfer: WarehouseTransferRow) {
@@ -470,6 +454,7 @@ export default function Invoices() {
     setNotice(`تم نقل التحويل ${transfer.number} إلى المحذوفات`);
     setViewingTransfer(null);
     setVersion((current) => current + 1);
+    void refresh();
   }
 
   async function restoreTransfer(transfer: WarehouseTransferRow) {
@@ -479,6 +464,7 @@ export default function Invoices() {
     if (rpcError) return setError(translateDbError(rpcError.message));
     setNotice(`تم استعادة التحويل ${transfer.number}`);
     setVersion((current) => current + 1);
+    void refresh();
   }
 
   function handleSaved(message: string) {
@@ -489,6 +475,7 @@ export default function Invoices() {
     setViewing(null);
     setViewingTransfer(null);
     setVersion((current) => current + 1);
+    void refresh();
   }
 
   if (!canViewCurrentTab) {

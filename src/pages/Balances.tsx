@@ -11,7 +11,8 @@ import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 import { matchesSearchQuery } from '../lib/search';
 import { useAccess } from '../lib/access';
-import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, ItemMovementStatementRow, StockOpeningRow, WarehouseOption } from '../lib/types';
+import { useMasterData } from '../context/MasterDataContext';
+import type { AccountRow, AccountStatementRow, CashBoxRow, CashBoxStatementRow, ItemMovementStatementRow, StockOpeningRow } from '../lib/types';
 
 type BalanceTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes';
 type BalanceSort =
@@ -41,14 +42,21 @@ export default function Balances() {
   const [tab, setTab] = useState<BalanceTab>(initialTab);
   const canViewCurrentTab = can(`balances.${tab}.view`);
 
-  const [accounts, setAccounts] = useState<AccountRow[]>([]);
-  const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
-  const [stockRows, setStockRows] = useState<StockOpeningRow[]>([]);
-  const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
+  const { accounts, cashBoxes, stockRows, warehouses: rawWarehouses, loading, error: masterDataError } = useMasterData();
+  const warehouses = useMemo(() => rawWarehouses.filter((w) => w.is_active !== false), [rawWarehouses]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
-  const [loading, setLoading] = useState(true);
-  function setError(msg: string) { if (msg) toast.error(msg); }
-  function setStatementError(msg: string) { if (msg) toast.error(msg); }
+
+  useEffect(() => {
+    if (masterDataError) toast.error(masterDataError);
+  }, [masterDataError]);
+
+  useEffect(() => {
+    if (!selectedWarehouseId && warehouses.length > 0) {
+      setSelectedWarehouseId(warehouses[0].id);
+    }
+  }, [selectedWarehouseId, warehouses]);
+
+    function setStatementError(msg: string) { if (msg) toast.error(msg); }
   function setCashStatementError(msg: string) { if (msg) toast.error(msg); }
   function setItemStatementError(msg: string) { if (msg) toast.error(msg); }
 
@@ -98,34 +106,6 @@ export default function Balances() {
     setSearchTerm('');
     setPage(1);
   }
-
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      setLoading(true);
-      setError('');
-      const [accountsRes, boxesRes, stockRes, warehousesRes] = await Promise.all([
-        supabase.from('v_account_balances').select('*').order('name'),
-        supabase.from('v_cash_box_balances').select('*').order('name'),
-        supabase.from('v_stock_opening_balances').select('*').order('warehouse_name').order('item_name'),
-        supabase.from('warehouses').select('id, serial_number, name, notes').eq('is_active', true).order('name'),
-      ]);
-      if (!alive) return;
-      const firstError = accountsRes.error ?? boxesRes.error ?? stockRes.error ?? warehousesRes.error;
-      if (firstError) setError(translateDbError(firstError.message));
-      else {
-        setAccounts((accountsRes.data ?? []) as AccountRow[]);
-        setCashBoxes((boxesRes.data ?? []) as CashBoxRow[]);
-        setStockRows((stockRes.data ?? []) as StockOpeningRow[]);
-        const loadedWarehouses = (warehousesRes.data ?? []) as WarehouseOption[];
-        setWarehouses(loadedWarehouses);
-        setSelectedWarehouseId((current) => current || loadedWarehouses[0]?.id || '');
-      }
-      setLoading(false);
-    }
-    void load();
-    return () => { alive = false; };
-  }, []);
 
   const visibleAccounts = accounts.filter((account) => account.system_key === null);
   const customers = visibleAccounts.filter((account) => account.kind === 'customer');

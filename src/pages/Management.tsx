@@ -4,13 +4,14 @@ import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { entityNumber, getBalanceStatus, money, qty as formatQty } from '../lib/format';
 import { errorMessage, translateDbError } from '../lib/errors';
-import type { AccountRow, CashBoxRow, StockOpeningRow, WarehouseOption } from '../lib/types';
+import type { AccountRow, CashBoxRow, StockOpeningRow } from '../lib/types';
 import { useAccess } from '../lib/access';
 import UserPermissions from '../components/UserPermissions';
 import SearchableSelect from '../components/SearchableSelect';
 import SortableHeader from '../components/SortableHeader';
 import { toast } from '../components/Toast';
 import { matchesSearchQuery } from '../lib/search';
+import { useMasterData } from '../context/MasterDataContext';
 
 type ManagementTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes' | 'users';
 type ManagementSort = 'name-asc' | 'name-desc' | 'serial-desc' | 'serial-asc';
@@ -38,19 +39,22 @@ export default function Management() {
   const canViewCurrentTab = tab === 'users' ? access?.role === 'owner' : can(`management.${tab}.view`);
   const canEditOpening = can(`management.${tab}.edit`);
 
-  const [accounts, setAccounts] = useState<AccountRow[]>([]);
-  const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
-  const [stockRows, setStockRows] = useState<StockOpeningRow[]>([]);
-  const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
+  const { accounts: rawAccounts, cashBoxes, stockRows, warehouses: rawWarehouses, loading, refresh } = useMasterData();
+  const accounts = useMemo(() => rawAccounts.filter((account) => account.system_key === null), [rawAccounts]);
+  const warehouses = useMemo(() => rawWarehouses.filter((w) => w.is_active !== false), [rawWarehouses]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [accountValues, setAccountValues] = useState<Record<string, string>>({});
   const [cashValues, setCashValues] = useState<Record<string, string>>({});
   const [stockValues, setStockValues] = useState<Record<string, { qty: string; cost: string }>>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   function setError(msg: string) { if (msg) toast.error(msg); }
   function setNotice(msg: string) { if (msg) toast.success(msg); }
-  const [version, setVersion] = useState(0);
+  
+  useEffect(() => {
+    if (!selectedWarehouseId && warehouses.length > 0) {
+      setSelectedWarehouseId(warehouses[0].id);
+    }
+  }, [selectedWarehouseId, warehouses]);
 
   // الفلاتر والبحث
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,42 +90,10 @@ export default function Management() {
   }
 
   useEffect(() => {
-    let alive = true;
-    async function load() {
-      setLoading(true);
-      setError('');
-      const [accountsRes, boxesRes, stockRes, warehousesRes] = await Promise.all([
-        supabase.from('v_account_balances').select('*').order('name'),
-        supabase.from('v_cash_box_balances').select('*').order('name'),
-        supabase.from('v_stock_opening_balances').select('*').order('warehouse_name').order('item_name'),
-        supabase.from('warehouses').select('id, serial_number, name').eq('is_active', true).order('name'),
-      ]);
-      if (!alive) return;
-      const firstError = accountsRes.error ?? boxesRes.error ?? stockRes.error ?? warehousesRes.error;
-      if (firstError) setError(translateDbError(firstError.message));
-      else {
-        const loadedAccounts = ((accountsRes.data ?? []) as AccountRow[]).filter((account) => account.system_key === null);
-        const loadedBoxes = (boxesRes.data ?? []) as CashBoxRow[];
-        const loadedStock = (stockRes.data ?? []) as StockOpeningRow[];
-        const loadedWarehouses = (warehousesRes.data ?? []) as WarehouseOption[];
-        setAccounts(loadedAccounts);
-        setCashBoxes(loadedBoxes);
-        setStockRows(loadedStock);
-        setWarehouses(loadedWarehouses);
-        setSelectedWarehouseId((current) =>
-          loadedWarehouses.some((warehouse) => warehouse.id === current)
-            ? current
-            : loadedWarehouses[0]?.id ?? '',
-        );
-        setAccountValues(Object.fromEntries(loadedAccounts.map((account) => [account.id, String(Number(account.opening_balance))])));
-        setCashValues(Object.fromEntries(loadedBoxes.map((box) => [box.id, String(Number(box.opening_balance))])));
-        setStockValues(Object.fromEntries(loadedStock.map((row) => [`${row.warehouse_id}:${row.item_id}`, { qty: String(Number(row.opening_qty)), cost: String(Number(row.unit_cost)) }])));
-      }
-      setLoading(false);
-    }
-    void load();
-    return () => { alive = false; };
-  }, [version]);
+    setAccountValues(Object.fromEntries(accounts.map((account) => [account.id, String(Number(account.opening_balance))])));
+    setCashValues(Object.fromEntries(cashBoxes.map((box) => [box.id, String(Number(box.opening_balance))])));
+    setStockValues(Object.fromEntries(stockRows.map((row) => [`${row.warehouse_id}:${row.item_id}`, { qty: String(Number(row.opening_qty)), cost: String(Number(row.unit_cost)) }])));
+  }, [accounts, cashBoxes, stockRows]);
 
   async function saveAccountsOpening(kind: 'customer' | 'supplier') {
     const list = accounts.filter((a) => a.kind === kind);
@@ -150,7 +122,7 @@ export default function Management() {
         if (saveError) throw new Error(saveError.message);
       }
       setNotice(`تم حفظ الأرصدة الافتتاحية بنجاح (${changed.length} حساب).`);
-      setVersion((v) => v + 1);
+            void refresh();
     } catch (err) {
       setError(translateDbError(errorMessage(err)));
     } finally {
@@ -173,7 +145,7 @@ export default function Management() {
     const { error: saveError } = await supabase.rpc('save_opening_balances', { p_cash_boxes: cash, p_stock: stock });
     setSaving(false);
     if (saveError) setError(translateDbError(saveError.message));
-    else { setNotice('تم حفظ الأرصدة الافتتاحية والتعديلات'); setVersion((value) => value + 1); }
+    else { setNotice('تم حفظ الأرصدة الافتتاحية والتعديلات'); void refresh(); }
   }
 
   const visibleAccounts = accounts.filter((account) => account.kind === (tab === 'customers' ? 'customer' : 'supplier'));

@@ -15,6 +15,7 @@ import type { AccountKind, AccountRow, ItemRow, WarehouseOption } from '../lib/t
 import { useAccess } from '../lib/access';
 import { useConfirmDialog } from '../lib/useConfirmDialog';
 import { matchesSearchQuery } from '../lib/search';
+import { useMasterData } from '../context/MasterDataContext';
 
 type Tab = 'customers' | 'suppliers' | 'items';
 interface WarehouseRecord extends WarehouseOption { is_active: boolean; notes: string | null }
@@ -51,6 +52,7 @@ export default function MasterData() {
   const initialTab = (tabParam && VALID_DATA_TABS.includes(tabParam)) ? tabParam : 'customers';
   const [tab, setTab] = useState<LocationsTab>(initialTab);
   const canViewCurrentTab = can(`data.${tab}.view`);
+  const { refresh } = useMasterData();
 
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [items, setItems] = useState<MasterItemRecord[]>([]);
@@ -362,7 +364,7 @@ export default function MasterData() {
 
     cancelAccountEdit();
     setSelectedAccount(null);
-    setVersion((v) => v + 1);
+    setVersion((v) => v + 1); void refresh();
   }
 
   async function removeAccount(account: AccountRow) {
@@ -373,7 +375,7 @@ export default function MasterData() {
     if (deleteError) return setError(translateDbError(deleteError.message));
     setNotice(`تم حذف ${isCustomer ? 'العميل' : 'المورد'} «${account.name}»`);
     setSelectedAccount(null);
-    setVersion((v) => v + 1);
+    setVersion((v) => v + 1); void refresh();
   }
 
   function startItemAdd() {
@@ -448,7 +450,7 @@ export default function MasterData() {
 
     cancelItemEdit();
     setSelectedItem(null);
-    setVersion((v) => v + 1);
+    setVersion((v) => v + 1); void refresh();
   }
 
   async function removeItem(item: MasterItemRecord) {
@@ -458,7 +460,7 @@ export default function MasterData() {
     if (deleteError) return setError(translateDbError(deleteError.message));
     setNotice(`تم حذف الصنف «${item.name}»`);
     setSelectedItem(null);
-    setVersion((v) => v + 1);
+    setVersion((v) => v + 1); void refresh();
   }
 
   function startWarehouseForm(warehouse?: WarehouseRecord) {
@@ -489,7 +491,7 @@ export default function MasterData() {
     }
     setFormModal(null);
     setSelectedWarehouse(null);
-    setVersion((v) => v + 1);
+    setVersion((v) => v + 1); void refresh();
   }
 
   async function toggleWarehouse(warehouse: WarehouseRecord) {
@@ -499,7 +501,7 @@ export default function MasterData() {
     });
     if (updateError) return setError(translateDbError(updateError.message));
     setNotice(`تم ${warehouse.is_active ? 'إيقاف' : 'تفعيل'} المخزن «${warehouse.name}»`);
-    setVersion((v) => v + 1);
+    setVersion((v) => v + 1); void refresh();
   }
 
   async function removeWarehouse(warehouse: WarehouseRecord) {
@@ -509,7 +511,7 @@ export default function MasterData() {
     if (deleteError) return setError(translateDbError(deleteError.message));
     setNotice(`تم حذف المخزن «${warehouse.name}»`);
     setSelectedWarehouse(null);
-    setVersion((v) => v + 1);
+    setVersion((v) => v + 1); void refresh();
   }
 
   function startCashBoxForm(box?: CashBoxRecord) {
@@ -542,7 +544,7 @@ export default function MasterData() {
     }
     setFormModal(null);
     setSelectedBox(null);
-    setVersion((v) => v + 1);
+    setVersion((v) => v + 1); void refresh();
   }
 
   async function toggleCashBox(box: CashBoxRecord) {
@@ -552,7 +554,7 @@ export default function MasterData() {
     });
     if (updateError) return setError(translateDbError(updateError.message));
     setNotice(`تم ${box.is_active ? 'إيقاف' : 'تفعيل'} الخزنة «${box.name}»`);
-    setVersion((v) => v + 1);
+    setVersion((v) => v + 1); void refresh();
   }
 
   async function removeCashBox(box: CashBoxRecord) {
@@ -562,7 +564,7 @@ export default function MasterData() {
     if (deleteError) return setError(translateDbError(deleteError.message));
     setNotice(`تم حذف الخزنة «${box.name}»`);
     setSelectedBox(null);
-    setVersion((v) => v + 1);
+    setVersion((v) => v + 1); void refresh();
   }
 
   const tabTitle =
