@@ -13,6 +13,7 @@ import {
   ExternalLink,
   X,
   KeyRound,
+  CheckCircle2,
 } from 'lucide-react';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import Modal from '../components/Modal';
@@ -455,14 +456,15 @@ export default function PreviewPhase3And4() {
               {/* Detail Panel */}
               {current && (
                 <aside className="erp-detail-panel open" aria-label="تفاصيل المستند">
-                  <div className="erp-detail-head">
-                    <div>
-                      <span>فاتورة مبيعات</span>
-                      <h2 className="num">{current.number}</h2>
+                  <div className="erp-drawer-header">
+                    <div className="erp-drawer-title-group">
+                      <span className="erp-slip-badge">فاتورة مبيعات</span>
+                      <h2 className="erp-slip-number" dir="ltr">{current.number}</h2>
+                      <StatusBadge variant={current.status}>{current.statusLabel}</StatusBadge>
                     </div>
                     <button
                       type="button"
-                      className="icon-btn"
+                      className="icon-btn erp-drawer-close"
                       aria-label="إغلاق التفاصيل"
                       onClick={() => setSelectedInvoice(null)}
                     >
@@ -470,114 +472,158 @@ export default function PreviewPhase3And4() {
                     </button>
                   </div>
 
-                <dl className="erp-detail-summary">
-                  <div>
-                    <dt>العميل</dt>
-                    <dd>{current.customer}</dd>
-                  </div>
-                  <div>
-                    <dt>التاريخ</dt>
-                    <dd className="num">{current.date}</dd>
-                  </div>
-                  <div>
-                    <dt>المخزن</dt>
-                    <dd>{current.warehouse}</dd>
-                  </div>
-                  <div>
-                    <dt>حالة السداد</dt>
-                    <dd>
-                      <StatusBadge variant={current.status}>{current.statusLabel}</StatusBadge>
-                    </dd>
-                  </div>
-                </dl>
+                  <div className="erp-drawer-body">
+                    <div className="erp-invoice-slip">
+                      <div className="erp-slip-header">
+                        <div className="erp-slip-party">
+                          <span className="erp-slip-label">العميل</span>
+                          <strong className="erp-slip-party-name">{current.customer}</strong>
+                        </div>
 
-                <div className="erp-detail-lines">
-                  <table className="table subtable">
-                    <thead>
-                      <tr>
-                        <th>الصنف</th>
-                        <th className="num">الكمية</th>
-                        <th className="num">السعر</th>
-                        <th className="num">الإجمالي</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>أرز بسمتي هندي ممتاز</td>
-                        <td className="num">50 كجم</td>
-                        <td className="num">{money(65)}</td>
-                        <td className="num strong">{money(3250)}</td>
-                      </tr>
-                      <tr>
-                        <td>زيت عباد الشمس 1 لتر</td>
-                        <td className="num">40 زجاجة</td>
-                        <td className="num">{money(75)}</td>
-                        <td className="num strong">{money(3000)}</td>
-                      </tr>
-                      <tr>
-                        <td>سكر أبيض ناعم 1 كجم</td>
-                        <td className="num">60 كيس</td>
-                        <td className="num">{money(35)}</td>
-                        <td className="num strong">{money(2100)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                        <div className="erp-slip-meta-grid">
+                          <div className="erp-slip-meta-item">
+                            <span className="erp-slip-label">التاريخ</span>
+                            <span className="num" dir="ltr">{current.date}</span>
+                          </div>
+                          <div className="erp-slip-meta-item">
+                            <span className="erp-slip-label">الوقت</span>
+                            <span className="num" dir="ltr">02:30 م</span>
+                          </div>
+                          <div className="erp-slip-meta-item">
+                            <span className="erp-slip-label">المخزن</span>
+                            <span>{current.warehouse}</span>
+                          </div>
+                          <div className="erp-slip-meta-item">
+                            <span className="erp-slip-label">الخزنة</span>
+                            <span>الخزنة الرئيسية</span>
+                          </div>
+                        </div>
+                      </div>
 
-                <div className="erp-detail-totals">
-                  <span>الإجمالي</span>
-                  <strong className="num">{money(current.total)}</strong>
-                  <span>المدفوع</span>
-                  <strong className="num">{money(current.paid)}</strong>
-                  <span>المتبقي</span>
-                  <strong className="num remaining">{money(current.remaining)}</strong>
-                </div>
+                      <div className="erp-slip-items">
+                        <table className="erp-slip-table">
+                          <thead>
+                            <tr>
+                              <th>الصنف</th>
+                              <th className="num">الكمية</th>
+                              <th className="num">السعر</th>
+                              <th className="num">الإجمالي</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>
+                                <span className="item-name">أرز بسمتي هندي ممتاز</span>
+                              </td>
+                              <td className="num">
+                                <bdi>50</bdi> <span className="unit-label">كجم</span>
+                              </td>
+                              <td className="num">
+                                <bdi>{money(65)}</bdi>
+                              </td>
+                              <td className="num font-bold">
+                                <bdi>{money(3250)}</bdi>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <span className="item-name">زيت عباد الشمس 1 لتر</span>
+                              </td>
+                              <td className="num">
+                                <bdi>40</bdi> <span className="unit-label">زجاجة</span>
+                              </td>
+                              <td className="num">
+                                <bdi>{money(75)}</bdi>
+                              </td>
+                              <td className="num font-bold">
+                                <bdi>{money(3000)}</bdi>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <span className="item-name">سكر أبيض ناعم 1 كجم</span>
+                              </td>
+                              <td className="num">
+                                <bdi>60</bdi> <span className="unit-label">كيس</span>
+                              </td>
+                              <td className="num">
+                                <bdi>{money(35)}</bdi>
+                              </td>
+                              <td className="num font-bold">
+                                <bdi>{money(2100)}</bdi>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
 
-                {/* Clickable Linked Receipt Link */}
-                {current.receiptNumber && (
-                  <div className="erp-detail-notes">
-                    <span>الإيصال المرتبط</span>
-                    <span className="receipt-linked-link" style={{ cursor: 'pointer' }}>
-                      <ReceiptIcon size={15} />
-                      <span>
-                        إيصال {current.receiptNumber} ({money(current.receiptAmount)})
-                      </span>
-                      <ExternalLink size={13} className="link-ext-icon" />
-                    </span>
+                      <div className="erp-slip-summary">
+                        <div className="erp-slip-summary-row">
+                          <span>الإجمالي المطلوب</span>
+                          <strong className="num" dir="ltr">{money(current.total)} ج.م</strong>
+                        </div>
+                        <div className="erp-slip-summary-row profit-row">
+                          <span>إجمالي الربح</span>
+                          <span className="num" dir="ltr">{money(1859)} ج.م</span>
+                        </div>
+                        <div className="erp-slip-summary-row">
+                          <span>المدفوع</span>
+                          <span className="num" dir="ltr">{money(current.paid)} ج.م</span>
+                        </div>
+
+                        {Number(current.remaining) > 0 ? (
+                          <div className="erp-slip-remaining-callout warning">
+                            <div className="callout-header">
+                              <span className="callout-title">المبلغ المتبقي للتحصيل</span>
+                              <span className="callout-status">مستحق</span>
+                            </div>
+                            <div className="callout-amount" dir="ltr">
+                              <strong>{money(current.remaining)}</strong>
+                              <span className="currency">ج.م</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="erp-slip-remaining-callout settled">
+                            <CheckCircle2 size={16} />
+                            <span>الفاتورة مسددة بالكامل</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {current.receiptNumber && (
+                        <div className="erp-slip-linked-receipt">
+                          <span className="section-label">السند المالي المرتبط</span>
+                          <span className="receipt-card-link" style={{ cursor: 'pointer' }}>
+                            <div className="receipt-info">
+                              <ReceiptIcon size={16} />
+                              <span className="receipt-num" dir="ltr">إيصال {current.receiptNumber}</span>
+                            </div>
+                            <span className="receipt-amt" dir="ltr">{money(current.receiptAmount)} ج.م</span>
+                            <ExternalLink size={13} />
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="erp-slip-notes">
+                        <span className="notes-label">ملاحظات</span>
+                        <p className="notes-content">دفعة مقدمة نقداً، والمتبقي آجل أسبوع</p>
+                      </div>
+                    </div>
                   </div>
-                )}
 
-                {/* Example of Linked Status Badge (Blue color family) vs Payment Status (Amber) */}
-                <div className="erp-detail-notes" style={{ marginTop: '8px' }}>
-                  <span>حالة الارتباط المحاسبي</span>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <StatusBadge variant="linked">مرتبط بفاتورة {current.number}</StatusBadge>
-                    <span className="muted" style={{ fontSize: '11px' }}>
-                      (عائلة الأزرق المستقلة عن حالة السداد البرتقالية)
-                    </span>
+                  <div className="erp-drawer-footer">
+                    <button type="button" className="btn">
+                      تعديل الفاتورة
+                    </button>
+                    <button
+                      type="button"
+                      className="btn danger"
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      حذف
+                    </button>
                   </div>
-                </div>
-
-                {current.notes && (
-                  <p className="erp-detail-notes">
-                    <span>ملاحظات</span>
-                    {current.notes}
-                  </p>
-                )}
-
-                <div className="erp-detail-actions">
-                  <button type="button" className="btn">
-                    تعديل الفاتورة
-                  </button>
-                  <button
-                    type="button"
-                    className="btn danger"
-                    onClick={() => setShowDeleteConfirm(true)}
-                  >
-                    حذف
-                  </button>
-                </div>
-              </aside>
+                </aside>
               )}
             </div>
           </div>
