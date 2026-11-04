@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAccess } from '../lib/access';
 import AccountBalancesTab from './balances/AccountBalancesTab';
@@ -23,6 +23,13 @@ export default function Balances() {
   const tabParam = searchParams.get('tab') as BalanceTab | null;
   const initialTab = tabParam && VALID_BALANCE_TABS.includes(tabParam) ? tabParam : 'customers';
   const [tab, setTab] = useState<BalanceTab>(initialTab);
+
+  useEffect(() => {
+    const targetTab = tabParam && VALID_BALANCE_TABS.includes(tabParam) ? tabParam : 'customers';
+    if (targetTab !== tab) {
+      setTab(targetTab);
+    }
+  }, [tabParam, tab]);
   const canViewCurrentTab = can(`balances.${tab}.view`);
 
   function switchTab(next: BalanceTab) {

@@ -15,6 +15,7 @@ import { entityNumber } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import SearchableSelect from '../../components/SearchableSelect';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
 import StatusBadge from '../../components/StatusBadge';
@@ -407,33 +408,20 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
                   type="search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم أو الملاحظات…`}
+                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم…`}
                 />
               </label>
 
-              <div className="erp-filter-group">
-                <button
-                  type="button"
-                  className={statusFilter === 'all' ? 'active' : ''}
-                  onClick={() => setStatusFilter('all')}
-                >
-                  الكل
-                </button>
-                <button
-                  type="button"
-                  className={statusFilter === 'active' ? 'active' : ''}
-                  onClick={() => setStatusFilter('active')}
-                >
-                  النشطون
-                </button>
-                <button
-                  type="button"
-                  className={statusFilter === 'inactive' ? 'active' : ''}
-                  onClick={() => setStatusFilter('inactive')}
-                >
-                  المعطلون
-                </button>
-              </div>
+              <SearchableSelect
+                ariaLabel="تصفية الحالة"
+                value={statusFilter}
+                options={[
+                  { value: 'all', label: 'كل الحالات' },
+                  { value: 'active', label: isCustomer ? 'العملاء النشطون' : 'الموردون النشطون' },
+                  { value: 'inactive', label: isCustomer ? 'العملاء المعطلون' : 'الموردون المعطلون' },
+                ]}
+                onChange={(val) => setStatusFilter(val as StatusFilter)}
+              />
             </div>
           </div>
 

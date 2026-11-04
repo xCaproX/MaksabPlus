@@ -333,7 +333,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                   type="search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم أو الملاحظات…`}
+                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم…`}
                 />
               </label>
             </div>

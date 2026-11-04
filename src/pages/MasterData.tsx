@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAccess } from '../lib/access';
 import AccountsTab from './master-data/AccountsTab';
@@ -26,6 +26,13 @@ export default function MasterData() {
   const tabParam = searchParams.get('tab') as LocationsTab | null;
   const initialTab = tabParam && VALID_DATA_TABS.includes(tabParam) ? tabParam : 'customers';
   const [tab, setTab] = useState<LocationsTab>(initialTab);
+
+  useEffect(() => {
+    const targetTab = tabParam && VALID_DATA_TABS.includes(tabParam) ? tabParam : 'customers';
+    if (targetTab !== tab) {
+      setTab(targetTab);
+    }
+  }, [tabParam, tab]);
   const canViewCurrentTab = can(`data.${tab}.view`);
 
   // مشغل فتح نافذة الإضافة في التبويب النشط
