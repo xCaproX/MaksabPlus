@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { formatDate, money } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
@@ -9,19 +8,7 @@ import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import ReceiptForm from '../components/ReceiptForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 import DateInput from '../components/DateInput';
-import StatusBadge from '../components/StatusBadge';
-import RowActions from '../components/RowActions';
-import SortableHeader from '../components/SortableHeader';
-import KpiBar, { type KpiItem } from '../components/KpiBar';
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  ArrowLeftRight,
-  CheckCircle2,
-  ShoppingBag,
-  DollarSign,
-  FileText,
-} from 'lucide-react';
+import KpiBar from '../components/KpiBar';
 import { toast } from '../components/Toast';
 import type {
   ReceiptDirection,
@@ -31,35 +18,24 @@ import type {
 import { useAccess } from '../lib/access';
 import { useConfirmDialog } from '../lib/useConfirmDialog';
 import { useMasterData } from '../context/MasterDataContext';
+import ReceiptTable, { type ReceiptSort } from './receipts/ReceiptTable';
+import CashBoxTransferTable from './receipts/CashBoxTransferTable';
+import {
+  calculateReceiptKpis,
+  RECEIPT_TABS,
+  VALID_RECEIPT_TABS,
+  type ReceiptTab,
+  type ReceiptKpiSummary,
+  type CashBoxTransferKpiSummary,
+} from './receipts/receiptKpis';
 
-function linkKind(kind: ReceiptRow['invoice_kind']) {
-  return kind === 'sale_return' || kind === 'purchase_return' ? 'مرتجع' : 'فاتورة';
-}
-
-type ReceiptSort =
-  | 'date-desc'
-  | 'date-asc'
-  | 'number-desc'
-  | 'number-asc'
-  | 'amount-desc'
-  | 'amount-asc'
-  | 'account-asc'
-  | 'account-desc';
 const PAGE_SIZE = 20;
-
-const VALID_RECEIPT_TABS = ['in', 'out', 'cash_box_transfer'] as const;
-type ReceiptTab = typeof VALID_RECEIPT_TABS[number];
-const RECEIPT_TABS = [
-  { value: 'in', label: 'إيصالات استلام' },
-  { value: 'out', label: 'إيصالات صرف' },
-  { value: 'cash_box_transfer', label: 'تحويل بين الخزن' },
-] as const;
 
 export default function Receipts() {
   const { can } = useAccess();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as ReceiptTab | null;
-  const initialTab: ReceiptTab = (tabParam && VALID_RECEIPT_TABS.includes(tabParam)) ? tabParam : 'in';
+  const initialTab: ReceiptTab = tabParam && VALID_RECEIPT_TABS.includes(tabParam) ? tabParam : 'in';
   const [tab, setTab] = useState<ReceiptDirection | 'cash_box_transfer'>(initialTab);
   const [direction, setDirection] = useState<ReceiptDirection>(initialTab === 'cash_box_transfer' ? 'in' : initialTab);
 
@@ -68,12 +44,6 @@ export default function Receipts() {
   const { accounts: rawAccounts, cashBoxes, refresh } = useMasterData();
   const accounts = useMemo(() => rawAccounts.filter((a) => a.is_active), [rawAccounts]);
   const [loading, setLoading] = useState(true);
-  function setError(msg: string) {
-    if (msg) toast.error(msg);
-  }
-  function setNotice(msg: string) {
-    if (msg) toast.success(msg);
-  }
 
   // حالة النافذة المنبثقة الموحدة (عرض، تعديل، إنشاء)
   const [formOpen, setFormOpen] = useState(false);
@@ -96,7 +66,7 @@ export default function Receipts() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const targetTab = (tabParam && VALID_RECEIPT_TABS.includes(tabParam)) ? tabParam : 'in';
+    const targetTab = tabParam && VALID_RECEIPT_TABS.includes(tabParam) ? tabParam : 'in';
     if (targetTab !== tab) {
       setTab(targetTab);
       if (targetTab === 'in' || targetTab === 'out') {
@@ -114,7 +84,7 @@ export default function Receipts() {
       setDateTo('');
       setPage(1);
     }
-  }, [tabParam]);
+  }, [tabParam, tab]);
 
   const isCashBoxTransfer = tab === 'cash_box_transfer';
   const isIn = direction === 'in';
@@ -125,12 +95,12 @@ export default function Receipts() {
 
   const [totalCount, setTotalCount] = useState(0);
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [receiptSummary, setReceiptSummary] = useState({
+  const [receiptSummary, setReceiptSummary] = useState<ReceiptKpiSummary>({
     totalAmount: 0,
     invoiceLinked: 0,
     count: 0,
   });
-  const [transferSummary, setTransferSummary] = useState({
+  const [transferSummary, setTransferSummary] = useState<CashBoxTransferKpiSummary>({
     totalAmount: 0,
     count: 0,
   });
@@ -148,124 +118,21 @@ export default function Receipts() {
   const pageReceipts = rows;
   const pageTransfers = transferRows;
 
-  const kpiItems = useMemo<KpiItem[]>(() => {
-    if (isCashBoxTransfer) {
-      return [
-        {
-          id: 'cash-transfer-total',
-          label: 'إجمالي المبالغ المحولة',
-          value: money(transferSummary.totalAmount),
-          unit: 'ج.م',
-          variant: 'primary',
-          icon: ArrowLeftRight,
-        },
-        {
-          id: 'cash-transfer-count',
-          label: 'عدد التحويلات بين الخزن',
-          value: transferSummary.count,
-          unit: 'تحويل',
-          variant: 'neutral',
-          icon: FileText,
-        },
-      ];
-    }
-
-    const totalAmount = receiptSummary.totalAmount;
-    const invoiceLinked = receiptSummary.invoiceLinked;
-    const freeAmount = totalAmount - invoiceLinked;
-    const count = receiptSummary.count;
-
-    if (isIn) {
-      return [
-        {
-          id: 'receipt-in-total',
-          label: 'إجمالي المقبوضات',
-          value: money(totalAmount),
-          unit: 'ج.م',
-          variant: 'success',
-          icon: ArrowDownLeft,
-        },
-        {
-          id: 'receipt-in-invoice',
-          label: 'تحصيل فواتير مبيعات',
-          value: money(invoiceLinked),
-          unit: 'ج.م',
-          variant: 'primary',
-          icon: CheckCircle2,
-          subtext:
-            totalAmount > 0 ? (
-              <span>
-                تمثل <bdi dir="ltr">{Math.round((invoiceLinked / totalAmount) * 100)}%</bdi> من الإجمالي
-              </span>
-            ) : undefined,
-        },
-        {
-          id: 'receipt-in-free',
-          label: 'مقبوضات عامة وحرة',
-          value: money(freeAmount),
-          unit: 'ج.م',
-          variant: 'info',
-          icon: DollarSign,
-        },
-        {
-          id: 'receipt-in-count',
-          label: 'عدد إيصالات الاستلام',
-          value: count,
-          unit: 'إيصال',
-          variant: 'neutral',
-          icon: FileText,
-        },
-      ];
-    }
-
-    // Direction: 'out'
-    return [
-      {
-        id: 'receipt-out-total',
-        label: 'إجمالي المدفوعات',
-        value: money(totalAmount),
-        unit: 'ج.م',
-        variant: 'danger',
-        icon: ArrowUpRight,
-      },
-      {
-        id: 'receipt-out-invoice',
-        label: 'سداد فواتير موردين',
-        value: money(invoiceLinked),
-        unit: 'ج.م',
-        variant: 'primary',
-        icon: ShoppingBag,
-        subtext:
-          totalAmount > 0 ? (
-            <span>
-              تمثل <bdi dir="ltr">{Math.round((invoiceLinked / totalAmount) * 100)}%</bdi> من الإجمالي
-            </span>
-          ) : undefined,
-      },
-      {
-        id: 'receipt-out-free',
-        label: 'مصروفات ومدفوعات عامة',
-        value: money(freeAmount),
-        unit: 'ج.م',
-        variant: 'warning',
-        icon: DollarSign,
-      },
-      {
-        id: 'receipt-out-count',
-        label: 'عدد إيصالات الصرف',
-        value: count,
-        unit: 'إيصال',
-        variant: 'neutral',
-        icon: FileText,
-      },
-    ];
-  }, [isCashBoxTransfer, transferSummary, receiptSummary, isIn]);
+  const kpiItems = useMemo(
+    () =>
+      calculateReceiptKpis({
+        isCashBoxTransfer,
+        isIn,
+        receiptSummary,
+        transferSummary,
+      }),
+    [isCashBoxTransfer, isIn, receiptSummary, transferSummary],
+  );
 
   useEffect(() => {
     let cancelled = false;
     async function fetchReceipts() {
       setLoading(true);
-      setError('');
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
       const trimmedSearch = debouncedSearch.trim();
@@ -337,7 +204,11 @@ export default function Receipts() {
           setTotalCount(dataRes.count ?? 0);
 
           if (kpiRes.data) {
-            const raw = kpiRes.data as any;
+            const raw = kpiRes.data as {
+              total_amount?: number;
+              invoice_linked?: number;
+              count?: number;
+            };
             setReceiptSummary({
               totalAmount: Number(raw.total_amount || 0),
               invoiceLinked: Number(raw.invoice_linked || 0),
@@ -404,15 +275,19 @@ export default function Receipts() {
           setTotalCount(dataRes.count ?? 0);
 
           if (kpiRes.data) {
-            const raw = kpiRes.data as any;
+            const raw = kpiRes.data as {
+              total_amount?: number;
+              count?: number;
+            };
             setTransferSummary({
               totalAmount: Number(raw.total_amount || 0),
               count: Number(raw.count || 0),
             });
           }
         }
-      } catch (err: any) {
-        if (!cancelled) setError(translateDbError(err?.message || 'فشل تحميل البيانات'));
+      } catch (err: unknown) {
+        const errorObj = err as { message?: string };
+        if (!cancelled) toast.error(translateDbError(errorObj?.message || 'فشل تحميل البيانات'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -451,7 +326,6 @@ export default function Receipts() {
 
   function resetForm() {
     setEditing(null);
-    setError('');
   }
 
   function switchDirection(next: ReceiptDirection) {
@@ -489,7 +363,6 @@ export default function Receipts() {
   }
 
   function openReceiptModal(receipt: ReceiptRow, mode: 'view' | 'edit' = 'view') {
-    setError('');
     openedFromViewRef.current = mode === 'view';
     setEditing(receipt);
     setEditingTransfer(null);
@@ -498,7 +371,6 @@ export default function Receipts() {
   }
 
   function openTransferModal(transfer: CashBoxTransferRow, mode: 'view' | 'edit' = 'view') {
-    setError('');
     openedTransferFromViewRef.current = mode === 'view';
     setEditingTransfer(transfer);
     setEditing(null);
@@ -529,7 +401,7 @@ export default function Receipts() {
   }
 
   async function handleSaved(message: string) {
-    setNotice(message);
+    toast.success(message);
     setVersion((current) => current + 1);
     void refresh();
 
@@ -576,17 +448,16 @@ export default function Receipts() {
     );
     if (!confirmed) return;
 
-    setError('');
     const { error: rpcError } = await supabase.rpc('delete_free_receipt', {
       p_receipt_id: receipt.id,
     });
 
     if (rpcError) {
-      setError(translateDbError(rpcError.message));
+      toast.error(translateDbError(rpcError.message));
       return;
     }
 
-    setNotice(`تم نقل الإيصال ${receipt.number} إلى المحذوفات`);
+    toast.success(`تم نقل الإيصال ${receipt.number} إلى المحذوفات`);
     if (editing?.id === receipt.id) {
       closeForm();
     }
@@ -601,27 +472,25 @@ export default function Receipts() {
     );
     if (!confirmed) return;
 
-    setError('');
     const { error: rpcError } = await supabase.rpc('restore_receipt', {
       p_receipt_id: receipt.id,
     });
 
     if (rpcError) {
-      setError(translateDbError(rpcError.message));
+      toast.error(translateDbError(rpcError.message));
       return;
     }
 
-    setNotice(`تم استعادة الإيصال ${receipt.number}`);
+    toast.success(`تم استعادة الإيصال ${receipt.number}`);
     setVersion((current) => current + 1);
     void refresh();
   }
 
   async function removeTransfer(transfer: CashBoxTransferRow) {
     if (!(await askConfirmation(`حذف التحويل ${transfer.number}؟ سيعود الرصيد إلى الخزنة المصدر.`, 'حذف'))) return;
-    setError('');
     const { error: rpcError } = await supabase.rpc('delete_cash_box_transfer', { p_transfer_id: transfer.id });
-    if (rpcError) return setError(translateDbError(rpcError.message));
-    setNotice(`تم نقل التحويل ${transfer.number} إلى المحذوفات`);
+    if (rpcError) return toast.error(translateDbError(rpcError.message));
+    toast.success(`تم نقل التحويل ${transfer.number} إلى المحذوفات`);
     if (editingTransfer?.id === transfer.id) {
       closeForm();
     }
@@ -631,10 +500,9 @@ export default function Receipts() {
 
   async function restoreTransfer(transfer: CashBoxTransferRow) {
     if (!(await askConfirmation(`استعادة التحويل ${transfer.number}؟ سيعاد تطبيق حركة الخزن.`, 'استعادة'))) return;
-    setError('');
     const { error: rpcError } = await supabase.rpc('restore_cash_box_transfer', { p_transfer_id: transfer.id });
-    if (rpcError) return setError(translateDbError(rpcError.message));
-    setNotice(`تم استعادة التحويل ${transfer.number}`);
+    if (rpcError) return toast.error(translateDbError(rpcError.message));
+    toast.success(`تم استعادة التحويل ${transfer.number}`);
     setVersion((current) => current + 1);
     void refresh();
   }
@@ -735,181 +603,47 @@ export default function Receipts() {
               />
 
               <div className="erp-date-range">
-                <div className="erp-date"><span>من</span><DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" /></div>
-                <div className="erp-date"><span>إلى</span><DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" /></div>
+                <div className="erp-date">
+                  <span>من</span>
+                  <DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" />
+                </div>
+                <div className="erp-date">
+                  <span>إلى</span>
+                  <DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" />
+                </div>
               </div>
             </div>
           </div>
 
           <div className="erp-table-wrap">
             {isCashBoxTransfer ? (
-              <table className="table erp-table">
-                <thead>
-                  <tr>
-                    <SortableHeader
-                      label="الرقم"
-                      field="number"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as ReceiptSort)}
-                    />
-                    <SortableHeader
-                      label="التاريخ"
-                      field="date"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as ReceiptSort)}
-                    />
-                    <th>من خزنة</th>
-                    <th>إلى خزنة</th>
-                    <SortableHeader
-                      label="المبلغ"
-                      field="amount"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as ReceiptSort)}
-                      align="end"
-                      className="num"
-                    />
-                    <th>ملاحظات</th>
-                    <th aria-label="الإجراءات" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading && <tr><td colSpan={7} className="empty">جارٍ التحميل…</td></tr>}
-                  {!loading && pageTransfers.length === 0 && <tr><td colSpan={7} className="empty">لا توجد تحويلات تطابق البحث أو الفلاتر.</td></tr>}
-                  {!loading && pageTransfers.map((transfer) => {
-                    return (
-                      <tr
-                        key={transfer.id}
-                        tabIndex={0}
-                        onClick={() => openTransferModal(transfer, 'view')}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            openTransferModal(transfer, 'view');
-                          }
-                        }}
-                      >
-                        <td className="num strong">{transfer.number}</td>
-                        <td className="num">{formatDate(transfer.transfer_date)}</td>
-                        <td>{transfer.source_cash_box_name}</td>
-                        <td>{transfer.destination_cash_box_name}</td>
-                        <td className="num strong">{money(transfer.amount)}</td>
-                        <td className="muted">{transfer.notes || '—'}</td>
-                        <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
-                          {showDeleted ? (
-                            can(`money.${tab}.delete`) && (
-                              <RowActions
-                                onRestore={() => void restoreTransfer(transfer)}
-                                restoreLabel="استعادة التحويل"
-                              />
-                            )
-                          ) : (
-                            <RowActions
-                              onEdit={can(`money.${tab}.edit`) ? () => openTransferModal(transfer, 'edit') : undefined}
-                              onDelete={can(`money.${tab}.delete`) ? () => void removeTransfer(transfer) : undefined}
-                            />
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <CashBoxTransferTable
+                loading={loading}
+                pageTransfers={pageTransfers}
+                sortOrder={sortOrder}
+                onSort={setSortOrder}
+                showDeleted={showDeleted}
+                onView={(transfer) => openTransferModal(transfer, 'view')}
+                onEdit={(transfer) => openTransferModal(transfer, 'edit')}
+                onDelete={(transfer) => void removeTransfer(transfer)}
+                onRestore={(transfer) => void restoreTransfer(transfer)}
+                canEdit={Boolean(can(`money.${tab}.edit`))}
+                canDelete={Boolean(can(`money.${tab}.delete`))}
+              />
             ) : (
-              <table className="table erp-table">
-                <thead>
-                  <tr>
-                    <SortableHeader
-                      label="الرقم"
-                      field="number"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as ReceiptSort)}
-                    />
-                    <SortableHeader
-                      label="التاريخ"
-                      field="date"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as ReceiptSort)}
-                    />
-                    <SortableHeader
-                      label="الحساب"
-                      field="account"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as ReceiptSort)}
-                    />
-                    <th>الخزنة</th>
-                    <SortableHeader
-                      label="المبلغ"
-                      field="amount"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as ReceiptSort)}
-                      align="end"
-                      className="num"
-                    />
-                    <th>نوع الإيصال</th>
-                    <th>البيان</th>
-                    <th aria-label="الإجراءات" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading && <tr><td colSpan={8} className="empty">جارٍ التحميل…</td></tr>}
-                  {!loading && pageReceipts.length === 0 && <tr><td colSpan={8} className="empty">لا توجد إيصالات تطابق البحث أو الفلاتر.</td></tr>}
-                  {!loading && pageReceipts.map((receipt) => {
-                    return (
-                      <tr
-                        key={receipt.id}
-                        tabIndex={0}
-                        onClick={() => openReceiptModal(receipt, 'view')}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            openReceiptModal(receipt, 'view');
-                          }
-                        }}
-                      >
-                        <td className="num strong">{receipt.number}</td>
-                        <td className="num">{formatDate(receipt.receipt_date)}</td>
-                        <td>
-                          {receipt.account_name}{' '}
-                          <span className="muted">
-                            ({receipt.account_kind === 'customer' ? 'عميل' : receipt.account_kind === 'supplier' ? 'مورد' : 'هالك'})
-                          </span>
-                        </td>
-                        <td>{receipt.cash_box_name}</td>
-                        <td className="num strong">{money(receipt.amount)}</td>
-                        <td>
-                          {receipt.is_free ? (
-                            <StatusBadge variant="free">إيصال حر</StatusBadge>
-                          ) : (
-                            <StatusBadge variant="linked">مرتبط بـ{linkKind(receipt.invoice_kind)}</StatusBadge>
-                          )}
-                        </td>
-                        <td className="muted">{receipt.statement || '—'}</td>
-                        <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
-                          {showDeleted ? (
-                            can(`money.${tab}.delete`) ? (
-                              receipt.is_free ? (
-                                <RowActions
-                                  onRestore={() => void restore(receipt)}
-                                  restoreLabel="استعادة الإيصال"
-                                />
-                              ) : (
-                                <span className="muted" title="يُستعاد مع الفاتورة">مرتبط</span>
-                              )
-                            ) : null
-                          ) : receipt.is_free ? (
-                            <RowActions
-                              onEdit={can(`money.${tab}.edit`) ? () => openReceiptModal(receipt, 'edit') : undefined}
-                              onDelete={can(`money.${tab}.delete`) ? () => void remove(receipt) : undefined}
-                            />
-                          ) : (
-                            <span className="muted" title={`يُعدَّل من داخل ${linkKind(receipt.invoice_kind)}`}>مرتبط</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <ReceiptTable
+                loading={loading}
+                pageReceipts={pageReceipts}
+                sortOrder={sortOrder}
+                onSort={setSortOrder}
+                showDeleted={showDeleted}
+                onView={(receipt) => openReceiptModal(receipt, 'view')}
+                onEdit={(receipt) => openReceiptModal(receipt, 'edit')}
+                onDelete={(receipt) => void remove(receipt)}
+                onRestore={(receipt) => void restore(receipt)}
+                canEdit={Boolean(can(`money.${tab}.edit`))}
+                canDelete={Boolean(can(`money.${tab}.delete`))}
+              />
             )}
           </div>
 
@@ -918,17 +652,33 @@ export default function Receipts() {
               عرض {activeTotalCount ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, activeTotalCount)} من {activeTotalCount}
             </span>
             <div>
-              <button type="button" className="btn compact" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>السابق</button>
-              <span>{page} / {pageCount}</span>
-              <button type="button" className="btn compact" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>التالي</button>
+              <button
+                type="button"
+                className="btn compact"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                السابق
+              </button>
+              <span>
+                {page} / {pageCount}
+              </span>
+              <button
+                type="button"
+                className="btn compact"
+                disabled={page === pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                التالي
+              </button>
             </div>
           </div>
         </section>
       </div>
 
       {/* نموذج الإضافة والتعديل والعرض الموحد بالكامل داخل النافذة المنبثقة */}
-      {formOpen && (
-        isCashBoxTransfer ? (
+      {formOpen &&
+        (isCashBoxTransfer ? (
           <Modal
             className="transaction-entry-modal"
             backdropClassName="transaction-entry-backdrop"
@@ -936,8 +686,8 @@ export default function Receipts() {
               modalMode === 'view'
                 ? `${showDeleted ? 'محذوف — ' : ''}تحويل بين الخزن ${editingTransfer?.number ?? ''}`
                 : editingTransfer
-                ? `تعديل التحويل ${editingTransfer.number}`
-                : 'تحويل جديد بين الخزن'
+                  ? `تعديل التحويل ${editingTransfer.number}`
+                  : 'تحويل جديد بين الخزن'
             }
             onClose={closeForm}
           >
@@ -947,7 +697,11 @@ export default function Receipts() {
               editing={editingTransfer}
               readOnly={modalMode === 'view'}
               onEdit={!showDeleted && can(`money.${tab}.edit`) ? () => setModalMode('edit') : undefined}
-              onDelete={!showDeleted && can(`money.${tab}.delete`) && editingTransfer ? () => void removeTransfer(editingTransfer) : undefined}
+              onDelete={
+                !showDeleted && can(`money.${tab}.delete`) && editingTransfer
+                  ? () => void removeTransfer(editingTransfer)
+                  : undefined
+              }
               onRestore={
                 showDeleted && can(`money.${tab}.delete`) && editingTransfer
                   ? async () => {
@@ -969,8 +723,8 @@ export default function Receipts() {
               modalMode === 'view'
                 ? `${showDeleted ? 'محذوف — ' : ''}إيصال ${(editing?.direction ?? direction) === 'in' ? 'استلام' : 'صرف'} ${editing?.number ?? ''}`
                 : editing
-                ? `تعديل الإيصال ${editing.number}`
-                : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`
+                  ? `تعديل الإيصال ${editing.number}`
+                  : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`
             }
             onClose={closeForm}
           >
@@ -981,8 +735,16 @@ export default function Receipts() {
               cashBoxes={cashBoxes}
               editing={editing}
               readOnly={modalMode === 'view'}
-              onEdit={!showDeleted && can(`money.${tab}.edit`) && editing?.is_free ? () => setModalMode('edit') : undefined}
-              onDelete={!showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing ? () => void remove(editing) : undefined}
+              onEdit={
+                !showDeleted && can(`money.${tab}.edit`) && editing?.is_free
+                  ? () => setModalMode('edit')
+                  : undefined
+              }
+              onDelete={
+                !showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
+                  ? () => void remove(editing)
+                  : undefined
+              }
               onRestore={
                 showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
                   ? async () => {
@@ -996,8 +758,7 @@ export default function Receipts() {
               onCancel={handleCancel}
             />
           </Modal>
-        )
-      )}
+        ))}
 
       {confirmation && (
         <ConfirmDialog
