@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateDbError } from '../lib/errors';
+import { buildPostgrestOrFilter } from '../lib/search';
 import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
@@ -238,7 +239,7 @@ export default function Invoices() {
           }
           if (trimmedSearch) {
             query = query.or(
-              `number.ilike.%${trimmedSearch}%,account_name.ilike.%${trimmedSearch}%,warehouse_name.ilike.%${trimmedSearch}%`,
+              buildPostgrestOrFilter(['number', 'account_name', 'warehouse_name'], trimmedSearch),
             );
           }
 
@@ -316,7 +317,10 @@ export default function Invoices() {
           }
           if (trimmedSearch) {
             transferQuery = transferQuery.or(
-              `number.ilike.%${trimmedSearch}%,source_warehouse_name.ilike.%${trimmedSearch}%,destination_warehouse_name.ilike.%${trimmedSearch}%,notes.ilike.%${trimmedSearch}%`,
+              buildPostgrestOrFilter(
+                ['number', 'source_warehouse_name', 'destination_warehouse_name', 'notes'],
+                trimmedSearch,
+              ),
             );
           }
 

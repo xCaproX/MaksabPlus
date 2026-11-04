@@ -14,8 +14,6 @@ const MasterData = lazy(() => import('./pages/MasterData'));
 const Balances = lazy(() => import('./pages/Balances'));
 const Management = lazy(() => import('./pages/Management'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
-const PreviewReceipt = lazy(() => import('./pages/PreviewReceipt'));
-const PreviewPhase3And4 = lazy(() => import('./pages/PreviewPhase3And4'));
 
 function PageSuspense({ children, fullScreen = false }: { children: ReactNode; fullScreen?: boolean }) {
   return (
@@ -42,22 +40,6 @@ export default function App() {
 
     return () => listener.subscription.unsubscribe();
   }, []);
-
-  if (import.meta.env.DEV && window.location.pathname === '/preview-receipt') {
-    return (
-      <PageSuspense fullScreen>
-        <PreviewReceipt />
-      </PageSuspense>
-    );
-  }
-
-  if (import.meta.env.DEV && window.location.pathname === '/preview-phase3-4') {
-    return (
-      <PageSuspense fullScreen>
-        <PreviewPhase3And4 />
-      </PageSuspense>
-    );
-  }
 
   if (!isSupabaseConfigured) {
     return (

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
+import { buildPostgrestOrFilter } from '../../lib/search';
 import { entityNumber, formatDate, money, qty as formatQty, today } from '../../lib/format';
 import { translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
@@ -123,7 +124,10 @@ export default function ItemBalancesTab() {
 
         if (trimmed) {
           query = query.or(
-            `item_name.ilike.%${trimmed}%,item_code.ilike.%${trimmed}%,item_number.ilike.%${trimmed}%,item_notes.ilike.%${trimmed}%`,
+            buildPostgrestOrFilter(
+              ['item_name', 'item_code', 'item_number', 'item_notes'],
+              trimmed,
+            ),
           );
         }
 

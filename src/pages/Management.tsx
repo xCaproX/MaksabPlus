@@ -11,7 +11,9 @@ import {
   Wallet,
   DollarSign,
   FileText,
+  ShieldCheck,
 } from 'lucide-react';
+import Modal from '../components/Modal';
 import KpiBar, { type KpiItem } from '../components/KpiBar';
 import { supabase } from '../lib/supabase';
 import { entityNumber, getBalanceStatus, money, qty as formatQty } from '../lib/format';
@@ -78,6 +80,52 @@ export default function Management() {
   const [selectedItemRow, setSelectedItemRow] = useState<StockOpeningRow | null>(null);
   const [selectedBox, setSelectedBox] = useState<CashBoxRow | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isReconciling, setIsReconciling] = useState(false);
+  const [reconcileModal, setReconcileModal] = useState<{
+    isOpen: boolean;
+    accountsCount: number;
+    cashBoxesCount: number;
+    discrepancies: Array<{
+      entity_type: string;
+      entity_id: string;
+      entity_name: string;
+      old_balance: number;
+      reconciled_balance: number;
+      discrepancy: number;
+    }>;
+  } | null>(null);
+
+  async function handleReconcileBalances() {
+    setIsReconciling(true);
+    try {
+      const { data, error } = await supabase.rpc('reconcile_all_balances');
+      if (error) throw error;
+      await refresh();
+      const discrepancies = (data || []) as Array<{
+        entity_type: string;
+        entity_id: string;
+        entity_name: string;
+        old_balance: number;
+        reconciled_balance: number;
+        discrepancy: number;
+      }>;
+      setReconcileModal({
+        isOpen: true,
+        accountsCount: accounts.length,
+        cashBoxesCount: cashBoxes.length,
+        discrepancies,
+      });
+      if (discrepancies.length === 0) {
+        toast.success('تم فحص كافة الأرصدة بنجاح، وجميعها متطابقة تماماً مع الدفاتر');
+      } else {
+        toast.warning(`تم تصحيح فروقات في ${discrepancies.length} رصيد`);
+      }
+    } catch (err: unknown) {
+      toast.error(errorMessage(err));
+    } finally {
+      setIsReconciling(false);
+    }
+  }
 
   useEffect(() => {
     const targetTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
@@ -419,6 +467,17 @@ export default function Management() {
           <h1>{tabTitle}</h1>
         </div>
         <div className="actions">
+          {access?.role === 'owner' && (
+            <button
+              type="button"
+              className="btn outline"
+              disabled={isReconciling}
+              onClick={() => void handleReconcileBalances()}
+            >
+              <ShieldCheck size={16} />
+              <span>{isReconciling ? 'جارٍ فحص الأرصدة…' : 'فحص ومطابقة الأرصدة'}</span>
+            </button>
+          )}
           {tab === 'customers' && canEditOpening && (
             <button
               type="button"
@@ -856,6 +915,118 @@ export default function Management() {
           </aside>
         </div>
         </>
+      )}
+
+      {reconcileModal && (
+        <Modal
+          onClose={() => setReconcileModal(null)}
+          title="نتيجة فحص ومطابقة الأرصدة"
+        >
+          <div className="stack gap-4">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gap: '0.75rem',
+              }}
+            >
+              <div className="card" style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-secondary, #6b7280)', fontSize: '0.85rem' }}>حسابات مفحوصة</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }} className="tabular-nums" dir="ltr">
+                  <bdi>{reconcileModal.accountsCount}</bdi>
+                </div>
+              </div>
+              <div className="card" style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-secondary, #6b7280)', fontSize: '0.85rem' }}>خزن مفحوصة</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }} className="tabular-nums" dir="ltr">
+                  <bdi>{reconcileModal.cashBoxesCount}</bdi>
+                </div>
+              </div>
+              <div className="card" style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-secondary, #6b7280)', fontSize: '0.85rem' }}>فروقات تم تصحيحها</div>
+                <div
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 'bold',
+                    color: reconcileModal.discrepancies.length > 0 ? '#d97706' : '#10b981',
+                  }}
+                  className="tabular-nums"
+                  dir="ltr"
+                >
+                  <bdi>{reconcileModal.discrepancies.length}</bdi>
+                </div>
+              </div>
+            </div>
+
+            {reconcileModal.discrepancies.length === 0 ? (
+              <div
+                style={{
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  background: 'var(--color-success-subtle, #ecfdf5)',
+                  border: '1px solid var(--color-success-border, #a7f3d0)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                }}
+              >
+                <CheckCircle2 style={{ color: '#059669', flexShrink: 0 }} size={24} />
+                <div>
+                  <div style={{ fontWeight: 600, color: '#065f46' }}>الأرصدة متطابقة 100%</div>
+                  <div style={{ fontSize: '0.875rem', color: '#047857' }}>
+                    كافة أرصدة العملاء والموردين والخزن مطابقة تماماً لحركات الدفاتر ولا توجد أي فروقات.
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="stack gap-2">
+                <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary, #6b7280)' }}>
+                  تم اكتشاف الفروقات التالية وتمت إعادة مزامنتها تلقائياً لتطابق الدفاتر:
+                </div>
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>النوع</th>
+                        <th>الاسم</th>
+                        <th>الرصيد السابق</th>
+                        <th>الرصيد بعد المطابقة</th>
+                        <th>مقدار التعديل</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reconcileModal.discrepancies.map((item) => (
+                        <tr key={item.entity_id}>
+                          <td>{item.entity_type === 'cash_box' ? 'خزينة' : 'حساب'}</td>
+                          <td style={{ fontWeight: 600 }}>{item.entity_name}</td>
+                          <td className="tabular-nums" dir="ltr">
+                            <bdi>{money(item.old_balance)} ج.م</bdi>
+                          </td>
+                          <td className="tabular-nums" dir="ltr" style={{ fontWeight: 600 }}>
+                            <bdi>{money(item.reconciled_balance)} ج.م</bdi>
+                          </td>
+                          <td className="tabular-nums" dir="ltr" style={{ fontWeight: 600, color: '#d97706' }}>
+                            <bdi>{item.discrepancy > 0 ? `+${money(item.discrepancy)}` : money(item.discrepancy)} ج.م</bdi>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="actions" style={{ justifyContent: 'flex-end', marginBlockStart: '1rem' }}>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => setReconcileModal(null)}
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateDbError } from '../lib/errors';
+import { buildPostgrestOrFilter } from '../lib/search';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
@@ -161,7 +162,10 @@ export default function Receipts() {
           }
           if (trimmedSearch) {
             query = query.or(
-              `number.ilike.%${trimmedSearch}%,account_name.ilike.%${trimmedSearch}%,cash_box_name.ilike.%${trimmedSearch}%,statement.ilike.%${trimmedSearch}%,notes.ilike.%${trimmedSearch}%`,
+              buildPostgrestOrFilter(
+                ['number', 'account_name', 'cash_box_name', 'statement', 'notes'],
+                trimmedSearch,
+              ),
             );
           }
 
@@ -237,7 +241,10 @@ export default function Receipts() {
           }
           if (trimmedSearch) {
             query = query.or(
-              `number.ilike.%${trimmedSearch}%,source_cash_box_name.ilike.%${trimmedSearch}%,destination_cash_box_name.ilike.%${trimmedSearch}%,notes.ilike.%${trimmedSearch}%`,
+              buildPostgrestOrFilter(
+                ['number', 'source_cash_box_name', 'destination_cash_box_name', 'notes'],
+                trimmedSearch,
+              ),
             );
           }
 

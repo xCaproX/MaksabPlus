@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { qty as formatQty } from './format';
+import { buildPostgrestOrFilter } from './search';
 import type { AccountKind } from './types';
 import type { SearchOption } from '../components/SearchableSelect';
 
@@ -34,7 +35,7 @@ export async function searchAccountsAsync(
     .limit(limit);
 
   if (trimmed) {
-    req = req.or(`name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%,serial_number.ilike.%${trimmed}%`);
+    req = req.or(buildPostgrestOrFilter(['name', 'phone', 'serial_number'], trimmed));
   }
 
   const { data, error } = await req;
@@ -67,7 +68,7 @@ export async function searchWarehouseItemsAsync(
     .limit(limit);
 
   if (trimmed) {
-    req = req.or(`item_name.ilike.%${trimmed}%,item_code.ilike.%${trimmed}%`);
+    req = req.or(buildPostgrestOrFilter(['item_name', 'item_code'], trimmed));
   }
 
   const { data, error } = await req;

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
+import { buildPostgrestOrFilter } from '../../lib/search';
 import { entityNumber, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
@@ -140,7 +141,7 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
 
         if (trimmed) {
           query = query.or(
-            `name.ilike.%${trimmed}%,code.ilike.%${trimmed}%,serial_number.ilike.%${trimmed}%,notes.ilike.%${trimmed}%`,
+            buildPostgrestOrFilter(['name', 'code', 'serial_number', 'notes'], trimmed),
           );
         }
 

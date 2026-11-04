@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
+import { buildPostgrestOrFilter } from '../../lib/search';
 import { entityNumber } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
@@ -124,7 +125,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
 
         if (trimmed) {
           query = query.or(
-            `name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%,serial_number.ilike.%${trimmed}%,notes.ilike.%${trimmed}%`,
+            buildPostgrestOrFilter(['name', 'phone', 'serial_number', 'notes'], trimmed),
           );
         }
 
@@ -173,8 +174,9 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
         if (!alive) return;
         toast.error(errorMessage(err));
       } finally {
-        if (!alive) return;
-        setLoading(false);
+        if (alive) {
+          setLoading(false);
+        }
       }
     }
 

@@ -14,3 +14,25 @@ export function matchesSearchQuery(
     return String(field).toLocaleLowerCase('ar').includes(normalizedQuery);
   });
 }
+
+/**
+ * يهرّب النص للاستخدام الآمن في فلاتر PostgREST
+ * يضع القيمة بين علامتي تنصيص "..." مع تهريب \ و " و % و _
+ */
+export function escapePostgrestFilterValue(term: string): string {
+  const escaped = term
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+  return `"%${escaped}%"`;
+}
+
+/**
+ * يبني نص شرط .or(...) لعدة أعمدة مع تهريب آمن للقيمة
+ */
+export function buildPostgrestOrFilter(columns: string[], term: string): string {
+  const escapedValue = escapePostgrestFilterValue(term);
+  return columns.map((col) => `${col}.ilike.${escapedValue}`).join(',');
+}
+
