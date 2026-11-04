@@ -60,8 +60,8 @@ export async function searchWarehouseItemsAsync(
   const trimmed = query.trim();
 
   let req = supabase
-    .from('v_stock_opening_balances')
-    .select('item_id, item_name, item_code, unit, current_qty, sale_price, purchase_price, cost_locked')
+    .from('v_warehouse_items')
+    .select('item_id, item_name, item_code, unit, current_qty, sale_price, purchase_price')
     .eq('warehouse_id', warehouseId)
     .order('item_name')
     .limit(limit);
@@ -84,7 +84,7 @@ export async function searchWarehouseItemsAsync(
       purchasePrice: Number(row.purchase_price || 0),
       unit: row.unit,
       code: row.item_code,
-      costLocked: Boolean(row.cost_locked),
+      costLocked: false,
     };
   });
 }
@@ -102,8 +102,8 @@ export async function lookupBarcodeItem(
 
   // 1. البحث في مخزن الفاتورة الحالي أولاً
   const { data: stockRow } = await supabase
-    .from('v_stock_opening_balances')
-    .select('item_id, item_name, item_code, unit, current_qty, sale_price, purchase_price, cost_locked')
+    .from('v_warehouse_items')
+    .select('item_id, item_name, item_code, unit, current_qty, sale_price, purchase_price')
     .eq('warehouse_id', warehouseId)
     .ilike('item_code', trimmed)
     .maybeSingle();
@@ -119,7 +119,7 @@ export async function lookupBarcodeItem(
       purchasePrice: Number(stockRow.purchase_price || 0),
       unit: stockRow.unit,
       code: stockRow.item_code,
-      costLocked: Boolean(stockRow.cost_locked),
+      costLocked: false,
     };
   }
 

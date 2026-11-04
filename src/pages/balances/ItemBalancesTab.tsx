@@ -16,9 +16,33 @@ import DateInput from '../../components/DateInput';
 import SearchableSelect from '../../components/SearchableSelect';
 import SortableHeader from '../../components/SortableHeader';
 import { toast } from '../../components/Toast';
-import { matchesSearchQuery } from '../../lib/search';
 import { useMasterData } from '../../context/MasterDataContext';
-import type { ItemMovementStatementRow, StockOpeningRow } from '../../lib/types';
+import type { ItemMovementStatementRow } from '../../lib/types';
+
+export interface WarehouseItemRow {
+  item_id: string;
+  item_name: string;
+  item_code: string | null;
+  unit: string;
+  sale_price: number;
+  purchase_price: number;
+  item_number: number;
+  item_notes: string | null;
+  item_is_active: boolean;
+  warehouse_id: string;
+  warehouse_name: string;
+  warehouse_number: number;
+  warehouse_notes: string | null;
+  current_qty: number;
+  unit_cost: number;
+}
+
+interface StockBalancesSummary {
+  totalQty: number;
+  totalVal: number;
+  outOfStockCount: number;
+  count: number;
+}
 
 type BalanceSort =
   | 'balance-desc'
@@ -31,10 +55,34 @@ type BalanceSort =
 const PAGE_SIZE = 20;
 
 export default function ItemBalancesTab() {
-  const { stockRows, warehouses: rawWarehouses, loading } = useMasterData();
+  const { warehouses: rawWarehouses } = useMasterData();
   const warehouses = useMemo(() => rawWarehouses.filter((w) => w.is_active !== false), [rawWarehouses]);
 
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
+  const [items, setItems] = useState<WarehouseItemRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // الفلاتر
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [summary, setSummary] = useState<StockBalancesSummary>({
+    totalQty: 0,
+    totalVal: 0,
+    outOfStockCount: 0,
+    count: 0,
+  });
+
+  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (!selectedWarehouseId && warehouses.length > 0) {
@@ -42,16 +90,11 @@ export default function ItemBalancesTab() {
     }
   }, [selectedWarehouseId, warehouses]);
 
-  // الفلاتر
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
-  const [page, setPage] = useState(1);
-
   // التحديد والتفاصيل
-  const [selectedItem, setSelectedItem] = useState<StockOpeningRow | null>(null);
+  const [selectedItem, setSelectedItem] = useState<WarehouseItemRow | null>(null);
 
   // كشف حركة الصنف
-  const [itemStatementRow, setItemStatementRow] = useState<StockOpeningRow | null>(null);
+  const [itemStatementRow, setItemStatementRow] = useState<WarehouseItemRow | null>(null);
   const [statementFrom, setStatementFrom] = useState(`${today().slice(0, 7)}-01`);
   const [statementTo, setStatementTo] = useState(today());
   const [itemStatementRows, setItemStatementRows] = useState<ItemMovementStatementRow[]>([]);
@@ -59,45 +102,106 @@ export default function ItemBalancesTab() {
 
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === selectedWarehouseId);
 
-  // تصفية وترتيب الأصناف
-  const filteredItems = useMemo(() => {
-    const list = stockRows.filter((stockRow) => {
-      const matchWarehouse = !selectedWarehouseId || stockRow.warehouse_id === selectedWarehouseId;
-      const matchSearch = matchesSearchQuery(
-        [stockRow.item_name, stockRow.item_code, stockRow.item_notes, stockRow.item_number],
-        searchTerm,
-      );
-      return matchWarehouse && matchSearch;
-    });
+  // جلب أرصدة الأصناف بالصفحات مع المؤشرات التجميعية من السيرفر
+  useEffect(() => {
+    let alive = true;
 
-    return list.sort((firstItem, secondItem) => {
-      if (sortOrder === 'balance-desc') return Number(secondItem.current_qty) - Number(firstItem.current_qty);
-      if (sortOrder === 'balance-asc') return Number(firstItem.current_qty) - Number(secondItem.current_qty);
-      if (sortOrder === 'serial-desc') return secondItem.item_number - firstItem.item_number;
-      if (sortOrder === 'serial-asc') return firstItem.item_number - secondItem.item_number;
-      if (sortOrder === 'name-desc') return secondItem.item_name.localeCompare(firstItem.item_name, 'ar');
-      return firstItem.item_name.localeCompare(secondItem.item_name, 'ar');
-    });
-  }, [stockRows, selectedWarehouseId, searchTerm, sortOrder]);
+    async function load() {
+      setLoading(true);
+      const from = (page - 1) * PAGE_SIZE;
+      const to = page * PAGE_SIZE - 1;
+      const trimmed = debouncedSearch.trim();
 
-  const totalCount = filteredItems.length;
+      try {
+        let query = supabase
+          .from('v_warehouse_items')
+          .select('*', { count: 'exact' });
+
+        if (selectedWarehouseId) {
+          query = query.eq('warehouse_id', selectedWarehouseId);
+        }
+
+        if (trimmed) {
+          query = query.or(
+            `item_name.ilike.%${trimmed}%,item_code.ilike.%${trimmed}%,item_number.ilike.%${trimmed}%,item_notes.ilike.%${trimmed}%`,
+          );
+        }
+
+        if (sortOrder === 'balance-desc') {
+          query = query.order('current_qty', { ascending: false });
+        } else if (sortOrder === 'balance-asc') {
+          query = query.order('current_qty', { ascending: true });
+        } else if (sortOrder === 'serial-desc') {
+          query = query.order('item_number', { ascending: false });
+        } else if (sortOrder === 'serial-asc') {
+          query = query.order('item_number', { ascending: true });
+        } else if (sortOrder === 'name-desc') {
+          query = query.order('item_name', { ascending: false });
+        } else {
+          query = query.order('item_name', { ascending: true });
+        }
+
+        query = query.range(from, to);
+
+        const [dataRes, kpiRes] = await Promise.all([
+          query,
+          supabase.rpc('get_warehouse_stock_kpis', {
+            p_warehouse_id: selectedWarehouseId || null,
+            p_search: trimmed || null,
+          }),
+        ]);
+
+        if (!alive) return;
+        if (dataRes.error) throw dataRes.error;
+
+        setItems((dataRes.data ?? []) as WarehouseItemRow[]);
+        setTotalCount(dataRes.count ?? 0);
+
+        if (kpiRes.data) {
+          const raw = kpiRes.data as {
+            total_qty?: number;
+            total_val?: number;
+            out_of_stock_count?: number;
+            count?: number;
+          };
+          setSummary({
+            totalQty: Number(raw.total_qty ?? 0),
+            totalVal: Number(raw.total_val ?? 0),
+            outOfStockCount: Number(raw.out_of_stock_count ?? 0),
+            count: Number(raw.count ?? 0),
+          });
+        }
+        setLoading(false);
+      } catch (err: unknown) {
+        if (!alive) return;
+        toast.error(translateDbError((err as Error).message));
+        setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      alive = false;
+    };
+  }, [page, debouncedSearch, selectedWarehouseId, sortOrder]);
+
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const pagedItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, selectedWarehouseId, sortOrder]);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   // شريط المؤشرات
   const kpiItems = useMemo<KpiItem[]>(() => {
-    const totalQty = filteredItems.reduce((sum, it) => sum + Number(it.current_qty || 0), 0);
-    const totalVal = filteredItems.reduce(
-      (sum, it) => (Number(it.current_qty) > 0 ? sum + Number(it.current_qty) * Number(it.unit_cost || 0) : sum),
-      0,
-    );
-    const outOfStockCount = filteredItems.filter((it) => Number(it.current_qty || 0) <= 0).length;
-
     return [
       {
         id: 'items-qty',
         label: 'إجمالي كميات المخزون المتوفر',
-        value: formatQty(totalQty),
+        value: formatQty(summary.totalQty),
         unit: 'وحدة',
         variant: 'primary',
         icon: Boxes,
@@ -105,7 +209,7 @@ export default function ItemBalancesTab() {
       {
         id: 'items-val',
         label: 'قيمة المخزون التقديرية (بالتكلفة)',
-        value: money(totalVal),
+        value: money(summary.totalVal),
         unit: 'ج.م',
         variant: 'info',
         icon: DollarSign,
@@ -113,24 +217,24 @@ export default function ItemBalancesTab() {
       {
         id: 'items-out-stock',
         label: 'أصناف نفدت كمياتها',
-        value: outOfStockCount,
+        value: summary.outOfStockCount,
         unit: 'صنف',
-        variant: outOfStockCount > 0 ? 'danger' : 'neutral',
+        variant: summary.outOfStockCount > 0 ? 'danger' : 'neutral',
         icon: AlertTriangle,
-        subtext: outOfStockCount > 0 ? 'بحاجة لإعادة الطلب والتوريد' : 'جميع الأصناف متوفرة بالمخزن',
+        subtext: summary.outOfStockCount > 0 ? 'بحاجة لإعادة الطلب والتوريد' : 'جميع الأصناف متوفرة بالمخزن',
       },
       {
         id: 'items-count',
         label: 'عدد الأصناف المعروضة',
-        value: filteredItems.length,
+        value: summary.count,
         unit: 'صنف',
         variant: 'neutral',
         icon: FileText,
       },
     ];
-  }, [filteredItems]);
+  }, [summary]);
 
-  function openItemStatement(row: StockOpeningRow) {
+  function openItemStatement(row: WarehouseItemRow) {
     setItemStatementRow(row);
     setStatementFrom(`${today().slice(0, 7)}-01`);
     setStatementTo(today());
@@ -236,7 +340,7 @@ export default function ItemBalancesTab() {
                     </td>
                   </tr>
                 )}
-                {!loading && pagedItems.length === 0 && (
+                {!loading && items.length === 0 && (
                   <tr>
                     <td colSpan={6} className="empty">
                       لا توجد أصناف تطابق البحث أو المخزن.
@@ -244,7 +348,7 @@ export default function ItemBalancesTab() {
                   </tr>
                 )}
                 {!loading &&
-                  pagedItems.map((row) => {
+                  items.map((row) => {
                     const isSelected =
                       selectedItem?.item_id === row.item_id && selectedItem?.warehouse_id === row.warehouse_id;
                     return (

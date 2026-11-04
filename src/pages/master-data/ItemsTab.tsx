@@ -20,11 +20,17 @@ import { toast } from '../../components/Toast';
 import type { ItemRow, WarehouseOption } from '../../lib/types';
 import { useAccess } from '../../lib/access';
 import { useConfirmDialog } from '../../lib/useConfirmDialog';
-import { matchesSearchQuery } from '../../lib/search';
 import { useMasterData } from '../../context/MasterDataContext';
 
 interface MasterItemRecord extends Omit<ItemRow, 'qty'> {
   notes: string | null;
+}
+
+interface MasterItemsSummary {
+  totalCount: number;
+  activeCount: number;
+  inactiveCount: number;
+  avgPrice: number;
 }
 
 type ItemSort =
@@ -53,9 +59,26 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
 
   // الفلاتر
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<ItemSort>('name-asc');
   const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [summary, setSummary] = useState<MasterItemsSummary>({
+    totalCount: 0,
+    activeCount: 0,
+    inactiveCount: 0,
+    avgPrice: 0,
+  });
+
+  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // التحديد والتفاصيل
   const [selectedItem, setSelectedItem] = useState<MasterItemRecord | null>(null);
@@ -81,28 +104,90 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
     }
   }, [addTrigger]);
 
-  // جلب الأصناف والمخازن
+  // جلب المخازن لمرة واحدة (لمودال إضافة الصنف الجديد برصيد أول المدة)
+  useEffect(() => {
+    let alive = true;
+    async function loadWarehouses() {
+      const { data } = await supabase.from('warehouses').select('*').order('name');
+      if (alive && data) setWarehouses(data as WarehouseOption[]);
+    }
+    void loadWarehouses();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // جلب الأصناف بالصفحات مع المؤشرات من السيرفر مباشرة
   useEffect(() => {
     let alive = true;
 
     async function load() {
       setLoading(true);
+      const from = (page - 1) * PAGE_SIZE;
+      const to = page * PAGE_SIZE - 1;
+      const trimmed = debouncedSearch.trim();
+
       try {
-        const [itemsRes, warehousesRes] = await Promise.all([
-          supabase.from('items').select('*').order('name'),
-          supabase.from('warehouses').select('*').order('name'),
+        let query = supabase
+          .from('items')
+          .select('*', { count: 'exact' });
+
+        if (statusFilter === 'active') {
+          query = query.eq('is_active', true);
+        } else if (statusFilter === 'inactive') {
+          query = query.eq('is_active', false);
+        }
+
+        if (trimmed) {
+          query = query.or(
+            `name.ilike.%${trimmed}%,code.ilike.%${trimmed}%,serial_number.ilike.%${trimmed}%,notes.ilike.%${trimmed}%`,
+          );
+        }
+
+        if (sortOrder === 'price-desc') {
+          query = query.order('sale_price', { ascending: false });
+        } else if (sortOrder === 'price-asc') {
+          query = query.order('sale_price', { ascending: true });
+        } else if (sortOrder === 'serial-desc') {
+          query = query.order('serial_number', { ascending: false });
+        } else if (sortOrder === 'serial-asc') {
+          query = query.order('serial_number', { ascending: true });
+        } else if (sortOrder === 'name-desc') {
+          query = query.order('name', { ascending: false });
+        } else {
+          query = query.order('name', { ascending: true });
+        }
+
+        query = query.range(from, to);
+
+        const [dataRes, kpiRes] = await Promise.all([
+          query,
+          supabase.rpc('get_master_items_kpis', {
+            p_search: trimmed || null,
+            p_status: statusFilter,
+          }),
         ]);
 
         if (!alive) return;
-        const firstError = itemsRes.error ?? warehousesRes.error;
-        if (firstError) {
-          toast.error(translateDbError(firstError.message));
-          setLoading(false);
-          return;
-        }
+        if (dataRes.error) throw dataRes.error;
 
-        setItems((itemsRes.data ?? []) as MasterItemRecord[]);
-        setWarehouses((warehousesRes.data ?? []) as WarehouseOption[]);
+        setItems((dataRes.data ?? []) as MasterItemRecord[]);
+        setTotalCount(dataRes.count ?? 0);
+
+        if (kpiRes.data) {
+          const raw = kpiRes.data as {
+            total_count?: number;
+            active_count?: number;
+            inactive_count?: number;
+            avg_price?: number;
+          };
+          setSummary({
+            totalCount: Number(raw.total_count ?? 0),
+            activeCount: Number(raw.active_count ?? 0),
+            inactiveCount: Number(raw.inactive_count ?? 0),
+            avgPrice: Number(raw.avg_price ?? 0),
+          });
+        }
         setLoading(false);
       } catch (err: unknown) {
         if (!alive) return;
@@ -115,37 +200,13 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
     return () => {
       alive = false;
     };
-  }, [version]);
+  }, [page, debouncedSearch, statusFilter, sortOrder, version]);
 
-  // تصفية وترتيب الأصناف
-  const filteredItems = useMemo(() => {
-    const list = items.filter((item) => {
-      const matchStatus =
-        statusFilter === 'all' || (statusFilter === 'active' ? item.is_active : !item.is_active);
-      const matchQuery = matchesSearchQuery(
-        [item.name, item.code, item.serial_number, item.notes],
-        searchTerm,
-      );
-      return matchStatus && matchQuery;
-    });
-
-    return list.sort((firstItem, secondItem) => {
-      if (sortOrder === 'price-desc') return Number(secondItem.sale_price) - Number(firstItem.sale_price);
-      if (sortOrder === 'price-asc') return Number(firstItem.sale_price) - Number(secondItem.sale_price);
-      if (sortOrder === 'serial-desc') return (secondItem.serial_number ?? 0) - (firstItem.serial_number ?? 0);
-      if (sortOrder === 'serial-asc') return (firstItem.serial_number ?? 0) - (secondItem.serial_number ?? 0);
-      if (sortOrder === 'name-desc') return secondItem.name.localeCompare(firstItem.name, 'ar');
-      return firstItem.name.localeCompare(secondItem.name, 'ar');
-    });
-  }, [items, searchTerm, statusFilter, sortOrder]);
-
-  const totalCount = filteredItems.length;
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const pagedItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, sortOrder]);
+  }, [debouncedSearch, statusFilter, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -153,19 +214,11 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
 
   // شريط المؤشرات
   const kpiItems = useMemo<KpiItem[]>(() => {
-    const activeCount = filteredItems.filter((i) => i.is_active).length;
-    const inactiveCount = filteredItems.filter((i) => !i.is_active).length;
-    const pricedItems = filteredItems.filter((i) => Number(i.sale_price) > 0);
-    const avgPrice =
-      pricedItems.length > 0
-        ? pricedItems.reduce((sum, item) => sum + Number(item.sale_price), 0) / pricedItems.length
-        : 0;
-
     return [
       {
         id: 'data-items-total',
         label: 'إجمالي الأصناف',
-        value: filteredItems.length,
+        value: summary.totalCount,
         unit: 'صنف',
         variant: 'primary',
         icon: Boxes,
@@ -173,7 +226,7 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
       {
         id: 'data-items-active',
         label: 'الأصناف النشطة للبيع',
-        value: activeCount,
+        value: summary.activeCount,
         unit: 'صنف',
         variant: 'success',
         icon: CheckCircle2,
@@ -181,21 +234,21 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
       {
         id: 'data-items-inactive',
         label: 'الأصناف المعطلة',
-        value: inactiveCount,
+        value: summary.inactiveCount,
         unit: 'صنف',
-        variant: inactiveCount > 0 ? 'warning' : 'neutral',
+        variant: summary.inactiveCount > 0 ? 'warning' : 'neutral',
         icon: AlertTriangle,
       },
       {
         id: 'data-items-avg-price',
         label: 'متوسط سعر البيع',
-        value: money(avgPrice),
+        value: money(summary.avgPrice),
         unit: 'ج.م',
         variant: 'info',
         icon: DollarSign,
       },
     ];
-  }, [filteredItems]);
+  }, [summary]);
 
   function startAdd() {
     setEditingItem(null);
@@ -373,7 +426,7 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
                     </td>
                   </tr>
                 )}
-                {!loading && pagedItems.length === 0 && (
+                {!loading && items.length === 0 && (
                   <tr>
                     <td colSpan={8} className="empty">
                       لا توجد أصناف تطابق البحث.
@@ -381,7 +434,7 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
                   </tr>
                 )}
                 {!loading &&
-                  pagedItems.map((item) => {
+                  items.map((item) => {
                     const isSelected = selectedItem?.id === item.id;
                     return (
                       <tr
