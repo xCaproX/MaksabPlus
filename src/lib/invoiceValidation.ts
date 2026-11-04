@@ -11,15 +11,16 @@ export interface ClampQuantityOptions {
 
 /**
  * تصحيح حقل الكمية بحيث:
- * 1. لا يقل عن 1 (إذا قل عن 1 يعود إلى 1)
- * 2. لا يتجاوز الكمية المتاحة في المخزن لحركات الصرف (البيع/الهالك/مرتجع الشراء)
+ * 1. لا يقل عن أو يساوي صفر (إذا كان غير صالح أو <= 0 يعود إلى 1 افتراضياً)
+ * 2. يسمح بالكسور العشرية للأوزان والأمتار (مثلاً 0.5 كجم أو 0.250 م)
+ * 3. لا يتجاوز الكمية المتاحة في المخزن لحركات الصرف (البيع/الهالك/مرتجع الشراء)
  */
 export function clampQuantity(
   rawQty: number | string,
   options: ClampQuantityOptions = {},
 ): string {
   const num = typeof rawQty === 'number' ? rawQty : parseFloat(rawQty);
-  if (isNaN(num) || num < 1) {
+  if (isNaN(num) || num <= 0) {
     return '1';
   }
 

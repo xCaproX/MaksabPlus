@@ -8,12 +8,16 @@ import {
 
 describe('invoiceValidation - قواعد التحقق والتصحيح التلقائي للفاتورة', () => {
   describe('clampQuantity - تصحيح الكمية', () => {
-    it('يصحح أي كمية أقل من 1 إلى 1', () => {
+    it('يصحح أي كمية غير صالحة أو أقل من أو تساوي صفر إلى 1', () => {
       expect(clampQuantity(0)).toBe('1');
       expect(clampQuantity(-5)).toBe('1');
-      expect(clampQuantity(0.5)).toBe('1');
       expect(clampQuantity('')).toBe('1');
       expect(clampQuantity('abc')).toBe('1');
+    });
+
+    it('يقبل الكميات الكسرية للأوزان والأمتار الأقل من 1', () => {
+      expect(clampQuantity(0.5, { availableStock: 5, isStockLimited: true })).toBe('0.5');
+      expect(clampQuantity('0.25', { availableStock: 5, isStockLimited: true })).toBe('0.25');
     });
 
     it('يصحح الكمية لتساوي المتاح إذا تجاوزت الرصيد المتاح بالمخزن', () => {

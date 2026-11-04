@@ -283,7 +283,7 @@ export default function InvoiceForm({
       toast.warning(`الكمية المتاحة (${formatQty(entryAvailableStock)}) هي الحد الأقصى`);
       return;
     }
-    if (num < 1 && val !== '0' && val !== '0.') {
+    if (num <= 0 && val !== '0' && val !== '0.' && val !== '.') {
       setEntryQty('1');
       return;
     }
@@ -293,7 +293,7 @@ export default function InvoiceForm({
   function handleEntryQtyBlur() {
     const num = parseFloat(entryQty);
     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-    if (isNaN(num) || num < 1) {
+    if (isNaN(num) || num <= 0) {
       setEntryQty('1');
     } else if (isStockLimited && entryItemId && entryAvailableStock > 0 && num > entryAvailableStock) {
       setEntryQty(String(entryAvailableStock));
@@ -308,8 +308,8 @@ export default function InvoiceForm({
     }
 
     let qtyNum = Number(entryQty || 0);
-    if (qtyNum < 1) {
-      toast.warning('الكمية يجب ألا تقل عن 1');
+    if (!(qtyNum > 0)) {
+      toast.warning('الكمية يجب أن تكون أكبر من صفر');
       setEntryQty('1');
       entryQtyInputRef.current?.focus();
       return;
@@ -441,7 +441,7 @@ export default function InvoiceForm({
     if (entryItemId) {
       let qtyNum = Number(entryQty || 0);
       const priceNum = Number(entryUnitPrice || 0);
-      if (qtyNum >= 1 && priceNum >= 0) {
+      if (qtyNum > 0 && priceNum >= 0) {
         const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
         if (isStockLimited && entryAvailableStock > 0 && qtyNum > entryAvailableStock) {
           qtyNum = entryAvailableStock;
@@ -478,9 +478,9 @@ export default function InvoiceForm({
     if (activeLines.length === 0) return toast.error('اختر صنفًا واحدًا على الأقل في الفاتورة');
 
     const hasInvalidLine = activeLines.some(
-      (line) => !(Number(line.qty) >= 1) || !(Number(line.unit_price) >= 0),
+      (line) => !(Number(line.qty) > 0) || !(Number(line.unit_price) >= 0),
     );
-    if (hasInvalidLine) return toast.error('أدخل كمية وسعرًا صحيحين لكل الأصناف (الكمية يجب ألا تقل عن 1)');
+    if (hasInvalidLine) return toast.error('أدخل كمية وسعرًا صحيحين لكل الأصناف (الكمية يجب أن تكون أكبر من صفر)');
 
     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
     if (isStockLimited) {
@@ -696,7 +696,7 @@ export default function InvoiceForm({
                             aria-label={`كمية الصنف${entrySelectedItem ? ` — ${entrySelectedItem.name} (${entrySelectedItem.unit})` : ''}`}
                             type="number"
                             inputMode="decimal"
-                            min="1"
+                            min="0.0001"
                             step="0.0001"
                             dir="ltr"
                             value={entryQty}
@@ -801,7 +801,7 @@ export default function InvoiceForm({
                                   aria-label={`الكمية — ${selectedItem?.name ?? ''} (${selectedItem?.unit ?? 'قطعة'})`}
                                   type="number"
                                   inputMode="decimal"
-                                  min="1"
+                                  min="0.0001"
                                   step="0.0001"
                                   dir="ltr"
                                   value={line.qty}
@@ -823,7 +823,7 @@ export default function InvoiceForm({
                                       toast.warning(`الكمية المتاحة (${formatQty(availableStock)}) هي الحد الأقصى`);
                                       return;
                                     }
-                                    if (num < 1 && val !== '0' && val !== '0.') {
+                                    if (num <= 0 && val !== '0' && val !== '0.' && val !== '.') {
                                       updateLine(line.key, { qty: '1' });
                                       return;
                                     }
@@ -832,7 +832,7 @@ export default function InvoiceForm({
                                   onBlur={() => {
                                     const num = parseFloat(line.qty);
                                     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                                    if (isNaN(num) || num < 1) {
+                                    if (isNaN(num) || num <= 0) {
                                       updateLine(line.key, { qty: '1' });
                                     } else if (isStockLimited && line.item_id && availableStock > 0 && num > availableStock) {
                                       updateLine(line.key, { qty: String(availableStock) });

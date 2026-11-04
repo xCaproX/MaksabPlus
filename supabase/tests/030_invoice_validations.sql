@@ -64,19 +64,19 @@ begin
   from public.accounts
   where company_id = '30303030-3030-4030-8030-0000000000a1' and system_key = 'cash_customer';
 
-  -- 1. رفض كمية أقل من 1 (مثلاً 0 أو كسر أقل من 1)
+  -- 1. رفض كمية أقل من أو تساوي 0
   v_err := '';
   begin
     perform public.create_invoice(
       'sale', '30303030-3030-4030-8030-0000000000d1', '30303030-3030-4030-8030-0000000000b1',
       current_date, 0, null,
-      '[{"item_id":"30303030-3030-4030-8030-0000000000e1","qty":0.5,"unit_price":50}]'::jsonb
+      '[{"item_id":"30303030-3030-4030-8030-0000000000e1","qty":0,"unit_price":50}]'::jsonb
     );
-    raise exception 'should have failed on qty < 1';
+    raise exception 'should have failed on qty <= 0';
   exception when others then
     v_err := sqlerrm;
   end;
-  perform public.test_expect(v_err = 'invalid_line_qty', 'reject line qty < 1', v_err);
+  perform public.test_expect(v_err = 'invalid_line_qty', 'reject line qty <= 0', v_err);
 
   -- 2. رفض اختيار وبيع صنف رصيده المتاح 0 بالمخزن
   v_err := '';
@@ -164,6 +164,18 @@ begin
   perform public.test_expect(
     (select balance from public.v_account_balances where id = v_cash_customer) = 0,
     'cash customer balance remains zero'
+  );
+
+  -- 7.1 نجاح بيع كمية كسرية للأوزان والأمتار (0.5 بسعر 50 = 25 ومدفوع 25)
+  v_invoice := public.create_invoice(
+    'sale', v_cash_customer, '30303030-3030-4030-8030-0000000000b1',
+    current_date, 25, null,
+    '[{"item_id":"30303030-3030-4030-8030-0000000000e1","qty":0.5,"unit_price":50}]'::jsonb
+  );
+  perform public.test_expect(v_invoice is not null, 'successful sale with decimal quantity 0.5');
+  perform public.test_expect(
+    (select qty from public.item_stock where item_id = '30303030-3030-4030-8030-0000000000e1') = 2.5,
+    'stock decremented accurately by fractional 0.5 from 3 to 2.5'
   );
 end;
 $$;

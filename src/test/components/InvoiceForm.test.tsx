@@ -137,4 +137,33 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
 
     expect(screen.getByText('استعادة الفاتورة')).toBeInTheDocument();
   });
+
+  it('يقبل عرض وتعديل الفاتورة بكميات كسرية للأوزان والأمتار (مثل 0.5 كجم)', () => {
+    const decimalEditingInvoice = {
+      ...mockEditingInvoice,
+      lines: [
+        { key: 'l-1', item_id: 'itm-1', qty: '0.5', unit_price: '35' },
+      ],
+    };
+
+    render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={decimalEditingInvoice}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    const qtyInput = screen.getByLabelText(/الكمية — سكر أبيض 1 كجم/) as HTMLInputElement;
+    expect(qtyInput).toBeInTheDocument();
+    expect(qtyInput.value).toBe('0.5');
+    expect(qtyInput.min).toBe('0.0001');
+  });
 });
