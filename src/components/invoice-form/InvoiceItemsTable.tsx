@@ -3,6 +3,11 @@ import { Plus, Trash2 } from 'lucide-react';
 import { money, qty as formatQty, round2 } from '../../lib/format';
 import SearchableSelect from '../SearchableSelect';
 import { toast } from '../Toast';
+import {
+  searchWarehouseItemsAsync,
+  lookupBarcodeItem,
+  type WarehouseItemOption,
+} from '../../lib/masterDataQueries';
 import type { InvoiceKind, ItemRow, LineDraft } from '../../lib/types';
 
 interface InvoiceItemsTableProps {
@@ -22,7 +27,7 @@ interface InvoiceItemsTableProps {
   entryItemSearchRef: RefObject<HTMLInputElement>;
   entryQtyInputRef: RefObject<HTMLInputElement>;
   entryPriceInputRef: RefObject<HTMLInputElement>;
-  onEntryItemSelect: (id: string) => void;
+  onEntryItemSelect: (id: string, option?: WarehouseItemOption) => void;
   onEntryQtyChange: (val: string) => void;
   onEntryQtyBlur: () => void;
   onEntryPriceChange: (val: string) => void;
@@ -81,6 +86,7 @@ export default function InvoiceItemsTable({
                   <SearchableSelect
                     inputRef={entryItemSearchRef}
                     value={entryItemId}
+                    selectedLabel={entrySelectedItem ? `${entrySelectedItem.code} — ${entrySelectedItem.name}` : undefined}
                     options={items.map((item) => {
                       const stock = getItemAvailableStock(item.id, warehouseId);
                       const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
@@ -90,9 +96,42 @@ export default function InvoiceItemsTable({
                         label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
                       };
                     })}
-                    onChange={onEntryItemSelect}
-                    placeholder="اختر صنفاً للإدراج…"
-                    searchPlaceholder="ابحث باسم أو كود الصنف…"
+                    loadOptions={async (query) => {
+                      const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                      if (items.length > 0 && items.length <= 50) {
+                        const q = query.trim().toLowerCase();
+                        return items
+                          .filter((item) => !q || item.name.toLowerCase().includes(q) || item.code.toLowerCase().includes(q))
+                          .map((item) => {
+                            const stock = getItemAvailableStock(item.id, warehouseId);
+                            const isOut = isStockLimited && Number(stock) <= 0;
+                            return {
+                              value: item.id,
+                              label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                              stock,
+                              salePrice: Number(item.sale_price),
+                              purchasePrice: Number(item.purchase_price),
+                              unit: item.unit,
+                              code: item.code,
+                              costLocked: false,
+                            };
+                          });
+                      }
+                      return searchWarehouseItemsAsync(warehouseId, query, isStockLimited);
+                    }}
+                    onBarcodeScan={async (barcode) => {
+                      const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                      const found = await lookupBarcodeItem(barcode, warehouseId, isStockLimited);
+                      if (!found) {
+                        toast.warning(`لم يتم العثور على صنف بالباركود: ${barcode}`);
+                        return;
+                      }
+                      onEntryItemSelect(found.value, found);
+                    }}
+                    onSelectOption={(opt) => onEntryItemSelect(opt.value, opt as unknown as WarehouseItemOption)}
+                    onChange={(id) => onEntryItemSelect(id)}
+                    placeholder="اختر صنفاً للإدراج أو امسح الباركود…"
+                    searchPlaceholder="ابحث باسم أو كود أو باركود الصنف…"
                     emptyMessage="لا توجد أصناف مطابقة"
                   />
                 </td>

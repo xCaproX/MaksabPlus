@@ -120,9 +120,16 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
     let alive = true;
     setLoading(true);
 
-    fetchResources().finally(() => {
+    async function bootstrap() {
+      // تحميل البيانات الإعدادية الخفيفة أولاً لفتح الواجهة فورياً
+      await fetchResources(['warehouses', 'cashBoxes']);
       if (alive) setLoading(false);
-    });
+
+      // استكمال تحميل الحسابات والأصناف في الخلفية دون حظر واجهة المستخدم
+      await fetchResources(['accounts', 'items', 'stock']);
+    }
+
+    void bootstrap();
 
     return () => {
       alive = false;

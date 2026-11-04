@@ -200,6 +200,29 @@ input[type="number"] {
   font-size: 13px;
 }
 
+.searchable-select-loading {
+  padding: 14px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.searchable-select-option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: start;
+}
+
+.searchable-select-sublabel {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .actions {
   display: flex;
   gap: 10px;

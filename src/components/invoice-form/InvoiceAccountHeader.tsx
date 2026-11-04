@@ -1,5 +1,6 @@
 import { formatDate, money } from '../../lib/format';
 import SearchableSelect from '../SearchableSelect';
+import { searchAccountsAsync } from '../../lib/masterDataQueries';
 import type { AccountKind, AccountRow, WarehouseOption } from '../../lib/types';
 
 interface InvoiceAccountHeaderProps {
@@ -105,10 +106,23 @@ export default function InvoiceAccountHeader({
             ) : (
               <SearchableSelect
                 value={accountId}
+                selectedLabel={selectedAccount?.name}
                 options={selectableAccounts.map((account) => ({
                   value: account.id,
                   label: account.phone ? `${account.name} — ${account.phone}` : account.name,
                 }))}
+                loadOptions={async (q) => {
+                  if (selectableAccounts.length > 0 && selectableAccounts.length <= 50) {
+                    const term = q.trim().toLowerCase();
+                    return selectableAccounts
+                      .filter((a) => !term || a.name.toLowerCase().includes(term) || (a.phone && a.phone.includes(term)))
+                      .map((a) => ({
+                        value: a.id,
+                        label: a.phone ? `${a.name} — ${a.phone}` : a.name,
+                      }));
+                  }
+                  return searchAccountsAsync(accountKind, q);
+                }}
                 onChange={onAccountChange}
                 placeholder="اختر الحساب…"
                 searchPlaceholder="اكتب للبحث عن حساب…"

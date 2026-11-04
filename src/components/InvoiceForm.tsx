@@ -4,6 +4,7 @@ import { money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
+import type { WarehouseItemOption } from '../lib/masterDataQueries';
 import ConfirmDialog from './ConfirmDialog';
 import { toast } from './Toast';
 import InvoiceAccountHeader from './invoice-form/InvoiceAccountHeader';
@@ -238,20 +239,52 @@ export default function InvoiceForm({
     );
   }
 
-  const entrySelectedItem = items.find((item) => item.id === entryItemId);
-  const entryAvailableStock = entryItemId ? getItemAvailableStock(entryItemId, warehouseId) : 0;
+  const [entryAsyncOption, setEntryAsyncOption] = useState<WarehouseItemOption | null>(null);
+
+  const entrySelectedItem =
+    items.find((item) => item.id === entryItemId) ||
+    (entryAsyncOption && entryAsyncOption.value === entryItemId
+      ? ({
+          id: entryAsyncOption.value,
+          name: entryAsyncOption.label.split(' — ')[1] || entryAsyncOption.label,
+          code: entryAsyncOption.code,
+          unit: entryAsyncOption.unit,
+          sale_price: entryAsyncOption.salePrice,
+          purchase_price: entryAsyncOption.purchasePrice,
+          is_active: true,
+          company_id: '',
+          created_at: '',
+          updated_at: '',
+          notes: null,
+          serial_number: null,
+        } as unknown as ItemRow)
+      : undefined);
+
+  const entryAvailableStock = entryItemId
+    ? entryAsyncOption && entryAsyncOption.value === entryItemId
+      ? entryAsyncOption.stock
+      : getItemAvailableStock(entryItemId, warehouseId)
+    : 0;
   const entryLineTotal = round2(Number(entryQty || 0) * Number(entryUnitPrice || 0));
 
-  function handleEntryItemSelect(itemId: string) {
+  function handleEntryItemSelect(itemId: string, selectedOption?: WarehouseItemOption) {
     if (!itemId) {
       setEntryItemId('');
+      setEntryAsyncOption(null);
       setEntryQty('1');
       setEntryUnitPrice('');
       return;
     }
 
+    if (selectedOption) {
+      setEntryAsyncOption(selectedOption);
+    }
+
     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-    const availableStock = getItemAvailableStock(itemId, warehouseId);
+    const availableStock =
+      selectedOption !== undefined
+        ? selectedOption.stock
+        : getItemAvailableStock(itemId, warehouseId);
 
     if (isStockLimited && availableStock <= 0) {
       toast.warning('الصنف غير متوفر');
@@ -259,13 +292,19 @@ export default function InvoiceForm({
     }
 
     const item = items.find((candidate) => candidate.id === itemId);
-    const price = item
+    const price = selectedOption
       ? isWaste
         ? 0
         : isPurchase
-          ? Number(item.purchase_price)
-          : Number(item.sale_price)
-      : 0;
+          ? Number(selectedOption.purchasePrice)
+          : Number(selectedOption.salePrice)
+      : item
+        ? isWaste
+          ? 0
+          : isPurchase
+            ? Number(item.purchase_price)
+            : Number(item.sale_price)
+        : 0;
 
     setEntryItemId(itemId);
     setEntryUnitPrice(String(price));
@@ -380,6 +419,7 @@ export default function InvoiceForm({
     });
 
     setEntryItemId('');
+    setEntryAsyncOption(null);
     setEntryQty('1');
     setEntryUnitPrice('');
     setTimeout(() => {
@@ -398,6 +438,7 @@ export default function InvoiceForm({
   function handleResetNew() {
     setLines([]);
     setEntryItemId('');
+    setEntryAsyncOption(null);
     setEntryQty('1');
     setEntryUnitPrice('');
     setPaid('0.00');

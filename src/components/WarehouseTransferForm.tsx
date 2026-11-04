@@ -5,6 +5,7 @@ import { qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
 import SearchableSelect from './SearchableSelect';
+import { searchWarehouseItemsAsync, lookupBarcodeItem } from '../lib/masterDataQueries';
 import { toast } from './Toast';
 import type { ItemRow, StockOpeningRow, WarehouseOption, WarehouseTransferLine, WarehouseTransferRow } from '../lib/types';
 
@@ -448,6 +449,7 @@ export default function WarehouseTransferForm({
                     <SearchableSelect
                       inputRef={entryItemSearchRef}
                       value={entryItemId}
+                      selectedLabel={entrySelectedItem ? `${entrySelectedItem.code ? `${entrySelectedItem.code} — ` : ''}${entrySelectedItem.name}` : undefined}
                       options={selectableItems.map((entry) => {
                         const available = getAvailableStock(entry.id, sourceId);
                         const isOut = available <= 0;
@@ -456,9 +458,33 @@ export default function WarehouseTransferForm({
                           label: `${entry.code ? `${entry.code} — ` : ''}${entry.name} — متاح: ${formatQty(available)} ${entry.unit}${isOut ? ' (غير متوفر)' : ''}`,
                         };
                       })}
+                      loadOptions={async (query) => {
+                        if (selectableItems.length > 0 && selectableItems.length <= 50) {
+                          const q = query.trim().toLowerCase();
+                          return selectableItems
+                            .filter((entry) => !q || entry.name.toLowerCase().includes(q) || (entry.code && entry.code.toLowerCase().includes(q)))
+                            .map((entry) => {
+                              const available = getAvailableStock(entry.id, sourceId);
+                              const isOut = available <= 0;
+                              return {
+                                value: entry.id,
+                                label: `${entry.code ? `${entry.code} — ` : ''}${entry.name} — متاح: ${formatQty(available)} ${entry.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                              };
+                            });
+                        }
+                        return searchWarehouseItemsAsync(sourceId, query, true);
+                      }}
+                      onBarcodeScan={async (barcode) => {
+                        const found = await lookupBarcodeItem(barcode, sourceId, true);
+                        if (!found) {
+                          toast.warning(`لم يتم العثور على صنف بالباركود: ${barcode}`);
+                          return;
+                        }
+                        handleEntryItemSelect(found.value);
+                      }}
                       onChange={handleEntryItemSelect}
-                      placeholder="اختر صنفاً للتحويل…"
-                      searchPlaceholder="ابحث باسم أو كود الصنف…"
+                      placeholder="اختر صنفاً للتحويل أو امسح الباركود…"
+                      searchPlaceholder="ابحث باسم أو كود أو باركود الصنف…"
                       emptyMessage="لا توجد أصناف مطابقة"
                     />
                   </td>
