@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   X,
   Printer,
@@ -11,13 +11,11 @@ import {
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, formatDate, getBalanceStatus, money, today } from '../../lib/format';
-import { translateDbError } from '../../lib/errors';
+import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import DateInput from '../../components/DateInput';
 import SortableHeader from '../../components/SortableHeader';
 import { toast } from '../../components/Toast';
-import { matchesSearchQuery } from '../../lib/search';
-import { useMasterData } from '../../context/MasterDataContext';
 import type { AccountRow, AccountStatementRow } from '../../lib/types';
 
 type BalanceSort =
@@ -34,18 +32,45 @@ interface AccountBalancesTabProps {
   kind: 'customer' | 'supplier';
 }
 
+interface AccountBalancesSummary {
+  netBalance: number;
+  totalDebit: number;
+  totalCredit: number;
+  positiveCount: number;
+  count: number;
+}
+
 export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
   const isCustomer = kind === 'customer';
   const entityPrefix = isCustomer ? 'CUS' : 'SUP';
   const entityTitle = isCustomer ? 'عميل' : 'مورد';
   const entityPlural = isCustomer ? 'العملاء' : 'الموردين';
 
-  const { accounts, loading } = useMasterData();
+  const [accounts, setAccounts] = useState<AccountRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // الفلاتر
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
   const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [summary, setSummary] = useState<AccountBalancesSummary>({
+    netBalance: 0,
+    totalDebit: 0,
+    totalCredit: 0,
+    positiveCount: 0,
+    count: 0,
+  });
+
+  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // التحديد والتفاصيل
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
@@ -57,43 +82,108 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
   const [statementRows, setStatementRows] = useState<AccountStatementRow[]>([]);
   const [statementLoading, setStatementLoading] = useState(false);
 
-  const relevantAccounts = useMemo(() => {
-    return accounts.filter((a) => a.system_key === null && a.kind === kind);
-  }, [accounts, kind]);
+  // جلب الحسابات بالصفحات مع المؤشرات من السيرفر مباشرة
+  useEffect(() => {
+    let alive = true;
 
-  // تصفية وترتيب الحسابات
-  const filteredAccounts = useMemo(() => {
-    const list = relevantAccounts.filter((account) =>
-      matchesSearchQuery([account.name, account.phone, account.serial_number, account.notes], searchTerm),
-    );
+    async function load() {
+      setLoading(true);
+      const from = (page - 1) * PAGE_SIZE;
+      const to = page * PAGE_SIZE - 1;
+      const trimmed = debouncedSearch.trim();
 
-    return list.sort((firstAccount, secondAccount) => {
-      if (sortOrder === 'balance-desc') return Number(secondAccount.balance) - Number(firstAccount.balance);
-      if (sortOrder === 'balance-asc') return Number(firstAccount.balance) - Number(secondAccount.balance);
-      if (sortOrder === 'serial-desc') return (secondAccount.serial_number ?? 0) - (firstAccount.serial_number ?? 0);
-      if (sortOrder === 'serial-asc') return (firstAccount.serial_number ?? 0) - (secondAccount.serial_number ?? 0);
-      if (sortOrder === 'name-desc') return secondAccount.name.localeCompare(firstAccount.name, 'ar');
-      return firstAccount.name.localeCompare(secondAccount.name, 'ar');
-    });
-  }, [relevantAccounts, searchTerm, sortOrder]);
+      try {
+        let query = supabase
+          .from('v_account_balances')
+          .select('*', { count: 'exact' })
+          .eq('kind', kind)
+          .is('system_key', null);
 
-  const totalCount = filteredAccounts.length;
+        if (trimmed) {
+          query = query.or(
+            `name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%,serial_number.ilike.%${trimmed}%,notes.ilike.%${trimmed}%`,
+          );
+        }
+
+        if (sortOrder === 'balance-desc') {
+          query = query.order('balance', { ascending: false }).order('name', { ascending: true });
+        } else if (sortOrder === 'balance-asc') {
+          query = query.order('balance', { ascending: true }).order('name', { ascending: true });
+        } else if (sortOrder === 'serial-desc') {
+          query = query.order('serial_number', { ascending: false });
+        } else if (sortOrder === 'serial-asc') {
+          query = query.order('serial_number', { ascending: true });
+        } else if (sortOrder === 'name-desc') {
+          query = query.order('name', { ascending: false });
+        } else {
+          query = query.order('name', { ascending: true });
+        }
+
+        query = query.range(from, to);
+
+        const [dataRes, kpiRes] = await Promise.all([
+          query,
+          supabase.rpc('get_account_balances_kpis', {
+            p_kind: kind,
+            p_search: trimmed || null,
+          }),
+        ]);
+
+        if (!alive) return;
+        if (dataRes.error) throw dataRes.error;
+
+        setAccounts((dataRes.data ?? []) as AccountRow[]);
+        setTotalCount(dataRes.count ?? 0);
+
+        if (kpiRes.data) {
+          const raw = kpiRes.data as {
+            net_balance?: number;
+            total_debit?: number;
+            total_credit?: number;
+            positive_count?: number;
+            count?: number;
+          };
+          setSummary({
+            netBalance: Number(raw.net_balance || 0),
+            totalDebit: Number(raw.total_debit || 0),
+            totalCredit: Number(raw.total_credit || 0),
+            positiveCount: Number(raw.positive_count || 0),
+            count: Number(raw.count || 0),
+          });
+        }
+      } catch (err: unknown) {
+        if (!alive) return;
+        toast.error(errorMessage(err));
+      } finally {
+        if (!alive) return;
+        setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      alive = false;
+    };
+  }, [kind, page, debouncedSearch, sortOrder]);
+
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const pagedAccounts = filteredAccounts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pagedAccounts = accounts;
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, sortOrder]);
+
+  useEffect(() => {
+    if (page > pageCount && pageCount > 0) setPage(pageCount);
+  }, [page, pageCount]);
 
   // شريط المؤشرات
   const kpiItems = useMemo<KpiItem[]>(() => {
     if (isCustomer) {
-      const netBalance = filteredAccounts.reduce((sum, c) => sum + Number(c.balance || 0), 0);
-      const totalDebit = filteredAccounts.reduce(
-        (sum, c) => (Number(c.balance) > 0 ? sum + Number(c.balance) : sum),
-        0,
-      );
-      const totalCredit = filteredAccounts.reduce(
-        (sum, c) => (Number(c.balance) < 0 ? sum + Math.abs(Number(c.balance)) : sum),
-        0,
-      );
-      const debtorCount = filteredAccounts.filter((c) => Number(c.balance) > 0).length;
+      const netBalance = summary.netBalance;
+      const totalDebit = summary.totalDebit;
+      const totalCredit = summary.totalCredit;
+      const debtorCount = summary.positiveCount;
 
       return [
         {
@@ -103,6 +193,15 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
           unit: 'ج.م',
           variant: netBalance > 0 ? 'primary' : 'neutral',
           icon: Users,
+          subtext: (
+            <span>
+              {netBalance > 0
+                ? 'إجمالي مستحق لنا طرف العملاء'
+                : netBalance < 0
+                ? 'إجمالي دفعات مقدمة من العملاء'
+                : 'الأرصدة متزنة'}
+            </span>
+          ),
         },
         {
           id: 'cus-debit',
@@ -111,6 +210,11 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
           unit: 'ج.م',
           variant: totalDebit > 0 ? 'warning' : 'neutral',
           icon: AlertCircle,
+          subtext: (
+            <span>
+              لدى <bdi dir="ltr">{debtorCount}</bdi> عميل مدين
+            </span>
+          ),
         },
         {
           id: 'cus-credit',
@@ -121,77 +225,85 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
           icon: Wallet,
         },
         {
-          id: 'cus-debtors-count',
-          label: 'عملاء عليهم مديونية',
-          value: debtorCount,
+          id: 'cus-count',
+          label: 'إجمالي العملاء المسجلين',
+          value: summary.count,
           unit: 'عميل',
-          variant: debtorCount > 0 ? 'danger' : 'neutral',
+          variant: 'neutral',
           icon: UserCheck,
-          subtext: `من إجمالي ${filteredAccounts.length} عميل معروض`,
+          subtext: `منهم ${debtorCount} عليهم مديونية`,
         },
       ];
     }
 
-    const netBalance = filteredAccounts.reduce((sum, s) => sum + Number(s.balance || 0), 0);
-    const totalPayable = filteredAccounts.reduce(
-      (sum, s) => (Number(s.balance) > 0 ? sum + Number(s.balance) : sum),
-      0,
-    );
-    const totalAdvance = filteredAccounts.reduce(
-      (sum, s) => (Number(s.balance) < 0 ? sum + Math.abs(Number(s.balance)) : sum),
-      0,
-    );
-    const creditorCount = filteredAccounts.filter((s) => Number(s.balance) > 0).length;
+    const netBalance = summary.netBalance;
+    const totalPayable = summary.totalDebit;
+    const totalAdvance = summary.totalCredit;
+    const creditorCount = summary.positiveCount;
 
     return [
       {
         id: 'sup-net',
-        label: 'صافي مستحقات الموردين',
+        label: 'صافي رصيد الموردين',
         value: money(netBalance),
         unit: 'ج.م',
         variant: netBalance > 0 ? 'danger' : 'neutral',
         icon: ShoppingBag,
+        subtext: (
+          <span>
+            {netBalance > 0
+              ? 'إجمالي مستحق للموردين طرفنا'
+              : netBalance < 0
+              ? 'إجمالي دفعات مقدمة للموردين'
+              : 'الأرصدة متزنة'}
+          </span>
+        ),
       },
       {
         id: 'sup-payable',
-        label: 'مستحق للموردين (علينا)',
+        label: 'مستحقات للموردين (دائن)',
         value: money(totalPayable),
         unit: 'ج.م',
         variant: totalPayable > 0 ? 'danger' : 'neutral',
         icon: AlertCircle,
+        subtext: (
+          <span>
+            مستحقة لـ <bdi dir="ltr">{creditorCount}</bdi> مورد
+          </span>
+        ),
       },
       {
         id: 'sup-advance',
-        label: 'مدفوع مقدمًا (لنا)',
+        label: 'دفعات مقدمة للموردين (مدين)',
         value: money(totalAdvance),
         unit: 'ج.م',
         variant: totalAdvance > 0 ? 'info' : 'neutral',
         icon: Wallet,
       },
       {
-        id: 'sup-creditor-count',
-        label: 'موردون يطالبون بمستحقات',
-        value: creditorCount,
+        id: 'sup-count',
+        label: 'إجمالي الموردين المسجلين',
+        value: summary.count,
         unit: 'مورد',
-        variant: creditorCount > 0 ? 'warning' : 'neutral',
-        icon: Users,
-        subtext: `من إجمالي ${filteredAccounts.length} مورد معروض`,
+        variant: 'neutral',
+        icon: UserCheck,
+        subtext: `منهم ${creditorCount} لهم مستحقات`,
       },
     ];
-  }, [filteredAccounts, isCustomer]);
+  }, [summary, isCustomer]);
 
   function openStatement(account: AccountRow) {
     setStatementAccount(account);
+    setStatementRows([]);
     setStatementFrom(`${today().slice(0, 7)}-01`);
     setStatementTo(today());
-    setStatementRows([]);
   }
 
-  async function loadStatement(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!statementAccount) return;
-    setStatementLoading(true);
+  async function loadStatement(event?: FormEvent) {
+    if (event) event.preventDefault();
+    if (!statementAccount || !statementFrom || !statementTo) return;
 
+    setStatementLoading(true);
     const { data, error: rpcError } = await supabase.rpc('get_account_statement', {
       p_account_id: statementAccount.id,
       p_from: statementFrom,
@@ -220,11 +332,8 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                 <input
                   type="search"
                   value={searchTerm}
-                  onChange={(event) => {
-                    setSearchTerm(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم…`}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم أو الملاحظات…`}
                 />
               </label>
             </div>

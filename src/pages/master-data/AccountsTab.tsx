@@ -15,7 +15,6 @@ import { entityNumber } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import SearchableSelect from '../../components/SearchableSelect';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
 import StatusBadge from '../../components/StatusBadge';
@@ -23,7 +22,6 @@ import { toast } from '../../components/Toast';
 import type { AccountKind, AccountRow } from '../../lib/types';
 import { useAccess } from '../../lib/access';
 import { useConfirmDialog } from '../../lib/useConfirmDialog';
-import { matchesSearchQuery } from '../../lib/search';
 import { useMasterData } from '../../context/MasterDataContext';
 
 type AccountSort = 'name-asc' | 'name-desc' | 'serial-desc' | 'serial-asc';
@@ -33,6 +31,13 @@ const PAGE_SIZE = 20;
 interface AccountsTabProps {
   kind: 'customer' | 'supplier';
   addTrigger: number;
+}
+
+interface MasterAccountsSummary {
+  totalCount: number;
+  activeCount: number;
+  inactiveCount: number;
+  withOpeningCount: number;
 }
 
 export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
@@ -52,9 +57,26 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
 
   // الفلاتر
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<AccountSort>('name-asc');
   const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [summary, setSummary] = useState<MasterAccountsSummary>({
+    totalCount: 0,
+    activeCount: 0,
+    inactiveCount: 0,
+    withOpeningCount: 0,
+  });
+
+  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // التحديد والتفاصيل
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
@@ -76,32 +98,81 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
     }
   }, [addTrigger]);
 
-  // جلب الحسابات
+  // جلب الحسابات بالصفحات مع المؤشرات من السيرفر مباشرة
   useEffect(() => {
     let alive = true;
 
     async function load() {
       setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('accounts')
-          .select('*')
-          .eq('kind', kind)
-          .is('system_key', null)
-          .order('name');
+      const from = (page - 1) * PAGE_SIZE;
+      const to = page * PAGE_SIZE - 1;
+      const trimmed = debouncedSearch.trim();
 
-        if (!alive) return;
-        if (error) {
-          toast.error(translateDbError(error.message));
-          setLoading(false);
-          return;
+      try {
+        let query = supabase
+          .from('accounts')
+          .select('*', { count: 'exact' })
+          .eq('kind', kind)
+          .is('system_key', null);
+
+        if (statusFilter === 'active') {
+          query = query.eq('is_active', true);
+        } else if (statusFilter === 'inactive') {
+          query = query.eq('is_active', false);
         }
 
-        setAccounts((data ?? []) as AccountRow[]);
-        setLoading(false);
+        if (trimmed) {
+          query = query.or(
+            `name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%,serial_number.ilike.%${trimmed}%,notes.ilike.%${trimmed}%`,
+          );
+        }
+
+        if (sortOrder === 'serial-desc') {
+          query = query.order('serial_number', { ascending: false });
+        } else if (sortOrder === 'serial-asc') {
+          query = query.order('serial_number', { ascending: true });
+        } else if (sortOrder === 'name-desc') {
+          query = query.order('name', { ascending: false });
+        } else {
+          query = query.order('name', { ascending: true });
+        }
+
+        query = query.range(from, to);
+
+        const [dataRes, kpiRes] = await Promise.all([
+          query,
+          supabase.rpc('get_master_accounts_kpis', {
+            p_kind: kind,
+            p_search: trimmed || null,
+            p_status: statusFilter,
+          }),
+        ]);
+
+        if (!alive) return;
+        if (dataRes.error) throw dataRes.error;
+
+        setAccounts((dataRes.data ?? []) as AccountRow[]);
+        setTotalCount(dataRes.count ?? 0);
+
+        if (kpiRes.data) {
+          const raw = kpiRes.data as {
+            total_count?: number;
+            active_count?: number;
+            inactive_count?: number;
+            with_opening_count?: number;
+          };
+          setSummary({
+            totalCount: Number(raw.total_count || 0),
+            activeCount: Number(raw.active_count || 0),
+            inactiveCount: Number(raw.inactive_count || 0),
+            withOpeningCount: Number(raw.with_opening_count || 0),
+          });
+        }
       } catch (err: unknown) {
         if (!alive) return;
         toast.error(errorMessage(err));
+      } finally {
+        if (!alive) return;
         setLoading(false);
       }
     }
@@ -110,52 +181,27 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
     return () => {
       alive = false;
     };
-  }, [kind, version]);
+  }, [kind, version, page, debouncedSearch, statusFilter, sortOrder]);
 
-  // تصفية وترتيب الحسابات
-  const filteredAccounts = useMemo(() => {
-    const list = accounts.filter((account) => {
-      const matchStatus =
-        statusFilter === 'all' || (statusFilter === 'active' ? account.is_active : !account.is_active);
-      const matchQuery = matchesSearchQuery(
-        [account.name, account.phone, account.serial_number, account.notes],
-        searchTerm,
-      );
-      return matchStatus && matchQuery;
-    });
-
-    return list.sort((firstAccount, secondAccount) => {
-      if (sortOrder === 'serial-desc') return (secondAccount.serial_number ?? 0) - (firstAccount.serial_number ?? 0);
-      if (sortOrder === 'serial-asc') return (firstAccount.serial_number ?? 0) - (secondAccount.serial_number ?? 0);
-      if (sortOrder === 'name-desc') return secondAccount.name.localeCompare(firstAccount.name, 'ar');
-      return firstAccount.name.localeCompare(secondAccount.name, 'ar');
-    });
-  }, [accounts, searchTerm, statusFilter, sortOrder]);
-
-  const totalCount = filteredAccounts.length;
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const pagedAccounts = filteredAccounts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pagedAccounts = accounts;
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, sortOrder]);
+  }, [debouncedSearch, statusFilter, sortOrder]);
 
   useEffect(() => {
-    if (page > pageCount) setPage(pageCount);
+    if (page > pageCount && pageCount > 0) setPage(pageCount);
   }, [page, pageCount]);
 
   // شريط المؤشرات
   const kpiItems = useMemo<KpiItem[]>(() => {
-    const activeCount = filteredAccounts.filter((a) => a.is_active).length;
-    const inactiveCount = filteredAccounts.filter((a) => !a.is_active).length;
-    const withOpening = filteredAccounts.filter((a) => Number(a.opening_balance) !== 0).length;
-
     if (isCustomer) {
       return [
         {
           id: 'data-cus-total',
           label: 'إجمالي العملاء',
-          value: filteredAccounts.length,
+          value: summary.totalCount,
           unit: 'عميل',
           variant: 'primary',
           icon: Users,
@@ -163,7 +209,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
         {
           id: 'data-cus-active',
           label: 'العملاء النشطون',
-          value: activeCount,
+          value: summary.activeCount,
           unit: 'عميل',
           variant: 'success',
           icon: UserCheck,
@@ -171,15 +217,15 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
         {
           id: 'data-cus-inactive',
           label: 'العملاء المعطلون',
-          value: inactiveCount,
+          value: summary.inactiveCount,
           unit: 'عميل',
-          variant: inactiveCount > 0 ? 'warning' : 'neutral',
+          variant: summary.inactiveCount > 0 ? 'warning' : 'neutral',
           icon: UserX,
         },
         {
           id: 'data-cus-opening',
           label: 'برصيد افتتاحي',
-          value: withOpening,
+          value: summary.withOpeningCount,
           unit: 'عميل',
           variant: 'info',
           icon: Wallet,
@@ -191,7 +237,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
       {
         id: 'data-sup-total',
         label: 'إجمالي الموردين',
-        value: filteredAccounts.length,
+        value: summary.totalCount,
         unit: 'مورد',
         variant: 'primary',
         icon: ShoppingBag,
@@ -199,7 +245,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
       {
         id: 'data-sup-active',
         label: 'الموردون النشطون',
-        value: activeCount,
+        value: summary.activeCount,
         unit: 'مورد',
         variant: 'success',
         icon: CheckCircle2,
@@ -207,21 +253,21 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
       {
         id: 'data-sup-inactive',
         label: 'الموردون المعطلون',
-        value: inactiveCount,
+        value: summary.inactiveCount,
         unit: 'مورد',
-        variant: inactiveCount > 0 ? 'warning' : 'neutral',
+        variant: summary.inactiveCount > 0 ? 'warning' : 'neutral',
         icon: AlertCircle,
       },
       {
         id: 'data-sup-opening',
         label: 'برصيد افتتاحي',
-        value: withOpening,
+        value: summary.withOpeningCount,
         unit: 'مورد',
         variant: 'info',
         icon: Wallet,
       },
     ];
-  }, [filteredAccounts, isCustomer]);
+  }, [summary, isCustomer]);
 
   function startAdd() {
     setEditingAccount(null);
@@ -299,23 +345,50 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
     void refresh(['accounts']);
   }
 
-  async function removeAccount(account: AccountRow) {
-    if (
-      !(await askConfirmation(
-        `حذف ${entityTitle} «${account.name}»؟ لن يُحذف إذا كانت له حركات سابقة.`,
-        'حذف',
-      ))
-    )
-      return;
+  async function toggleActive(account: AccountRow) {
+    const nextState = !account.is_active;
+    const actionLabel = nextState ? 'تنشيط' : 'إيقاف';
+    const confirmed = await askConfirmation(
+      `هل تريد ${actionLabel} ${entityTitle} «${account.name}»؟`,
+      actionLabel,
+    );
+    if (!confirmed) return;
 
-    const { error: deleteError } = await supabase.rpc('delete_account', { p_account_id: account.id });
-    if (deleteError) {
-      toast.error(translateDbError(deleteError.message));
+    const { error: updateError } = await supabase
+      .from('accounts')
+      .update({ is_active: nextState })
+      .eq('id', account.id);
+
+    if (updateError) {
+      toast.error(translateDbError(updateError.message));
       return;
     }
 
-    toast.success(`تم حذف ${entityTitle} «${account.name}»`);
-    setSelectedAccount(null);
+    toast.success(`تم ${actionLabel} ${entityTitle} «${account.name}» بنجاح`);
+    setVersion((v) => v + 1);
+    void refresh(['accounts']);
+  }
+
+  async function removeAccount(account: AccountRow) {
+    const confirmed = await askConfirmation(
+      `هل تريد حذف ${entityTitle} «${account.name}» نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`,
+      'حذف نهائي',
+    );
+    if (!confirmed) return;
+
+    const { error: rpcError } = await supabase.rpc('delete_account', {
+      p_account_id: account.id,
+    });
+
+    if (rpcError) {
+      toast.error(translateDbError(rpcError.message));
+      return;
+    }
+
+    toast.success(`تم حذف ${entityTitle} «${account.name}» نهائياً`);
+    if (selectedAccount?.id === account.id) {
+      setSelectedAccount(null);
+    }
     setVersion((v) => v + 1);
     void refresh(['accounts']);
   }
@@ -334,20 +407,33 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
                   type="search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم…`}
+                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم أو الملاحظات…`}
                 />
               </label>
 
-              <SearchableSelect
-                ariaLabel="تصفية الحالة"
-                value={statusFilter}
-                options={[
-                  { value: 'all', label: 'كل الحالات' },
-                  { value: 'active', label: 'النشطة فقط' },
-                  { value: 'inactive', label: 'الموقوفة فقط' },
-                ]}
-                onChange={(val) => setStatusFilter(val as StatusFilter)}
-              />
+              <div className="erp-filter-group">
+                <button
+                  type="button"
+                  className={statusFilter === 'all' ? 'active' : ''}
+                  onClick={() => setStatusFilter('all')}
+                >
+                  الكل
+                </button>
+                <button
+                  type="button"
+                  className={statusFilter === 'active' ? 'active' : ''}
+                  onClick={() => setStatusFilter('active')}
+                >
+                  النشطون
+                </button>
+                <button
+                  type="button"
+                  className={statusFilter === 'inactive' ? 'active' : ''}
+                  onClick={() => setStatusFilter('inactive')}
+                >
+                  المعطلون
+                </button>
+              </div>
             </div>
           </div>
 
@@ -362,15 +448,15 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
                     onSort={(s) => setSortOrder(s as AccountSort)}
                   />
                   <SortableHeader
-                    label="الاسم"
+                    label={isCustomer ? 'العميل' : 'المورد'}
                     field="name"
                     currentSort={sortOrder}
                     onSort={(s) => setSortOrder(s as AccountSort)}
                     defaultDirection="asc"
                   />
                   <th className="col-hide-on-detail">الهاتف</th>
-                  <th className="col-hide-on-detail">ملاحظات</th>
-                  <th>الحالة</th>
+                  <th className="col-hide-on-detail">الحالة</th>
+                  <th className="col-hide-on-detail">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
               </thead>
@@ -385,7 +471,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
                 {!loading && pagedAccounts.length === 0 && (
                   <tr>
                     <td colSpan={6} className="empty">
-                      لا يوجد {entityPlural} يطابقون البحث.
+                      لا يوجد {entityPlural} يطابقون البحث أو الفلاتر.
                     </td>
                   </tr>
                 )}
@@ -407,13 +493,13 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
                       >
                         <td className="num strong">{entityNumber(entityPrefix, account.serial_number)}</td>
                         <td className="strong">{account.name}</td>
-                        <td className="num muted col-hide-on-detail">{account.phone ?? '—'}</td>
-                        <td className="muted col-hide-on-detail">{account.notes || '—'}</td>
-                        <td>
+                        <td className="num col-hide-on-detail">{account.phone || '—'}</td>
+                        <td className="col-hide-on-detail">
                           <StatusBadge variant={account.is_active ? 'paid' : 'unpaid'}>
                             {account.is_active ? 'نشط' : 'موقوف'}
                           </StatusBadge>
                         </td>
+                        <td className="muted col-hide-on-detail">{account.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <RowActions
                             onEdit={can(`${permissionPrefix}.edit`) ? () => startEdit(account) : undefined}
@@ -456,7 +542,10 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
         </section>
 
         {/* لوحة التفاصيل الجانبية */}
-        <aside className={selectedAccount ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل السجل">
+        <aside
+          className={selectedAccount ? 'erp-detail-panel open' : 'erp-detail-panel'}
+          aria-label="تفاصيل الحساب"
+        >
           {selectedAccount ? (
             <>
               <div className="erp-detail-head">
@@ -476,16 +565,20 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
 
               <dl className="erp-detail-summary">
                 <div>
-                  <dt>الرقم</dt>
+                  <dt>الرقم التسلسلي</dt>
                   <dd className="num">{entityNumber(entityPrefix, selectedAccount.serial_number)}</dd>
                 </div>
                 <div>
-                  <dt>الهاتف</dt>
+                  <dt>رقم الهاتف</dt>
                   <dd className="num">{selectedAccount.phone || '—'}</dd>
                 </div>
                 <div>
                   <dt>الحالة</dt>
-                  <dd>{selectedAccount.is_active ? 'نشط' : 'موقوف'}</dd>
+                  <dd>
+                    <StatusBadge variant={selectedAccount.is_active ? 'paid' : 'unpaid'}>
+                      {selectedAccount.is_active ? 'نشط' : 'موقوف'}
+                    </StatusBadge>
+                  </dd>
                 </div>
               </dl>
 
@@ -498,120 +591,123 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
 
               <div className="erp-detail-actions">
                 {can(`${permissionPrefix}.edit`) && (
-                  <button type="button" className="btn" onClick={() => startEdit(selectedAccount)}>
+                  <button
+                    type="button"
+                    className="btn outline"
+                    onClick={() => startEdit(selectedAccount)}
+                  >
                     تعديل البيانات
                   </button>
                 )}
-                {can(`${permissionPrefix}.delete`) && (
-                  <button type="button" className="btn danger" onClick={() => void removeAccount(selectedAccount)}>
-                    حذف
+                {can(`${permissionPrefix}.edit`) && (
+                  <button
+                    type="button"
+                    className="btn outline"
+                    onClick={() => void toggleActive(selectedAccount)}
+                  >
+                    {selectedAccount.is_active ? 'تعطيل الحساب' : 'تنشيط الحساب'}
                   </button>
                 )}
               </div>
             </>
           ) : (
             <div className="erp-detail-empty">
-              <strong>اختر {entityTitle}</strong>
-              <span>ستظهر تفاصيل الحساب هنا مع خيارات التعديل السريع.</span>
+              <strong>اختر حسابًا</strong>
+              <span>ستظهر التفاصيل والإجراءات الخاصة بـ{entityTitle} هنا.</span>
             </div>
           )}
         </aside>
       </div>
 
-      {/* مودال الإضافة والتعديل */}
+      {/* نافذة الإضافة والتعديل */}
       {isModalOpen && (
         <Modal
-          title={editingAccount ? `تعديل ${entityTitle}` : `إضافة ${entityTitle}`}
-          className="master-data-modal"
-          backdropClassName="master-data-backdrop"
+          title={editingAccount ? `تعديل بيانات ${entityTitle}` : `إضافة ${entityTitle} جديد`}
           onClose={cancelEdit}
         >
-          <form className="stack" onSubmit={saveAccount}>
-            <div className="account-header-card">
-              <div className="form-grid">
-                <label>
-                  الاسم
+          <form onSubmit={saveAccount} className="stack">
+            <label>
+              <span>الاسم *</span>
+              <input
+                type="text"
+                required
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+                placeholder={`اسم ${entityTitle}`}
+                autoFocus
+              />
+            </label>
+
+            {!editingAccount && (
+              <div className="form-row">
+                <label style={{ flex: 1 }}>
+                  <span>الرصيد الافتتاحي</span>
                   <input
-                    type="text"
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value)}
-                    required
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={accountOpeningBalance}
+                    onChange={(e) => setAccountOpeningBalance(e.target.value)}
                   />
                 </label>
-
-                <label>
-                  الهاتف
-                  <input
-                    type="text"
-                    value={accountPhone}
-                    onChange={(e) => setAccountPhone(e.target.value)}
-                    placeholder="اختياري"
-                  />
+                <label style={{ width: '120px' }}>
+                  <span>نوع الرصيد</span>
+                  <select
+                    value={accountOpeningType}
+                    onChange={(e) => setAccountOpeningType(e.target.value as 'debit' | 'credit')}
+                  >
+                    {isCustomer ? (
+                      <>
+                        <option value="debit">مدين (لنا)</option>
+                        <option value="credit">دائن (علينا)</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="credit">دائن (له)</option>
+                        <option value="debit">مدين (لنا)</option>
+                      </>
+                    )}
+                  </select>
                 </label>
-
-                {!editingAccount && (
-                  <label className="span-2">
-                    <span>الرصيد الافتتاحي</span>
-                    <div className="opening-balance-input-wrap">
-                      <input
-                        type="number"
-                        step="0.0001"
-                        min="0"
-                        className="num no-spinner"
-                        dir="ltr"
-                        value={accountOpeningBalance}
-                        onChange={(e) => setAccountOpeningBalance(e.target.value)}
-                        placeholder="0.00"
-                      />
-                      <div className="opening-type-toggle">
-                        <button
-                          type="button"
-                          className={`btn-toggle-badge ${accountOpeningType === 'debit' ? 'active-debit' : ''}`}
-                          onClick={() => setAccountOpeningType('debit')}
-                        >
-                          {isCustomer ? 'عليه (مستحق على العميل)' : 'عليه (مقدم طرف المورد)'}
-                        </button>
-                        <button
-                          type="button"
-                          className={`btn-toggle-badge ${accountOpeningType === 'credit' ? 'active-credit' : ''}`}
-                          onClick={() => setAccountOpeningType('credit')}
-                        >
-                          {isCustomer ? 'له (رصيد لصالحه)' : 'له (مستحق للمورد)'}
-                        </button>
-                      </div>
-                    </div>
-                  </label>
-                )}
-
-                <label className="span-2">
-                  ملاحظات
-                  <input
-                    type="text"
-                    value={accountNotes}
-                    onChange={(e) => setAccountNotes(e.target.value)}
-                    placeholder="اختياري"
-                  />
-                </label>
-
-                {editingAccount && (
-                  <label className="checkbox span-2">
-                    <input
-                      type="checkbox"
-                      checked={accountActive}
-                      onChange={(e) => setAccountActive(e.target.checked)}
-                    />
-                    حساب نشط (يمكن استخدامه في الفواتير والإيصالات)
-                  </label>
-                )}
               </div>
-            </div>
+            )}
 
-            <div className="form-modal-actions">
-              <button type="submit" className="btn primary">
-                {editingAccount ? 'حفظ التعديلات' : `إضافة ${entityTitle}`}
-              </button>
-              <button type="button" className="btn" onClick={cancelEdit}>
+            <label>
+              <span>رقم الهاتف</span>
+              <input
+                type="tel"
+                value={accountPhone}
+                onChange={(e) => setAccountPhone(e.target.value)}
+                placeholder="01xxxxxxxxx"
+                dir="ltr"
+              />
+            </label>
+
+            <label>
+              <span>ملاحظات</span>
+              <textarea
+                value={accountNotes}
+                onChange={(e) => setAccountNotes(e.target.value)}
+                placeholder="أي ملاحظات إضافية عن الحساب…"
+                rows={3}
+              />
+            </label>
+
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={accountActive}
+                onChange={(e) => setAccountActive(e.target.checked)}
+              />
+              <span>الحساب نشط</span>
+            </label>
+
+            <div className="actions">
+              <button type="button" className="btn outline" onClick={cancelEdit}>
                 إلغاء
+              </button>
+              <button type="submit" className="btn primary">
+                {editingAccount ? 'حفظ التعديلات' : 'إضافة'}
               </button>
             </div>
           </form>
@@ -623,7 +719,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
           title={confirmation.title}
           message={confirmation.message}
           confirmLabel={confirmation.confirmLabel}
-          danger
+          danger={confirmation.confirmLabel === 'حذف نهائي' || confirmation.confirmLabel === 'إيقاف'}
           onConfirm={() => finishConfirmation(true)}
           onCancel={() => finishConfirmation(false)}
         />
