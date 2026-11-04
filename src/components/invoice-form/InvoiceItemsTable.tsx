@@ -1,0 +1,330 @@
+import { type RefObject } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+import { money, qty as formatQty, round2 } from '../../lib/format';
+import SearchableSelect from '../SearchableSelect';
+import { toast } from '../Toast';
+import type { InvoiceKind, ItemRow, LineDraft } from '../../lib/types';
+
+interface InvoiceItemsTableProps {
+  isReadOnly: boolean;
+  isWaste: boolean;
+  kind: InvoiceKind;
+  warehouseId: string;
+  items: ItemRow[];
+  lines: LineDraft[];
+  onUpdateLine: (key: string, patch: Partial<LineDraft>) => void;
+  onRemoveLine: (key: string) => void;
+  entryItemId: string;
+  entryQty: string;
+  entryUnitPrice: string;
+  entrySelectedItem?: ItemRow;
+  entryLineTotal: number;
+  entryItemSearchRef: RefObject<HTMLInputElement>;
+  entryQtyInputRef: RefObject<HTMLInputElement>;
+  entryPriceInputRef: RefObject<HTMLInputElement>;
+  onEntryItemSelect: (id: string) => void;
+  onEntryQtyChange: (val: string) => void;
+  onEntryQtyBlur: () => void;
+  onEntryPriceChange: (val: string) => void;
+  onInsertLine: () => void;
+  getItemAvailableStock: (itemId: string, targetWarehouseId?: string) => number;
+}
+
+export default function InvoiceItemsTable({
+  isReadOnly,
+  isWaste,
+  kind,
+  warehouseId,
+  items,
+  lines,
+  onUpdateLine,
+  onRemoveLine,
+  entryItemId,
+  entryQty,
+  entryUnitPrice,
+  entrySelectedItem,
+  entryLineTotal,
+  entryItemSearchRef,
+  entryQtyInputRef,
+  entryPriceInputRef,
+  onEntryItemSelect,
+  onEntryQtyChange,
+  onEntryQtyBlur,
+  onEntryPriceChange,
+  onInsertLine,
+  getItemAvailableStock,
+}: InvoiceItemsTableProps) {
+  return (
+    <div className="right-card items-table-card">
+      <div className="lines-wrap">
+        <table className="lines-table">
+          <thead>
+            <tr>
+              <th className="w-num center">#</th>
+              <th>الصنف</th>
+              <th className="w-qty">الكمية</th>
+              <th className="w-price">{isWaste ? 'سعر البيع' : 'السعر'}</th>
+              <th className="w-total">الإجمالي</th>
+              {!isReadOnly && <th className="w-action center">إجراء</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {/* شريط الإدخال الثابت أعلى الجدول */}
+            {!isReadOnly && (
+              <tr className="entry-line-row">
+                <td className="w-num center line-index-cell" data-label="#">
+                  <span className="entry-badge" title="سطر إدخال صنف جديد">
+                    +
+                  </span>
+                </td>
+                <td data-label="الصنف">
+                  <SearchableSelect
+                    inputRef={entryItemSearchRef}
+                    value={entryItemId}
+                    options={items.map((item) => {
+                      const stock = getItemAvailableStock(item.id, warehouseId);
+                      const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                      const isOut = isStockLimited && Number(stock) <= 0;
+                      return {
+                        value: item.id,
+                        label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                      };
+                    })}
+                    onChange={onEntryItemSelect}
+                    placeholder="اختر صنفاً للإدراج…"
+                    searchPlaceholder="ابحث باسم أو كود الصنف…"
+                    emptyMessage="لا توجد أصناف مطابقة"
+                  />
+                </td>
+                <td data-label={entrySelectedItem ? `الكمية (${entrySelectedItem.unit})` : 'الكمية'}>
+                  <div className="line-qty-group">
+                    <input
+                      ref={entryQtyInputRef}
+                      aria-label={`كمية الصنف${entrySelectedItem ? ` — ${entrySelectedItem.name} (${entrySelectedItem.unit})` : ''}`}
+                      type="number"
+                      inputMode="decimal"
+                      min="0.0001"
+                      step="0.0001"
+                      dir="ltr"
+                      value={entryQty}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => onEntryQtyChange(e.target.value)}
+                      onBlur={onEntryQtyBlur}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          entryPriceInputRef.current?.focus();
+                          entryPriceInputRef.current?.select();
+                        }
+                      }}
+                      className="no-spinner num"
+                    />
+                    <span className="line-unit-suffix">
+                      {entrySelectedItem ? entrySelectedItem.unit : 'قطعة'}
+                    </span>
+                  </div>
+                </td>
+                <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
+                  <input
+                    ref={entryPriceInputRef}
+                    aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    dir="ltr"
+                    placeholder="0.00"
+                    value={entryUnitPrice}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => onEntryPriceChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        onInsertLine();
+                      }
+                    }}
+                    disabled={isWaste}
+                    className="no-spinner num"
+                  />
+                </td>
+                <td className="line-total" data-label="الإجمالي">
+                  <span dir="ltr" className="num">
+                    {money(entryLineTotal)}
+                  </span>
+                </td>
+                <td className="center" data-label="إجراء">
+                  <button
+                    type="button"
+                    className="btn-insert-line"
+                    onClick={onInsertLine}
+                    disabled={!entryItemId}
+                    title="إدراج الصنف في الفاتورة"
+                  >
+                    <Plus size={15} />
+                    <span>إدراج</span>
+                  </button>
+                </td>
+              </tr>
+            )}
+
+            {/* قائمة الأصناف المدرجة أسفل شريط الإدخال */}
+            {lines.length === 0 ? (
+              <tr className="empty-lines-placeholder-row">
+                <td colSpan={isReadOnly ? 5 : 6}>
+                  {isReadOnly
+                    ? 'لا توجد بنود في هذه الفاتورة.'
+                    : 'لم يتم إدراج أصناف بعد. اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.'}
+                </td>
+              </tr>
+            ) : (
+              lines.map((line, index) => {
+                const selectedItem = items.find((item) => item.id === line.item_id);
+                const lineTotal = round2(Number(line.qty || 0) * Number(line.unit_price || 0));
+
+                const availableStock = getItemAvailableStock(line.item_id, warehouseId);
+                const isStockExceeded =
+                  Boolean(line.item_id) &&
+                  (kind === 'sale' || kind === 'waste' || kind === 'purchase_return') &&
+                  Number(line.qty) > availableStock;
+
+                return (
+                  <tr key={line.key} className="inserted-line-row">
+                    <td className="w-num center line-index-cell" data-label="#">
+                      {index + 1}
+                    </td>
+                    <td data-label="الصنف">
+                      <div className="inserted-item-info">
+                        <span className="item-name">{selectedItem?.name ?? '—'}</span>
+                        {selectedItem?.code && (
+                          <span className="item-code-tag">{selectedItem.code}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td data-label={selectedItem ? `الكمية (${selectedItem.unit})` : 'الكمية'}>
+                      {isReadOnly ? (
+                        <div className="readonly-line-qty-box">
+                          <bdi className="num" dir="ltr">
+                            {formatQty(line.qty)}
+                          </bdi>
+                          <span className="readonly-unit-text">
+                            {selectedItem ? selectedItem.unit : 'قطعة'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="line-qty-group">
+                          <input
+                            aria-label={`الكمية — ${selectedItem?.name ?? ''} (${selectedItem?.unit ?? 'قطعة'})`}
+                            type="number"
+                            inputMode="decimal"
+                            min="0.0001"
+                            step="0.0001"
+                            dir="ltr"
+                            value={line.qty}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '') {
+                                onUpdateLine(line.key, { qty: '' });
+                                return;
+                              }
+                              const num = parseFloat(val);
+                              if (isNaN(num)) {
+                                onUpdateLine(line.key, { qty: '1' });
+                                return;
+                              }
+                              const isStockLimited =
+                                kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                              if (
+                                isStockLimited &&
+                                line.item_id &&
+                                availableStock > 0 &&
+                                num > availableStock
+                              ) {
+                                onUpdateLine(line.key, { qty: String(availableStock) });
+                                toast.warning(`الكمية المتاحة (${formatQty(availableStock)}) هي الحد الأقصى`);
+                                return;
+                              }
+                              if (num <= 0 && val !== '0' && val !== '0.' && val !== '.') {
+                                onUpdateLine(line.key, { qty: '1' });
+                                return;
+                              }
+                              onUpdateLine(line.key, { qty: val });
+                            }}
+                            onBlur={() => {
+                              const num = parseFloat(line.qty);
+                              const isStockLimited =
+                                kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                              if (isNaN(num) || num <= 0) {
+                                onUpdateLine(line.key, { qty: '1' });
+                              } else if (
+                                isStockLimited &&
+                                line.item_id &&
+                                availableStock > 0 &&
+                                num > availableStock
+                              ) {
+                                onUpdateLine(line.key, { qty: String(availableStock) });
+                              }
+                            }}
+                            className="no-spinner num"
+                          />
+                          <span className="line-unit-suffix">
+                            {selectedItem ? selectedItem.unit : 'قطعة'}
+                          </span>
+                        </div>
+                      )}
+                      {!isReadOnly && isStockExceeded && (
+                        <span className="stock-warning-text" role="alert">
+                          تنبيه: الكمية ({line.qty}) تتجاوز المتاح ({formatQty(availableStock)})
+                        </span>
+                      )}
+                    </td>
+                    <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
+                      {isReadOnly ? (
+                        <span className="readonly-line-price num" dir="ltr">
+                          <bdi>{money(line.unit_price)}</bdi>
+                        </span>
+                      ) : (
+                        <input
+                          aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.01"
+                          dir="ltr"
+                          placeholder="0.00"
+                          value={line.unit_price}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => onUpdateLine(line.key, { unit_price: e.target.value })}
+                          disabled={isWaste}
+                          className="no-spinner num"
+                        />
+                      )}
+                    </td>
+                    <td className="line-total" data-label="الإجمالي">
+                      <span dir="ltr" className="num">
+                        {money(lineTotal)}
+                      </span>
+                    </td>
+                    {!isReadOnly && (
+                      <td className="center" data-label="إجراء">
+                        <button
+                          type="button"
+                          className="line-delete-btn"
+                          title="حذف هذا الصنف من الفاتورة"
+                          aria-label="حذف سطر الصنف"
+                          onClick={() => onRemoveLine(line.key)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
