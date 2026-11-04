@@ -1,6 +1,20 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import { X, Printer } from 'lucide-react';
+import {
+  X,
+  Printer,
+  Users,
+  UserCheck,
+  ShoppingBag,
+  Boxes,
+  DollarSign,
+  AlertCircle,
+  AlertTriangle,
+  Wallet,
+  Landmark,
+  FileText,
+} from 'lucide-react';
+import KpiBar, { type KpiItem } from '../components/KpiBar';
 import { supabase } from '../lib/supabase';
 import { entityNumber, formatDate, getBalanceStatus, money, qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
@@ -189,6 +203,175 @@ export default function Balances() {
   const pageItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const pageBoxes = filteredCashBoxes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const kpiItems = useMemo<KpiItem[]>(() => {
+    if (tab === 'customers') {
+      const netBalance = filteredCustomers.reduce((sum, c) => sum + Number(c.balance || 0), 0);
+      const totalDebit = filteredCustomers.reduce((sum, c) => (Number(c.balance) > 0 ? sum + Number(c.balance) : sum), 0);
+      const totalCredit = filteredCustomers.reduce((sum, c) => (Number(c.balance) < 0 ? sum + Math.abs(Number(c.balance)) : sum), 0);
+      const debtorCount = filteredCustomers.filter((c) => Number(c.balance) > 0).length;
+
+      return [
+        {
+          id: 'cus-net',
+          label: 'صافي رصيد العملاء',
+          value: money(netBalance),
+          unit: 'ج.م',
+          variant: netBalance > 0 ? 'primary' : 'neutral',
+          icon: Users,
+        },
+        {
+          id: 'cus-debit',
+          label: 'إجمالي مديونيات لنا (مدين)',
+          value: money(totalDebit),
+          unit: 'ج.م',
+          variant: totalDebit > 0 ? 'warning' : 'neutral',
+          icon: AlertCircle,
+        },
+        {
+          id: 'cus-credit',
+          label: 'أرصدة دائنة (دفعات مقدمة)',
+          value: money(totalCredit),
+          unit: 'ج.م',
+          variant: totalCredit > 0 ? 'info' : 'neutral',
+          icon: Wallet,
+        },
+        {
+          id: 'cus-debtors-count',
+          label: 'عملاء عليهم مديونية',
+          value: debtorCount,
+          unit: 'عميل',
+          variant: debtorCount > 0 ? 'danger' : 'neutral',
+          icon: UserCheck,
+          subtext: `من إجمالي ${filteredCustomers.length} عميل معروض`,
+        },
+      ];
+    }
+
+    if (tab === 'suppliers') {
+      const netBalance = filteredSuppliers.reduce((sum, s) => sum + Number(s.balance || 0), 0);
+      const totalPayable = filteredSuppliers.reduce((sum, s) => (Number(s.balance) > 0 ? sum + Number(s.balance) : sum), 0);
+      const totalAdvance = filteredSuppliers.reduce((sum, s) => (Number(s.balance) < 0 ? sum + Math.abs(Number(s.balance)) : sum), 0);
+      const creditorCount = filteredSuppliers.filter((s) => Number(s.balance) > 0).length;
+
+      return [
+        {
+          id: 'sup-net',
+          label: 'صافي مستحقات الموردين',
+          value: money(netBalance),
+          unit: 'ج.م',
+          variant: netBalance > 0 ? 'danger' : 'neutral',
+          icon: ShoppingBag,
+        },
+        {
+          id: 'sup-payable',
+          label: 'مستحق للموردين (علينا)',
+          value: money(totalPayable),
+          unit: 'ج.م',
+          variant: totalPayable > 0 ? 'danger' : 'neutral',
+          icon: AlertCircle,
+        },
+        {
+          id: 'sup-advance',
+          label: 'مدفوع مقدمًا (لنا)',
+          value: money(totalAdvance),
+          unit: 'ج.م',
+          variant: totalAdvance > 0 ? 'info' : 'neutral',
+          icon: Wallet,
+        },
+        {
+          id: 'sup-creditor-count',
+          label: 'موردون يطالبون بمستحقات',
+          value: creditorCount,
+          unit: 'مورد',
+          variant: creditorCount > 0 ? 'warning' : 'neutral',
+          icon: Users,
+          subtext: `من إجمالي ${filteredSuppliers.length} مورد معروض`,
+        },
+      ];
+    }
+
+    if (tab === 'items') {
+      const totalQty = filteredItems.reduce((sum, it) => sum + Number(it.current_qty || 0), 0);
+      const totalVal = filteredItems.reduce(
+        (sum, it) => (Number(it.current_qty) > 0 ? sum + Number(it.current_qty) * Number(it.unit_cost || 0) : sum),
+        0,
+      );
+      const outOfStockCount = filteredItems.filter((it) => Number(it.current_qty || 0) <= 0).length;
+
+      return [
+        {
+          id: 'items-qty',
+          label: 'إجمالي كميات المخزون المتوفر',
+          value: formatQty(totalQty),
+          unit: 'وحدة',
+          variant: 'primary',
+          icon: Boxes,
+        },
+        {
+          id: 'items-val',
+          label: 'قيمة المخزون التقديرية (بالتكلفة)',
+          value: money(totalVal),
+          unit: 'ج.م',
+          variant: 'info',
+          icon: DollarSign,
+        },
+        {
+          id: 'items-out-stock',
+          label: 'أصناف نفدت كمياتها',
+          value: outOfStockCount,
+          unit: 'صنف',
+          variant: outOfStockCount > 0 ? 'danger' : 'neutral',
+          icon: AlertTriangle,
+          subtext: outOfStockCount > 0 ? 'بحاجة لإعادة الطلب والتوريد' : 'جميع الأصناف متوفرة بالمخزن',
+        },
+        {
+          id: 'items-count',
+          label: 'عدد الأصناف المعروضة',
+          value: filteredItems.length,
+          unit: 'صنف',
+          variant: 'neutral',
+          icon: FileText,
+        },
+      ];
+    }
+
+    // Default: 'cashBoxes'
+    const totalLiquidity = filteredCashBoxes.reduce((sum, b) => sum + Number(b.balance || 0), 0);
+    const primaryBox = cashBoxes.find((b) => b.is_primary);
+
+    const itemsList: KpiItem[] = [
+      {
+        id: 'box-liquidity',
+        label: 'إجمالي السيولة النقدية بالخزن',
+        value: money(totalLiquidity),
+        unit: 'ج.م',
+        variant: totalLiquidity >= 0 ? 'success' : 'danger',
+        icon: Wallet,
+      },
+      {
+        id: 'box-count',
+        label: 'عدد الخزن المتاحة',
+        value: filteredCashBoxes.length,
+        unit: 'خزينة',
+        variant: 'neutral',
+        icon: Landmark,
+      },
+    ];
+
+    if (primaryBox) {
+      itemsList.push({
+        id: 'box-primary',
+        label: `الخزينة الرئيسية (${primaryBox.name})`,
+        value: money(Number(primaryBox.balance || 0)),
+        unit: 'ج.م',
+        variant: 'primary',
+        icon: DollarSign,
+      });
+    }
+
+    return itemsList;
+  }, [tab, filteredCustomers, filteredSuppliers, filteredItems, filteredCashBoxes, cashBoxes]);
+
   useEffect(() => {
     setPage(1);
   }, [searchTerm, sortOrder, selectedWarehouseId, tab]);
@@ -311,6 +494,9 @@ export default function Balances() {
           </button>
         ))}
       </div>
+
+      {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
+      <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${tabTitle}`} />
 
       {/* الـ ERP Workspace لقسم الأرصدة */}
       <div className={hasSelection ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>

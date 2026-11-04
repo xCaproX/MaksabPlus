@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import { X } from 'lucide-react';
+import {
+  X,
+  Users,
+  ShoppingBag,
+  Boxes,
+  Landmark,
+  CheckCircle2,
+  AlertCircle,
+  Wallet,
+  DollarSign,
+  FileText,
+} from 'lucide-react';
+import KpiBar, { type KpiItem } from '../components/KpiBar';
 import { supabase } from '../lib/supabase';
 import { entityNumber, getBalanceStatus, money, qty as formatQty } from '../lib/format';
 import { errorMessage, translateDbError } from '../lib/errors';
@@ -202,6 +214,182 @@ export default function Management() {
   const pageStock = filteredStockRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const pageBoxes = filteredCashBoxes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const kpiItems = useMemo<KpiItem[]>(() => {
+    if (tab === 'customers') {
+      const totalOpening = filteredAccounts.reduce((sum, a) => sum + Number(accountValues[a.id] ?? a.opening_balance ?? 0), 0);
+      const debitTotal = filteredAccounts.reduce((sum, a) => {
+        const val = Number(accountValues[a.id] ?? a.opening_balance ?? 0);
+        return val > 0 ? sum + val : sum;
+      }, 0);
+      const creditTotal = filteredAccounts.reduce((sum, a) => {
+        const val = Number(accountValues[a.id] ?? a.opening_balance ?? 0);
+        return val < 0 ? sum + Math.abs(val) : sum;
+      }, 0);
+      const withOpening = filteredAccounts.filter((a) => Number(accountValues[a.id] ?? a.opening_balance ?? 0) !== 0).length;
+
+      return [
+        {
+          id: 'mgmt-cus-net',
+          label: 'صافي افتتاحيات العملاء',
+          value: money(totalOpening),
+          unit: 'ج.م',
+          variant: totalOpening > 0 ? 'primary' : 'neutral',
+          icon: Users,
+        },
+        {
+          id: 'mgmt-cus-debit',
+          label: 'إجمالي مدين لنا',
+          value: money(debitTotal),
+          unit: 'ج.م',
+          variant: debitTotal > 0 ? 'warning' : 'neutral',
+          icon: AlertCircle,
+        },
+        {
+          id: 'mgmt-cus-credit',
+          label: 'إجمالي دائن علينا',
+          value: money(creditTotal),
+          unit: 'ج.م',
+          variant: creditTotal > 0 ? 'info' : 'neutral',
+          icon: Wallet,
+        },
+        {
+          id: 'mgmt-cus-with-opening',
+          label: 'عملاء برصيد افتتاحي',
+          value: withOpening,
+          unit: 'عميل',
+          variant: 'neutral',
+          icon: CheckCircle2,
+          subtext: `من إجمالي ${filteredAccounts.length} عميل`,
+        },
+      ];
+    }
+
+    if (tab === 'suppliers') {
+      const totalOpening = filteredAccounts.reduce((sum, a) => sum + Number(accountValues[a.id] ?? a.opening_balance ?? 0), 0);
+      const payableTotal = filteredAccounts.reduce((sum, a) => {
+        const val = Number(accountValues[a.id] ?? a.opening_balance ?? 0);
+        return val > 0 ? sum + val : sum;
+      }, 0);
+      const advanceTotal = filteredAccounts.reduce((sum, a) => {
+        const val = Number(accountValues[a.id] ?? a.opening_balance ?? 0);
+        return val < 0 ? sum + Math.abs(val) : sum;
+      }, 0);
+      const withOpening = filteredAccounts.filter((a) => Number(accountValues[a.id] ?? a.opening_balance ?? 0) !== 0).length;
+
+      return [
+        {
+          id: 'mgmt-sup-net',
+          label: 'صافي افتتاحيات الموردين',
+          value: money(totalOpening),
+          unit: 'ج.م',
+          variant: totalOpening > 0 ? 'danger' : 'neutral',
+          icon: ShoppingBag,
+        },
+        {
+          id: 'mgmt-sup-payable',
+          label: 'مستحق للموردين (علينا)',
+          value: money(payableTotal),
+          unit: 'ج.م',
+          variant: payableTotal > 0 ? 'danger' : 'neutral',
+          icon: AlertCircle,
+        },
+        {
+          id: 'mgmt-sup-advance',
+          label: 'مدفوع مقدمًا (لنا)',
+          value: money(advanceTotal),
+          unit: 'ج.م',
+          variant: advanceTotal > 0 ? 'info' : 'neutral',
+          icon: Wallet,
+        },
+        {
+          id: 'mgmt-sup-with-opening',
+          label: 'موردون برصيد افتتاحي',
+          value: withOpening,
+          unit: 'مورد',
+          variant: 'neutral',
+          icon: CheckCircle2,
+          subtext: `من إجمالي ${filteredAccounts.length} مورد`,
+        },
+      ];
+    }
+
+    if (tab === 'items') {
+      const totalOpeningQty = filteredStockRows.reduce((sum, row) => {
+        const val = stockValues[`${row.warehouse_id}:${row.item_id}`];
+        return sum + Number(val?.qty ?? row.opening_qty ?? 0);
+      }, 0);
+      const totalOpeningValue = filteredStockRows.reduce((sum, row) => {
+        const val = stockValues[`${row.warehouse_id}:${row.item_id}`];
+        const qty = Number(val?.qty ?? row.opening_qty ?? 0);
+        const cost = Number(val?.cost ?? row.unit_cost ?? 0);
+        return sum + qty * cost;
+      }, 0);
+      const withOpening = filteredStockRows.filter((row) => {
+        const val = stockValues[`${row.warehouse_id}:${row.item_id}`];
+        return Number(val?.qty ?? row.opening_qty ?? 0) > 0;
+      }).length;
+
+      return [
+        {
+          id: 'mgmt-items-qty',
+          label: 'إجمالي كميات أول المدة',
+          value: formatQty(totalOpeningQty),
+          unit: 'وحدة',
+          variant: 'primary',
+          icon: Boxes,
+        },
+        {
+          id: 'mgmt-items-val',
+          label: 'قيمة بضاعة أول المدة',
+          value: money(totalOpeningValue),
+          unit: 'ج.م',
+          variant: 'info',
+          icon: DollarSign,
+        },
+        {
+          id: 'mgmt-items-with-qty',
+          label: 'أصناف برصيد أول مدة',
+          value: withOpening,
+          unit: 'صنف',
+          variant: 'success',
+          icon: CheckCircle2,
+        },
+        {
+          id: 'mgmt-items-count',
+          label: 'عدد الأصناف المعروضة',
+          value: filteredStockRows.length,
+          unit: 'صنف',
+          variant: 'neutral',
+          icon: FileText,
+        },
+      ];
+    }
+
+    if (tab === 'cashBoxes') {
+      const totalOpening = filteredCashBoxes.reduce((sum, box) => sum + Number(cashValues[box.id] ?? box.opening_balance ?? 0), 0);
+      return [
+        {
+          id: 'mgmt-box-total',
+          label: 'إجمالي رصيد الخزن الافتتاحي',
+          value: money(totalOpening),
+          unit: 'ج.م',
+          variant: 'success',
+          icon: Wallet,
+        },
+        {
+          id: 'mgmt-box-count',
+          label: 'عدد الخزن المتاحة',
+          value: filteredCashBoxes.length,
+          unit: 'خزينة',
+          variant: 'neutral',
+          icon: Landmark,
+        },
+      ];
+    }
+
+    return [];
+  }, [tab, filteredAccounts, accountValues, filteredStockRows, stockValues, filteredCashBoxes, cashValues]);
+
   useEffect(() => {
     setPage(1);
   }, [searchTerm, sortOrder, selectedWarehouseId, tab]);
@@ -301,7 +489,9 @@ export default function Management() {
       ) : loading ? (
         <div className="card empty">جارٍ التحميل…</div>
       ) : (
-        <div className={hasSelection ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
+        <>
+          <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${tabTitle}`} />
+          <div className={hasSelection ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
           <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
             <div className="erp-toolbar">
               <div className="erp-filters">
@@ -665,6 +855,7 @@ export default function Management() {
             )}
           </aside>
         </div>
+        </>
       )}
     </div>
   );

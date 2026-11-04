@@ -1,6 +1,21 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import { X } from 'lucide-react';
+import {
+  X,
+  Users,
+  UserCheck,
+  UserX,
+  ShoppingBag,
+  Boxes,
+  Warehouse,
+  Landmark,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Wallet,
+  DollarSign,
+} from 'lucide-react';
+import KpiBar, { type KpiItem } from '../components/KpiBar';
 import { supabase } from '../lib/supabase';
 import { entityNumber, money } from '../lib/format';
 import { errorMessage, translateDbError } from '../lib/errors';
@@ -287,6 +302,190 @@ export default function MasterData() {
   const pageItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const pageWarehouses = filteredWarehouses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const pageBoxes = filteredCashBoxes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const kpiItems = useMemo<KpiItem[]>(() => {
+    if (tab === 'customers') {
+      const activeCount = filteredCustomers.filter((c) => c.is_active).length;
+      const inactiveCount = filteredCustomers.filter((c) => !c.is_active).length;
+      const withOpening = filteredCustomers.filter((c) => Number(c.opening_balance) !== 0).length;
+
+      return [
+        {
+          id: 'data-cus-total',
+          label: 'إجمالي العملاء',
+          value: filteredCustomers.length,
+          unit: 'عميل',
+          variant: 'primary',
+          icon: Users,
+        },
+        {
+          id: 'data-cus-active',
+          label: 'العملاء النشطون',
+          value: activeCount,
+          unit: 'عميل',
+          variant: 'success',
+          icon: UserCheck,
+        },
+        {
+          id: 'data-cus-inactive',
+          label: 'العملاء المعطلون',
+          value: inactiveCount,
+          unit: 'عميل',
+          variant: inactiveCount > 0 ? 'warning' : 'neutral',
+          icon: UserX,
+        },
+        {
+          id: 'data-cus-opening',
+          label: 'برصيد افتتاحي',
+          value: withOpening,
+          unit: 'عميل',
+          variant: 'info',
+          icon: Wallet,
+        },
+      ];
+    }
+
+    if (tab === 'suppliers') {
+      const activeCount = filteredSuppliers.filter((s) => s.is_active).length;
+      const inactiveCount = filteredSuppliers.filter((s) => !s.is_active).length;
+      const withOpening = filteredSuppliers.filter((s) => Number(s.opening_balance) !== 0).length;
+
+      return [
+        {
+          id: 'data-sup-total',
+          label: 'إجمالي الموردين',
+          value: filteredSuppliers.length,
+          unit: 'مورد',
+          variant: 'primary',
+          icon: ShoppingBag,
+        },
+        {
+          id: 'data-sup-active',
+          label: 'الموردون النشطون',
+          value: activeCount,
+          unit: 'مورد',
+          variant: 'success',
+          icon: CheckCircle2,
+        },
+        {
+          id: 'data-sup-inactive',
+          label: 'الموردون المعطلون',
+          value: inactiveCount,
+          unit: 'مورد',
+          variant: inactiveCount > 0 ? 'warning' : 'neutral',
+          icon: AlertCircle,
+        },
+        {
+          id: 'data-sup-opening',
+          label: 'برصيد افتتاحي',
+          value: withOpening,
+          unit: 'مورد',
+          variant: 'info',
+          icon: Wallet,
+        },
+      ];
+    }
+
+    if (tab === 'items') {
+      const activeCount = filteredItems.filter((i) => i.is_active).length;
+      const inactiveCount = filteredItems.filter((i) => !i.is_active).length;
+      const pricedItems = filteredItems.filter((i) => Number(i.sale_price) > 0);
+      const avgPrice = pricedItems.length > 0 ? pricedItems.reduce((s, i) => s + Number(i.sale_price), 0) / pricedItems.length : 0;
+
+      return [
+        {
+          id: 'data-items-total',
+          label: 'إجمالي الأصناف',
+          value: filteredItems.length,
+          unit: 'صنف',
+          variant: 'primary',
+          icon: Boxes,
+        },
+        {
+          id: 'data-items-active',
+          label: 'الأصناف النشطة للبيع',
+          value: activeCount,
+          unit: 'صنف',
+          variant: 'success',
+          icon: CheckCircle2,
+        },
+        {
+          id: 'data-items-inactive',
+          label: 'الأصناف المعطلة',
+          value: inactiveCount,
+          unit: 'صنف',
+          variant: inactiveCount > 0 ? 'warning' : 'neutral',
+          icon: AlertTriangle,
+        },
+        {
+          id: 'data-items-avg-price',
+          label: 'متوسط سعر البيع',
+          value: money(avgPrice),
+          unit: 'ج.م',
+          variant: 'info',
+          icon: DollarSign,
+        },
+      ];
+    }
+
+    if (tab === 'warehouses') {
+      const activeCount = filteredWarehouses.filter((w) => w.is_active).length;
+      return [
+        {
+          id: 'data-wh-total',
+          label: 'إجمالي المخازن',
+          value: filteredWarehouses.length,
+          unit: 'مخزن',
+          variant: 'primary',
+          icon: Warehouse,
+        },
+        {
+          id: 'data-wh-active',
+          label: 'المخازن النشطة',
+          value: activeCount,
+          unit: 'مخزن',
+          variant: 'success',
+          icon: CheckCircle2,
+        },
+      ];
+    }
+
+    // Default: 'cashBoxes'
+    const activeCount = filteredCashBoxes.filter((b) => b.is_active).length;
+    const primaryBox = filteredCashBoxes.find((b) => b.is_primary);
+
+    const itemsList: KpiItem[] = [
+      {
+        id: 'data-box-total',
+        label: 'إجمالي الخزن',
+        value: filteredCashBoxes.length,
+        unit: 'خزينة',
+        variant: 'primary',
+        icon: Landmark,
+      },
+      {
+        id: 'data-box-active',
+        label: 'الخزن النشطة',
+        value: activeCount,
+        unit: 'خزينة',
+        variant: 'success',
+        icon: CheckCircle2,
+      },
+    ];
+
+    if (primaryBox) {
+      itemsList.push({
+        id: 'data-box-primary',
+        label: 'الخزينة الرئيسية المعتمدة',
+        value: primaryBox.name,
+        unit: '',
+        variant: 'info',
+        icon: Wallet,
+      });
+    }
+
+    return itemsList;
+  }, [tab, filteredCustomers, filteredSuppliers, filteredItems, filteredWarehouses, filteredCashBoxes]);
 
   useEffect(() => {
     setPage(1);
@@ -623,6 +822,9 @@ export default function MasterData() {
           </button>
         ))}
       </div>
+
+      {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
+      <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${tabTitle}`} />
 
       {/* الـ ERP Workspace لقسم البيانات الأساسية */}
       <div className={hasSelection ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>

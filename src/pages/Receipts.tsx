@@ -12,6 +12,16 @@ import DateInput from '../components/DateInput';
 import StatusBadge from '../components/StatusBadge';
 import RowActions from '../components/RowActions';
 import SortableHeader from '../components/SortableHeader';
+import KpiBar, { type KpiItem } from '../components/KpiBar';
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowLeftRight,
+  CheckCircle2,
+  ShoppingBag,
+  DollarSign,
+  FileText,
+} from 'lucide-react';
 import { toast } from '../components/Toast';
 import type {
   ReceiptDirection,
@@ -178,6 +188,123 @@ export default function Receipts() {
     const start = (page - 1) * PAGE_SIZE;
     return filteredTransferRows.slice(start, start + PAGE_SIZE);
   }, [filteredTransferRows, page]);
+
+  const kpiItems = useMemo<KpiItem[]>(() => {
+    if (isCashBoxTransfer) {
+      const totalAmount = filteredTransferRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      return [
+        {
+          id: 'cash-transfer-total',
+          label: 'إجمالي المبالغ المحولة',
+          value: money(totalAmount),
+          unit: 'ج.م',
+          variant: 'primary',
+          icon: ArrowLeftRight,
+        },
+        {
+          id: 'cash-transfer-count',
+          label: 'عدد التحويلات بين الخزن',
+          value: filteredTransferRows.length,
+          unit: 'تحويل',
+          variant: 'neutral',
+          icon: FileText,
+        },
+      ];
+    }
+
+    const totalAmount = filteredReceiptRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+    const invoiceLinked = filteredReceiptRows.reduce(
+      (sum, r) => (r.invoice_id ? sum + Number(r.amount || 0) : sum),
+      0,
+    );
+    const freeAmount = totalAmount - invoiceLinked;
+    const count = filteredReceiptRows.length;
+
+    if (isIn) {
+      return [
+        {
+          id: 'receipt-in-total',
+          label: 'إجمالي المقبوضات',
+          value: money(totalAmount),
+          unit: 'ج.م',
+          variant: 'success',
+          icon: ArrowDownLeft,
+        },
+        {
+          id: 'receipt-in-invoice',
+          label: 'تحصيل فواتير مبيعات',
+          value: money(invoiceLinked),
+          unit: 'ج.م',
+          variant: 'primary',
+          icon: CheckCircle2,
+          subtext:
+            totalAmount > 0 ? (
+              <span>
+                تمثل <bdi dir="ltr">{Math.round((invoiceLinked / totalAmount) * 100)}%</bdi> من الإجمالي
+              </span>
+            ) : undefined,
+        },
+        {
+          id: 'receipt-in-free',
+          label: 'مقبوضات عامة وحرة',
+          value: money(freeAmount),
+          unit: 'ج.م',
+          variant: 'info',
+          icon: DollarSign,
+        },
+        {
+          id: 'receipt-in-count',
+          label: 'عدد إيصالات الاستلام',
+          value: count,
+          unit: 'إيصال',
+          variant: 'neutral',
+          icon: FileText,
+        },
+      ];
+    }
+
+    // Direction: 'out'
+    return [
+      {
+        id: 'receipt-out-total',
+        label: 'إجمالي المدفوعات',
+        value: money(totalAmount),
+        unit: 'ج.م',
+        variant: 'danger',
+        icon: ArrowUpRight,
+      },
+      {
+        id: 'receipt-out-invoice',
+        label: 'سداد فواتير موردين',
+        value: money(invoiceLinked),
+        unit: 'ج.م',
+        variant: 'primary',
+        icon: ShoppingBag,
+        subtext:
+          totalAmount > 0 ? (
+            <span>
+              تمثل <bdi dir="ltr">{Math.round((invoiceLinked / totalAmount) * 100)}%</bdi> من الإجمالي
+            </span>
+          ) : undefined,
+      },
+      {
+        id: 'receipt-out-free',
+        label: 'مصروفات ومدفوعات عامة',
+        value: money(freeAmount),
+        unit: 'ج.م',
+        variant: 'warning',
+        icon: DollarSign,
+      },
+      {
+        id: 'receipt-out-count',
+        label: 'عدد إيصالات الصرف',
+        value: count,
+        unit: 'إيصال',
+        variant: 'neutral',
+        icon: FileText,
+      },
+    ];
+  }, [isCashBoxTransfer, filteredTransferRows, filteredReceiptRows, isIn]);
 
   useEffect(() => {
     setPage(1);
@@ -471,6 +598,9 @@ export default function Receipts() {
             : 'هذه الإيصالات محذوفة: لا تؤثر على الأرصدة أو الخزنة. إيصال الفاتورة يُستعاد من صفحة البضاعة مع فاتورته.'}
         </p>
       )}
+
+      {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
+      <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${tabTitle}`} />
 
       {/* جدول المعاملات ممتد بكامل العرض 100% بتوافق تام مع فواتير المبيعات */}
       <div className="erp-sales-workspace">

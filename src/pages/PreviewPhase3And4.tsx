@@ -10,7 +10,13 @@ import {
   ChevronDown,
   ChevronUp,
   KeyRound,
+  DollarSign,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  TrendingUp,
 } from 'lucide-react';
+import KpiBar, { type KpiItem } from '../components/KpiBar';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import Modal from '../components/Modal';
 import InvoiceForm from '../components/InvoiceForm';
@@ -137,6 +143,59 @@ export default function PreviewPhase3And4() {
     const cmp = a.date.localeCompare(b.date);
     return sortOrder === 'date-asc' ? cmp : -cmp;
   });
+
+  const totalSales = sortedMockInvoices.reduce((sum, inv) => sum + inv.total, 0);
+  const paidSales = sortedMockInvoices.reduce((sum, inv) => sum + inv.paid, 0);
+  const remainingSales = sortedMockInvoices.reduce((sum, inv) => sum + inv.remaining, 0);
+  const profitSales = totalSales * 0.22;
+
+  const kpiItems: KpiItem[] = [
+    {
+      id: 'mock-total',
+      label: 'إجمالي المبيعات',
+      value: money(totalSales),
+      unit: 'ج.م',
+      variant: 'primary',
+      icon: DollarSign,
+    },
+    {
+      id: 'mock-paid',
+      label: 'المحصّل نقدًا',
+      value: money(paidSales),
+      unit: 'ج.م',
+      variant: 'success',
+      icon: CheckCircle2,
+      subtext: (
+        <span>
+          نسبة التحصيل: <bdi dir="ltr">{Math.round((paidSales / totalSales) * 100)}%</bdi>
+        </span>
+      ),
+    },
+    {
+      id: 'mock-remaining',
+      label: 'المتبقي آجل (ديون)',
+      value: money(remainingSales),
+      unit: 'ج.م',
+      variant: remainingSales > 0 ? 'warning' : 'neutral',
+      icon: AlertCircle,
+    },
+    {
+      id: 'mock-count',
+      label: 'عدد الفواتير',
+      value: sortedMockInvoices.length,
+      unit: 'فاتورة',
+      variant: 'neutral',
+      icon: FileText,
+    },
+    {
+      id: 'mock-profit',
+      label: 'أرباح المبيعات التقديرية',
+      value: money(profitSales),
+      unit: 'ج.م',
+      variant: 'info',
+      icon: TrendingUp,
+    },
+  ];
 
   function toggleSection(key: keyof typeof openSections) {
     setOpenSections((prev) => {
@@ -346,6 +405,9 @@ export default function PreviewPhase3And4() {
                 </button>
               </div>
             </div>
+
+            {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
+            <KpiBar items={kpiItems} ariaLabel="مؤشرات فواتير المبيعات" />
 
             {/* ERP Sales Workspace with detail open */}
             <div className={current ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
