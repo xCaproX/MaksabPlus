@@ -18,24 +18,51 @@ import type { InvoiceKind, InvoiceRow, WarehouseTransferRow } from '../../lib/ty
 
 export type InvoiceTab = InvoiceKind | 'warehouse_transfer';
 
+export interface InvoiceKpiSummary {
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  profitTotal: number;
+  count: number;
+}
+
+export interface WarehouseTransferKpiSummary {
+  totalValue: number;
+  totalQty: number;
+  count: number;
+}
+
 interface CalculateKpisOptions {
   kind: InvoiceTab;
   isWarehouseTransfer: boolean;
-  filteredTransferRows: WarehouseTransferRow[];
-  filteredInvoiceRows: InvoiceRow[];
+  filteredTransferRows?: WarehouseTransferRow[];
+  filteredInvoiceRows?: InvoiceRow[];
+  transferSummary?: WarehouseTransferKpiSummary;
+  invoiceSummary?: InvoiceKpiSummary;
   canViewProfit: boolean;
 }
 
 export function calculateInvoiceKpis({
   kind,
   isWarehouseTransfer,
-  filteredTransferRows,
-  filteredInvoiceRows,
+  filteredTransferRows = [],
+  filteredInvoiceRows = [],
+  transferSummary,
+  invoiceSummary,
   canViewProfit,
 }: CalculateKpisOptions): KpiItem[] {
   if (isWarehouseTransfer) {
-    const totalValue = filteredTransferRows.reduce((sum, r) => sum + Number(r.total_value || 0), 0);
-    const totalQty = filteredTransferRows.reduce((sum, r) => sum + Number(r.total_qty || 0), 0);
+    const totalValue =
+      transferSummary !== undefined
+        ? transferSummary.totalValue
+        : filteredTransferRows.reduce((sum, r) => sum + Number(r.total_value || 0), 0);
+    const totalQty =
+      transferSummary !== undefined
+        ? transferSummary.totalQty
+        : filteredTransferRows.reduce((sum, r) => sum + Number(r.total_qty || 0), 0);
+    const count =
+      transferSummary !== undefined ? transferSummary.count : filteredTransferRows.length;
+
     return [
       {
         id: 'transfers-value',
@@ -56,7 +83,7 @@ export function calculateInvoiceKpis({
       {
         id: 'transfers-count',
         label: 'عدد أوامر التحويل',
-        value: filteredTransferRows.length,
+        value: count,
         unit: 'تحويل',
         variant: 'neutral',
         icon: FileText,
@@ -64,10 +91,24 @@ export function calculateInvoiceKpis({
     ];
   }
 
-  const totalAmount = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.total || 0), 0);
-  const paidAmount = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.paid || 0), 0);
-  const remainingAmount = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.remaining || 0), 0);
-  const count = filteredInvoiceRows.length;
+  const totalAmount =
+    invoiceSummary !== undefined
+      ? invoiceSummary.totalAmount
+      : filteredInvoiceRows.reduce((sum, r) => sum + Number(r.total || 0), 0);
+  const paidAmount =
+    invoiceSummary !== undefined
+      ? invoiceSummary.paidAmount
+      : filteredInvoiceRows.reduce((sum, r) => sum + Number(r.paid || 0), 0);
+  const remainingAmount =
+    invoiceSummary !== undefined
+      ? invoiceSummary.remainingAmount
+      : filteredInvoiceRows.reduce((sum, r) => sum + Number(r.remaining || 0), 0);
+  const count =
+    invoiceSummary !== undefined ? invoiceSummary.count : filteredInvoiceRows.length;
+  const profitTotal =
+    invoiceSummary !== undefined
+      ? invoiceSummary.profitTotal
+      : filteredInvoiceRows.reduce((sum, r) => sum + Number(r.profit_total || 0), 0);
 
   if (kind === 'waste') {
     return [
@@ -244,7 +285,6 @@ export function calculateInvoiceKpis({
   ];
 
   if (canViewProfit) {
-    const profitTotal = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.profit_total || 0), 0);
     itemsList.push({
       id: 'sale-profit',
       label: 'أرباح المبيعات التقديرية',

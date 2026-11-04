@@ -30,7 +30,6 @@ import type {
 } from '../lib/types';
 import { useAccess } from '../lib/access';
 import { useConfirmDialog } from '../lib/useConfirmDialog';
-import { matchesSearchQuery } from '../lib/search';
 import { useMasterData } from '../context/MasterDataContext';
 
 function linkKind(kind: ReceiptRow['invoice_kind']) {
@@ -124,79 +123,38 @@ export default function Receipts() {
 
   const tabTitle = isCashBoxTransfer ? 'تحويلات الخزن' : isIn ? 'إيصالات الاستلام' : 'إيصالات الصرف';
 
-  // تصفية إيصالات القبض والصرف
-  const filteredReceiptRows = useMemo(() => {
-    if (isCashBoxTransfer) return [];
-    const next = rows.filter((receipt) => {
-      const matchesText = matchesSearchQuery(
-        [receipt.number, receipt.account_name, receipt.cash_box_name, receipt.statement, receipt.notes],
-        searchTerm,
-      );
-      const matchesCashBox = cashBoxFilter === 'all' || receipt.cash_box_id === cashBoxFilter;
-      const matchesFrom = !dateFrom || receipt.receipt_date >= dateFrom;
-      const matchesTo = !dateTo || receipt.receipt_date <= dateTo;
-      return matchesText && matchesCashBox && matchesFrom && matchesTo;
-    });
-    return next.sort((firstReceipt, secondReceipt) => {
-      if (sortOrder === 'amount-desc') return Number(secondReceipt.amount) - Number(firstReceipt.amount);
-      if (sortOrder === 'amount-asc') return Number(firstReceipt.amount) - Number(secondReceipt.amount);
-      if (sortOrder === 'number-desc') return secondReceipt.number.localeCompare(firstReceipt.number, undefined, { numeric: true });
-      if (sortOrder === 'number-asc') return firstReceipt.number.localeCompare(secondReceipt.number, undefined, { numeric: true });
-      if (sortOrder === 'account-desc') return (secondReceipt.account_name || '').localeCompare(firstReceipt.account_name || '', 'ar');
-      if (sortOrder === 'account-asc') return (firstReceipt.account_name || '').localeCompare(secondReceipt.account_name || '', 'ar');
-      const comparison = firstReceipt.receipt_date.localeCompare(secondReceipt.receipt_date) || firstReceipt.number.localeCompare(secondReceipt.number);
-      return sortOrder === 'date-asc' ? comparison : -comparison;
-    });
-  }, [rows, isCashBoxTransfer, searchTerm, cashBoxFilter, dateFrom, dateTo, sortOrder]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [receiptSummary, setReceiptSummary] = useState({
+    totalAmount: 0,
+    invoiceLinked: 0,
+    count: 0,
+  });
+  const [transferSummary, setTransferSummary] = useState({
+    totalAmount: 0,
+    count: 0,
+  });
 
-  // تصفية تحويلات الخزن
-  const filteredTransferRows = useMemo(() => {
-    if (!isCashBoxTransfer) return [];
-    const next = transferRows.filter((transfer) => {
-      const matchesText = matchesSearchQuery(
-        [transfer.number, transfer.source_cash_box_name, transfer.destination_cash_box_name, transfer.notes],
-        searchTerm,
-      );
-      const matchesCashBox =
-        cashBoxFilter === 'all' ||
-        transfer.source_cash_box_id === cashBoxFilter ||
-        transfer.destination_cash_box_id === cashBoxFilter;
-      const matchesFrom = !dateFrom || transfer.transfer_date >= dateFrom;
-      const matchesTo = !dateTo || transfer.transfer_date <= dateTo;
-      return matchesText && matchesCashBox && matchesFrom && matchesTo;
-    });
-    return next.sort((firstTransfer, secondTransfer) => {
-      if (sortOrder === 'amount-desc') return Number(secondTransfer.amount) - Number(firstTransfer.amount);
-      if (sortOrder === 'amount-asc') return Number(firstTransfer.amount) - Number(secondTransfer.amount);
-      if (sortOrder === 'number-desc') return secondTransfer.number.localeCompare(firstTransfer.number, undefined, { numeric: true });
-      if (sortOrder === 'number-asc') return firstTransfer.number.localeCompare(secondTransfer.number, undefined, { numeric: true });
-      const comparison = firstTransfer.transfer_date.localeCompare(secondTransfer.transfer_date) || firstTransfer.number.localeCompare(secondTransfer.number);
-      return sortOrder === 'date-asc' ? comparison : -comparison;
-    });
-  }, [transferRows, isCashBoxTransfer, searchTerm, cashBoxFilter, dateFrom, dateTo, sortOrder]);
+  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  // عدد السجلات المعروضة والصفحات
-  const activeTotalCount = isCashBoxTransfer ? filteredTransferRows.length : filteredReceiptRows.length;
+  const activeTotalCount = totalCount;
   const pageCount = Math.max(1, Math.ceil(activeTotalCount / PAGE_SIZE));
-
-  const pageReceipts = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredReceiptRows.slice(start, start + PAGE_SIZE);
-  }, [filteredReceiptRows, page]);
-
-  const pageTransfers = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredTransferRows.slice(start, start + PAGE_SIZE);
-  }, [filteredTransferRows, page]);
+  const pageReceipts = rows;
+  const pageTransfers = transferRows;
 
   const kpiItems = useMemo<KpiItem[]>(() => {
     if (isCashBoxTransfer) {
-      const totalAmount = filteredTransferRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
       return [
         {
           id: 'cash-transfer-total',
           label: 'إجمالي المبالغ المحولة',
-          value: money(totalAmount),
+          value: money(transferSummary.totalAmount),
           unit: 'ج.م',
           variant: 'primary',
           icon: ArrowLeftRight,
@@ -204,7 +162,7 @@ export default function Receipts() {
         {
           id: 'cash-transfer-count',
           label: 'عدد التحويلات بين الخزن',
-          value: filteredTransferRows.length,
+          value: transferSummary.count,
           unit: 'تحويل',
           variant: 'neutral',
           icon: FileText,
@@ -212,13 +170,10 @@ export default function Receipts() {
       ];
     }
 
-    const totalAmount = filteredReceiptRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-    const invoiceLinked = filteredReceiptRows.reduce(
-      (sum, r) => (r.invoice_id ? sum + Number(r.amount || 0) : sum),
-      0,
-    );
+    const totalAmount = receiptSummary.totalAmount;
+    const invoiceLinked = receiptSummary.invoiceLinked;
     const freeAmount = totalAmount - invoiceLinked;
-    const count = filteredReceiptRows.length;
+    const count = receiptSummary.count;
 
     if (isIn) {
       return [
@@ -304,32 +259,157 @@ export default function Receipts() {
         icon: FileText,
       },
     ];
-  }, [isCashBoxTransfer, filteredTransferRows, filteredReceiptRows, isIn]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm, cashBoxFilter, dateFrom, dateTo, sortOrder, tab]);
+  }, [isCashBoxTransfer, transferSummary, receiptSummary, isIn]);
 
   useEffect(() => {
     let cancelled = false;
     async function fetchReceipts() {
       setLoading(true);
       setError('');
+      const from = (page - 1) * PAGE_SIZE;
+      const to = page * PAGE_SIZE - 1;
+      const trimmedSearch = debouncedSearch.trim();
+
       try {
         if (!isCashBoxTransfer) {
-          const query = showDeleted
-            ? supabase.from('v_receipt_list').select('*').eq('direction', direction).not('deleted_at', 'is', null)
-            : supabase.from('v_receipt_list').select('*').eq('direction', direction).is('deleted_at', null);
-          const { data, error: fetchError } = await query;
-          if (fetchError) throw fetchError;
-          if (!cancelled) setRows(data || []);
+          let query = supabase
+            .from('v_receipt_list')
+            .select('*', { count: 'exact' })
+            .eq('direction', direction);
+
+          if (showDeleted) {
+            query = query.not('deleted_at', 'is', null);
+          } else {
+            query = query.is('deleted_at', null);
+          }
+
+          if (cashBoxFilter !== 'all') {
+            query = query.eq('cash_box_id', cashBoxFilter);
+          }
+          if (dateFrom) {
+            query = query.gte('receipt_date', dateFrom);
+          }
+          if (dateTo) {
+            query = query.lte('receipt_date', dateTo);
+          }
+          if (trimmedSearch) {
+            query = query.or(
+              `number.ilike.%${trimmedSearch}%,account_name.ilike.%${trimmedSearch}%,cash_box_name.ilike.%${trimmedSearch}%,statement.ilike.%${trimmedSearch}%,notes.ilike.%${trimmedSearch}%`,
+            );
+          }
+
+          if (sortOrder === 'amount-desc') {
+            query = query.order('amount', { ascending: false }).order('number', { ascending: false });
+          } else if (sortOrder === 'amount-asc') {
+            query = query.order('amount', { ascending: true }).order('number', { ascending: true });
+          } else if (sortOrder === 'number-desc') {
+            query = query.order('number', { ascending: false });
+          } else if (sortOrder === 'number-asc') {
+            query = query.order('number', { ascending: true });
+          } else if (sortOrder === 'account-desc') {
+            query = query.order('account_name', { ascending: false }).order('number', { ascending: false });
+          } else if (sortOrder === 'account-asc') {
+            query = query.order('account_name', { ascending: true }).order('number', { ascending: true });
+          } else if (sortOrder === 'date-asc') {
+            query = query.order('receipt_date', { ascending: true }).order('number', { ascending: true });
+          } else {
+            query = query.order('receipt_date', { ascending: false }).order('number', { ascending: false });
+          }
+
+          query = query.range(from, to);
+
+          const [dataRes, kpiRes] = await Promise.all([
+            query,
+            supabase.rpc('get_receipt_kpis', {
+              p_direction: direction,
+              p_cash_box_id: cashBoxFilter !== 'all' ? cashBoxFilter : null,
+              p_search: trimmedSearch || null,
+              p_date_from: dateFrom || null,
+              p_date_to: dateTo || null,
+              p_show_deleted: showDeleted,
+            }),
+          ]);
+
+          if (cancelled) return;
+          if (dataRes.error) throw dataRes.error;
+
+          setRows((dataRes.data || []) as ReceiptRow[]);
+          setTotalCount(dataRes.count ?? 0);
+
+          if (kpiRes.data) {
+            const raw = kpiRes.data as any;
+            setReceiptSummary({
+              totalAmount: Number(raw.total_amount || 0),
+              invoiceLinked: Number(raw.invoice_linked || 0),
+              count: Number(raw.count || 0),
+            });
+          }
         } else {
-          const query = showDeleted
-            ? supabase.from('v_cash_box_transfer_list').select('*').not('deleted_at', 'is', null)
-            : supabase.from('v_cash_box_transfer_list').select('*').is('deleted_at', null);
-          const { data, error: fetchError } = await query;
-          if (fetchError) throw fetchError;
-          if (!cancelled) setTransferRows(data || []);
+          let query = supabase
+            .from('v_cash_box_transfer_list')
+            .select('*', { count: 'exact' });
+
+          if (showDeleted) {
+            query = query.not('deleted_at', 'is', null);
+          } else {
+            query = query.is('deleted_at', null);
+          }
+
+          if (cashBoxFilter !== 'all') {
+            query = query.or(`source_cash_box_id.eq.${cashBoxFilter},destination_cash_box_id.eq.${cashBoxFilter}`);
+          }
+          if (dateFrom) {
+            query = query.gte('transfer_date', dateFrom);
+          }
+          if (dateTo) {
+            query = query.lte('transfer_date', dateTo);
+          }
+          if (trimmedSearch) {
+            query = query.or(
+              `number.ilike.%${trimmedSearch}%,source_cash_box_name.ilike.%${trimmedSearch}%,destination_cash_box_name.ilike.%${trimmedSearch}%,notes.ilike.%${trimmedSearch}%`,
+            );
+          }
+
+          if (sortOrder === 'amount-desc') {
+            query = query.order('amount', { ascending: false }).order('number', { ascending: false });
+          } else if (sortOrder === 'amount-asc') {
+            query = query.order('amount', { ascending: true }).order('number', { ascending: true });
+          } else if (sortOrder === 'number-desc') {
+            query = query.order('number', { ascending: false });
+          } else if (sortOrder === 'number-asc') {
+            query = query.order('number', { ascending: true });
+          } else if (sortOrder === 'date-asc') {
+            query = query.order('transfer_date', { ascending: true }).order('number', { ascending: true });
+          } else {
+            query = query.order('transfer_date', { ascending: false }).order('number', { ascending: false });
+          }
+
+          query = query.range(from, to);
+
+          const [dataRes, kpiRes] = await Promise.all([
+            query,
+            supabase.rpc('get_cash_box_transfer_kpis', {
+              p_cash_box_id: cashBoxFilter !== 'all' ? cashBoxFilter : null,
+              p_search: trimmedSearch || null,
+              p_date_from: dateFrom || null,
+              p_date_to: dateTo || null,
+              p_show_deleted: showDeleted,
+            }),
+          ]);
+
+          if (cancelled) return;
+          if (dataRes.error) throw dataRes.error;
+
+          setTransferRows((dataRes.data || []) as CashBoxTransferRow[]);
+          setTotalCount(dataRes.count ?? 0);
+
+          if (kpiRes.data) {
+            const raw = kpiRes.data as any;
+            setTransferSummary({
+              totalAmount: Number(raw.total_amount || 0),
+              count: Number(raw.count || 0),
+            });
+          }
         }
       } catch (err: any) {
         if (!cancelled) setError(translateDbError(err?.message || 'فشل تحميل البيانات'));
@@ -344,7 +424,30 @@ export default function Receipts() {
     return () => {
       cancelled = true;
     };
-  }, [tab, direction, isCashBoxTransfer, showDeleted, version, canViewCurrentTab]);
+  }, [
+    tab,
+    direction,
+    isCashBoxTransfer,
+    showDeleted,
+    version,
+    canViewCurrentTab,
+    page,
+    debouncedSearch,
+    cashBoxFilter,
+    dateFrom,
+    dateTo,
+    sortOrder,
+  ]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, cashBoxFilter, dateFrom, dateTo, sortOrder, tab, showDeleted]);
+
+  useEffect(() => {
+    if (page > pageCount && pageCount > 0) {
+      setPage(pageCount);
+    }
+  }, [page, pageCount]);
 
   function resetForm() {
     setEditing(null);

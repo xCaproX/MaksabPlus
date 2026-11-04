@@ -19,10 +19,14 @@ import type {
 } from '../lib/types';
 import { useAccess } from '../lib/access';
 import { useConfirmDialog } from '../lib/useConfirmDialog';
-import { matchesSearchQuery } from '../lib/search';
 import { useMasterData } from '../context/MasterDataContext';
-import { calculateInvoiceKpis, type InvoiceTab } from './invoices/invoiceKpis';
-import InvoiceTable, { saleStatus, type SaleSort, type SaleStatus } from './invoices/InvoiceTable';
+import {
+  calculateInvoiceKpis,
+  type InvoiceKpiSummary,
+  type WarehouseTransferKpiSummary,
+  type InvoiceTab,
+} from './invoices/invoiceKpis';
+import InvoiceTable, { type SaleSort, type SaleStatus } from './invoices/InvoiceTable';
 import WarehouseTransferTable from './invoices/WarehouseTransferTable';
 
 interface EditingInvoice {
@@ -154,92 +158,44 @@ export default function Invoices() {
         : `تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'} ${editing.invoice.number}`
       : `${newLabel} ${isWarehouseTransfer ? 'جديد' : 'جديدة'}`;
 
-  // تصفية الفواتير
-  const filteredInvoiceRows = useMemo(() => {
-    if (isWarehouseTransfer) return [];
-    const next = rows.filter((invoice) => {
-      const matchesText = matchesSearchQuery(
-        [invoice.number, invoice.account_name, invoice.warehouse_name],
-        searchTerm,
-      );
-      const matchesStatus =
-        kind === 'waste' || statusFilter === 'all' || saleStatus(invoice) === statusFilter;
-      const matchesFrom = !dateFrom || invoice.invoice_date >= dateFrom;
-      const matchesTo = !dateTo || invoice.invoice_date <= dateTo;
-      return matchesText && matchesStatus && matchesFrom && matchesTo;
-    });
-    return next.sort((firstInvoice, secondInvoice) => {
-      if (sortOrder === 'total-desc') return Number(secondInvoice.total) - Number(firstInvoice.total);
-      if (sortOrder === 'total-asc') return Number(firstInvoice.total) - Number(secondInvoice.total);
-      if (sortOrder === 'number-desc')
-        return secondInvoice.number.localeCompare(firstInvoice.number, undefined, { numeric: true });
-      if (sortOrder === 'number-asc')
-        return firstInvoice.number.localeCompare(secondInvoice.number, undefined, { numeric: true });
-      if (sortOrder === 'account-desc')
-        return (secondInvoice.account_name || '').localeCompare(firstInvoice.account_name || '', 'ar');
-      if (sortOrder === 'account-asc')
-        return (firstInvoice.account_name || '').localeCompare(secondInvoice.account_name || '', 'ar');
-      if (sortOrder === 'remaining-desc')
-        return Number(secondInvoice.remaining) - Number(firstInvoice.remaining);
-      if (sortOrder === 'remaining-asc')
-        return Number(firstInvoice.remaining) - Number(secondInvoice.remaining);
-      const comparison =
-        firstInvoice.invoice_date.localeCompare(secondInvoice.invoice_date) ||
-        firstInvoice.number.localeCompare(secondInvoice.number);
-      return sortOrder === 'date-asc' ? comparison : -comparison;
-    });
-  }, [rows, isWarehouseTransfer, searchTerm, statusFilter, dateFrom, dateTo, sortOrder, kind]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [invoiceSummary, setInvoiceSummary] = useState<InvoiceKpiSummary>({
+    totalAmount: 0,
+    paidAmount: 0,
+    remainingAmount: 0,
+    profitTotal: 0,
+    count: 0,
+  });
+  const [transferSummary, setTransferSummary] = useState<WarehouseTransferKpiSummary>({
+    totalValue: 0,
+    totalQty: 0,
+    count: 0,
+  });
 
-  // تصفية التحويلات المخزنية
-  const filteredTransferRows = useMemo(() => {
-    if (!isWarehouseTransfer) return [];
-    const next = transferRows.filter((transfer) => {
-      const matchesText = matchesSearchQuery(
-        [
-          transfer.number,
-          transfer.source_warehouse_name,
-          transfer.destination_warehouse_name,
-          transfer.notes,
-        ],
-        searchTerm,
-      );
-      const matchesFrom = !dateFrom || transfer.transfer_date >= dateFrom;
-      const matchesTo = !dateTo || transfer.transfer_date <= dateTo;
-      return matchesText && matchesFrom && matchesTo;
-    });
-    return next.sort((firstTransfer, secondTransfer) => {
-      if (sortOrder === 'total-desc')
-        return Number(secondTransfer.total_value) - Number(firstTransfer.total_value);
-      if (sortOrder === 'total-asc')
-        return Number(firstTransfer.total_value) - Number(secondTransfer.total_value);
-      if (sortOrder === 'number-desc')
-        return secondTransfer.number.localeCompare(firstTransfer.number, undefined, { numeric: true });
-      if (sortOrder === 'number-asc')
-        return firstTransfer.number.localeCompare(secondTransfer.number, undefined, { numeric: true });
-      const comparison =
-        firstTransfer.transfer_date.localeCompare(secondTransfer.transfer_date) ||
-        firstTransfer.number.localeCompare(secondTransfer.number);
-      return sortOrder === 'date-asc' ? comparison : -comparison;
-    });
-  }, [transferRows, isWarehouseTransfer, searchTerm, dateFrom, dateTo, sortOrder]);
+  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  const activeTotalCount = isWarehouseTransfer
-    ? filteredTransferRows.length
-    : filteredInvoiceRows.length;
+  const activeTotalCount = totalCount;
   const pageCount = Math.max(1, Math.ceil(activeTotalCount / PAGE_SIZE));
-  const pageInvoices = filteredInvoiceRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const pageTransfers = filteredTransferRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageInvoices = rows;
+  const pageTransfers = transferRows;
 
   const kpiItems = useMemo(
     () =>
       calculateInvoiceKpis({
         kind,
         isWarehouseTransfer,
-        filteredTransferRows,
-        filteredInvoiceRows,
+        transferSummary,
+        invoiceSummary,
         canViewProfit: Boolean(canViewProfit),
       }),
-    [kind, isWarehouseTransfer, filteredTransferRows, filteredInvoiceRows, canViewProfit],
+    [kind, isWarehouseTransfer, transferSummary, invoiceSummary, canViewProfit],
   );
 
   useEffect(() => {
@@ -248,59 +204,211 @@ export default function Invoices() {
     async function load() {
       setLoading(true);
 
-      const [documentsRes, transfersRes] = await Promise.all([
-        invoiceKind
-          ? (showDeleted
-              ? supabase
-                  .from('v_invoice_list')
-                  .select('*')
-                  .eq('kind', invoiceKind)
-                  .not('deleted_at', 'is', null)
-              : supabase
-                  .from('v_invoice_list')
-                  .select('*')
-                  .eq('kind', invoiceKind)
-                  .is('deleted_at', null)
-            )
-              .order('invoice_date', { ascending: false })
-              .order('number', { ascending: false })
-          : Promise.resolve({ data: [], error: null }),
-        isWarehouseTransfer
-          ? (showDeleted
-              ? supabase.from('v_warehouse_transfer_list').select('*').not('deleted_at', 'is', null)
-              : supabase.from('v_warehouse_transfer_list').select('*').is('deleted_at', null)
-            )
+      const from = (page - 1) * PAGE_SIZE;
+      const to = page * PAGE_SIZE - 1;
+      const trimmedSearch = debouncedSearch.trim();
+
+      try {
+        if (invoiceKind) {
+          let query = supabase
+            .from('v_invoice_list')
+            .select('*', { count: 'exact' })
+            .eq('kind', invoiceKind);
+
+          if (showDeleted) {
+            query = query.not('deleted_at', 'is', null);
+          } else {
+            query = query.is('deleted_at', null);
+          }
+
+          if (dateFrom) {
+            query = query.gte('invoice_date', dateFrom);
+          }
+          if (dateTo) {
+            query = query.lte('invoice_date', dateTo);
+          }
+          if (kind !== 'waste' && statusFilter !== 'all') {
+            if (statusFilter === 'paid') {
+              query = query.lte('remaining', 0);
+            } else if (statusFilter === 'partial') {
+              query = query.gt('paid', 0).gt('remaining', 0);
+            } else if (statusFilter === 'unpaid') {
+              query = query.lte('paid', 0).gt('remaining', 0);
+            }
+          }
+          if (trimmedSearch) {
+            query = query.or(
+              `number.ilike.%${trimmedSearch}%,account_name.ilike.%${trimmedSearch}%,warehouse_name.ilike.%${trimmedSearch}%`,
+            );
+          }
+
+          if (sortOrder === 'total-desc') {
+            query = query.order('total', { ascending: false }).order('number', { ascending: false });
+          } else if (sortOrder === 'total-asc') {
+            query = query.order('total', { ascending: true }).order('number', { ascending: true });
+          } else if (sortOrder === 'number-desc') {
+            query = query.order('number', { ascending: false });
+          } else if (sortOrder === 'number-asc') {
+            query = query.order('number', { ascending: true });
+          } else if (sortOrder === 'account-desc') {
+            query = query.order('account_name', { ascending: false }).order('number', { ascending: false });
+          } else if (sortOrder === 'account-asc') {
+            query = query.order('account_name', { ascending: true }).order('number', { ascending: true });
+          } else if (sortOrder === 'remaining-desc') {
+            query = query.order('remaining', { ascending: false }).order('number', { ascending: false });
+          } else if (sortOrder === 'remaining-asc') {
+            query = query.order('remaining', { ascending: true }).order('number', { ascending: true });
+          } else if (sortOrder === 'date-asc') {
+            query = query.order('invoice_date', { ascending: true }).order('number', { ascending: true });
+          } else {
+            query = query.order('invoice_date', { ascending: false }).order('number', { ascending: false });
+          }
+
+          query = query.range(from, to);
+
+          const [docRes, kpiRes] = await Promise.all([
+            query,
+            supabase.rpc('get_invoice_kpis', {
+              p_kind: invoiceKind,
+              p_search: trimmedSearch || null,
+              p_status: kind === 'waste' ? 'all' : statusFilter,
+              p_date_from: dateFrom || null,
+              p_date_to: dateTo || null,
+              p_show_deleted: showDeleted,
+            }),
+          ]);
+
+          if (!alive) return;
+
+          if (docRes.error) {
+            toast.error(translateDbError(docRes.error.message));
+          } else {
+            setRows((docRes.data ?? []) as InvoiceRow[]);
+            setTotalCount(docRes.count ?? 0);
+          }
+
+          if (kpiRes.data) {
+            const raw = kpiRes.data as any;
+            setInvoiceSummary({
+              totalAmount: Number(raw.total_amount || 0),
+              paidAmount: Number(raw.paid_amount || 0),
+              remainingAmount: Number(raw.remaining_amount || 0),
+              profitTotal: Number(raw.profit_total || 0),
+              count: Number(raw.count || 0),
+            });
+          }
+        } else if (isWarehouseTransfer) {
+          let transferQuery = supabase
+            .from('v_warehouse_transfer_list')
+            .select('*', { count: 'exact' });
+
+          if (showDeleted) {
+            transferQuery = transferQuery.not('deleted_at', 'is', null);
+          } else {
+            transferQuery = transferQuery.is('deleted_at', null);
+          }
+
+          if (dateFrom) {
+            transferQuery = transferQuery.gte('transfer_date', dateFrom);
+          }
+          if (dateTo) {
+            transferQuery = transferQuery.lte('transfer_date', dateTo);
+          }
+          if (trimmedSearch) {
+            transferQuery = transferQuery.or(
+              `number.ilike.%${trimmedSearch}%,source_warehouse_name.ilike.%${trimmedSearch}%,destination_warehouse_name.ilike.%${trimmedSearch}%,notes.ilike.%${trimmedSearch}%`,
+            );
+          }
+
+          if (sortOrder === 'total-desc') {
+            transferQuery = transferQuery
+              .order('total_value', { ascending: false })
+              .order('number', { ascending: false });
+          } else if (sortOrder === 'total-asc') {
+            transferQuery = transferQuery
+              .order('total_value', { ascending: true })
+              .order('number', { ascending: true });
+          } else if (sortOrder === 'number-desc') {
+            transferQuery = transferQuery.order('number', { ascending: false });
+          } else if (sortOrder === 'number-asc') {
+            transferQuery = transferQuery.order('number', { ascending: true });
+          } else if (sortOrder === 'date-asc') {
+            transferQuery = transferQuery
+              .order('transfer_date', { ascending: true })
+              .order('number', { ascending: true });
+          } else {
+            transferQuery = transferQuery
               .order('transfer_date', { ascending: false })
-              .order('number', { ascending: false })
-          : Promise.resolve({ data: [], error: null }),
-      ]);
+              .order('number', { ascending: false });
+          }
 
-      if (!alive) return;
+          transferQuery = transferQuery.range(from, to);
 
-      const firstError = documentsRes.error ?? transfersRes.error;
-      if (firstError) {
-        toast.error(translateDbError(firstError.message));
-        setLoading(false);
-        return;
+          const [transRes, kpiRes] = await Promise.all([
+            transferQuery,
+            supabase.rpc('get_warehouse_transfer_kpis', {
+              p_search: trimmedSearch || null,
+              p_date_from: dateFrom || null,
+              p_date_to: dateTo || null,
+              p_show_deleted: showDeleted,
+            }),
+          ]);
+
+          if (!alive) return;
+
+          if (transRes.error) {
+            toast.error(translateDbError(transRes.error.message));
+          } else {
+            setTransferRows((transRes.data ?? []) as WarehouseTransferRow[]);
+            setTotalCount(transRes.count ?? 0);
+          }
+
+          if (kpiRes.data) {
+            const raw = kpiRes.data as any;
+            setTransferSummary({
+              totalValue: Number(raw.total_value || 0),
+              totalQty: Number(raw.total_qty || 0),
+              count: Number(raw.count || 0),
+            });
+          }
+        }
+      } catch (err: any) {
+        if (alive) {
+          toast.error(translateDbError(err?.message || 'فشل تحميل البيانات'));
+        }
+      } finally {
+        if (alive) {
+          setLoading(false);
+        }
       }
-
-      setRows((documentsRes.data ?? []) as InvoiceRow[]);
-      setTransferRows((transfersRes.data ?? []) as WarehouseTransferRow[]);
-      setLoading(false);
     }
 
     void load();
     return () => {
       alive = false;
     };
-  }, [kind, invoiceKind, isWarehouseTransfer, version, showDeleted]);
+  }, [
+    kind,
+    invoiceKind,
+    isWarehouseTransfer,
+    version,
+    showDeleted,
+    page,
+    debouncedSearch,
+    statusFilter,
+    dateFrom,
+    dateTo,
+    sortOrder,
+  ]);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, dateFrom, dateTo, sortOrder, kind]);
+  }, [debouncedSearch, statusFilter, dateFrom, dateTo, sortOrder, kind, showDeleted]);
 
   useEffect(() => {
-    if (page > pageCount) setPage(pageCount);
+    if (page > pageCount && pageCount > 0) {
+      setPage(pageCount);
+    }
   }, [page, pageCount]);
 
   function switchKind(next: InvoiceTab) {
