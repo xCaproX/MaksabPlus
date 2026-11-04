@@ -1,0 +1,259 @@
+import {
+  DollarSign,
+  CheckCircle2,
+  AlertCircle,
+  ShoppingBag,
+  FileText,
+  TrendingUp,
+  RotateCcw,
+  ArrowDownLeft,
+  ArrowUpRight,
+  AlertTriangle,
+  ArrowLeftRight,
+  Boxes,
+} from 'lucide-react';
+import { money, qty as formatQty } from '../../lib/format';
+import type { KpiItem } from '../../components/KpiBar';
+import type { InvoiceKind, InvoiceRow, WarehouseTransferRow } from '../../lib/types';
+
+export type InvoiceTab = InvoiceKind | 'warehouse_transfer';
+
+interface CalculateKpisOptions {
+  kind: InvoiceTab;
+  isWarehouseTransfer: boolean;
+  filteredTransferRows: WarehouseTransferRow[];
+  filteredInvoiceRows: InvoiceRow[];
+  canViewProfit: boolean;
+}
+
+export function calculateInvoiceKpis({
+  kind,
+  isWarehouseTransfer,
+  filteredTransferRows,
+  filteredInvoiceRows,
+  canViewProfit,
+}: CalculateKpisOptions): KpiItem[] {
+  if (isWarehouseTransfer) {
+    const totalValue = filteredTransferRows.reduce((sum, r) => sum + Number(r.total_value || 0), 0);
+    const totalQty = filteredTransferRows.reduce((sum, r) => sum + Number(r.total_qty || 0), 0);
+    return [
+      {
+        id: 'transfers-value',
+        label: 'إجمالي قيمة التحويلات',
+        value: money(totalValue),
+        unit: 'ج.م',
+        variant: 'primary',
+        icon: ArrowLeftRight,
+      },
+      {
+        id: 'transfers-qty',
+        label: 'إجمالي الكميات المحولة',
+        value: formatQty(totalQty),
+        unit: 'وحدة',
+        variant: 'info',
+        icon: Boxes,
+      },
+      {
+        id: 'transfers-count',
+        label: 'عدد أوامر التحويل',
+        value: filteredTransferRows.length,
+        unit: 'تحويل',
+        variant: 'neutral',
+        icon: FileText,
+      },
+    ];
+  }
+
+  const totalAmount = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.total || 0), 0);
+  const paidAmount = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.paid || 0), 0);
+  const remainingAmount = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.remaining || 0), 0);
+  const count = filteredInvoiceRows.length;
+
+  if (kind === 'waste') {
+    return [
+      {
+        id: 'waste-total',
+        label: 'إجمالي قيمة الهالك',
+        value: money(totalAmount),
+        unit: 'ج.م',
+        variant: 'danger',
+        icon: AlertTriangle,
+      },
+      {
+        id: 'waste-count',
+        label: 'عدد فواتير الهالك',
+        value: count,
+        unit: 'فاتورة',
+        variant: 'neutral',
+        icon: FileText,
+      },
+    ];
+  }
+
+  if (kind === 'sale_return') {
+    return [
+      {
+        id: 'return-total',
+        label: 'إجمالي المرتجعات',
+        value: money(totalAmount),
+        unit: 'ج.م',
+        variant: 'danger',
+        icon: RotateCcw,
+      },
+      {
+        id: 'return-paid',
+        label: 'المسترد للعملاء نقدًا',
+        value: money(paidAmount),
+        unit: 'ج.م',
+        variant: 'warning',
+        icon: ArrowDownLeft,
+      },
+      {
+        id: 'return-remaining',
+        label: 'المخصوم من رصيدهم',
+        value: money(remainingAmount),
+        unit: 'ج.م',
+        variant: 'neutral',
+        icon: FileText,
+      },
+      {
+        id: 'return-count',
+        label: 'عدد فواتير المرتجع',
+        value: count,
+        unit: 'فاتورة',
+        variant: 'neutral',
+        icon: FileText,
+      },
+    ];
+  }
+
+  if (kind === 'purchase_return') {
+    return [
+      {
+        id: 'p-return-total',
+        label: 'إجمالي مرتجع المشتريات',
+        value: money(totalAmount),
+        unit: 'ج.م',
+        variant: 'primary',
+        icon: RotateCcw,
+      },
+      {
+        id: 'p-return-paid',
+        label: 'المسترد نقدًا من الموردين',
+        value: money(paidAmount),
+        unit: 'ج.م',
+        variant: 'success',
+        icon: ArrowUpRight,
+      },
+      {
+        id: 'p-return-remaining',
+        label: 'المتبقي كخصم من حساباتهم',
+        value: money(remainingAmount),
+        unit: 'ج.م',
+        variant: 'neutral',
+        icon: FileText,
+      },
+      {
+        id: 'p-return-count',
+        label: 'عدد المرتجعات',
+        value: count,
+        unit: 'عملية',
+        variant: 'neutral',
+        icon: FileText,
+      },
+    ];
+  }
+
+  if (kind === 'purchase') {
+    return [
+      {
+        id: 'purchase-total',
+        label: 'إجمالي المشتريات',
+        value: money(totalAmount),
+        unit: 'ج.م',
+        variant: 'primary',
+        icon: ShoppingBag,
+      },
+      {
+        id: 'purchase-paid',
+        label: 'المدفوع نقدًا',
+        value: money(paidAmount),
+        unit: 'ج.م',
+        variant: 'success',
+        icon: CheckCircle2,
+      },
+      {
+        id: 'purchase-remaining',
+        label: 'المستحق للموردين (آجل)',
+        value: money(remainingAmount),
+        unit: 'ج.م',
+        variant: remainingAmount > 0 ? 'warning' : 'neutral',
+        icon: AlertCircle,
+      },
+      {
+        id: 'purchase-count',
+        label: 'عدد الفواتير',
+        value: count,
+        unit: 'فاتورة',
+        variant: 'neutral',
+        icon: FileText,
+      },
+    ];
+  }
+
+  // Default: 'sale'
+  const itemsList: KpiItem[] = [
+    {
+      id: 'sale-total',
+      label: 'إجمالي المبيعات',
+      value: money(totalAmount),
+      unit: 'ج.م',
+      variant: 'primary',
+      icon: DollarSign,
+    },
+    {
+      id: 'sale-paid',
+      label: 'المحصّل نقدًا',
+      value: money(paidAmount),
+      unit: 'ج.م',
+      variant: 'success',
+      icon: CheckCircle2,
+      subtext:
+        totalAmount > 0 ? (
+          <span>
+            نسبة التحصيل: <bdi dir="ltr">{Math.round((paidAmount / totalAmount) * 100)}%</bdi>
+          </span>
+        ) : undefined,
+    },
+    {
+      id: 'sale-remaining',
+      label: 'المتبقي آجل (ديون)',
+      value: money(remainingAmount),
+      unit: 'ج.م',
+      variant: remainingAmount > 0 ? 'warning' : 'neutral',
+      icon: AlertCircle,
+    },
+    {
+      id: 'sale-count',
+      label: 'عدد الفواتير',
+      value: count,
+      unit: 'فاتورة',
+      variant: 'neutral',
+      icon: FileText,
+    },
+  ];
+
+  if (canViewProfit) {
+    const profitTotal = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.profit_total || 0), 0);
+    itemsList.push({
+      id: 'sale-profit',
+      label: 'أرباح المبيعات التقديرية',
+      value: money(profitTotal),
+      unit: 'ج.م',
+      variant: 'info',
+      icon: TrendingUp,
+    });
+  }
+
+  return itemsList;
+}

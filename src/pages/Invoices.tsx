@@ -1,32 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { formatDate, money, qty as formatQty } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import DateInput from '../components/DateInput';
-import StatusBadge from '../components/StatusBadge';
-import RowActions from '../components/RowActions';
 import SearchableSelect from '../components/SearchableSelect';
-import SortableHeader from '../components/SortableHeader';
-import KpiBar, { type KpiItem } from '../components/KpiBar';
-import {
-  DollarSign,
-  CheckCircle2,
-  AlertCircle,
-  ShoppingBag,
-  FileText,
-  TrendingUp,
-  RotateCcw,
-  ArrowDownLeft,
-  ArrowUpRight,
-  AlertTriangle,
-  ArrowLeftRight,
-  Boxes,
-} from 'lucide-react';
+import KpiBar from '../components/KpiBar';
 import { toast } from '../components/Toast';
 import type {
   InvoiceKind,
@@ -39,42 +21,26 @@ import { useAccess } from '../lib/access';
 import { useConfirmDialog } from '../lib/useConfirmDialog';
 import { matchesSearchQuery } from '../lib/search';
 import { useMasterData } from '../context/MasterDataContext';
-
-type InvoiceTab = InvoiceKind | 'warehouse_transfer';
+import { calculateInvoiceKpis, type InvoiceTab } from './invoices/invoiceKpis';
+import InvoiceTable, { saleStatus, type SaleSort, type SaleStatus } from './invoices/InvoiceTable';
+import WarehouseTransferTable from './invoices/WarehouseTransferTable';
 
 interface EditingInvoice {
   invoice: InvoiceRow;
   lines: LineDraft[];
 }
 
-type SaleStatus = 'all' | 'paid' | 'partial' | 'unpaid';
-type SaleSort =
-  | 'date-desc'
-  | 'date-asc'
-  | 'number-desc'
-  | 'number-asc'
-  | 'total-desc'
-  | 'total-asc'
-  | 'account-asc'
-  | 'account-desc'
-  | 'remaining-desc'
-  | 'remaining-asc';
 const PAGE_SIZE = 20;
 
-function saleStatus(invoice: InvoiceRow): Exclude<SaleStatus, 'all'> {
-  if (Number(invoice.remaining) <= 0) return 'paid';
-  if (Number(invoice.paid) > 0) return 'partial';
-  return 'unpaid';
-}
+const VALID_INVOICE_TABS: InvoiceTab[] = [
+  'sale',
+  'purchase',
+  'sale_return',
+  'purchase_return',
+  'waste',
+  'warehouse_transfer',
+];
 
-function saleStatusLabel(status: Exclude<SaleStatus, 'all'>, isReturn = false): string {
-  if (isReturn) {
-    return status === 'paid' ? 'مستردة بالكامل' : status === 'partial' ? 'مستردة جزئيًا' : 'غير مستردة';
-  }
-  return status === 'paid' ? 'مسددة' : status === 'partial' ? 'جزئية' : 'غير مسددة';
-}
-
-const VALID_INVOICE_TABS: InvoiceTab[] = ['sale', 'purchase', 'sale_return', 'purchase_return', 'waste', 'warehouse_transfer'];
 const INVOICE_TABS = [
   { value: 'sale', label: 'فواتير المبيعات' },
   { value: 'purchase', label: 'فواتير المشتريات' },
@@ -88,7 +54,7 @@ export default function Invoices() {
   const { can, access } = useAccess();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as InvoiceTab | null;
-  const initialKind = (tabParam && VALID_INVOICE_TABS.includes(tabParam)) ? tabParam : 'sale';
+  const initialKind = tabParam && VALID_INVOICE_TABS.includes(tabParam) ? tabParam : 'sale';
   const [kind, setKind] = useState<InvoiceTab>(initialKind);
 
   const [rows, setRows] = useState<InvoiceRow[]>([]);
@@ -104,18 +70,15 @@ export default function Invoices() {
   const accounts = useMemo(() => rawAccounts.filter((a) => a.is_active), [rawAccounts]);
   const items = useMemo(() => rawItems.filter((i) => i.is_active), [rawItems]);
   const [loading, setLoading] = useState(true);
-  function setError(msg: string) {
-    if (msg) toast.error(msg);
-  }
-  function setNotice(msg: string) {
-    if (msg) toast.success(msg);
-  }
+
   const [formOpen, setFormOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const openedFromViewRef = useRef(false);
   const openedTransferFromViewRef = useRef(false);
   const [editing, setEditing] = useState<EditingInvoice | null>(null);
-  const [editingTransfer, setEditingTransfer] = useState<(WarehouseTransferRow & { lines: WarehouseTransferLine[] }) | null>(null);
+  const [editingTransfer, setEditingTransfer] = useState<
+    (WarehouseTransferRow & { lines: WarehouseTransferLine[] }) | null
+  >(null);
   const [version, setVersion] = useState(0);
   const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
   const [showDeleted, setShowDeleted] = useState(false);
@@ -136,7 +99,7 @@ export default function Invoices() {
   const canViewCurrentTab = can(`goods.${kind}.view`);
 
   useEffect(() => {
-    const targetKind = (tabParam && VALID_INVOICE_TABS.includes(tabParam)) ? tabParam : 'sale';
+    const targetKind = tabParam && VALID_INVOICE_TABS.includes(tabParam) ? tabParam : 'sale';
     if (targetKind !== kind) {
       setKind(targetKind);
       setFormOpen(false);
@@ -148,39 +111,48 @@ export default function Invoices() {
       setDateTo('');
       setPage(1);
     }
-  }, [tabParam]);
+  }, [tabParam, kind]);
 
-  const newLabel = isWarehouseTransfer ? 'تحويل بين مخازن' :
-    kind === 'waste'
+  const newLabel = isWarehouseTransfer
+    ? 'تحويل بين مخازن'
+    : kind === 'waste'
       ? 'فاتورة هالك'
       : kind === 'sale'
-      ? 'فاتورة مبيعات'
-      : kind === 'purchase'
-        ? 'فاتورة مشتريات'
-        : kind === 'sale_return'
-          ? 'مرتجع مبيعات'
-          : 'مرتجع مشتريات';
+        ? 'فاتورة مبيعات'
+        : kind === 'purchase'
+          ? 'فاتورة مشتريات'
+          : kind === 'sale_return'
+            ? 'مرتجع مبيعات'
+            : 'مرتجع مشتريات';
 
-  const tabTitle = isWarehouseTransfer ? 'تحويلات المخازن' :
-    kind === 'waste'
+  const tabTitle = isWarehouseTransfer
+    ? 'تحويلات المخازن'
+    : kind === 'waste'
       ? 'فواتير الهالك'
       : kind === 'sale'
-      ? 'فواتير المبيعات'
-      : kind === 'purchase'
-        ? 'فواتير المشتريات'
-        : kind === 'sale_return'
-          ? 'مرتجعات المبيعات'
-          : 'مرتجعات المشتريات';
+        ? 'فواتير المبيعات'
+        : kind === 'purchase'
+          ? 'فواتير المشتريات'
+          : kind === 'sale_return'
+            ? 'مرتجعات المبيعات'
+            : 'مرتجعات المشتريات';
 
-  const partyHeader = kind === 'sale' || kind === 'sale_return' ? 'العميل' : kind === 'purchase' || kind === 'purchase_return' ? 'المورد' : 'الحساب';
+  const partyHeader =
+    kind === 'sale' || kind === 'sale_return'
+      ? 'العميل'
+      : kind === 'purchase' || kind === 'purchase_return'
+        ? 'المورد'
+        : 'الحساب';
 
   const formTitle = editingTransfer
-    ? (modalMode === 'view' ? `${showDeleted ? 'محذوف — ' : ''}تحويل بين مخازن — ${editingTransfer.number}` : `تعديل التحويل ${editingTransfer.number}`)
+    ? modalMode === 'view'
+      ? `${showDeleted ? 'محذوف — ' : ''}تحويل بين مخازن — ${editingTransfer.number}`
+      : `تعديل التحويل ${editingTransfer.number}`
     : editing
-    ? (modalMode === 'view'
+      ? modalMode === 'view'
         ? `${showDeleted ? 'محذوف — ' : ''}${newLabel} — ${editing.invoice.number}`
-        : `تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'} ${editing.invoice.number}`)
-    : `${newLabel} ${isWarehouseTransfer ? 'جديد' : 'جديدة'}`;
+        : `تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'} ${editing.invoice.number}`
+      : `${newLabel} ${isWarehouseTransfer ? 'جديد' : 'جديدة'}`;
 
   // تصفية الفواتير
   const filteredInvoiceRows = useMemo(() => {
@@ -190,7 +162,8 @@ export default function Invoices() {
         [invoice.number, invoice.account_name, invoice.warehouse_name],
         searchTerm,
       );
-      const matchesStatus = kind === 'waste' || statusFilter === 'all' || saleStatus(invoice) === statusFilter;
+      const matchesStatus =
+        kind === 'waste' || statusFilter === 'all' || saleStatus(invoice) === statusFilter;
       const matchesFrom = !dateFrom || invoice.invoice_date >= dateFrom;
       const matchesTo = !dateTo || invoice.invoice_date <= dateTo;
       return matchesText && matchesStatus && matchesFrom && matchesTo;
@@ -198,13 +171,21 @@ export default function Invoices() {
     return next.sort((firstInvoice, secondInvoice) => {
       if (sortOrder === 'total-desc') return Number(secondInvoice.total) - Number(firstInvoice.total);
       if (sortOrder === 'total-asc') return Number(firstInvoice.total) - Number(secondInvoice.total);
-      if (sortOrder === 'number-desc') return secondInvoice.number.localeCompare(firstInvoice.number, undefined, { numeric: true });
-      if (sortOrder === 'number-asc') return firstInvoice.number.localeCompare(secondInvoice.number, undefined, { numeric: true });
-      if (sortOrder === 'account-desc') return (secondInvoice.account_name || '').localeCompare(firstInvoice.account_name || '', 'ar');
-      if (sortOrder === 'account-asc') return (firstInvoice.account_name || '').localeCompare(secondInvoice.account_name || '', 'ar');
-      if (sortOrder === 'remaining-desc') return Number(secondInvoice.remaining) - Number(firstInvoice.remaining);
-      if (sortOrder === 'remaining-asc') return Number(firstInvoice.remaining) - Number(secondInvoice.remaining);
-      const comparison = firstInvoice.invoice_date.localeCompare(secondInvoice.invoice_date) || firstInvoice.number.localeCompare(secondInvoice.number);
+      if (sortOrder === 'number-desc')
+        return secondInvoice.number.localeCompare(firstInvoice.number, undefined, { numeric: true });
+      if (sortOrder === 'number-asc')
+        return firstInvoice.number.localeCompare(secondInvoice.number, undefined, { numeric: true });
+      if (sortOrder === 'account-desc')
+        return (secondInvoice.account_name || '').localeCompare(firstInvoice.account_name || '', 'ar');
+      if (sortOrder === 'account-asc')
+        return (firstInvoice.account_name || '').localeCompare(secondInvoice.account_name || '', 'ar');
+      if (sortOrder === 'remaining-desc')
+        return Number(secondInvoice.remaining) - Number(firstInvoice.remaining);
+      if (sortOrder === 'remaining-asc')
+        return Number(firstInvoice.remaining) - Number(secondInvoice.remaining);
+      const comparison =
+        firstInvoice.invoice_date.localeCompare(secondInvoice.invoice_date) ||
+        firstInvoice.number.localeCompare(secondInvoice.number);
       return sortOrder === 'date-asc' ? comparison : -comparison;
     });
   }, [rows, isWarehouseTransfer, searchTerm, statusFilter, dateFrom, dateTo, sortOrder, kind]);
@@ -214,7 +195,12 @@ export default function Invoices() {
     if (!isWarehouseTransfer) return [];
     const next = transferRows.filter((transfer) => {
       const matchesText = matchesSearchQuery(
-        [transfer.number, transfer.source_warehouse_name, transfer.destination_warehouse_name, transfer.notes],
+        [
+          transfer.number,
+          transfer.source_warehouse_name,
+          transfer.destination_warehouse_name,
+          transfer.notes,
+        ],
         searchTerm,
       );
       const matchesFrom = !dateFrom || transfer.transfer_date >= dateFrom;
@@ -222,265 +208,70 @@ export default function Invoices() {
       return matchesText && matchesFrom && matchesTo;
     });
     return next.sort((firstTransfer, secondTransfer) => {
-      if (sortOrder === 'total-desc') return Number(secondTransfer.total_value) - Number(firstTransfer.total_value);
-      if (sortOrder === 'total-asc') return Number(firstTransfer.total_value) - Number(secondTransfer.total_value);
-      if (sortOrder === 'number-desc') return secondTransfer.number.localeCompare(firstTransfer.number, undefined, { numeric: true });
-      if (sortOrder === 'number-asc') return firstTransfer.number.localeCompare(secondTransfer.number, undefined, { numeric: true });
-      const comparison = firstTransfer.transfer_date.localeCompare(secondTransfer.transfer_date) || firstTransfer.number.localeCompare(secondTransfer.number);
+      if (sortOrder === 'total-desc')
+        return Number(secondTransfer.total_value) - Number(firstTransfer.total_value);
+      if (sortOrder === 'total-asc')
+        return Number(firstTransfer.total_value) - Number(secondTransfer.total_value);
+      if (sortOrder === 'number-desc')
+        return secondTransfer.number.localeCompare(firstTransfer.number, undefined, { numeric: true });
+      if (sortOrder === 'number-asc')
+        return firstTransfer.number.localeCompare(secondTransfer.number, undefined, { numeric: true });
+      const comparison =
+        firstTransfer.transfer_date.localeCompare(secondTransfer.transfer_date) ||
+        firstTransfer.number.localeCompare(secondTransfer.number);
       return sortOrder === 'date-asc' ? comparison : -comparison;
     });
   }, [transferRows, isWarehouseTransfer, searchTerm, dateFrom, dateTo, sortOrder]);
 
-  const activeTotalCount = isWarehouseTransfer ? filteredTransferRows.length : filteredInvoiceRows.length;
+  const activeTotalCount = isWarehouseTransfer
+    ? filteredTransferRows.length
+    : filteredInvoiceRows.length;
   const pageCount = Math.max(1, Math.ceil(activeTotalCount / PAGE_SIZE));
   const pageInvoices = filteredInvoiceRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const pageTransfers = filteredTransferRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const kpiItems = useMemo<KpiItem[]>(() => {
-    if (isWarehouseTransfer) {
-      const totalValue = filteredTransferRows.reduce((sum, r) => sum + Number(r.total_value || 0), 0);
-      const totalQty = filteredTransferRows.reduce((sum, r) => sum + Number(r.total_qty || 0), 0);
-      return [
-        {
-          id: 'transfers-value',
-          label: 'إجمالي قيمة التحويلات',
-          value: money(totalValue),
-          unit: 'ج.م',
-          variant: 'primary',
-          icon: ArrowLeftRight,
-        },
-        {
-          id: 'transfers-qty',
-          label: 'إجمالي الكميات المحولة',
-          value: formatQty(totalQty),
-          unit: 'وحدة',
-          variant: 'info',
-          icon: Boxes,
-        },
-        {
-          id: 'transfers-count',
-          label: 'عدد أوامر التحويل',
-          value: filteredTransferRows.length,
-          unit: 'تحويل',
-          variant: 'neutral',
-          icon: FileText,
-        },
-      ];
-    }
-
-    const totalAmount = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.total || 0), 0);
-    const paidAmount = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.paid || 0), 0);
-    const remainingAmount = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.remaining || 0), 0);
-    const count = filteredInvoiceRows.length;
-
-    if (kind === 'waste') {
-      return [
-        {
-          id: 'waste-total',
-          label: 'إجمالي قيمة الهالك',
-          value: money(totalAmount),
-          unit: 'ج.م',
-          variant: 'danger',
-          icon: AlertTriangle,
-        },
-        {
-          id: 'waste-count',
-          label: 'عدد فواتير الهالك',
-          value: count,
-          unit: 'فاتورة',
-          variant: 'neutral',
-          icon: FileText,
-        },
-      ];
-    }
-
-    if (kind === 'sale_return') {
-      return [
-        {
-          id: 'return-total',
-          label: 'إجمالي المرتجعات',
-          value: money(totalAmount),
-          unit: 'ج.م',
-          variant: 'danger',
-          icon: RotateCcw,
-        },
-        {
-          id: 'return-paid',
-          label: 'المسترد للعملاء نقدًا',
-          value: money(paidAmount),
-          unit: 'ج.م',
-          variant: 'warning',
-          icon: ArrowDownLeft,
-        },
-        {
-          id: 'return-remaining',
-          label: 'المخصوم من رصيدهم',
-          value: money(remainingAmount),
-          unit: 'ج.م',
-          variant: 'neutral',
-          icon: FileText,
-        },
-        {
-          id: 'return-count',
-          label: 'عدد فواتير المرتجع',
-          value: count,
-          unit: 'فاتورة',
-          variant: 'neutral',
-          icon: FileText,
-        },
-      ];
-    }
-
-    if (kind === 'purchase_return') {
-      return [
-        {
-          id: 'p-return-total',
-          label: 'إجمالي مرتجع المشتريات',
-          value: money(totalAmount),
-          unit: 'ج.م',
-          variant: 'primary',
-          icon: RotateCcw,
-        },
-        {
-          id: 'p-return-paid',
-          label: 'المسترد نقدًا من الموردين',
-          value: money(paidAmount),
-          unit: 'ج.م',
-          variant: 'success',
-          icon: ArrowUpRight,
-        },
-        {
-          id: 'p-return-remaining',
-          label: 'المتبقي كخصم من حساباتهم',
-          value: money(remainingAmount),
-          unit: 'ج.م',
-          variant: 'neutral',
-          icon: FileText,
-        },
-        {
-          id: 'p-return-count',
-          label: 'عدد المرتجعات',
-          value: count,
-          unit: 'عملية',
-          variant: 'neutral',
-          icon: FileText,
-        },
-      ];
-    }
-
-    if (kind === 'purchase') {
-      return [
-        {
-          id: 'purchase-total',
-          label: 'إجمالي المشتريات',
-          value: money(totalAmount),
-          unit: 'ج.م',
-          variant: 'primary',
-          icon: ShoppingBag,
-        },
-        {
-          id: 'purchase-paid',
-          label: 'المدفوع نقدًا',
-          value: money(paidAmount),
-          unit: 'ج.م',
-          variant: 'success',
-          icon: CheckCircle2,
-        },
-        {
-          id: 'purchase-remaining',
-          label: 'المستحق للموردين (آجل)',
-          value: money(remainingAmount),
-          unit: 'ج.م',
-          variant: remainingAmount > 0 ? 'warning' : 'neutral',
-          icon: AlertCircle,
-        },
-        {
-          id: 'purchase-count',
-          label: 'عدد الفواتير',
-          value: count,
-          unit: 'فاتورة',
-          variant: 'neutral',
-          icon: FileText,
-        },
-      ];
-    }
-
-    // Default: 'sale'
-    const itemsList: KpiItem[] = [
-      {
-        id: 'sale-total',
-        label: 'إجمالي المبيعات',
-        value: money(totalAmount),
-        unit: 'ج.م',
-        variant: 'primary',
-        icon: DollarSign,
-      },
-      {
-        id: 'sale-paid',
-        label: 'المحصّل نقدًا',
-        value: money(paidAmount),
-        unit: 'ج.م',
-        variant: 'success',
-        icon: CheckCircle2,
-        subtext:
-          totalAmount > 0 ? (
-            <span>
-              نسبة التحصيل: <bdi dir="ltr">{Math.round((paidAmount / totalAmount) * 100)}%</bdi>
-            </span>
-          ) : undefined,
-      },
-      {
-        id: 'sale-remaining',
-        label: 'المتبقي آجل (ديون)',
-        value: money(remainingAmount),
-        unit: 'ج.م',
-        variant: remainingAmount > 0 ? 'warning' : 'neutral',
-        icon: AlertCircle,
-      },
-      {
-        id: 'sale-count',
-        label: 'عدد الفواتير',
-        value: count,
-        unit: 'فاتورة',
-        variant: 'neutral',
-        icon: FileText,
-      },
-    ];
-
-    if (canViewProfit) {
-      const profitTotal = filteredInvoiceRows.reduce((sum, r) => sum + Number(r.profit_total || 0), 0);
-      itemsList.push({
-        id: 'sale-profit',
-        label: 'أرباح المبيعات التقديرية',
-        value: money(profitTotal),
-        unit: 'ج.م',
-        variant: 'info',
-        icon: TrendingUp,
-      });
-    }
-
-    return itemsList;
-  }, [isWarehouseTransfer, filteredTransferRows, filteredInvoiceRows, kind, canViewProfit]);
+  const kpiItems = useMemo(
+    () =>
+      calculateInvoiceKpis({
+        kind,
+        isWarehouseTransfer,
+        filteredTransferRows,
+        filteredInvoiceRows,
+        canViewProfit: Boolean(canViewProfit),
+      }),
+    [kind, isWarehouseTransfer, filteredTransferRows, filteredInvoiceRows, canViewProfit],
+  );
 
   useEffect(() => {
     let alive = true;
 
     async function load() {
       setLoading(true);
-      setError('');
 
       const [documentsRes, transfersRes] = await Promise.all([
         invoiceKind
           ? (showDeleted
-              ? supabase.from('v_invoice_list').select('*').eq('kind', invoiceKind).not('deleted_at', 'is', null)
-              : supabase.from('v_invoice_list').select('*').eq('kind', invoiceKind).is('deleted_at', null))
-              .order('invoice_date', { ascending: false }).order('number', { ascending: false })
+              ? supabase
+                  .from('v_invoice_list')
+                  .select('*')
+                  .eq('kind', invoiceKind)
+                  .not('deleted_at', 'is', null)
+              : supabase
+                  .from('v_invoice_list')
+                  .select('*')
+                  .eq('kind', invoiceKind)
+                  .is('deleted_at', null)
+            )
+              .order('invoice_date', { ascending: false })
+              .order('number', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
         isWarehouseTransfer
           ? (showDeleted
               ? supabase.from('v_warehouse_transfer_list').select('*').not('deleted_at', 'is', null)
-              : supabase.from('v_warehouse_transfer_list').select('*').is('deleted_at', null))
-              .order('transfer_date', { ascending: false }).order('number', { ascending: false })
+              : supabase.from('v_warehouse_transfer_list').select('*').is('deleted_at', null)
+            )
+              .order('transfer_date', { ascending: false })
+              .order('number', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
       ]);
 
@@ -488,7 +279,7 @@ export default function Invoices() {
 
       const firstError = documentsRes.error ?? transfersRes.error;
       if (firstError) {
-        setError(translateDbError(firstError.message));
+        toast.error(translateDbError(firstError.message));
         setLoading(false);
         return;
       }
@@ -502,7 +293,7 @@ export default function Invoices() {
     return () => {
       alive = false;
     };
-  }, [kind, version, showDeleted]);
+  }, [kind, invoiceKind, isWarehouseTransfer, version, showDeleted]);
 
   useEffect(() => {
     setPage(1);
@@ -538,11 +329,16 @@ export default function Invoices() {
   }
 
   async function openTransferModal(transfer: WarehouseTransferRow, mode: 'view' | 'edit' = 'view') {
-    setError('');
     openedTransferFromViewRef.current = mode === 'view';
-    const { data, error: linesError } = await supabase.from('warehouse_transfer_items')
-      .select('item_id, qty, unit_cost').eq('transfer_id', transfer.id).order('item_id');
-    if (linesError) return setError(translateDbError(linesError.message));
+    const { data, error: linesError } = await supabase
+      .from('warehouse_transfer_items')
+      .select('item_id, qty, unit_cost')
+      .eq('transfer_id', transfer.id)
+      .order('item_id');
+    if (linesError) {
+      toast.error(translateDbError(linesError.message));
+      return;
+    }
     setEditingTransfer({ ...transfer, lines: (data ?? []) as WarehouseTransferLine[] });
     setEditing(null);
     setModalMode(mode);
@@ -550,7 +346,6 @@ export default function Invoices() {
   }
 
   async function openInvoiceModal(invoice: InvoiceRow, mode: 'view' | 'edit' = 'view') {
-    setError('');
     openedFromViewRef.current = mode === 'view';
     const { data, error: linesError } = await supabase
       .from('invoice_items')
@@ -559,7 +354,7 @@ export default function Invoices() {
       .order('created_at');
 
     if (linesError) {
-      setError(translateDbError(linesError.message));
+      toast.error(translateDbError(linesError.message));
       return;
     }
 
@@ -582,7 +377,9 @@ export default function Invoices() {
     const label =
       invoice.kind === 'sale_return' || invoice.kind === 'purchase_return'
         ? 'المرتجع'
-        : invoice.kind === 'waste' ? 'فاتورة الهالك' : 'الفاتورة';
+        : invoice.kind === 'waste'
+          ? 'فاتورة الهالك'
+          : 'الفاتورة';
     const confirmed = await askConfirmation(
       `حذف ${label} ${invoice.number}؟\n` +
         `سيُستثنى هو وإيصاله المرتبط من الأرصدة والتقارير، ويمكن استعادته من «عرض المحذوفات».`,
@@ -590,15 +387,13 @@ export default function Invoices() {
     );
     if (!confirmed) return;
 
-    setError('');
     const { error: rpcError } = await supabase.rpc('delete_invoice', { p_invoice_id: invoice.id });
-
     if (rpcError) {
-      setError(translateDbError(rpcError.message));
+      toast.error(translateDbError(rpcError.message));
       return;
     }
 
-    setNotice(`تم نقل ${label} ${invoice.number} إلى المحذوفات`);
+    toast.success(`تم نقل ${label} ${invoice.number} إلى المحذوفات`);
     setFormOpen(false);
     setEditing(null);
     setVersion((current) => current + 1);
@@ -609,7 +404,9 @@ export default function Invoices() {
     const label =
       invoice.kind === 'sale_return' || invoice.kind === 'purchase_return'
         ? 'المرتجع'
-        : invoice.kind === 'waste' ? 'فاتورة الهالك' : 'الفاتورة';
+        : invoice.kind === 'waste'
+          ? 'فاتورة الهالك'
+          : 'الفاتورة';
     const confirmed = await askConfirmation(
       `استعادة ${label} ${invoice.number}؟\n` +
         'سيعود مع إيصاله المرتبط ويُعاد تأثيره على المخزون والأرصدة.',
@@ -617,17 +414,15 @@ export default function Invoices() {
     );
     if (!confirmed) return;
 
-    setError('');
     const { error: rpcError } = await supabase.rpc('restore_invoice', {
       p_invoice_id: invoice.id,
     });
-
     if (rpcError) {
-      setError(translateDbError(rpcError.message));
+      toast.error(translateDbError(rpcError.message));
       return;
     }
 
-    setNotice(`تم استعادة ${label} ${invoice.number}`);
+    toast.success(`تم استعادة ${label} ${invoice.number}`);
     setFormOpen(false);
     setEditing(null);
     setVersion((current) => current + 1);
@@ -635,11 +430,22 @@ export default function Invoices() {
   }
 
   async function removeTransfer(transfer: WarehouseTransferRow) {
-    if (!(await askConfirmation(`حذف التحويل ${transfer.number}؟ سيعود المخزون إلى أرصدته السابقة إذا لم توجد حركات لاحقة على هذه الأصناف.`, 'حذف'))) return;
-    setError('');
-    const { error: rpcError } = await supabase.rpc('delete_warehouse_transfer', { p_transfer_id: transfer.id });
-    if (rpcError) return setError(translateDbError(rpcError.message));
-    setNotice(`تم نقل التحويل ${transfer.number} إلى المحذوفات`);
+    if (
+      !(await askConfirmation(
+        `حذف التحويل ${transfer.number}؟ سيعود المخزون إلى أرصدته السابقة إذا لم توجد حركات لاحقة على هذه الأصناف.`,
+        'حذف',
+      ))
+    )
+      return;
+
+    const { error: rpcError } = await supabase.rpc('delete_warehouse_transfer', {
+      p_transfer_id: transfer.id,
+    });
+    if (rpcError) {
+      toast.error(translateDbError(rpcError.message));
+      return;
+    }
+    toast.success(`تم نقل التحويل ${transfer.number} إلى المحذوفات`);
     setFormOpen(false);
     setEditingTransfer(null);
     setVersion((current) => current + 1);
@@ -647,11 +453,22 @@ export default function Invoices() {
   }
 
   async function restoreTransfer(transfer: WarehouseTransferRow) {
-    if (!(await askConfirmation(`استعادة التحويل ${transfer.number}؟ سيعاد تطبيق حركة المخزون.`, 'استعادة'))) return;
-    setError('');
-    const { error: rpcError } = await supabase.rpc('restore_warehouse_transfer', { p_transfer_id: transfer.id });
-    if (rpcError) return setError(translateDbError(rpcError.message));
-    setNotice(`تم استعادة التحويل ${transfer.number}`);
+    if (
+      !(await askConfirmation(
+        `استعادة التحويل ${transfer.number}؟ سيعاد تطبيق حركة المخزون.`,
+        'استعادة',
+      ))
+    )
+      return;
+
+    const { error: rpcError } = await supabase.rpc('restore_warehouse_transfer', {
+      p_transfer_id: transfer.id,
+    });
+    if (rpcError) {
+      toast.error(translateDbError(rpcError.message));
+      return;
+    }
+    toast.success(`تم استعادة التحويل ${transfer.number}`);
     setFormOpen(false);
     setEditingTransfer(null);
     setVersion((current) => current + 1);
@@ -659,11 +476,10 @@ export default function Invoices() {
   }
 
   async function handleSaved(message: string) {
-    setNotice(message);
+    toast.success(message);
     setVersion((current) => current + 1);
     void refresh();
 
-    // إذا كانت الفاتورة مفتوحة من وضع العرض وتم تعديلها، نُعيدها لوضع العرض مع تحديث البيانات
     if (modalMode === 'edit' && openedFromViewRef.current && editing) {
       const invoiceId = editing.invoice.id;
       const [invRes, linesRes] = await Promise.all([
@@ -690,7 +506,6 @@ export default function Invoices() {
       }
     }
 
-    // إذا كان أمر التحويل مفتوحاً من وضع العرض، نُعيده لوضع العرض بعد التعديل (Sibling Parity)
     if (modalMode === 'edit' && openedTransferFromViewRef.current && editingTransfer) {
       const transferId = editingTransfer.id;
       const [trRes, linesRes] = await Promise.all([
@@ -719,7 +534,12 @@ export default function Invoices() {
 
   if (!canViewCurrentTab) {
     const firstAllowedTab = visibleTabs[0];
-    return <Navigate to={firstAllowedTab ? `/invoices?tab=${firstAllowedTab.value}` : '/access-denied'} replace />;
+    return (
+      <Navigate
+        to={firstAllowedTab ? `/invoices?tab=${firstAllowedTab.value}` : '/access-denied'}
+        replace
+      />
+    );
   }
 
   return (
@@ -757,14 +577,16 @@ export default function Invoices() {
 
       {showDeleted && (
         <p className="hint">
-          {isWarehouseTransfer ? 'التحويلات المحذوفة لا تؤثر على المخزون، ويمكن استعادتها ما لم توجد حركات لاحقة.' : 'هذه المستندات محذوفة: لا تؤثر على الأرصدة أو المخزون، ويمكن استعادتها في أي وقت.'}
+          {isWarehouseTransfer
+            ? 'التحويلات المحذوفة لا تؤثر على المخزون، ويمكن استعادتها ما لم توجد حركات لاحقة.'
+            : 'هذه المستندات محذوفة: لا تؤثر على الأرصدة أو المخزون، ويمكن استعادتها في أي وقت.'}
         </p>
       )}
 
       {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
       <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${tabTitle}`} />
 
-      {/* جدول البيانات بعرض كامل 100% */}
+      {/* جدول البيانات */}
       <div className="erp-sales-workspace">
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
@@ -775,7 +597,11 @@ export default function Invoices() {
                   type="search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={isWarehouseTransfer ? 'بحث بالرقم أو المخزن…' : `بحث بالرقم أو ${partyHeader}…`}
+                  placeholder={
+                    isWarehouseTransfer
+                      ? 'بحث بالرقم أو المخزن…'
+                      : `بحث بالرقم أو ${partyHeader}…`
+                  }
                 />
               </label>
 
@@ -794,205 +620,93 @@ export default function Invoices() {
               )}
 
               <div className="erp-date-range">
-                <div className="erp-date"><span>من</span><DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" /></div>
-                <div className="erp-date"><span>إلى</span><DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" /></div>
+                <div className="erp-date">
+                  <span>من</span>
+                  <DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" />
+                </div>
+                <div className="erp-date">
+                  <span>إلى</span>
+                  <DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" />
+                </div>
               </div>
             </div>
           </div>
 
           <div className="erp-table-wrap">
             {isWarehouseTransfer ? (
-              <table className="table erp-table">
-                <thead>
-                  <tr>
-                    <SortableHeader
-                      label="الرقم"
-                      field="number"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as SaleSort)}
-                    />
-                    <SortableHeader
-                      label="التاريخ"
-                      field="date"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as SaleSort)}
-                    />
-                    <th>من مخزن</th>
-                    <th>إلى مخزن</th>
-                    <th className="num">عدد الأصناف</th>
-                    <th className="num">إجمالي الكميات</th>
-                    <SortableHeader
-                      label="قيمة التكلفة"
-                      field="total"
-                      align="end"
-                      className="num"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as SaleSort)}
-                    />
-                    <th>ملاحظات</th>
-                    <th aria-label="الإجراءات" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading && <tr><td colSpan={9} className="empty">جارٍ التحميل…</td></tr>}
-                  {!loading && pageTransfers.length === 0 && <tr><td colSpan={9} className="empty">لا توجد تحويلات تطابق البحث أو الفلاتر.</td></tr>}
-                  {!loading && pageTransfers.map((transfer) => (
-                    <tr
-                      key={transfer.id}
-                      tabIndex={0}
-                      onClick={() => void openTransferModal(transfer, 'view')}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void openTransferModal(transfer, 'view'); }
-                      }}
-                    >
-                      <td className="num strong">{transfer.number}</td>
-                      <td className="num">{formatDate(transfer.transfer_date)}</td>
-                      <td>{transfer.source_warehouse_name}</td>
-                      <td>{transfer.destination_warehouse_name}</td>
-                      <td className="num">{transfer.line_count}</td>
-                      <td className="num">{formatQty(transfer.total_qty)}</td>
-                      <td className="num strong">{money(transfer.total_value)}</td>
-                      <td>{transfer.notes || '—'}</td>
-                      <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
-                        {showDeleted ? (
-                          can(`goods.${kind}.delete`) && (
-                            <RowActions
-                              onRestore={() => void restoreTransfer(transfer)}
-                              restoreLabel="استعادة التحويل"
-                            />
-                          )
-                        ) : (
-                          <RowActions
-                            onEdit={can(`goods.${kind}.edit`) ? () => void openTransferModal(transfer, 'edit') : undefined}
-                            onDelete={can(`goods.${kind}.delete`) ? () => void removeTransfer(transfer) : undefined}
-                          />
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <WarehouseTransferTable
+                loading={loading}
+                pageTransfers={pageTransfers}
+                sortOrder={sortOrder}
+                onSort={setSortOrder}
+                showDeleted={showDeleted}
+                onView={(transfer) => void openTransferModal(transfer, 'view')}
+                onEdit={(transfer) => void openTransferModal(transfer, 'edit')}
+                onDelete={(transfer) => void removeTransfer(transfer)}
+                onRestore={(transfer) => void restoreTransfer(transfer)}
+                canEdit={can(`goods.${kind}.edit`)}
+                canDelete={can(`goods.${kind}.delete`)}
+              />
             ) : (
-              <table className="table erp-table">
-                <thead>
-                  <tr>
-                    <SortableHeader
-                      label="الرقم"
-                      field="number"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as SaleSort)}
-                    />
-                    <SortableHeader
-                      label="التاريخ"
-                      field="date"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as SaleSort)}
-                    />
-                    <SortableHeader
-                      label={partyHeader}
-                      field="account"
-                      defaultDirection="asc"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as SaleSort)}
-                    />
-                    <th>المخزن</th>
-                    <SortableHeader
-                      label="الإجمالي"
-                      field="total"
-                      align="end"
-                      className="num"
-                      currentSort={sortOrder}
-                      onSort={(s) => setSortOrder(s as SaleSort)}
-                    />
-                    {(kind === 'sale' || kind === 'sale_return') && canViewProfit && <th className="num">الربح</th>}
-                    {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && <th className="num">{kind === 'waste' ? 'الخسارة' : 'التكلفة'}</th>}
-                    {kind !== 'waste' && <th>{isReturn ? 'الاسترداد' : 'السداد'}</th>}
-                    {kind !== 'waste' && (
-                      <SortableHeader
-                        label={isReturn ? 'غير المسترد' : 'المتبقي'}
-                        field="remaining"
-                        align="end"
-                        className="num"
-                        currentSort={sortOrder}
-                        onSort={(s) => setSortOrder(s as SaleSort)}
-                      />
-                    )}
-                    <th aria-label="الإجراءات" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading && <tr><td colSpan={10} className="empty">جارٍ التحميل…</td></tr>}
-                  {!loading && pageInvoices.length === 0 && <tr><td colSpan={10} className="empty">لا توجد فواتير تطابق البحث أو الفلاتر.</td></tr>}
-                  {!loading && pageInvoices.map((invoice) => {
-                    const status = saleStatus(invoice);
-                    return (
-                      <tr
-                        key={invoice.id}
-                        tabIndex={0}
-                        onClick={() => void openInvoiceModal(invoice, 'view')}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void openInvoiceModal(invoice, 'view'); }
-                        }}
-                      >
-                        <td className="num strong">{invoice.number}</td>
-                        <td className="num">{formatDate(invoice.invoice_date)}</td>
-                        <td>{invoice.account_name}</td>
-                        <td>{invoice.warehouse_name}</td>
-                        <td className="num strong">{money(invoice.total)}</td>
-                        {(kind === 'sale' || kind === 'sale_return') && canViewProfit && (
-                          <td className="num">{money(invoice.profit_total)}</td>
-                        )}
-                        {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && (
-                          <td className="num">{money(invoice.cost_total)}</td>
-                        )}
-                        {kind !== 'waste' && (
-                          <td>
-                            <StatusBadge variant={status}>{saleStatusLabel(status, isReturn)}</StatusBadge>
-                          </td>
-                        )}
-                        {kind !== 'waste' && (
-                          <td className={Number(invoice.remaining) > 0 ? 'num strong remaining' : 'num'}>{money(invoice.remaining)}</td>
-                        )}
-                        <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
-                          {showDeleted ? (
-                            can(`goods.${kind}.delete`) && (
-                              <RowActions
-                                onRestore={() => void restore(invoice)}
-                                restoreLabel={`استعادة ${newLabel}`}
-                              />
-                            )
-                          ) : (
-                            <RowActions
-                              onEdit={can(`goods.${kind}.edit`) ? () => void openInvoiceModal(invoice, 'edit') : undefined}
-                              onDelete={can(`goods.${kind}.delete`) ? () => void remove(invoice) : undefined}
-                            />
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <InvoiceTable
+                loading={loading}
+                pageInvoices={pageInvoices}
+                kind={kind}
+                partyHeader={partyHeader}
+                sortOrder={sortOrder}
+                onSort={setSortOrder}
+                canViewProfit={Boolean(canViewProfit)}
+                showDeleted={showDeleted}
+                newLabel={newLabel}
+                isReturn={isReturn}
+                onView={(invoice) => void openInvoiceModal(invoice, 'view')}
+                onEdit={(invoice) => void openInvoiceModal(invoice, 'edit')}
+                onDelete={(invoice) => void remove(invoice)}
+                onRestore={(invoice) => void restore(invoice)}
+                canEdit={can(`goods.${kind}.edit`)}
+                canDelete={can(`goods.${kind}.delete`)}
+              />
             )}
           </div>
 
           <div className="erp-pagination">
             <span>
-              عرض {activeTotalCount ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, activeTotalCount)} من {activeTotalCount}
+              عرض {activeTotalCount ? (page - 1) * PAGE_SIZE + 1 : 0}–
+              {Math.min(page * PAGE_SIZE, activeTotalCount)} من {activeTotalCount}
             </span>
             <div>
-              <button type="button" className="btn compact" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>السابق</button>
-              <span>{page} / {pageCount}</span>
-              <button type="button" className="btn compact" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>التالي</button>
+              <button
+                type="button"
+                className="btn compact"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                السابق
+              </button>
+              <span>
+                {page} / {pageCount}
+              </span>
+              <button
+                type="button"
+                className="btn compact"
+                disabled={page === pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                التالي
+              </button>
             </div>
           </div>
         </section>
       </div>
 
-      {/* نافذة الفاتورة المنبثقة الموحدة (عرض / إنشاء / تعديل) */}
+      {/* نافذة الفاتورة والتحويل المنبثقة الموحدة */}
       {formOpen && (
         <Modal
-          className={isWarehouseTransfer ? 'transaction-entry-modal' : 'transaction-entry-modal invoice-entry-modal'}
+          className={
+            isWarehouseTransfer
+              ? 'transaction-entry-modal'
+              : 'transaction-entry-modal invoice-entry-modal'
+          }
           backdropClassName="transaction-entry-backdrop"
           title={formTitle}
           onClose={() => {
