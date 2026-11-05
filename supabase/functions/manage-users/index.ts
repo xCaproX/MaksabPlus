@@ -96,10 +96,8 @@ Deno.serve(async (request) => {
       const password = typeof body.password === 'string' ? body.password : '';
       if (!userId || !password || password.length < 8) return json({ error: 'invalid_password' }, 400);
       const { error: rpcErr } = await caller.rpc('set_company_user_password', { p_user_id: userId, p_password: password });
-      if (rpcErr) {
-        const { error: updateError } = await admin.auth.admin.updateUserById(userId, { password });
-        if (updateError) throw updateError;
-      }
+      // The RPC validates the target's company and employee role. Never bypass its rejection.
+      if (rpcErr) throw rpcErr;
       return json({ ok: true });
     }
 
