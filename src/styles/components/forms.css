@@ -8,16 +8,35 @@ label {
   color: var(--muted);
 }
 
-input,
-select,
-textarea {
+input:not([type="checkbox"]):not([type="radio"]),
+select {
   font: inherit;
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--ink);
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm, 8px);
-  min-height: 40px;
+  height: var(--erp-control-height, 36px);
+  min-height: var(--erp-control-height, 36px);
+  padding: 6px 12px;
+  width: 100%;
+  outline: none;
+  font-weight: 400;
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+textarea {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 8px);
+  min-height: 72px;
   padding: 8px 12px;
   width: 100%;
   outline: none;
@@ -87,6 +106,32 @@ input[type="number"] {
 
 .form-grid .span-2 {
   grid-column: span 2;
+}
+
+/* Unified ERP Form Grid SSOT */
+.erp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--erp-grid-gap-row, 12px) var(--erp-grid-gap-col, 14px);
+  width: 100%;
+}
+
+.erp-col-3 { grid-column: span 3; }
+.erp-col-4 { grid-column: span 4; }
+.erp-col-6 { grid-column: span 6; }
+.erp-col-8 { grid-column: span 8; }
+.erp-col-9 { grid-column: span 9; }
+.erp-col-12,
+.erp-col-full { grid-column: span 12; }
+
+@media (max-width: 768px) {
+  .erp-col-3,
+  .erp-col-4,
+  .erp-col-6,
+  .erp-col-8,
+  .erp-col-9 {
+    grid-column: span 12;
+  }
 }
 
 .inline-form {
@@ -305,8 +350,8 @@ input[type="number"] {
   background: #ffffff;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm, 8px);
-  height: 40px;
-  min-height: 40px;
+  height: var(--erp-control-height, 36px);
+  min-height: var(--erp-control-height, 36px);
   box-shadow: var(--shadow-xs);
   transition:
     border-color var(--transition-fast),

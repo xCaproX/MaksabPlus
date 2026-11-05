@@ -66,6 +66,9 @@
   --erp-muted: #64748b;
   --erp-row-height: 40px;
   --erp-control-height: 36px;
+  --erp-control-height-compact: 32px;
+  --erp-grid-gap-row: 12px;
+  --erp-grid-gap-col: 14px;
   --erp-space-1: 6px;
   --erp-space-2: 10px;
   --erp-space-3: 14px;
