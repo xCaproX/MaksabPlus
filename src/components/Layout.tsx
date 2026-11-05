@@ -17,35 +17,38 @@ function getInitialSection(pathname: string): NavSection | null {
   return null;
 }
 
-function makeSingleOpen(section: NavSection | null): Record<NavSection, boolean> {
-  return {
-    goods: section === 'goods',
-    money: section === 'money',
-    balances: section === 'balances',
-    data: section === 'data',
-    management: section === 'management',
-  };
-}
+const DEFAULT_SECTIONS: Record<NavSection, boolean> = {
+  goods: false,
+  money: false,
+  balances: false,
+  data: false,
+  management: false,
+};
 
-function getStoredOpenSection(uid: string | null): NavSection | null {
+function getStoredOpenSections(uid: string | null): Record<NavSection, boolean> | null {
   if (!uid) return null;
   try {
-    const raw = localStorage.getItem(`maksab_active_nav_section_${uid}`);
-    if (raw && ['goods', 'money', 'balances', 'data', 'management'].includes(raw)) {
-      return raw as NavSection;
+    const raw = localStorage.getItem(`maksab_nav_sections_${uid}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return {
+          goods: Boolean(parsed.goods),
+          money: Boolean(parsed.money),
+          balances: Boolean(parsed.balances),
+          data: Boolean(parsed.data),
+          management: Boolean(parsed.management),
+        };
+      }
     }
   } catch {}
   return null;
 }
 
-function saveOpenSection(uid: string | null, section: NavSection | null) {
+function saveOpenSections(uid: string | null, sections: Record<NavSection, boolean>) {
   if (!uid) return;
   try {
-    if (section) {
-      localStorage.setItem(`maksab_active_nav_section_${uid}`, section);
-    } else {
-      localStorage.removeItem(`maksab_active_nav_section_${uid}`);
-    }
+    localStorage.setItem(`maksab_nav_sections_${uid}`, JSON.stringify(sections));
   } catch {}
 }
 
@@ -63,7 +66,7 @@ export default function Layout() {
 
   const [openSections, setOpenSections] = useState<Record<NavSection, boolean>>(() => {
     const current = getInitialSection(location.pathname);
-    return makeSingleOpen(current);
+    return current ? { ...DEFAULT_SECTIONS, [current]: true } : DEFAULT_SECTIONS;
   });
 
   useEffect(() => {
@@ -76,10 +79,14 @@ export default function Layout() {
       setUserName(identity.userName);
       setCompanyName(identity.companyName);
 
-      const stored = getStoredOpenSection(identity.userId);
+      const stored = getStoredOpenSections(identity.userId);
       const current = getInitialSection(pathnameRef.current);
-      const active = pathnameRef.current === '/' ? null : (current || stored);
-      setOpenSections(makeSingleOpen(active));
+      const base = stored || DEFAULT_SECTIONS;
+      const initial = current ? { ...base, [current]: true } : base;
+      setOpenSections(initial);
+      if (stored) {
+        saveOpenSections(identity.userId, initial);
+      }
     }
 
     void loadUser();
@@ -88,33 +95,32 @@ export default function Layout() {
     };
   }, []);
 
-  // When location changes, ensure current active section is open and all others closed
+  // When location changes, ensure current active section is open without closing others
   useEffect(() => {
     const current = getInitialSection(location.pathname);
-    if (!current) {
-      if (location.pathname === '/') {
-        setOpenSections(makeSingleOpen(null));
-        saveOpenSection(userId, null);
-      }
-      return;
-    }
-    setOpenSections(makeSingleOpen(current));
-    saveOpenSection(userId, current);
+    if (!current) return;
+    setOpenSections((prev) => {
+      if (prev[current]) return prev;
+      const next = { ...prev, [current]: true };
+      saveOpenSections(userId, next);
+      return next;
+    });
   }, [location.pathname, userId]);
 
   function toggleSection(section: NavSection) {
     setOpenSections((prev) => {
-      const willBeOpen = !prev[section];
-      const nextSection = willBeOpen ? section : null;
-      saveOpenSection(userId, nextSection);
-      return makeSingleOpen(nextSection);
+      const next = { ...prev, [section]: !prev[section] };
+      saveOpenSections(userId, next);
+      return next;
     });
   }
 
   function ensureSectionOpen(section: NavSection) {
-    setOpenSections(() => {
-      saveOpenSection(userId, section);
-      return makeSingleOpen(section);
+    setOpenSections((prev) => {
+      if (prev[section]) return prev;
+      const next = { ...prev, [section]: true };
+      saveOpenSections(userId, next);
+      return next;
     });
   }
 
@@ -183,10 +189,6 @@ export default function Layout() {
               to="/"
               end
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onClick={() => {
-                setOpenSections(makeSingleOpen(null));
-                saveOpenSection(userId, null);
-              }}
             >
               <span className="nav-link-main">
                 <LayoutDashboard size={17} className="nav-icon" />
