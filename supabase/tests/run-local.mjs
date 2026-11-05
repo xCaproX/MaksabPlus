@@ -95,8 +95,12 @@ for (const file of sqlFiles(migrationsDir)) {
 console.log('\n-- Tests --');
 for (const file of sqlFiles(here)) {
   const sql = readFileSync(join(here, file), 'utf8');
+  const fixtureName = sql.match(/^-- @fixture ([a-z_]+)$/m)?.[1];
+  const fixture = fixtureName
+    ? readFileSync(join(here, 'fixtures', `${fixtureName}.sql`), 'utf8')
+    : '';
   try {
-    const results = await db.exec(sql);
+    const results = await db.exec(fixture + sql);
     const last = results[results.length - 1];
     const row = last?.rows?.[0];
     if (row && row.result) {
