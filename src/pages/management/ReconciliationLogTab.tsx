@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
+import SearchableSelect from '../../components/SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { creationTime, formatDate, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
@@ -175,19 +176,19 @@ export default function ReconciliationLogTab({
                 />
               </label>
 
-              <select
-                aria-label="تصفية حسب نوع الفحص"
+              <SearchableSelect
+                ariaLabel="تصفية نمط الفحص"
                 value={modeFilter}
-                onChange={(event) => {
-                  setModeFilter(event.target.value as 'all' | 'reconcile' | 'simulation');
+                options={[
+                  { value: 'all', label: 'كافة الأنماط' },
+                  { value: 'reconcile', label: 'تصحيح فعلي' },
+                  { value: 'simulation', label: 'فحص استكشافي' },
+                ]}
+                onChange={(val) => {
+                  setModeFilter(val as 'all' | 'reconcile' | 'simulation');
                   setPage(1);
                 }}
-                style={{ width: '160px', flexShrink: 0 }}
-              >
-                <option value="all">كافة أنماط الفحص</option>
-                <option value="reconcile">تصحيح فعلي فقط</option>
-                <option value="simulation">فحص استكشافي فقط</option>
-              </select>
+              />
             </div>
           </div>
 
