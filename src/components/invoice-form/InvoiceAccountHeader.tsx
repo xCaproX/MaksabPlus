@@ -104,10 +104,14 @@ export default function InvoiceAccountHeader({
               <SearchableSelect
                 value={accountId}
                 selectedLabel={selectedAccount?.name}
-                options={selectableAccounts.map((account) => ({
-                  value: account.id,
-                  label: account.phone ? `${account.name} — ${account.phone}` : account.name,
-                }))}
+                options={
+                  selectableAccounts.length <= 50
+                    ? selectableAccounts.map((account) => ({
+                        value: account.id,
+                        label: account.phone ? `${account.name} — ${account.phone}` : account.name,
+                      }))
+                    : undefined
+                }
                 loadOptions={async (q) => {
                   if (selectableAccounts.length > 0 && selectableAccounts.length <= 50) {
                     const term = q.trim().toLowerCase();

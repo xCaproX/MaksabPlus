@@ -87,15 +87,19 @@ export default function InvoiceItemsTable({
                     inputRef={entryItemSearchRef}
                     value={entryItemId}
                     selectedLabel={entrySelectedItem ? `${entrySelectedItem.code} — ${entrySelectedItem.name}` : undefined}
-                    options={items.map((item) => {
-                      const stock = getItemAvailableStock(item.id, warehouseId);
-                      const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                      const isOut = isStockLimited && Number(stock) <= 0;
-                      return {
-                        value: item.id,
-                        label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
-                      };
-                    })}
+                    options={
+                      items.length <= 50
+                        ? items.map((item) => {
+                            const stock = getItemAvailableStock(item.id, warehouseId);
+                            const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                            const isOut = isStockLimited && Number(stock) <= 0;
+                            return {
+                              value: item.id,
+                              label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                            };
+                          })
+                        : undefined
+                    }
                     loadOptions={async (query) => {
                       const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
                       if (items.length > 0 && items.length <= 50) {
