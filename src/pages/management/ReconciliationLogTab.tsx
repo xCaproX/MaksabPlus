@@ -163,7 +163,21 @@ export default function ReconciliationLogTab({
         <section className="erp-list-panel" aria-label="قائمة سجلات المطابقة والتدقيق">
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <label className="erp-search">
+              <SearchableSelect
+                ariaLabel="تصفية نمط الفحص"
+                value={modeFilter}
+                options={[
+                  { value: 'all', label: 'كل الأنواع' },
+                  { value: 'reconcile', label: 'تصحيح فعلي' },
+                  { value: 'simulation', label: 'فحص استكشافي' },
+                ]}
+                onChange={(val) => {
+                  setModeFilter(val as 'all' | 'reconcile' | 'simulation');
+                  setPage(1);
+                }}
+              />
+
+              <label className="erp-search" style={{ flex: '1 1 auto', maxWidth: 'none' }}>
                 <span className="sr-only">البحث</span>
                 <input
                   type="search"
@@ -175,20 +189,6 @@ export default function ReconciliationLogTab({
                   placeholder="بحث باسم المنفذ أو الملاحظات…"
                 />
               </label>
-
-              <SearchableSelect
-                ariaLabel="تصفية نمط الفحص"
-                value={modeFilter}
-                options={[
-                  { value: 'all', label: 'كافة الأنماط' },
-                  { value: 'reconcile', label: 'تصحيح فعلي' },
-                  { value: 'simulation', label: 'فحص استكشافي' },
-                ]}
-                onChange={(val) => {
-                  setModeFilter(val as 'all' | 'reconcile' | 'simulation');
-                  setPage(1);
-                }}
-              />
             </div>
           </div>
 
