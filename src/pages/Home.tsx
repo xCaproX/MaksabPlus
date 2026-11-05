@@ -167,9 +167,7 @@ export default function Home() {
         )}
 
         {data?.permissions.can_view_items && (
-          <div style={{ gridColumn: data?.permissions.can_view_sales ? '1 / -1' : 'auto' }}>
-            <LowStockCard items={data?.low_stock_items ?? null} />
-          </div>
+          <LowStockCard items={data?.low_stock_items ?? null} />
         )}
       </div>
     </div>
