@@ -45,8 +45,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
           const { data, error: err } = await supabase
             .from('v_account_balances')
             .select('*')
-            .order('name')
-            .limit(200);
+            .order('name');
           if (err) fetchError = translateDbError(err.message);
           else if (data) setAccounts(data as AccountRow[]);
         })(),
@@ -59,8 +58,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
           const { data, error: err } = await supabase
             .from('v_item_stock')
             .select('*')
-            .order('name')
-            .limit(200);
+            .order('name');
           if (err) fetchError = translateDbError(err.message);
           else if (data) setItems(data as ItemRow[]);
         })(),
@@ -100,8 +98,7 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
             .from('v_stock_opening_balances')
             .select('*')
             .order('warehouse_name')
-            .order('item_name')
-            .limit(500);
+            .order('item_name');
           if (err) fetchError = translateDbError(err.message);
           else if (data) setStockRows(data as StockOpeningRow[]);
         })(),

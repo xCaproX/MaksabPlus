@@ -617,9 +617,13 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
                   <span>الرصيد الافتتاحي</span>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     min="0"
+                    dir="ltr"
+                    className="num no-spinner"
                     value={accountOpeningBalance}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setAccountOpeningBalance(e.target.value)}
                   />
                 </label>

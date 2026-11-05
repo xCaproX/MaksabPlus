@@ -607,9 +607,13 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
                   سعر البيع الافتراضي
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.0001"
                     min="0"
+                    dir="ltr"
+                    className="num no-spinner"
                     value={salePrice}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setSalePrice(e.target.value)}
                     placeholder="0.00"
                     required
@@ -620,9 +624,13 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
                   سعر الشراء الافتراضي
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.0001"
                     min="0"
+                    dir="ltr"
+                    className="num no-spinner"
                     value={purchasePrice}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setPurchasePrice(e.target.value)}
                     placeholder="0.00"
                     required
@@ -667,9 +675,13 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
                           الكمية الافتتاحية
                           <input
                             type="number"
+                            inputMode="decimal"
                             step="0.0001"
                             min="0"
+                            dir="ltr"
+                            className="num no-spinner"
                             value={itemOpeningQty}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => setItemOpeningQty(e.target.value)}
                           />
                         </label>
@@ -677,9 +689,13 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
                           تكلفة الوحدة الافتتاحية
                           <input
                             type="number"
+                            inputMode="decimal"
                             step="0.0001"
                             min="0"
+                            dir="ltr"
+                            className="num no-spinner"
                             value={itemOpeningCost}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => setItemOpeningCost(e.target.value)}
                           />
                         </label>

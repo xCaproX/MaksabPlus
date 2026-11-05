@@ -487,8 +487,12 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
                   الرصيد الافتتاحي
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.0001"
+                    dir="ltr"
+                    className="num no-spinner"
                     value={cashBoxOpeningBalance}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setCashBoxOpeningBalance(e.target.value)}
                     placeholder="0.00"
                   />
