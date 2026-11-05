@@ -1,3 +1,4 @@
+import { getCurrentUserIdentity } from '../lib/company';
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Package, Users, RefreshCw } from 'lucide-react';
@@ -57,9 +58,9 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const [summaryRes, sessionRes] = await Promise.all([
+      const [summaryRes, identity] = await Promise.all([
         supabase.rpc('get_home_dashboard_summary'),
-        supabase.auth.getSession(),
+        getCurrentUserIdentity(),
       ]);
 
       if (summaryRes.error) {
@@ -68,20 +69,9 @@ export default function Home() {
 
       setData(summaryRes.data as DashboardSummaryData);
 
-      const user = sessionRes?.data?.session?.user;
-      if (user) {
-        const [profileRes, companyRes] = await Promise.all([
-          supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
-          supabase.from('companies').select('name').maybeSingle(),
-        ]);
-
-        setUserName(
-          profileRes?.data?.full_name ||
-            user.user_metadata?.full_name ||
-            user.email?.split('@')[0] ||
-            'المستخدم'
-        );
-        setCompanyName(companyRes?.data?.name || 'مكسب بلس');
+      if (identity) {
+        setUserName(identity.userName);
+        setCompanyName(identity.companyName);
       }
     } catch (err: unknown) {
       const msg = errorMessage(err);

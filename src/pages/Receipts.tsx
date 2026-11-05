@@ -1,3 +1,4 @@
+import Pagination from '../components/Pagination';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -684,32 +685,14 @@ export default function Receipts() {
             )}
           </div>
 
-          <div className="erp-pagination">
-            <span>
-              عرض {activeTotalCount ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, activeTotalCount)} من {activeTotalCount}
-            </span>
-            <div>
-              <button
-                type="button"
-                className="btn compact"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                السابق
-              </button>
-              <span>
-                {page} / {pageCount}
-              </span>
-              <button
-                type="button"
-                className="btn compact"
-                disabled={page === pageCount}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                التالي
-              </button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            totalCount={activeTotalCount}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            loading={loading}
+          />
         </section>
       </div>
 

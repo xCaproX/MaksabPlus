@@ -1,3 +1,4 @@
+import { getCurrentUserIdentity } from '../lib/company';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound } from 'lucide-react';
@@ -68,30 +69,14 @@ export default function Layout() {
   useEffect(() => {
     let alive = true;
     async function loadUser() {
-      const { data: sessionRes } = await supabase.auth.getSession();
-      const user = sessionRes?.session?.user;
-      if (!user || !alive) return;
-      setUserId(user.id);
+      const identity = await getCurrentUserIdentity();
+      if (!identity || !alive) return;
 
-      const [profileRes, companyRes] = await Promise.all([
-        supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
-        supabase.from('companies').select('name').maybeSingle(),
-      ]);
+      setUserId(identity.userId);
+      setUserName(identity.userName);
+      setCompanyName(identity.companyName);
 
-      if (!alive) return;
-
-      const displayName =
-        profileRes?.data?.full_name ||
-        user.user_metadata?.full_name ||
-        user.email?.split('@')[0] ||
-        'المستخدم';
-
-      const compDisplayName = companyRes?.data?.name || 'مكسب بلس';
-
-      setUserName(displayName);
-      setCompanyName(compDisplayName);
-
-      const stored = getStoredOpenSection(user.id);
+      const stored = getStoredOpenSection(identity.userId);
       const current = getInitialSection(pathnameRef.current);
       const active = pathnameRef.current === '/' ? null : (current || stored);
       setOpenSections(makeSingleOpen(active));

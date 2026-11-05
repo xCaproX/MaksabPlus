@@ -1,4 +1,5 @@
-import { formatDate, money } from '../../lib/format';
+import AccountBalancePills from '../AccountBalancePills';
+import { formatDate } from '../../lib/format';
 import SearchableSelect from '../SearchableSelect';
 import { searchAccountsAsync } from '../../lib/masterDataQueries';
 import type { AccountKind, AccountRow, WarehouseOption } from '../../lib/types';
@@ -21,8 +22,6 @@ interface InvoiceAccountHeaderProps {
   balanceBefore: number;
   netInvoiceDebt: number;
   balanceAfter: number;
-  statusBefore: { text: string; type: 'settled' | 'debit' | 'credit' };
-  statusAfter: { text: string; type: 'settled' | 'debit' | 'credit' };
 }
 
 export default function InvoiceAccountHeader({
@@ -43,8 +42,6 @@ export default function InvoiceAccountHeader({
   balanceBefore,
   netInvoiceDebt,
   balanceAfter,
-  statusBefore,
-  statusAfter,
 }: InvoiceAccountHeaderProps) {
   return (
     <div className="right-card account-header-card">
@@ -151,30 +148,15 @@ export default function InvoiceAccountHeader({
         )}
 
         {selectedAccount && !isWaste && (
-          <div className="account-balance-pills">
-            <div className="stat-pill">
-              <span>المديونية قبل:</span>
-              <strong dir="ltr" className="num">
-                {money(Math.abs(balanceBefore))}
-              </strong>
-              <span className={`stat-pill-tag tag-${statusBefore.type}`}>{statusBefore.text}</span>
-            </div>
-
-            <div className="stat-pill">
-              <span>صافي الفاتورة:</span>
-              <strong dir="ltr" className="num">
-                {money(netInvoiceDebt)}
-              </strong>
-            </div>
-
-            <div className="stat-pill">
-              <span>المديونية بعد:</span>
-              <strong dir="ltr" className="num">
-                {money(Math.abs(balanceAfter))}
-              </strong>
-              <span className={`stat-pill-tag tag-${statusAfter.type}`}>{statusAfter.text}</span>
-            </div>
-          </div>
+          <AccountBalancePills
+            accountKind={accountKind}
+            balanceBefore={balanceBefore}
+            delta={netInvoiceDebt}
+            balanceAfter={balanceAfter}
+            titleBefore="المديونية قبل:"
+            deltaLabel="صافي الفاتورة:"
+            titleAfter="المديونية بعد:"
+          />
         )}
       </div>
     </div>

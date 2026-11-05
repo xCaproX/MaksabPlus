@@ -1,3 +1,4 @@
+import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { X, Landmark, CheckCircle2, Wallet } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
@@ -375,32 +376,14 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
             </table>
           </div>
 
-          <div className="erp-pagination">
-            <span>
-              عرض {totalCount ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, totalCount)} من {totalCount}
-            </span>
-            <div>
-              <button
-                type="button"
-                className="btn compact"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                السابق
-              </button>
-              <span>
-                {page} / {pageCount}
-              </span>
-              <button
-                type="button"
-                className="btn compact"
-                disabled={page === pageCount}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                التالي
-              </button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            totalCount={totalCount}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+            loading={loading}
+          />
         </section>
 
         {/* لوحة التفاصيل الجانبية */}

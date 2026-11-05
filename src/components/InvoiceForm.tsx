@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
-import { getBalanceStatus, money, qty as formatQty, round2, today } from '../lib/format';
+import { money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
@@ -154,8 +154,7 @@ export default function InvoiceForm({
 
   const accountNotesDisplay = selectedAccount?.notes || '';
 
-  const statusBefore = getBalanceStatus(balanceBefore, accountKind);
-  const statusAfter = getBalanceStatus(balanceAfter, accountKind);
+
 
   function handleAccountKindChange(nextKind: AccountKind) {
     setAccountKind(nextKind);
@@ -597,8 +596,6 @@ export default function InvoiceForm({
             balanceBefore={balanceBefore}
             netInvoiceDebt={netInvoiceDebt}
             balanceAfter={balanceAfter}
-            statusBefore={statusBefore}
-            statusAfter={statusAfter}
           />
 
           <InvoiceItemsTable

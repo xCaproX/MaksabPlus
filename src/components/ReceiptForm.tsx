@@ -1,8 +1,9 @@
+import AccountBalancePills from './AccountBalancePills';
 import { useState, useEffect, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ExternalLink, FileText, Pencil, Printer, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { money, round2, today, formatDate, getBalanceStatus } from '../lib/format';
+import { money, round2, today, formatDate } from '../lib/format';
 import { tafqeet } from '../lib/tafqeet';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
@@ -120,8 +121,7 @@ export default function ReceiptForm({
     balanceAfter = isIn ? balanceBefore + numAmount : balanceBefore - numAmount;
   }
 
-  const statusBefore = getBalanceStatus(balanceBefore, isCust ? 'customer' : 'supplier');
-  const statusAfter = getBalanceStatus(balanceAfter, isCust ? 'customer' : 'supplier');
+
 
   const selectedCashBox = cashBoxes.find((b) => b.id === cashBoxId);
   const cashBoxAvailableBalance = Number(selectedCashBox?.balance || 0) + (editing && editing.cash_box_id === cashBoxId ? prevAmount : 0);
@@ -304,34 +304,15 @@ export default function ReceiptForm({
             />
           </div>
 
-          <div className="account-balance-pills">
-            <div className="stat-pill">
-              <span>المديونية قبل:</span>
-              <strong dir="ltr" className="num">
-                {money(Math.abs(balanceBefore))}
-              </strong>
-              <span className={`stat-pill-tag tag-${statusBefore.type}`}>
-                {statusBefore.text}
-              </span>
-            </div>
-
-            <div className="stat-pill">
-              <span>صافي الإيصال:</span>
-              <strong dir="ltr" className="num">
-                {money(numAmount)}
-              </strong>
-            </div>
-
-            <div className="stat-pill">
-              <span>المديونية بعد:</span>
-              <strong dir="ltr" className="num">
-                {money(Math.abs(balanceAfter))}
-              </strong>
-              <span className={`stat-pill-tag tag-${statusAfter.type}`}>
-                {statusAfter.text}
-              </span>
-            </div>
-          </div>
+          <AccountBalancePills
+            accountKind={accountKind}
+            balanceBefore={balanceBefore}
+            delta={numAmount}
+            balanceAfter={balanceAfter}
+            titleBefore="المديونية قبل:"
+            deltaLabel="صافي الإيصال:"
+            titleAfter="المديونية بعد:"
+          />
         </div>
       </div>
 
