@@ -99,4 +99,23 @@ describe('sidebar single open section', () => {
     expect(screen.getByText('افتتاحيات العملاء')).toBeInTheDocument();
     await waitFor(() => expect(storedOpenSections()).toEqual(['management']));
   });
+
+  it.each(['الرئيسية', 'مكسب بلس — الصفحة الرئيسية'])('home link %s closes every section and saves the closed state', async (name) => {
+    renderLayout('/invoices?tab=sale');
+    await waitForIdentity();
+    expect(screen.getByText('فواتير المبيعات')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name }));
+    expect(screen.queryByText('فواتير المبيعات')).not.toBeInTheDocument();
+    expect(storedOpenSections()).toEqual([]);
+  });
+
+  it('home link closes a section even when already on the home page', async () => {
+    renderLayout();
+    await waitForIdentity();
+    fireEvent.click(screen.getByRole('button', { name: 'طي أو فتح قسم الفلوس' }));
+    expect(screen.getByText('إيصالات استلام')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: 'الرئيسية' }));
+    expect(screen.queryByText('إيصالات استلام')).not.toBeInTheDocument();
+    expect(storedOpenSections()).toEqual([]);
+  });
 });

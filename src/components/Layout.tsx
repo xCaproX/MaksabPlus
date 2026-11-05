@@ -84,7 +84,7 @@ export default function Layout() {
     };
   }, []);
 
-  const ensureSectionOpen = useCallback((section: NavSection) => {
+  const ensureSectionOpen = useCallback((section: NavSection | null) => {
     setOpenSection((previous) => {
       if (previous === section) return previous;
       saveOpenSection(userId, section);
@@ -162,7 +162,7 @@ export default function Layout() {
   return (
     <div className="app">
       <header className="topbar">
-        <Link className="brand" to="/" aria-label="مكسب بلس — الصفحة الرئيسية">
+        <Link className="brand" to="/" aria-label="مكسب بلس — الصفحة الرئيسية" onClick={() => ensureSectionOpen(null)}>
           <img src="/maksab-sidebar-logo.png" alt="مكسب بلس" />
         </Link>
 
@@ -171,6 +171,7 @@ export default function Layout() {
             <NavLink
               to="/"
               end
+              onClick={() => ensureSectionOpen(null)}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
               <span className="nav-link-main">
