@@ -101,7 +101,7 @@ export interface StockOpeningRow {
   warehouse_name: string;
   warehouse_notes: string | null;
   opening_qty: number;
-  unit_cost: number;
+  unit_cost: number | null;
   current_qty: number;
   cost_locked: boolean;
   item_notes: string | null;
@@ -182,7 +182,7 @@ export interface WarehouseTransferRow {
   deleted_at: string | null;
   line_count: number;
   total_qty: number;
-  total_value: number;
+  total_value: number | null;
   items_summary: string;
 }
 
@@ -190,7 +190,7 @@ export interface WarehouseTransferLine {
   item_id: string;
   item_name?: string;
   qty: number;
-  unit_cost?: number;
+  unit_cost?: number | null;
 }
 
 export interface CashBoxTransferRow {

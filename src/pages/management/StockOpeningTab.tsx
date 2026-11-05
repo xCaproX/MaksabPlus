@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAccess } from '../../lib/access';
 import { Boxes, DollarSign, CheckCircle2, FileText, X } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
@@ -33,6 +34,7 @@ export default function StockOpeningTab({
   setSaving,
   saveTrigger,
 }: StockOpeningTabProps) {
+  const { canViewProfit } = useAccess();
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [stockValues, setStockValues] = useState<Record<string, { qty: string; cost: string }>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -109,7 +111,7 @@ export default function StockOpeningTab({
       return Number(val?.qty ?? row.opening_qty ?? 0) > 0;
     }).length;
 
-    return [
+    const items: KpiItem[] = [
       {
         id: 'mgmt-items-qty',
         label: 'إجمالي كميات أول المدة',
@@ -143,7 +145,8 @@ export default function StockOpeningTab({
         icon: FileText,
       },
     ];
-  }, [filteredStockRows, stockValues]);
+    return canViewProfit ? items : items.filter((item) => item.id !== 'mgmt-items-val');
+  }, [filteredStockRows, stockValues, canViewProfit]);
 
   async function handleSave() {
     const stock = stockRows.map((row) => {
@@ -155,7 +158,7 @@ export default function StockOpeningTab({
         warehouse_id: row.warehouse_id,
         item_id: row.item_id,
         opening_qty: Number(value.qty),
-        unit_cost: Number(value.cost),
+        unit_cost: canViewProfit ? Number(value.cost) : null,
       };
     });
 
@@ -164,8 +167,7 @@ export default function StockOpeningTab({
         (line) =>
           !Number.isFinite(line.opening_qty) ||
           line.opening_qty < 0 ||
-          !Number.isFinite(line.unit_cost) ||
-          line.unit_cost < 0
+          (line.unit_cost !== null && (!Number.isFinite(line.unit_cost) || line.unit_cost < 0))
       )
     ) {
       toast.error('راجع كميات المخزون وتكلفة الوحدة. القيم يجب أن تكون صحيحة وغير سالبة.');
@@ -244,14 +246,14 @@ export default function StockOpeningTab({
                     defaultDirection="asc"
                   />
                   <th className="num" style={{ width: '150px' }}>كمية البداية</th>
-                  <th className="num" style={{ width: '150px' }}>تكلفة الوحدة</th>
+                  {canViewProfit && <th className="num" style={{ width: '150px' }}>تكلفة الوحدة</th>}
                   <th className="num" style={{ width: '140px' }}>الرصيد الفعلي</th>
                 </tr>
               </thead>
               <tbody>
                 {pageStock.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="empty">
+                    <td colSpan={canViewProfit ? 6 : 5} className="empty">
                       لا توجد أصناف في هذا المخزن تطابق البحث.
                     </td>
                   </tr>
@@ -293,7 +295,7 @@ export default function StockOpeningTab({
                           }
                         />
                       </td>
-                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '150px' }}>
+                      {canViewProfit && <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '150px' }}>
                         <input
                           className="table-input num no-spinner"
                           style={{ width: '100%', maxWidth: '130px' }}
@@ -309,7 +311,7 @@ export default function StockOpeningTab({
                             setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))
                           }
                         />
-                      </td>
+                      </td>}
                       <td className="num strong" style={{ width: '140px' }}>
                         {formatQty(row.current_qty)} {row.unit}
                       </td>
@@ -354,13 +356,13 @@ export default function StockOpeningTab({
                 <strong className="num">
                   {formatQty(Number(stockValues[`${selectedItemRow.warehouse_id}:${selectedItemRow.item_id}`]?.qty ?? selectedItemRow.opening_qty))} {selectedItemRow.unit}
                 </strong>
-                <span>تكلفة الوحدة</span>
+                {canViewProfit && <><span>تكلفة الوحدة</span>
                 <strong className="num">
                   {money(Number(stockValues[`${selectedItemRow.warehouse_id}:${selectedItemRow.item_id}`]?.cost ?? selectedItemRow.unit_cost))}
-                </strong>
+                </strong></>}
               </div>
 
-              {selectedItemRow.cost_locked && (
+              {canViewProfit && selectedItemRow.cost_locked && (
                 <p className="hint">
                   تكلفة البداية مقفولة لوجود حركات سابقة لحماية حسابات الأرباح، ويمكنك تعديل كمية البداية كتصحيح مخزني.
                 </p>

@@ -59,9 +59,9 @@ begin
     '18181818-1818-4818-8818-0000000000b1', '18181818-1818-4818-8818-0000000000b2', current_date, null,
     '[{"item_id":"18181818-1818-4818-8818-0000000000d1","qty":4}]'::jsonb
   );
-  perform public.test_expect((select qty = 6 and avg_cost = 5 from public.item_stock where warehouse_id = '18181818-1818-4818-8818-0000000000b1' and item_id = '18181818-1818-4818-8818-0000000000d1'),
+  perform public.test_expect((select qty = 6 and public.read_protected_cost('stock', item_id, warehouse_id) = 5 from public.item_stock where warehouse_id = '18181818-1818-4818-8818-0000000000b1' and item_id = '18181818-1818-4818-8818-0000000000d1'),
     'warehouse transfer reduces source and keeps its average cost');
-  perform public.test_expect((select qty = 6 and avg_cost = 5.6667 from public.item_stock where warehouse_id = '18181818-1818-4818-8818-0000000000b2' and item_id = '18181818-1818-4818-8818-0000000000d1'),
+  perform public.test_expect((select qty = 6 and public.read_protected_cost('stock', item_id, warehouse_id) = 5.6667 from public.item_stock where warehouse_id = '18181818-1818-4818-8818-0000000000b2' and item_id = '18181818-1818-4818-8818-0000000000d1'),
     'warehouse transfer increases destination and blends its average cost');
 
   v_failed := false;

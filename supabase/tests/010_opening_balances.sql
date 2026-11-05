@@ -52,7 +52,7 @@ begin
   );
   perform public.test_expect((select balance from public.v_cash_box_balances where id = '12121212-1212-4212-8212-0000000000c1') = 100, 'cashbox opening amount is included');
   perform public.test_expect((select qty from public.item_stock where item_id = '12121212-1212-4212-8212-0000000000d1') = 10, 'opening stock quantity is applied');
-  perform public.test_expect((select avg_cost from public.item_stock where item_id = '12121212-1212-4212-8212-0000000000d1') = 20, 'opening stock cost initializes moving average');
+  perform public.test_expect((select public.read_protected_cost('stock', item_id, warehouse_id) from public.item_stock where item_id = '12121212-1212-4212-8212-0000000000d1') = 20, 'opening stock cost initializes moving average');
 
   v_receipt := public.create_free_receipt(v_customer, '12121212-1212-4212-8212-0000000000c1', current_date, 10, null, null, 'in');
   perform public.save_opening_balances(

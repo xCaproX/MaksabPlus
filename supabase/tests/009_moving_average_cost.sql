@@ -62,15 +62,15 @@ begin
     current_date, 0, null,
     '[{"item_id":"eeeeeeee-eeee-4eee-8eee-0000000000e1","qty":10,"unit_price":70}]'::jsonb
   );
-  perform public.test_expect((select avg_cost from public.item_stock where item_id = 'eeeeeeee-eeee-4eee-8eee-0000000000e1') = 60, 'purchase recalculates weighted average 50 -> 60');
-  perform public.test_expect((select unit_cost from public.invoice_items where invoice_id = v_purchase) = 70, 'purchase line records supplier unit cost');
+  perform public.test_expect((select public.read_protected_cost('stock', item_id, warehouse_id) from public.item_stock where item_id = 'eeeeeeee-eeee-4eee-8eee-0000000000e1') = 60, 'purchase recalculates weighted average 50 -> 60');
+  perform public.test_expect((select unit_cost from public.v_invoice_items where invoice_id = v_purchase) = 70, 'purchase line records supplier unit cost');
 
   v_sale := public.create_invoice(
     'sale', 'eeeeeeee-eeee-4eee-8eee-0000000000c1', 'eeeeeeee-eeee-4eee-8eee-0000000000a1',
     current_date, 0, null,
     '[{"item_id":"eeeeeeee-eeee-4eee-8eee-0000000000e1","qty":3,"unit_price":100}]'::jsonb
   );
-  perform public.test_expect((select unit_cost from public.invoice_items where invoice_id = v_sale) = 60, 'sale snapshots current average cost');
+  perform public.test_expect((select unit_cost from public.v_invoice_items where invoice_id = v_sale) = 60, 'sale snapshots current average cost');
   perform public.test_expect((select profit_total from public.v_invoice_list where id = v_sale) = 120, 'sale profit = 300 - 180');
 
   select id into v_waste_account from public.accounts where system_key = 'waste';
@@ -101,7 +101,7 @@ begin
     current_date, 0, null,
     '[{"item_id":"eeeeeeee-eeee-4eee-8eee-0000000000e1","qty":1,"unit_price":100}]'::jsonb
   );
-  perform public.test_expect((select unit_cost from public.invoice_items where invoice_id = v_return) = 60, 'unlinked sales return uses current average cost');
+  perform public.test_expect((select unit_cost from public.v_invoice_items where invoice_id = v_return) = 60, 'unlinked sales return uses current average cost');
   perform public.test_expect((select profit_total from public.v_invoice_list where id = v_return) = -40, 'sales return reverses 40 of profit');
 
   perform public.delete_invoice(v_waste);

@@ -63,7 +63,7 @@ export function calculateInvoiceKpis({
     const count =
       transferSummary !== undefined ? transferSummary.count : filteredTransferRows.length;
 
-    return [
+    const items: KpiItem[] = [
       {
         id: 'transfers-value',
         label: 'إجمالي قيمة التحويلات',
@@ -89,6 +89,7 @@ export function calculateInvoiceKpis({
         icon: FileText,
       },
     ];
+    return canViewProfit ? items : items.filter((item) => item.id !== 'transfers-value');
   }
 
   const totalAmount =

@@ -1,4 +1,5 @@
 import Pagination from '../../components/Pagination';
+import { useAccess } from '../../lib/access';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   X,
@@ -57,6 +58,7 @@ type BalanceSort =
 const PAGE_SIZE = 20;
 
 export default function ItemBalancesTab() {
+  const { canViewProfit } = useAccess();
   const { warehouses: rawWarehouses } = useMasterData();
   const warehouses = useMemo(() => rawWarehouses.filter((w) => w.is_active !== false), [rawWarehouses]);
 
@@ -202,7 +204,7 @@ export default function ItemBalancesTab() {
 
   // شريط المؤشرات
   const kpiItems = useMemo<KpiItem[]>(() => {
-    return [
+    const items: KpiItem[] = [
       {
         id: 'items-qty',
         label: 'إجمالي كميات المخزون المتوفر',
@@ -237,7 +239,8 @@ export default function ItemBalancesTab() {
         icon: FileText,
       },
     ];
-  }, [summary]);
+    return canViewProfit ? items : items.filter((item) => item.id !== 'items-val');
+  }, [summary, canViewProfit]);
 
   function openItemStatement(row: WarehouseItemRow) {
     setItemStatementRow(row);

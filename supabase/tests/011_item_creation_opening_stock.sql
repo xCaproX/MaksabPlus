@@ -32,9 +32,9 @@ declare
 begin
   v_item := public.create_item_with_opening_stock('صنف برصيد بداية', 'علبة', 40, 25, true,
     '13131313-1313-4313-8313-0000000000b1', 12, 18.5);
-  perform public.test_expect((select qty = 12 and avg_cost = 18.5 from public.item_stock where item_id = v_item),
+  perform public.test_expect((select qty = 12 and public.read_protected_cost('stock', item_id, warehouse_id) = 18.5 from public.item_stock where item_id = v_item),
     'item is created with opening stock and unit cost');
-  perform public.test_expect((select opening_qty = 12 and unit_cost = 18.5 from public.stock_opening_balances where item_id = v_item),
+  perform public.test_expect((select opening_qty = 12 and public.read_protected_cost('opening', item_id, warehouse_id) = 18.5 from public.stock_opening_balances where item_id = v_item),
     'opening stock is recorded for later reconciliation');
   perform public.test_expect((select name = 'صنف برصيد بداية' and unit = 'علبة' from public.items where id = v_item),
     'item details are saved');

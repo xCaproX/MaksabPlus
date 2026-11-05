@@ -57,7 +57,7 @@ const INVOICE_TABS = [
 ] as const;
 
 export default function Invoices() {
-  const { can, access } = useAccess();
+  const { can, canViewProfit } = useAccess();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as InvoiceTab | null;
   const initialKind = tabParam && VALID_INVOICE_TABS.includes(tabParam) ? tabParam : 'sale';
@@ -100,7 +100,6 @@ export default function Invoices() {
   const isWarehouseTransfer = kind === 'warehouse_transfer';
   const invoiceKind = isWarehouseTransfer ? null : kind;
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
-  const canViewProfit = access?.role === 'owner';
   const visibleTabs = INVOICE_TABS.filter((tab) => can(`goods.${tab.value}.view`));
   const canViewCurrentTab = can(`goods.${kind}.view`);
 
@@ -481,7 +480,7 @@ export default function Invoices() {
   async function openTransferModal(transfer: WarehouseTransferRow, mode: 'view' | 'edit' = 'view') {
     openedTransferFromViewRef.current = mode === 'view';
     const { data, error: linesError } = await supabase
-      .from('warehouse_transfer_items')
+      .from('v_warehouse_transfer_items')
       .select('item_id, qty, unit_cost')
       .eq('transfer_id', transfer.id)
       .order('item_id');
@@ -661,7 +660,7 @@ export default function Invoices() {
       const [trRes, linesRes] = await Promise.all([
         supabase.from('v_warehouse_transfer_list').select('*').eq('id', transferId).maybeSingle(),
         supabase
-          .from('warehouse_transfer_items')
+          .from('v_warehouse_transfer_items')
           .select('item_id, qty, unit_cost')
           .eq('transfer_id', transferId)
           .order('item_id'),
@@ -796,6 +795,7 @@ export default function Invoices() {
                 onRestore={(transfer) => void restoreTransfer(transfer)}
                 canEdit={can(`goods.${kind}.edit`)}
                 canDelete={can(`goods.${kind}.delete`)}
+                canViewProfit={canViewProfit}
               />
             ) : (
               <InvoiceTable

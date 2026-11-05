@@ -30,7 +30,10 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
 
-export function useAccess() { return useContext(AccessContext); }
+export function useAccess() {
+  const context = useContext(AccessContext);
+  return { ...context, canViewProfit: context.access?.role === 'owner' };
+}
 
 export function AccessRoute({ permissions, children }: { permissions: string[]; children: ReactNode }) {
   const { loading, can } = useAccess();

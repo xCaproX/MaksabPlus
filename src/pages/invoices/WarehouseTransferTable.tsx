@@ -17,6 +17,7 @@ interface WarehouseTransferTableProps {
   onRestore: (transfer: WarehouseTransferRow) => void;
   canEdit: boolean;
   canDelete: boolean;
+  canViewProfit: boolean;
 }
 
 export default function WarehouseTransferTable({
@@ -31,6 +32,7 @@ export default function WarehouseTransferTable({
   onRestore,
   canEdit,
   canDelete,
+  canViewProfit,
 }: WarehouseTransferTableProps) {
   return (
     <table className="table erp-table">
@@ -52,14 +54,14 @@ export default function WarehouseTransferTable({
           <th>إلى مخزن</th>
           <th className="num">عدد الأصناف</th>
           <th className="num">إجمالي الكميات</th>
-          <SortableHeader
+          {canViewProfit && <SortableHeader
             label="قيمة التكلفة"
             field="total"
             align="end"
             className="num"
             currentSort={sortOrder}
             onSort={(s) => onSort(s as SaleSort)}
-          />
+          />}
           <th>ملاحظات</th>
           <th aria-label="الإجراءات" />
         </tr>
@@ -67,14 +69,14 @@ export default function WarehouseTransferTable({
       <tbody>
         {loading && (
           <tr>
-            <td colSpan={9} className="empty">
+            <td colSpan={canViewProfit ? 9 : 8} className="empty">
               جارٍ التحميل…
             </td>
           </tr>
         )}
         {!loading && pageTransfers.length === 0 && (
           <tr>
-            <td colSpan={9} className="empty">
+            <td colSpan={canViewProfit ? 9 : 8} className="empty">
               لا توجد تحويلات تطابق البحث أو الفلاتر.
             </td>
           </tr>
@@ -98,7 +100,7 @@ export default function WarehouseTransferTable({
               <td>{transfer.destination_warehouse_name}</td>
               <td className="num">{transfer.line_count}</td>
               <td className="num">{formatQty(transfer.total_qty)}</td>
-              <td><MoneyDisplay value={transfer.total_value} strong /></td>
+              {canViewProfit && <td><MoneyDisplay value={transfer.total_value} strong /></td>}
               <td>{transfer.notes || '—'}</td>
               <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                 {showDeleted ? (
