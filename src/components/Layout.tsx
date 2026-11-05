@@ -5,13 +5,13 @@ import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 import ChangePasswordModal from './ChangePasswordModal';
 
-type NavSection = 'goods' | 'money' | 'data' | 'balances' | 'management';
+type NavSection = 'goods' | 'money' | 'balances' | 'data' | 'management';
 
 function getInitialSection(pathname: string): NavSection | null {
   if (pathname.startsWith('/invoices')) return 'goods';
   if (pathname.startsWith('/receipts')) return 'money';
-  if (pathname.startsWith('/data')) return 'data';
   if (pathname.startsWith('/balances')) return 'balances';
+  if (pathname.startsWith('/data')) return 'data';
   if (pathname.startsWith('/management')) return 'management';
   return null;
 }
@@ -20,8 +20,8 @@ function makeSingleOpen(section: NavSection | null): Record<NavSection, boolean>
   return {
     goods: section === 'goods',
     money: section === 'money',
-    data: section === 'data',
     balances: section === 'balances',
+    data: section === 'data',
     management: section === 'management',
   };
 }
@@ -30,7 +30,7 @@ function getStoredOpenSection(uid: string | null): NavSection | null {
   if (!uid) return 'goods';
   try {
     const raw = localStorage.getItem(`maksab_active_nav_section_${uid}`);
-    if (raw && ['goods', 'money', 'data', 'balances', 'management'].includes(raw)) {
+    if (raw && ['goods', 'money', 'balances', 'data', 'management'].includes(raw)) {
       return raw as NavSection;
     }
   } catch {}
@@ -148,6 +148,14 @@ export default function Layout() {
   ];
   const visibleMoneyTabs = moneyTabs.filter((t) => can(t.permission));
 
+  const balanceTabs = [
+    { id: 'customers', label: 'حسابات العملاء', permission: 'balances.customers.view' },
+    { id: 'suppliers', label: 'حسابات الموردين', permission: 'balances.suppliers.view' },
+    { id: 'items', label: 'أرصدة الأصناف', permission: 'balances.items.view' },
+    { id: 'cashBoxes', label: 'أرصدة الخزن', permission: 'balances.cashBoxes.view' },
+  ];
+  const visibleBalanceTabs = balanceTabs.filter((t) => can(t.permission));
+
   const dataTabs = [
     { id: 'customers', label: 'العملاء', permission: 'data.customers.view' },
     { id: 'suppliers', label: 'الموردون', permission: 'data.suppliers.view' },
@@ -156,14 +164,6 @@ export default function Layout() {
     { id: 'cashBoxes', label: 'الخزن', permission: 'data.cashBoxes.view' },
   ];
   const visibleDataTabs = dataTabs.filter((t) => can(t.permission));
-
-  const balanceTabs = [
-    { id: 'customers', label: 'حسابات العملاء', permission: 'balances.customers.view' },
-    { id: 'suppliers', label: 'حسابات الموردين', permission: 'balances.suppliers.view' },
-    { id: 'items', label: 'أرصدة الأصناف', permission: 'balances.items.view' },
-    { id: 'cashBoxes', label: 'أرصدة الخزن', permission: 'balances.cashBoxes.view' },
-  ];
-  const visibleBalanceTabs = balanceTabs.filter((t) => can(t.permission));
 
   const managementTabs = [
     { id: 'customers', label: 'افتتاحيات العملاء', permission: 'management.customers.view' },
@@ -288,58 +288,6 @@ export default function Layout() {
             </div>
           )}
 
-          {visibleDataTabs.length > 0 && (
-            <div className="nav-group">
-              <NavLink
-                to={`/data?tab=${visibleDataTabs[0].id}`}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                onClick={() => ensureSectionOpen('data')}
-              >
-                <span className="nav-link-main">
-                  <Database size={17} className="nav-icon" />
-                  <span>البيانات</span>
-                </span>
-                <span
-                  className="nav-chevron"
-                  role="button"
-                  tabIndex={0}
-                  aria-label="طي أو فتح قسم البيانات"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleSection('data');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleSection('data');
-                    }
-                  }}
-                >
-                  {openSections.data ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                </span>
-              </NavLink>
-              {openSections.data && (
-                <div className="subnav">
-                  {visibleDataTabs.map((item) => {
-                    const isActive = location.pathname.startsWith('/data') && (currentTab === item.id || (!currentTab && item.id === visibleDataTabs[0].id));
-                    return (
-                      <Link
-                        key={item.id}
-                        to={`/data?tab=${item.id}`}
-                        className={`subnav-link ${isActive ? 'active' : ''}`}
-                      >
-                        <span className="subnav-dot" />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
           {visibleBalanceTabs.length > 0 && (
             <div className="nav-group">
               <NavLink
@@ -380,6 +328,58 @@ export default function Layout() {
                       <Link
                         key={item.id}
                         to={`/balances?tab=${item.id}`}
+                        className={`subnav-link ${isActive ? 'active' : ''}`}
+                      >
+                        <span className="subnav-dot" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {visibleDataTabs.length > 0 && (
+            <div className="nav-group">
+              <NavLink
+                to={`/data?tab=${visibleDataTabs[0].id}`}
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                onClick={() => ensureSectionOpen('data')}
+              >
+                <span className="nav-link-main">
+                  <Database size={17} className="nav-icon" />
+                  <span>البيانات</span>
+                </span>
+                <span
+                  className="nav-chevron"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="طي أو فتح قسم البيانات"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleSection('data');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleSection('data');
+                    }
+                  }}
+                >
+                  {openSections.data ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                </span>
+              </NavLink>
+              {openSections.data && (
+                <div className="subnav">
+                  {visibleDataTabs.map((item) => {
+                    const isActive = location.pathname.startsWith('/data') && (currentTab === item.id || (!currentTab && item.id === visibleDataTabs[0].id));
+                    return (
+                      <Link
+                        key={item.id}
+                        to={`/data?tab=${item.id}`}
                         className={`subnav-link ${isActive ? 'active' : ''}`}
                       >
                         <span className="subnav-dot" />

@@ -47,6 +47,16 @@ export const PERMISSION_SECTIONS: SectionDef[] = [
     ],
   },
   {
+    id: 'balances',
+    label: 'قسم الأرصدة والتقارير',
+    items: [
+      { id: 'balances.customers', label: 'كشوف وحسابات العملاء', actions: ['view'] },
+      { id: 'balances.suppliers', label: 'كشوف وحسابات الموردين', actions: ['view'] },
+      { id: 'balances.items', label: 'أرصدة وحركات الأصناف', actions: ['view'] },
+      { id: 'balances.cashBoxes', label: 'أرصدة وحركات الخزن', actions: ['view'] },
+    ],
+  },
+  {
     id: 'data',
     label: 'قسم البيانات الأساسية',
     items: [
@@ -55,16 +65,6 @@ export const PERMISSION_SECTIONS: SectionDef[] = [
       { id: 'data.items', label: 'دليل الأصناف', actions: ['view', 'create', 'edit', 'delete'] },
       { id: 'data.warehouses', label: 'دليل المخازن', actions: ['view', 'create', 'edit', 'delete'] },
       { id: 'data.cashBoxes', label: 'دليل الخزن', actions: ['view', 'create', 'edit', 'delete'] },
-    ],
-  },
-  {
-    id: 'balances',
-    label: 'قسم الأرصدة والتقارير',
-    items: [
-      { id: 'balances.customers', label: 'كشوف وحسابات العملاء', actions: ['view'] },
-      { id: 'balances.suppliers', label: 'كشوف وحسابات الموردين', actions: ['view'] },
-      { id: 'balances.items', label: 'أرصدة وحركات الأصناف', actions: ['view'] },
-      { id: 'balances.cashBoxes', label: 'أرصدة وحركات الخزن', actions: ['view'] },
     ],
   },
   {
