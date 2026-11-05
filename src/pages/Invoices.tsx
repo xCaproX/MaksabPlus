@@ -105,9 +105,10 @@ export default function Invoices() {
 
   useEffect(() => {
     const targetKind = tabParam && VALID_INVOICE_TABS.includes(tabParam) ? tabParam : 'sale';
+    const action = searchParams.get('action');
+
     if (targetKind !== kind) {
       setKind(targetKind);
-      setFormOpen(false);
       setEditing(null);
       setEditingTransfer(null);
       setSearchTerm('');
@@ -115,8 +116,44 @@ export default function Invoices() {
       setDateFrom('');
       setDateTo('');
       setPage(1);
+
+      if (action === 'new') {
+        const canCreate =
+          targetKind === 'warehouse_transfer'
+            ? can('goods.warehouse_transfer.create')
+            : can(`goods.${targetKind}.create`);
+        if (canCreate) {
+          openedFromViewRef.current = false;
+          openedTransferFromViewRef.current = false;
+          setModalMode('create');
+          setFormOpen(true);
+        } else {
+          setFormOpen(false);
+        }
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('action');
+        setSearchParams(nextParams, { replace: true });
+      } else {
+        setFormOpen(false);
+      }
+    } else if (action === 'new') {
+      const canCreate =
+        kind === 'warehouse_transfer'
+          ? can('goods.warehouse_transfer.create')
+          : can(`goods.${kind}.create`);
+      if (canCreate) {
+        setEditing(null);
+        setEditingTransfer(null);
+        openedFromViewRef.current = false;
+        openedTransferFromViewRef.current = false;
+        setModalMode('create');
+        setFormOpen(true);
+      }
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('action');
+      setSearchParams(nextParams, { replace: true });
     }
-  }, [tabParam, kind]);
+  }, [tabParam, kind, searchParams, can, setSearchParams]);
 
   const newLabel = isWarehouseTransfer
     ? 'تحويل بين مخازن'

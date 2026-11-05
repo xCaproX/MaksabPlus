@@ -68,15 +68,14 @@ export default function Receipts() {
 
   useEffect(() => {
     const targetTab = tabParam && VALID_RECEIPT_TABS.includes(tabParam) ? tabParam : 'in';
+    const action = searchParams.get('action');
+
     if (targetTab !== tab) {
       setTab(targetTab);
       if (targetTab === 'in' || targetTab === 'out') {
         setDirection(targetTab);
-        resetForm();
-      } else {
-        resetForm();
       }
-      setFormOpen(false);
+      resetForm();
       setEditing(null);
       setEditingTransfer(null);
       setSearchTerm('');
@@ -84,8 +83,39 @@ export default function Receipts() {
       setDateFrom('');
       setDateTo('');
       setPage(1);
+
+      if (action === 'new') {
+        const canCreate = can(`money.${targetTab}.create`);
+        if (canCreate) {
+          openedFromViewRef.current = false;
+          openedTransferFromViewRef.current = false;
+          setModalMode('create');
+          setFormOpen(true);
+        } else {
+          setFormOpen(false);
+        }
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('action');
+        setSearchParams(nextParams, { replace: true });
+      } else {
+        setFormOpen(false);
+      }
+    } else if (action === 'new') {
+      const canCreate = can(`money.${tab}.create`);
+      if (canCreate) {
+        resetForm();
+        setEditing(null);
+        setEditingTransfer(null);
+        openedFromViewRef.current = false;
+        openedTransferFromViewRef.current = false;
+        setModalMode('create');
+        setFormOpen(true);
+      }
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('action');
+      setSearchParams(nextParams, { replace: true });
     }
-  }, [tabParam, tab]);
+  }, [tabParam, tab, searchParams, can, setSearchParams]);
 
   const isCashBoxTransfer = tab === 'cash_box_transfer';
   const isIn = direction === 'in';

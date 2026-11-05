@@ -27,9 +27,17 @@ describe('Home Dashboard Components', () => {
 
     expect(screen.getByText(/مرحباً، عبد الرحمن/)).toBeInTheDocument();
     expect(screen.getByText(/شركة الأهرام/)).toBeInTheDocument();
-    expect(screen.getByText('فاتورة بيع جديدة')).toBeInTheDocument();
-    expect(screen.getByText('استلام فلوس')).toBeInTheDocument();
-    expect(screen.getByText('صرف فلوس')).toBeInTheDocument();
+    const saleBtn = screen.getByText('فاتورة بيع جديدة').closest('a');
+    expect(saleBtn).toHaveAttribute('href', '/invoices?tab=sale&action=new');
+
+    const inBtn = screen.getByText('استلام فلوس').closest('a');
+    expect(inBtn).toHaveAttribute('href', '/receipts?tab=in&action=new');
+
+    const outBtn = screen.getByText('صرف فلوس').closest('a');
+    expect(outBtn).toHaveAttribute('href', '/receipts?tab=out&action=new');
+
+    const purchaseBtn = screen.getByText('فاتورة شراء').closest('a');
+    expect(purchaseBtn).toHaveAttribute('href', '/invoices?tab=purchase&action=new');
   });
 
   it('SalesMetricCards renders today, week, and month sales metrics', () => {
