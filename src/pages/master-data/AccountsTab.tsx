@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Wallet,
+  Save,
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
@@ -93,6 +94,17 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
   const [accountPhone, setAccountPhone] = useState('');
   const [accountNotes, setAccountNotes] = useState('');
   const [accountActive, setAccountActive] = useState(true);
+
+  const isFormDirty = editingAccount
+    ? accountName.trim() !== editingAccount.name ||
+      accountPhone.trim() !== (editingAccount.phone ?? '') ||
+      accountNotes.trim() !== (editingAccount.notes ?? '') ||
+      accountActive !== editingAccount.is_active
+    : accountName.trim() !== '' ||
+      accountPhone.trim() !== '' ||
+      accountNotes.trim() !== '' ||
+      (accountOpeningBalance !== '0' && accountOpeningBalance.trim() !== '') ||
+      !accountActive;
 
   // استجابة لزر الإضافة من الرأس
   useEffect(() => {
@@ -596,95 +608,103 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
       {isModalOpen && (
         <Modal
           title={editingAccount ? `تعديل بيانات ${entityTitle}` : `إضافة ${entityTitle} جديد`}
+          className="form-modal-md"
           onClose={cancelEdit}
+          isDirty={isFormDirty}
+          confirmOnDismiss={true}
         >
           <form onSubmit={saveAccount} className="stack">
-            <label>
-              <span>الاسم *</span>
-              <input
-                type="text"
-                required
-                value={accountName}
-                onChange={(e) => setAccountName(e.target.value)}
-                placeholder={`اسم ${entityTitle}`}
-                autoFocus
-              />
-            </label>
+            <div className="erp-form-grid">
+              <label className="erp-col-6">
+                <span>الاسم *</span>
+                <input
+                  type="text"
+                  required
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                  placeholder={`اسم ${entityTitle}…`}
+                  autoFocus
+                />
+              </label>
 
-            {!editingAccount && (
-              <div className="form-row">
-                <label style={{ flex: 1 }}>
-                  <span>الرصيد الافتتاحي</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    min="0"
-                    dir="ltr"
-                    className="num no-spinner"
-                    value={accountOpeningBalance}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setAccountOpeningBalance(e.target.value)}
-                  />
-                </label>
-                <label style={{ width: '120px' }}>
-                  <span>نوع الرصيد</span>
-                  <select
-                    value={accountOpeningType}
-                    onChange={(e) => setAccountOpeningType(e.target.value as 'debit' | 'credit')}
-                  >
-                    {isCustomer ? (
-                      <>
-                        <option value="debit">مدين (لنا)</option>
-                        <option value="credit">دائن (علينا)</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="credit">دائن (له)</option>
-                        <option value="debit">مدين (لنا)</option>
-                      </>
-                    )}
-                  </select>
-                </label>
-              </div>
-            )}
+              <label className="erp-col-6">
+                <span>رقم الهاتف</span>
+                <input
+                  type="tel"
+                  value={accountPhone}
+                  onChange={(e) => setAccountPhone(e.target.value)}
+                  placeholder="01xxxxxxxxx"
+                  dir="ltr"
+                />
+              </label>
 
-            <label>
-              <span>رقم الهاتف</span>
-              <input
-                type="tel"
-                value={accountPhone}
-                onChange={(e) => setAccountPhone(e.target.value)}
-                placeholder="01xxxxxxxxx"
-                dir="ltr"
-              />
-            </label>
+              {!editingAccount && (
+                <>
+                  <label className="erp-col-6">
+                    <span>الرصيد الافتتاحي</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      dir="ltr"
+                      className="num no-spinner"
+                      value={accountOpeningBalance}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setAccountOpeningBalance(e.target.value)}
+                    />
+                  </label>
 
-            <label>
-              <span>ملاحظات</span>
-              <textarea
-                value={accountNotes}
-                onChange={(e) => setAccountNotes(e.target.value)}
-                placeholder="أي ملاحظات إضافية عن الحساب…"
-                rows={3}
-              />
-            </label>
+                  <label className="erp-col-6">
+                    <span>نوع الرصيد</span>
+                    <select
+                      value={accountOpeningType}
+                      onChange={(e) => setAccountOpeningType(e.target.value as 'debit' | 'credit')}
+                    >
+                      {isCustomer ? (
+                        <>
+                          <option value="debit">مدين (لنا)</option>
+                          <option value="credit">دائن (علينا)</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="credit">دائن (له)</option>
+                          <option value="debit">مدين (لنا)</option>
+                        </>
+                      )}
+                    </select>
+                  </label>
+                </>
+              )}
 
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={accountActive}
-                onChange={(e) => setAccountActive(e.target.checked)}
-              />
-              <span>الحساب نشط</span>
-            </label>
+              <label className="erp-col-12">
+                <span>ملاحظات</span>
+                <textarea
+                  value={accountNotes}
+                  onChange={(e) => setAccountNotes(e.target.value)}
+                  placeholder="أي ملاحظات إضافية عن الحساب…"
+                  rows={3}
+                />
+              </label>
 
-            <div className="actions">
-              <button type="button" className="btn outline" onClick={cancelEdit}>
-                إلغاء
-              </button>
+              <label className="checkbox erp-col-12">
+                <input
+                  type="checkbox"
+                  checked={accountActive}
+                  onChange={(e) => setAccountActive(e.target.checked)}
+                />
+                <span>الحساب نشط</span>
+              </label>
+            </div>
+
+            <div className="form-modal-actions">
               <button type="submit" className="btn primary">
-                {editingAccount ? 'حفظ التعديلات' : 'إضافة'}
+                <Save size={15} />
+                <span>{editingAccount ? 'حفظ التعديلات' : 'إضافة'}</span>
+              </button>
+              <button type="button" className="btn" onClick={cancelEdit}>
+                <X size={15} />
+                <span>إلغاء</span>
               </button>
             </div>
           </form>

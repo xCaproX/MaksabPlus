@@ -1,6 +1,6 @@
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { X, Landmark, CheckCircle2, Wallet } from 'lucide-react';
+import { X, Save, Landmark, CheckCircle2, Wallet } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber } from '../../lib/format';
@@ -58,6 +58,17 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
   const [cashBoxName, setCashBoxName] = useState('');
   const [cashBoxNotes, setCashBoxNotes] = useState('');
   const [cashBoxOpeningBalance, setCashBoxOpeningBalance] = useState('0');
+
+  const editingCashBox = editingCashBoxId
+    ? cashBoxes.find((c) => c.id === editingCashBoxId)
+    : null;
+
+  const isFormDirty = editingCashBox
+    ? cashBoxName.trim() !== editingCashBox.name ||
+      cashBoxNotes.trim() !== (editingCashBox.notes ?? '')
+    : cashBoxName.trim() !== '' ||
+      cashBoxNotes.trim() !== '' ||
+      (cashBoxOpeningBalance !== '' && cashBoxOpeningBalance !== '0');
 
   // استجابة لزر الإضافة من الرأس
   useEffect(() => {
@@ -458,33 +469,29 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
       {isModalOpen && (
         <Modal
           title={editingCashBoxId ? 'تعديل خزنة' : 'إضافة خزنة'}
-          className="master-data-modal"
+          className="form-modal-md"
           backdropClassName="master-data-backdrop"
           onClose={cancelEdit}
+          isDirty={isFormDirty}
+          confirmOnDismiss={true}
         >
           <form className="stack" onSubmit={saveCashBox}>
-            <div className="account-header-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label>
-                اسم الخزنة
+            <div className="erp-form-grid">
+              <label className={!editingCashBoxId ? 'erp-col-6' : 'erp-col-12'}>
+                <span>اسم الخزنة *</span>
                 <input
                   type="text"
                   value={cashBoxName}
                   onChange={(e) => setCashBoxName(e.target.value)}
+                  placeholder="اسم الخزنة…"
+                  autoFocus
                   required
                 />
               </label>
-              <label>
-                ملاحظات الخزنة
-                <input
-                  type="text"
-                  value={cashBoxNotes}
-                  onChange={(e) => setCashBoxNotes(e.target.value)}
-                  placeholder="وصف الخزنة ومكانها"
-                />
-              </label>
+
               {!editingCashBoxId && (
-                <label>
-                  الرصيد الافتتاحي
+                <label className="erp-col-6">
+                  <span>الرصيد الافتتاحي</span>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -498,13 +505,25 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
                   />
                 </label>
               )}
+
+              <label className="erp-col-12">
+                <span>ملاحظات الخزنة</span>
+                <textarea
+                  value={cashBoxNotes}
+                  onChange={(e) => setCashBoxNotes(e.target.value)}
+                  placeholder="وصف الخزنة ومكانها…"
+                  rows={3}
+                />
+              </label>
             </div>
             <div className="form-modal-actions">
               <button type="submit" className="btn primary">
-                {editingCashBoxId ? 'حفظ التعديلات' : 'إضافة خزنة'}
+                <Save size={15} />
+                <span>{editingCashBoxId ? 'حفظ التعديلات' : 'إضافة خزنة'}</span>
               </button>
               <button type="button" className="btn" onClick={cancelEdit}>
-                إلغاء
+                <X size={15} />
+                <span>إلغاء</span>
               </button>
             </div>
           </form>

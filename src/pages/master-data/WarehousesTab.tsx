@@ -1,6 +1,6 @@
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { X, Warehouse, CheckCircle2 } from 'lucide-react';
+import { X, Save, Warehouse, CheckCircle2 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber } from '../../lib/format';
@@ -54,6 +54,15 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
   const [editingWarehouseId, setEditingWarehouseId] = useState<string | null>(null);
   const [warehouseName, setWarehouseName] = useState('');
   const [warehouseNotes, setWarehouseNotes] = useState('');
+
+  const editingWarehouse = editingWarehouseId
+    ? warehouses.find((w) => w.id === editingWarehouseId)
+    : null;
+
+  const isFormDirty = editingWarehouse
+    ? warehouseName.trim() !== editingWarehouse.name ||
+      warehouseNotes.trim() !== (editingWarehouse.notes ?? '')
+    : warehouseName.trim() !== '' || warehouseNotes.trim() !== '';
 
   // استجابة لزر الإضافة من الرأس
   useEffect(() => {
@@ -440,37 +449,43 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
       {isModalOpen && (
         <Modal
           title={editingWarehouseId ? 'تعديل مخزن' : 'إضافة مخزن'}
-          className="master-data-modal"
+          className="form-modal-md"
           backdropClassName="master-data-backdrop"
           onClose={cancelEdit}
+          isDirty={isFormDirty}
+          confirmOnDismiss={true}
         >
           <form className="stack" onSubmit={saveWarehouse}>
-            <div className="account-header-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label>
-                اسم المخزن
+            <div className="erp-form-grid">
+              <label className="erp-col-12">
+                <span>اسم المخزن *</span>
                 <input
                   type="text"
                   value={warehouseName}
                   onChange={(e) => setWarehouseName(e.target.value)}
+                  placeholder="اسم المخزن…"
+                  autoFocus
                   required
                 />
               </label>
-              <label>
-                ملاحظات المخزن
-                <input
-                  type="text"
+              <label className="erp-col-12">
+                <span>ملاحظات المخزن</span>
+                <textarea
                   value={warehouseNotes}
                   onChange={(e) => setWarehouseNotes(e.target.value)}
-                  placeholder="العنوان أو وصف المخزن"
+                  placeholder="العنوان أو وصف المخزن…"
+                  rows={3}
                 />
               </label>
             </div>
             <div className="form-modal-actions">
               <button type="submit" className="btn primary">
-                {editingWarehouseId ? 'حفظ التعديلات' : 'إضافة مخزن'}
+                <Save size={15} />
+                <span>{editingWarehouseId ? 'حفظ التعديلات' : 'إضافة مخزن'}</span>
               </button>
               <button type="button" className="btn" onClick={cancelEdit}>
-                إلغاء
+                <X size={15} />
+                <span>إلغاء</span>
               </button>
             </div>
           </form>

@@ -2,6 +2,7 @@ import Pagination from '../../components/Pagination';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   X,
+  Save,
   Boxes,
   CheckCircle2,
   AlertTriangle,
@@ -98,6 +99,24 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
   const [itemOpeningWarehouseId, setItemOpeningWarehouseId] = useState('');
   const [itemOpeningQty, setItemOpeningQty] = useState('0');
   const [itemOpeningCost, setItemOpeningCost] = useState('0');
+
+  const isFormDirty = editingItem
+    ? itemName.trim() !== editingItem.name ||
+      itemCode.trim() !== (editingItem.code ?? '') ||
+      itemUnit.trim() !== editingItem.unit ||
+      salePrice !== String(editingItem.sale_price) ||
+      purchasePrice !== String(editingItem.purchase_price) ||
+      itemNotes.trim() !== (editingItem.notes ?? '') ||
+      itemActive !== editingItem.is_active
+    : itemName.trim() !== '' ||
+      itemCode.trim() !== '' ||
+      (itemUnit.trim() !== '' && itemUnit.trim() !== 'قطعة') ||
+      salePrice !== '' ||
+      purchasePrice !== '' ||
+      itemNotes.trim() !== '' ||
+      itemOpeningWarehouseId !== '' ||
+      (itemOpeningQty !== '' && itemOpeningQty !== '0') ||
+      (itemOpeningCost !== '' && itemOpeningCost !== '0');
 
   const startAdd = useCallback(() => {
     setEditingItem(null);
@@ -565,164 +584,168 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
       {isModalOpen && (
         <Modal
           title={editingItem ? 'تعديل صنف' : 'إضافة صنف'}
-          className="master-data-modal"
+          className="form-modal-md"
           backdropClassName="master-data-backdrop"
           onClose={cancelEdit}
+          isDirty={isFormDirty}
+          confirmOnDismiss={true}
         >
           <form className="stack" onSubmit={saveItem}>
-            <div className="account-header-card">
-              <div className="form-grid">
-                <label>
-                  اسم الصنف
-                  <input
-                    type="text"
-                    value={itemName}
-                    onChange={(e) => setItemName(e.target.value)}
-                    required
-                  />
-                </label>
+            <div className="erp-form-grid">
+              <label className="erp-col-6">
+                <span>اسم الصنف *</span>
+                <input
+                  type="text"
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  placeholder="اسم الصنف…"
+                  autoFocus
+                  required
+                />
+              </label>
 
-                <label>
-                  كود الصنف (الباركود)
-                  <input
-                    type="text"
-                    value={itemCode}
-                    onChange={(e) => setItemCode(e.target.value)}
-                    placeholder="اختياري — يتولد تلقائيًا إذا تُرِك فارغًا"
-                  />
-                </label>
+              <label className="erp-col-6">
+                <span>كود الصنف (الباركود)</span>
+                <input
+                  type="text"
+                  value={itemCode}
+                  onChange={(e) => setItemCode(e.target.value)}
+                  placeholder="اختياري — يتولد تلقائيًا إذا تُرِك فارغًا"
+                />
+              </label>
 
-                <label>
-                  الوحدة
-                  <input
-                    type="text"
-                    value={itemUnit}
-                    onChange={(e) => setItemUnit(e.target.value)}
-                    placeholder="قطعة، كرتونة، كجم…"
-                    required
-                  />
-                </label>
+              <label className="erp-col-4">
+                <span>الوحدة *</span>
+                <input
+                  type="text"
+                  value={itemUnit}
+                  onChange={(e) => setItemUnit(e.target.value)}
+                  placeholder="قطعة، كرتونة، كجم…"
+                  required
+                />
+              </label>
 
-                <label>
-                  سعر البيع الافتراضي
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.0001"
-                    min="0"
-                    dir="ltr"
-                    className="num no-spinner"
-                    value={salePrice}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setSalePrice(e.target.value)}
-                    placeholder="0.00"
-                    required
-                  />
-                </label>
+              <label className="erp-col-4">
+                <span>سعر البيع الافتراضي *</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.0001"
+                  min="0"
+                  dir="ltr"
+                  className="num no-spinner"
+                  value={salePrice}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setSalePrice(e.target.value)}
+                  placeholder="0.00"
+                  required
+                />
+              </label>
 
-                <label>
-                  سعر الشراء الافتراضي
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.0001"
-                    min="0"
-                    dir="ltr"
-                    className="num no-spinner"
-                    value={purchasePrice}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setPurchasePrice(e.target.value)}
-                    placeholder="0.00"
-                    required
-                  />
-                </label>
+              <label className="erp-col-4">
+                <span>سعر الشراء الافتراضي *</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.0001"
+                  min="0"
+                  dir="ltr"
+                  className="num no-spinner"
+                  value={purchasePrice}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setPurchasePrice(e.target.value)}
+                  placeholder="0.00"
+                  required
+                />
+              </label>
 
-                <label className="span-2">
-                  ملاحظات الصنف
-                  <input
-                    type="text"
-                    value={itemNotes}
-                    onChange={(e) => setItemNotes(e.target.value)}
-                    placeholder="اختياري"
-                  />
-                </label>
-
-                {!editingItem && (
-                  <>
-                    <label>
-                      المخزن لرصيد أول المدة
-                      <SearchableSelect
-                        value={itemOpeningWarehouseId}
-                        options={[
-                          { value: '', label: 'لا يوجد رصيد أول مدة' },
-                          ...warehouses
-                            .filter((w) => w.is_active)
-                            .map((w) => ({
-                              value: w.id,
-                              label: w.name,
-                            })),
-                        ]}
-                        onChange={setItemOpeningWarehouseId}
-                        placeholder="اختر المخزن لرصيد أول المدة…"
-                        searchPlaceholder="اكتب للبحث عن مخزن…"
-                        emptyMessage="لا توجد مخازن نشطة"
-                      />
-                    </label>
-
-                    {itemOpeningWarehouseId && (
-                      <>
-                        <label>
-                          الكمية الافتتاحية
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            step="0.0001"
-                            min="0"
-                            dir="ltr"
-                            className="num no-spinner"
-                            value={itemOpeningQty}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) => setItemOpeningQty(e.target.value)}
-                          />
-                        </label>
-                        <label>
-                          تكلفة الوحدة الافتتاحية
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            step="0.0001"
-                            min="0"
-                            dir="ltr"
-                            className="num no-spinner"
-                            value={itemOpeningCost}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) => setItemOpeningCost(e.target.value)}
-                          />
-                        </label>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {editingItem && (
-                  <label className="checkbox span-2">
-                    <input
-                      type="checkbox"
-                      checked={itemActive}
-                      onChange={(e) => setItemActive(e.target.checked)}
+              {!editingItem && (
+                <>
+                  <label className={itemOpeningWarehouseId ? 'erp-col-6' : 'erp-col-12'}>
+                    <span>المخزن لرصيد أول المدة</span>
+                    <SearchableSelect
+                      value={itemOpeningWarehouseId}
+                      options={[
+                        { value: '', label: 'لا يوجد رصيد أول مدة' },
+                        ...warehouses
+                          .filter((w) => w.is_active)
+                          .map((w) => ({
+                            value: w.id,
+                            label: w.name,
+                          })),
+                      ]}
+                      onChange={setItemOpeningWarehouseId}
+                      placeholder="اختر المخزن لرصيد أول المدة…"
+                      searchPlaceholder="اكتب للبحث عن مخزن…"
+                      emptyMessage="لا توجد مخازن نشطة"
                     />
-                    صنف نشط (يظهر في فواتير البيع والشراء)
                   </label>
-                )}
-              </div>
+
+                  {itemOpeningWarehouseId && (
+                    <>
+                      <label className="erp-col-3">
+                        <span>الكمية الافتتاحية</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.0001"
+                          min="0"
+                          dir="ltr"
+                          className="num no-spinner"
+                          value={itemOpeningQty}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setItemOpeningQty(e.target.value)}
+                        />
+                      </label>
+                      <label className="erp-col-3">
+                        <span>تكلفة الوحدة الافتتاحية</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          step="0.0001"
+                          min="0"
+                          dir="ltr"
+                          className="num no-spinner"
+                          value={itemOpeningCost}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setItemOpeningCost(e.target.value)}
+                        />
+                      </label>
+                    </>
+                  )}
+                </>
+              )}
+
+              <label className="erp-col-12">
+                <span>ملاحظات الصنف</span>
+                <textarea
+                  value={itemNotes}
+                  onChange={(e) => setItemNotes(e.target.value)}
+                  placeholder="أي ملاحظات إضافية عن الصنف…"
+                  rows={2}
+                />
+              </label>
+
+              {editingItem && (
+                <label className="checkbox erp-col-12">
+                  <input
+                    type="checkbox"
+                    checked={itemActive}
+                    onChange={(e) => setItemActive(e.target.checked)}
+                  />
+                  <span>صنف نشط (يظهر في فواتير البيع والشراء)</span>
+                </label>
+              )}
             </div>
 
             <div className="form-modal-actions">
               <button type="submit" className="btn primary">
-                {editingItem ? 'حفظ التعديلات' : 'إضافة صنف'}
+                <Save size={15} />
+                <span>{editingItem ? 'حفظ التعديلات' : 'إضافة صنف'}</span>
               </button>
               <button type="button" className="btn" onClick={cancelEdit}>
-                إلغاء
+                <X size={15} />
+                <span>إلغاء</span>
               </button>
             </div>
           </form>
