@@ -67,9 +67,9 @@ begin
   end;
   perform public.test_expect(v_failed, 'primary cash box cannot be deleted');
 
-  insert into public.receipts (company_id, invoice_id, number, receipt_date, account_id, cash_box_id, amount, direction)
-  values ('17171717-1717-4717-8717-0000000000a1', null, 'RCP-TEST-DELETE-1', current_date,
-    '17171717-1717-4717-8717-0000000000d1', '17171717-1717-4717-8717-0000000000c3', 1, 'in');
+  perform public.create_free_receipt(
+    '17171717-1717-4717-8717-0000000000d1',
+    '17171717-1717-4717-8717-0000000000c3', current_date, 1, null, null, 'in');
 
   v_failed := false;
   begin

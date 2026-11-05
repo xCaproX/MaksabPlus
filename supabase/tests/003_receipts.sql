@@ -186,13 +186,19 @@ begin
   end;
   perform public.test_expect(v_ok, 'linked: function delete rejected');
 
-  update public.receipts set amount = 1 where id = v_receipt;
-  get diagnostics v_rows = row_count;
-  perform public.test_expect(v_rows = 0, 'linked: direct update blocked by RLS');
+  v_ok := false;
+  begin
+    update public.receipts set amount = 1 where id = v_receipt;
+  exception when insufficient_privilege then v_ok := true;
+  end;
+  perform public.test_expect(v_ok, 'linked: direct update privilege denied');
 
-  delete from public.receipts where id = v_receipt;
-  get diagnostics v_rows = row_count;
-  perform public.test_expect(v_rows = 0, 'linked: direct delete blocked by RLS');
+  v_ok := false;
+  begin
+    delete from public.receipts where id = v_receipt;
+  exception when insufficient_privilege then v_ok := true;
+  end;
+  perform public.test_expect(v_ok, 'linked: direct delete privilege denied');
 
   perform public.test_expect((select amount from public.receipts where id = v_receipt) = 50, 'linked: amount unchanged');
 end $$;

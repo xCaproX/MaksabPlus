@@ -132,9 +132,12 @@ begin
   perform public.test_expect(v_ok, 'A: cannot insert row for company B');
 
   -- محاولة تعديل فاتورة ب
-  update public.invoices set notes = 'hacked' where id = v_b_invoice;
-  get diagnostics v_rows = row_count;
-  perform public.test_expect(v_rows = 0, 'A: cannot update B invoice');
+  v_ok := false;
+  begin
+    update public.invoices set notes = 'hacked' where id = v_b_invoice;
+  exception when insufficient_privilege then v_ok := true;
+  end;
+  perform public.test_expect(v_ok, 'A: direct update of B invoice denied');
 
   -- محاولة حذف فاتورة ب
   v_ok := false;
