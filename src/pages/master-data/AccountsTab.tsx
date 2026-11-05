@@ -1,5 +1,5 @@
 import Pagination from '../../components/Pagination';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   X,
   Users,
@@ -26,6 +26,7 @@ import type { AccountKind, AccountRow } from '../../lib/types';
 import { useAccess } from '../../lib/access';
 import { useConfirmDialog } from '../../lib/useConfirmDialog';
 import { useMasterData } from '../../context/MasterDataContext';
+import { accountOpeningBalance as signedOpeningBalance, defaultAccountOpeningDirection, type AccountOpeningDirection } from '../../lib/accountOpeningBalance';
 
 type AccountSort = 'name-asc' | 'name-desc' | 'serial-desc' | 'serial-asc';
 type StatusFilter = 'all' | 'active' | 'inactive';
@@ -89,17 +90,26 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
   const [editingAccount, setEditingAccount] = useState<AccountRow | null>(null);
   const [accountName, setAccountName] = useState('');
   const [accountOpeningBalance, setAccountOpeningBalance] = useState('0');
-  const [accountOpeningType, setAccountOpeningType] = useState<'debit' | 'credit'>('debit');
+  const [accountOpeningType, setAccountOpeningType] = useState<AccountOpeningDirection>(() => defaultAccountOpeningDirection(kind));
   const [accountPhone, setAccountPhone] = useState('');
   const [accountNotes, setAccountNotes] = useState('');
   const [accountActive, setAccountActive] = useState(true);
+  const [savingAccount, setSavingAccount] = useState(false);
+  const saveInProgress = useRef(false);
 
   // استجابة لزر الإضافة من الرأس
   useEffect(() => {
     if (addTrigger > 0) {
-      startAdd();
+      setEditingAccount(null);
+      setAccountName('');
+      setAccountOpeningBalance('0');
+      setAccountOpeningType(defaultAccountOpeningDirection(kind));
+      setAccountPhone('');
+      setAccountNotes('');
+      setAccountActive(true);
+      setIsModalOpen(true);
     }
-  }, [addTrigger]);
+  }, [addTrigger, kind]);
 
   // جلب الحسابات بالصفحات مع المؤشرات من السيرفر مباشرة
   useEffect(() => {
@@ -273,17 +283,6 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
     ];
   }, [summary, isCustomer]);
 
-  function startAdd() {
-    setEditingAccount(null);
-    setAccountName('');
-    setAccountOpeningBalance('0');
-    setAccountOpeningType('debit');
-    setAccountPhone('');
-    setAccountNotes('');
-    setAccountActive(true);
-    setIsModalOpen(true);
-  }
-
   function startEdit(account: AccountRow) {
     setEditingAccount(account);
     setAccountName(account.name);
@@ -295,58 +294,67 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
   }
 
   function cancelEdit() {
+    if (saveInProgress.current) return;
     setEditingAccount(null);
     setIsModalOpen(false);
   }
 
   async function saveAccount(event: FormEvent) {
     event.preventDefault();
-
-    if (editingAccount) {
-      const { error: updateError } = await supabase
-        .from('accounts')
-        .update({
-          name: accountName.trim(),
-          phone: accountPhone.trim() || null,
-          notes: accountNotes.trim() || null,
-          is_active: accountActive,
-        })
-        .eq('id', editingAccount.id);
-
-      if (updateError) {
-        toast.error(translateDbError(updateError.message));
-        return;
-      }
-      toast.success(`تم تعديل الحساب «${accountName.trim()}»`);
-    } else {
-      const { error: rpcError } = await supabase.rpc('save_account_with_notes', {
-        p_account_id: null,
-        p_name: accountName.trim(),
-        p_kind: kind as AccountKind,
-        p_phone: accountPhone.trim() || null,
-        p_is_active: accountActive,
-        p_opening_balance: (() => {
-          const raw = Math.abs(Number(accountOpeningBalance) || 0);
-          if (raw === 0) return 0;
-          if (isCustomer) {
-            return accountOpeningType === 'credit' ? -raw : raw;
-          }
-          return accountOpeningType === 'debit' ? -raw : raw;
-        })(),
-        p_notes: accountNotes.trim() || null,
-      });
-
-      if (rpcError) {
-        toast.error(translateDbError(rpcError.message));
-        return;
-      }
-      toast.success(`تمت إضافة ${entityTitle} «${accountName.trim()}»`);
+    if (saveInProgress.current) return;
+    if (!accountName.trim()) {
+      toast.error(`أدخل اسم ${entityTitle}`);
+      return;
     }
+    saveInProgress.current = true;
+    setSavingAccount(true);
 
-    cancelEdit();
-    setSelectedAccount(null);
-    setVersion((v) => v + 1);
-    void refresh(['accounts']);
+    try {
+      if (editingAccount) {
+        const { error: updateError } = await supabase
+          .from('accounts')
+          .update({
+            name: accountName.trim(),
+            phone: accountPhone.trim() || null,
+            notes: accountNotes.trim() || null,
+            is_active: accountActive,
+          })
+          .eq('id', editingAccount.id);
+
+        if (updateError) {
+          toast.error(translateDbError(updateError.message));
+          return;
+        }
+        toast.success(`تم تعديل الحساب «${accountName.trim()}»`);
+      } else {
+        const { error: rpcError } = await supabase.rpc('save_account_with_notes', {
+          p_account_id: null,
+          p_name: accountName.trim(),
+          p_kind: kind as AccountKind,
+          p_phone: accountPhone.trim() || null,
+          p_is_active: accountActive,
+          p_opening_balance: signedOpeningBalance(kind, accountOpeningBalance, accountOpeningType),
+          p_notes: accountNotes.trim() || null,
+        });
+
+        if (rpcError) {
+          toast.error(translateDbError(rpcError.message));
+          return;
+        }
+        toast.success(`تمت إضافة ${entityTitle} «${accountName.trim()}»`);
+      }
+
+      setIsModalOpen(false);
+      setEditingAccount(null);
+      setSelectedAccount(null);
+      setVersion((v) => v + 1);
+      void refresh(['accounts']);
+    } catch (err: unknown) {
+      toast.error(translateDbError(errorMessage(err)));
+    } finally {
+      saveInProgress.current = false;
+      setSavingAccount(false);
+    }
   }
 
   async function toggleActive(account: AccountRow) {
@@ -595,96 +603,95 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
       {/* نافذة الإضافة والتعديل */}
       {isModalOpen && (
         <Modal
-          title={editingAccount ? `تعديل بيانات ${entityTitle}` : `إضافة ${entityTitle} جديد`}
+          title={editingAccount ? `تعديل بيانات ${entityTitle}` : `إضافة ${isCustomer ? 'عميل' : 'مورد'} جديد`}
           onClose={cancelEdit}
+          className="master-data-modal account-modal"
+          backdropClassName="master-data-backdrop"
+          dismissible={!savingAccount}
         >
-          <form onSubmit={saveAccount} className="stack">
-            <label>
-              <span>الاسم *</span>
-              <input
-                type="text"
-                required
-                value={accountName}
-                onChange={(e) => setAccountName(e.target.value)}
-                placeholder={`اسم ${entityTitle}`}
-                autoFocus
-              />
-            </label>
+          <form onSubmit={saveAccount} className="stack" aria-busy={savingAccount}>
+            <fieldset className="stack form-fields" disabled={savingAccount}>
+              <label>
+                <span>اسم {entityTitle} *</span>
+                <input
+                  type="text"
+                  required
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                  placeholder={`اسم ${entityTitle}`}
+                  autoFocus
+                />
+              </label>
 
-            {!editingAccount && (
-              <div className="form-row">
-                <label style={{ flex: 1 }}>
-                  <span>الرصيد الافتتاحي</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    min="0"
-                    dir="ltr"
-                    className="num no-spinner"
-                    value={accountOpeningBalance}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setAccountOpeningBalance(e.target.value)}
-                  />
-                </label>
-                <label style={{ width: '120px' }}>
-                  <span>نوع الرصيد</span>
-                  <select
-                    value={accountOpeningType}
-                    onChange={(e) => setAccountOpeningType(e.target.value as 'debit' | 'credit')}
-                  >
-                    {isCustomer ? (
-                      <>
-                        <option value="debit">مدين (لنا)</option>
-                        <option value="credit">دائن (علينا)</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="credit">دائن (له)</option>
-                        <option value="debit">مدين (لنا)</option>
-                      </>
-                    )}
-                  </select>
-                </label>
-              </div>
-            )}
+              {!editingAccount && (
+                <div className="form-row">
+                  <label>
+                    <span>رصيد بداية التعامل</span>
+                    <div className="input-with-suffix" dir="ltr">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      dir="ltr"
+                      className="num no-spinner"
+                      value={accountOpeningBalance}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setAccountOpeningBalance(e.target.value)}
+                    />
+                    <span className="input-suffix" dir="rtl">ج.م</span>
+                    </div>
+                  </label>
+                  <label>
+                    <span>الرصيد ده لمين؟</span>
+                    <select
+                      value={accountOpeningType}
+                      onChange={(e) => setAccountOpeningType(e.target.value as AccountOpeningDirection)}
+                    >
+                      <option value="receivable">لنا عنده</option>
+                      <option value="payable">له عندنا</option>
+                    </select>
+                  </label>
+                </div>
+              )}
 
-            <label>
-              <span>رقم الهاتف</span>
-              <input
-                type="tel"
-                value={accountPhone}
-                onChange={(e) => setAccountPhone(e.target.value)}
-                placeholder="01xxxxxxxxx"
-                dir="ltr"
-              />
-            </label>
+              <label>
+                <span>رقم الهاتف</span>
+                <input
+                  type="tel"
+                  value={accountPhone}
+                  onChange={(e) => setAccountPhone(e.target.value)}
+                  placeholder="01xxxxxxxxx"
+                  dir="ltr"
+                />
+              </label>
 
-            <label>
-              <span>ملاحظات</span>
-              <textarea
-                value={accountNotes}
-                onChange={(e) => setAccountNotes(e.target.value)}
-                placeholder="أي ملاحظات إضافية عن الحساب…"
-                rows={3}
-              />
-            </label>
+              <label>
+                <span>ملاحظات</span>
+                <textarea
+                  value={accountNotes}
+                  onChange={(e) => setAccountNotes(e.target.value)}
+                  placeholder="أي ملاحظات إضافية عن الحساب…"
+                  rows={3}
+                />
+              </label>
 
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={accountActive}
-                onChange={(e) => setAccountActive(e.target.checked)}
-              />
-              <span>الحساب نشط</span>
-            </label>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={accountActive}
+                  onChange={(e) => setAccountActive(e.target.checked)}
+                />
+                <span>الحساب نشط</span>
+              </label>
 
-            <div className="actions">
-              <button type="button" className="btn outline" onClick={cancelEdit}>
-                إلغاء
+            </fieldset>
+            <div className="form-modal-actions">
+              <button type="submit" className="btn primary" disabled={savingAccount}>
+                {savingAccount ? 'جارٍ الحفظ…' : editingAccount ? 'حفظ التعديلات' : `إضافة ${entityTitle}`}
               </button>
-              <button type="submit" className="btn primary">
-                {editingAccount ? 'حفظ التعديلات' : 'إضافة'}
+              <button type="button" className="btn outline" onClick={cancelEdit} disabled={savingAccount}>
+                إلغاء
               </button>
             </div>
           </form>

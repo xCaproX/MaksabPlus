@@ -275,20 +275,23 @@ input[type="number"] {
   color: #1e293b;
 }
 
-.check {
+.check,
+.checkbox {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  align-self: end;
-  padding-bottom: 9px;
   cursor: pointer;
   font-size: 13.5px;
   font-weight: 550;
   color: var(--ink);
 }
 
-.check input {
+.check { align-self: end; padding-block-end: 9px; }
+.checkbox { align-self: flex-start; }
+
+.check input,
+.checkbox input {
   width: 16px;
   height: 16px;
   min-height: 16px;
@@ -296,6 +299,13 @@ input[type="number"] {
   accent-color: var(--primary);
   cursor: pointer;
 }
+
+.form-fields { border: 0; padding: 0; margin: 0; min-inline-size: 0; }
+.form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.input-with-suffix { display: flex; align-items: center; gap: 8px; }
+.input-with-suffix input { flex: 1; min-inline-size: 0; }
+.input-suffix { flex-shrink: 0; color: var(--muted); font-size: 13px; }
+@media (max-width: 480px) { .form-row { grid-template-columns: minmax(0, 1fr); } }
 
 /* DateInput shared component */
 .date-input-wrap {

@@ -7,20 +7,21 @@ interface ModalProps {
   children: ReactNode;
   className?: string;
   backdropClassName?: string;
+  dismissible?: boolean;
 }
 
-export default function Modal({ title, onClose, children, className, backdropClassName }: ModalProps) {
+export default function Modal({ title, onClose, children, className, backdropClassName, dismissible = true }: ModalProps) {
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && dismissible) onClose();
     }
 
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [onClose]);
+  }, [onClose, dismissible]);
 
   return (
-    <div className={['modal-backdrop', backdropClassName].filter(Boolean).join(' ')} role="presentation" onClick={onClose}>
+    <div className={['modal-backdrop', backdropClassName].filter(Boolean).join(' ')} role="presentation" onClick={dismissible ? onClose : undefined}>
       <div
         className={className ? `modal ${className}` : 'modal'}
         role="dialog"
@@ -30,7 +31,7 @@ export default function Modal({ title, onClose, children, className, backdropCla
       >
         <div className="modal-head">
           <h2>{title}</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="إغلاق">
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="إغلاق" disabled={!dismissible}>
             <X size={18} />
           </button>
         </div>

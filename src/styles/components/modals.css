@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  z-index: 50;
+  z-index: 200;
   animation: backdropFadeIn 0.2s var(--ease-out);
 }
 
@@ -28,6 +28,10 @@
 
 .modal.account-statement-modal {
   width: min(1180px, 96vw);
+}
+
+.modal.account-modal {
+  inline-size: min(580px, 100%);
 }
 
 /* Opening balance toggle inside account modal */
