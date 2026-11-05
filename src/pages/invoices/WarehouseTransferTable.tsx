@@ -1,4 +1,5 @@
-import { formatDate, money, qty as formatQty } from '../../lib/format';
+import { formatDate, qty as formatQty } from '../../lib/format';
+import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
 import type { WarehouseTransferRow } from '../../lib/types';
@@ -97,7 +98,7 @@ export default function WarehouseTransferTable({
               <td>{transfer.destination_warehouse_name}</td>
               <td className="num">{transfer.line_count}</td>
               <td className="num">{formatQty(transfer.total_qty)}</td>
-              <td className="num strong">{money(transfer.total_value)}</td>
+              <td><MoneyDisplay value={transfer.total_value} strong /></td>
               <td>{transfer.notes || '—'}</td>
               <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                 {showDeleted ? (

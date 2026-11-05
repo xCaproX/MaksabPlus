@@ -1,4 +1,5 @@
-import { formatDate, money } from '../../lib/format';
+import { formatDate } from '../../lib/format';
+import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import StatusBadge from '../../components/StatusBadge';
 import RowActions from '../../components/RowActions';
@@ -155,12 +156,12 @@ export default function InvoiceTable({
                 <td className="num">{formatDate(invoice.invoice_date)}</td>
                 <td>{invoice.account_name}</td>
                 <td>{invoice.warehouse_name}</td>
-                <td className="num strong">{money(invoice.total)}</td>
+                <td><MoneyDisplay value={invoice.total} strong /></td>
                 {(kind === 'sale' || kind === 'sale_return') && canViewProfit && (
-                  <td className="num">{money(invoice.profit_total)}</td>
+                  <td><MoneyDisplay value={invoice.profit_total} /></td>
                 )}
                 {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && (
-                  <td className="num">{money(invoice.cost_total)}</td>
+                  <td><MoneyDisplay value={invoice.cost_total} /></td>
                 )}
                 {kind !== 'waste' && (
                   <td>
@@ -168,8 +169,12 @@ export default function InvoiceTable({
                   </td>
                 )}
                 {kind !== 'waste' && (
-                  <td className={Number(invoice.remaining) > 0 ? 'num strong remaining' : 'num'}>
-                    {money(invoice.remaining)}
+                  <td>
+                    <MoneyDisplay
+                      value={invoice.remaining}
+                      strong={Number(invoice.remaining) > 0}
+                      className={Number(invoice.remaining) > 0 ? 'remaining' : ''}
+                    />
                   </td>
                 )}
                 <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>

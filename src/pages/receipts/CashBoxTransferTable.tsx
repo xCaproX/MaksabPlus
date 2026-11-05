@@ -1,4 +1,5 @@
-import { formatDate, money } from '../../lib/format';
+import { formatDate } from '../../lib/format';
+import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
 import type { CashBoxTransferRow } from '../../lib/types';
@@ -93,7 +94,7 @@ export default function CashBoxTransferTable({
               <td className="num">{formatDate(transfer.transfer_date)}</td>
               <td>{transfer.source_cash_box_name}</td>
               <td>{transfer.destination_cash_box_name}</td>
-              <td className="num strong">{money(transfer.amount)}</td>
+              <td><MoneyDisplay value={transfer.amount} strong /></td>
               <td className="muted">{transfer.notes || '—'}</td>
               <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                 {showDeleted ? (

@@ -1,4 +1,5 @@
-import { formatDate, money } from '../../lib/format';
+import { formatDate } from '../../lib/format';
+import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import StatusBadge from '../../components/StatusBadge';
 import RowActions from '../../components/RowActions';
@@ -118,7 +119,7 @@ export default function ReceiptTable({
                 </span>
               </td>
               <td>{receipt.cash_box_name}</td>
-              <td className="num strong">{money(receipt.amount)}</td>
+              <td><MoneyDisplay value={receipt.amount} strong /></td>
               <td>
                 {receipt.is_free ? (
                   <StatusBadge variant="free">إيصال حر</StatusBadge>
