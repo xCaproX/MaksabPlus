@@ -23,7 +23,7 @@ export default function FinancialPulseCards({
         {cashBalance !== null && (
           <div className="financial-pulse-card">
             <div className="fin-icon-box fin-cash">
-              <Wallet size={24} />
+              <Wallet size={17} />
             </div>
             <div className="fin-content">
               <span className="fin-label">السيولة في الخزائن</span>
@@ -48,7 +48,7 @@ export default function FinancialPulseCards({
         {receivablesBalance !== null && (
           <div className="financial-pulse-card">
             <div className="fin-icon-box fin-receivables">
-              <Users size={24} />
+              <Users size={17} />
             </div>
             <div className="fin-content">
               <span className="fin-label">فلوسنا في السوق (العملاء)</span>
@@ -73,7 +73,7 @@ export default function FinancialPulseCards({
         {payablesBalance !== null && (
           <div className="financial-pulse-card">
             <div className="fin-icon-box fin-payables">
-              <Truck size={24} />
+              <Truck size={17} />
             </div>
             <div className="fin-content">
               <span className="fin-label">ديون الموردين (التزامات)</span>

@@ -38,10 +38,10 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canSale && (
           <Link
             to="/invoices?tab=sale&action=new"
-            className="home-btn-primary"
+            className="btn primary"
             title="إنشاء فاتورة بيع جديدة فوراً"
           >
-            <ShoppingCart size={18} />
+            <ShoppingCart size={16} />
             <span>فاتورة بيع جديدة</span>
           </Link>
         )}
@@ -49,10 +49,10 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canReceiptIn && (
           <Link
             to="/receipts?tab=in&action=new"
-            className="home-btn-secondary"
+            className="btn secondary"
             title="تسجيل إيصال استلام نقدية"
           >
-            <ArrowDownLeft size={16} className="text-success" />
+            <ArrowDownLeft size={15} className="text-success" />
             <span>قبض نقدية</span>
           </Link>
         )}
@@ -60,10 +60,10 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canReceiptOut && (
           <Link
             to="/receipts?tab=out&action=new"
-            className="home-btn-secondary"
+            className="btn secondary"
             title="تسجيل إيصال صرف نقدية"
           >
-            <ArrowUpRight size={16} className="text-danger" />
+            <ArrowUpRight size={15} className="text-danger" />
             <span>صرف نقدية</span>
           </Link>
         )}
@@ -71,10 +71,10 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canPurchase && (
           <Link
             to="/invoices?tab=purchase&action=new"
-            className="home-btn-secondary"
+            className="btn secondary"
             title="إنشاء فاتورة شراء جديدة"
           >
-            <ShoppingBag size={16} />
+            <ShoppingBag size={15} />
             <span>فاتورة شراء</span>
           </Link>
         )}

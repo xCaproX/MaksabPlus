@@ -35,7 +35,7 @@ export default function TopRankedList({
     <div className="dashboard-card">
       <div className="dashboard-card-head">
         <h3 className="dashboard-card-title">
-          <Icon size={18} className="text-primary" />
+          <Icon size={15} className="text-primary" />
           <span>{title}</span>
         </h3>
         {linkTo && (

@@ -21,7 +21,7 @@ export default function LowStockCard({ items }: LowStockCardProps) {
     <div className="dashboard-card">
       <div className="dashboard-card-head">
         <h3 className="dashboard-card-title">
-          <AlertTriangle size={18} className="text-warning" />
+          <AlertTriangle size={15} className="text-warning" />
           <span>نواقص المخزن (أوشكت على النفاد)</span>
         </h3>
         <Link to="/balances?tab=items" className="dashboard-card-action">
@@ -31,7 +31,7 @@ export default function LowStockCard({ items }: LowStockCardProps) {
 
       {items.length === 0 ? (
         <div className="empty-state-card" style={{ color: 'var(--success)' }}>
-          <CheckCircle2 size={32} />
+          <CheckCircle2 size={24} />
           <p style={{ margin: 0, fontWeight: 600 }}>المخزون مستقر ولا توجد نواقص حرجة حالياً</p>
         </div>
       ) : (
