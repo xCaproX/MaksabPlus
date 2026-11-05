@@ -13,6 +13,7 @@ import SearchableSelect from '../../components/SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { creationTime, formatDate, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
+import { buildPostgrestOrFilter } from '../../lib/search';
 import { toast } from '../../components/Toast';
 import type { ReconciliationLogRow } from '../../lib/types';
 import RunReconciliationModal from './RunReconciliationModal';
@@ -57,7 +58,7 @@ export default function ReconciliationLogTab({
       }
       if (searchTerm.trim()) {
         const term = searchTerm.trim();
-        query = query.or(`notes.ilike.%${term}%,performed_by_name.ilike.%${term}%`);
+        query = query.or(buildPostgrestOrFilter(['notes', 'performed_by_name'], term));
       }
 
       const from = (page - 1) * PAGE_SIZE;

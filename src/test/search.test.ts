@@ -45,4 +45,14 @@ describe('search - محرك البحث العربي والمطابقة', () => {
       'name.ilike."%شركة (النور)، فرع 1%",phone.ilike."%شركة (النور)، فرع 1%",serial_number.ilike."%شركة (النور)، فرع 1%"',
     );
   });
+
+  it('يبني شرط الفلترة بأمان لسجل المطابقة مع وجود فواصل وأقواس', () => {
+    const filter = buildPostgrestOrFilter(
+      ['notes', 'performed_by_name'],
+      'فحص مطابقة (2026)، كابروو',
+    );
+    expect(filter).toBe(
+      'notes.ilike."%فحص مطابقة (2026)، كابروو%",performed_by_name.ilike."%فحص مطابقة (2026)، كابروو%"',
+    );
+  });
 });
