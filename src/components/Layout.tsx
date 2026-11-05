@@ -1,5 +1,5 @@
 import { getCurrentUserIdentity } from '../lib/company';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -25,29 +25,24 @@ const DEFAULT_SECTIONS: Record<NavSection, boolean> = {
   management: false,
 };
 
-function getStoredOpenSections(uid: string | null): Record<NavSection, boolean> | null {
+function getStoredOpenSection(uid: string): NavSection | null {
   if (!uid) return null;
   try {
     const raw = localStorage.getItem(`maksab_nav_sections_${uid}`);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (typeof parsed === 'object' && parsed !== null) {
-        return {
-          goods: Boolean(parsed.goods),
-          money: Boolean(parsed.money),
-          balances: Boolean(parsed.balances),
-          data: Boolean(parsed.data),
-          management: Boolean(parsed.management),
-        };
+        return (Object.keys(DEFAULT_SECTIONS) as NavSection[]).find((section) => parsed[section]) ?? null;
       }
     }
   } catch {}
   return null;
 }
 
-function saveOpenSections(uid: string | null, sections: Record<NavSection, boolean>) {
+function saveOpenSection(uid: string | null, section: NavSection | null) {
   if (!uid) return;
   try {
+    const sections = { ...DEFAULT_SECTIONS, ...(section ? { [section]: true } : {}) };
     localStorage.setItem(`maksab_nav_sections_${uid}`, JSON.stringify(sections));
   } catch {}
 }
@@ -64,10 +59,7 @@ export default function Layout() {
   const pathnameRef = useRef(location.pathname);
   pathnameRef.current = location.pathname;
 
-  const [openSections, setOpenSections] = useState<Record<NavSection, boolean>>(() => {
-    const current = getInitialSection(location.pathname);
-    return current ? { ...DEFAULT_SECTIONS, [current]: true } : DEFAULT_SECTIONS;
-  });
+  const [openSection, setOpenSection] = useState<NavSection | null>(() => getInitialSection(location.pathname));
 
   useEffect(() => {
     let alive = true;
@@ -79,14 +71,11 @@ export default function Layout() {
       setUserName(identity.userName);
       setCompanyName(identity.companyName);
 
-      const stored = getStoredOpenSections(identity.userId);
+      const stored = getStoredOpenSection(identity.userId);
       const current = getInitialSection(pathnameRef.current);
-      const base = stored || DEFAULT_SECTIONS;
-      const initial = current ? { ...base, [current]: true } : base;
-      setOpenSections(initial);
-      if (stored) {
-        saveOpenSections(identity.userId, initial);
-      }
+      const initial = current ?? stored;
+      setOpenSection(initial);
+      saveOpenSection(identity.userId, initial);
     }
 
     void loadUser();
@@ -95,31 +84,25 @@ export default function Layout() {
     };
   }, []);
 
-  // When location changes, ensure current active section is open without closing others
+  const ensureSectionOpen = useCallback((section: NavSection) => {
+    setOpenSection((previous) => {
+      if (previous === section) return previous;
+      saveOpenSection(userId, section);
+      return section;
+    });
+  }, [userId]);
+
+  // Opening a route or a section always closes the other sections.
   useEffect(() => {
     const current = getInitialSection(location.pathname);
     if (!current) return;
-    setOpenSections((prev) => {
-      if (prev[current]) return prev;
-      const next = { ...prev, [current]: true };
-      saveOpenSections(userId, next);
-      return next;
-    });
-  }, [location.pathname, userId]);
+    ensureSectionOpen(current);
+  }, [location.pathname, ensureSectionOpen]);
 
   function toggleSection(section: NavSection) {
-    setOpenSections((prev) => {
-      const next = { ...prev, [section]: !prev[section] };
-      saveOpenSections(userId, next);
-      return next;
-    });
-  }
-
-  function ensureSectionOpen(section: NavSection) {
-    setOpenSections((prev) => {
-      if (prev[section]) return prev;
-      const next = { ...prev, [section]: true };
-      saveOpenSections(userId, next);
+    setOpenSection((previous) => {
+      const next = previous === section ? null : section;
+      saveOpenSection(userId, next);
       return next;
     });
   }
@@ -225,10 +208,10 @@ export default function Layout() {
                     }
                   }}
                 >
-                  {openSections.goods ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                  {(openSection === 'goods') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                 </span>
               </NavLink>
-              {openSections.goods && (
+              {(openSection === 'goods') && (
                 <div className="subnav">
                   {visibleGoodsTabs.map((item) => {
                     const isActive = location.pathname.startsWith('/invoices') && (currentTab === item.id || (!currentTab && item.id === visibleGoodsTabs[0].id));
@@ -277,10 +260,10 @@ export default function Layout() {
                     }
                   }}
                 >
-                  {openSections.money ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                  {(openSection === 'money') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                 </span>
               </NavLink>
-              {openSections.money && (
+              {(openSection === 'money') && (
                 <div className="subnav">
                   {visibleMoneyTabs.map((item) => {
                     const isActive = location.pathname.startsWith('/receipts') && (currentTab === item.id || (!currentTab && item.id === visibleMoneyTabs[0].id));
@@ -329,10 +312,10 @@ export default function Layout() {
                     }
                   }}
                 >
-                  {openSections.balances ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                  {(openSection === 'balances') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                 </span>
               </NavLink>
-              {openSections.balances && (
+              {(openSection === 'balances') && (
                 <div className="subnav">
                   {visibleBalanceTabs.map((item) => {
                     const isActive = location.pathname.startsWith('/balances') && (currentTab === item.id || (!currentTab && item.id === visibleBalanceTabs[0].id));
@@ -381,10 +364,10 @@ export default function Layout() {
                     }
                   }}
                 >
-                  {openSections.data ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                  {(openSection === 'data') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                 </span>
               </NavLink>
-              {openSections.data && (
+              {(openSection === 'data') && (
                 <div className="subnav">
                   {visibleDataTabs.map((item) => {
                     const isActive = location.pathname.startsWith('/data') && (currentTab === item.id || (!currentTab && item.id === visibleDataTabs[0].id));
@@ -433,10 +416,10 @@ export default function Layout() {
                     }
                   }}
                 >
-                  {openSections.management ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                  {(openSection === 'management') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                 </span>
               </NavLink>
-              {openSections.management && (
+              {(openSection === 'management') && (
                 <div className="subnav">
                   {visibleManagementTabs.map((item) => {
                     const isActive = location.pathname.startsWith('/management') && (currentTab === item.id || (!currentTab && item.id === visibleManagementTabs[0].id));
