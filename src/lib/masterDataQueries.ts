@@ -4,6 +4,26 @@ import { buildPostgrestOrFilter } from './search';
 import type { AccountKind } from './types';
 import type { SearchOption } from '../components/SearchableSelect';
 
+interface AccountQueryResult {
+  id: string;
+  name: string;
+  phone: string | null;
+  serial_number: number | null;
+  kind: AccountKind;
+  balance: number;
+  system_key: string | null;
+}
+
+interface WarehouseItemQueryResult {
+  item_id: string;
+  item_name: string;
+  item_code: string;
+  unit: string;
+  current_qty: number;
+  sale_price: number;
+  purchase_price: number;
+}
+
 export interface WarehouseItemOption extends SearchOption {
   value: string;
   label: string;
@@ -41,7 +61,7 @@ export async function searchAccountsAsync(
   const { data, error } = await req;
   if (error || !data) return [];
 
-  return data.map((acc: any) => ({
+  return (data as unknown as AccountQueryResult[]).map((acc) => ({
     value: acc.id,
     label: acc.phone ? `${acc.name} — ${acc.phone}` : acc.name,
     sublabel: acc.serial_number ? `#${acc.serial_number}` : undefined,
@@ -74,7 +94,7 @@ export async function searchWarehouseItemsAsync(
   const { data, error } = await req;
   if (error || !data) return [];
 
-  return data.map((row: any) => {
+  return (data as unknown as WarehouseItemQueryResult[]).map((row) => {
     const stock = Number(row.current_qty || 0);
     const isOut = isStockLimited && stock <= 0;
     return {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
@@ -77,7 +77,7 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
     return data;
   }
 
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -100,11 +100,11 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void loadUsers();
-  }, []);
+  }, [loadUsers]);
 
   // تصفية المستخدمين للقائمة الجانبية
   const filteredUsers = useMemo(() => {

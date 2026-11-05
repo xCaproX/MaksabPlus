@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -57,6 +57,9 @@ export default function Layout() {
   const [userName, setUserName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
+
   const [openSections, setOpenSections] = useState<Record<NavSection, boolean>>(() => {
     const current = getInitialSection(location.pathname);
     return makeSingleOpen(current);
@@ -89,8 +92,8 @@ export default function Layout() {
       setCompanyName(compDisplayName);
 
       const stored = getStoredOpenSection(user.id);
-      const current = getInitialSection(location.pathname);
-      const active = location.pathname === '/' ? null : (current || stored);
+      const current = getInitialSection(pathnameRef.current);
+      const active = pathnameRef.current === '/' ? null : (current || stored);
       setOpenSections(makeSingleOpen(active));
     }
 

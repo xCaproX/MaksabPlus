@@ -114,7 +114,7 @@
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  text-align: right;
+  text-align: start;
   cursor: pointer;
   font: inherit;
   font-family: inherit;
@@ -148,7 +148,7 @@
   font-size: 11px;
   color: var(--erp-muted, #64748b);
   direction: ltr;
-  text-align: right;
+  text-align: end;
 }
 
 .user-item-card .card-bottom {
@@ -296,7 +296,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  text-align: right;
+  text-align: start;
 }
 
 .matrix-table thead th {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
-import { money, qty as formatQty, round2, today } from '../lib/format';
+import { getBalanceStatus, money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
@@ -153,17 +153,6 @@ export default function InvoiceForm({
   });
 
   const accountNotesDisplay = selectedAccount?.notes || '';
-
-  function getBalanceStatus(
-    balance: number,
-    k: AccountKind,
-  ): { text: string; type: 'settled' | 'debit' | 'credit' } {
-    if (balance === 0) return { text: 'خالص', type: 'settled' };
-    if (k === 'customer') {
-      return balance > 0 ? { text: 'عليه', type: 'debit' } : { text: 'له', type: 'credit' };
-    }
-    return balance > 0 ? { text: 'له', type: 'credit' } : { text: 'عليه', type: 'debit' };
-  }
 
   const statusBefore = getBalanceStatus(balanceBefore, accountKind);
   const statusAfter = getBalanceStatus(balanceAfter, accountKind);

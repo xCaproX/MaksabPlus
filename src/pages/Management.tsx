@@ -137,7 +137,7 @@ export default function Management() {
       setSearchTerm('');
       setPage(1);
     }
-  }, [tabParam]);
+  }, [tabParam, tab]);
 
   function switchTab(next: ManagementTab) {
     setTab(next);
@@ -628,11 +628,14 @@ export default function Management() {
                           <td className="muted col-hide-on-detail">{account.kind === 'customer' ? 'عميل' : 'مورد'}</td>
                           <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
                             <input
-                              className="table-input num"
+                              className="table-input num no-spinner"
                               type="number"
+                              inputMode="decimal"
+                              dir="ltr"
                               step="0.0001"
                               disabled={!canEditOpening}
                               value={accountValues[account.id] ?? '0'}
+                              onFocus={(event) => event.target.select()}
                               onChange={(event) => setAccountValues((values) => ({ ...values, [account.id]: event.target.value }))}
                             />
                           </td>
@@ -702,23 +705,29 @@ export default function Management() {
                           <td className="strong">{row.item_name}</td>
                           <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
                             <input
-                              className="table-input num"
+                              className="table-input num no-spinner"
                               type="number"
+                              inputMode="decimal"
+                              dir="ltr"
                               min="0"
                               step="0.0001"
                               disabled={!canEditOpening}
                               value={value.qty}
+                              onFocus={(event) => event.target.select()}
                               onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, qty: event.target.value } }))}
                             />
                           </td>
                           <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
                             <input
-                              className="table-input num"
+                              className="table-input num no-spinner"
                               type="number"
+                              inputMode="decimal"
+                              dir="ltr"
                               min="0"
                               step="0.0001"
                               value={value.cost}
                               disabled={!canEditOpening || row.cost_locked}
+                              onFocus={(event) => event.target.select()}
                               onChange={(event) => setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))}
                             />
                           </td>
@@ -769,11 +778,14 @@ export default function Management() {
                           <td className="strong">{box.name}</td>
                           <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
                             <input
-                              className="table-input num"
+                              className="table-input num no-spinner"
                               type="number"
+                              inputMode="decimal"
+                              dir="ltr"
                               step="0.0001"
                               disabled={!canEditOpening}
                               value={cashValues[box.id] ?? '0'}
+                              onFocus={(event) => event.target.select()}
                               onChange={(event) => setCashValues((values) => ({ ...values, [box.id]: event.target.value }))}
                             />
                           </td>

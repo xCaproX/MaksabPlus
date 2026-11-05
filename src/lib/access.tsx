@@ -39,13 +39,3 @@ export function AccessRoute({ permissions, children }: { permissions: string[]; 
   return children;
 }
 
-export function HomeRedirect() {
-  const { access, loading, can } = useAccess();
-  if (loading) return <div className="card empty">جارٍ تحميل الصلاحيات…</div>;
-  if (can('goods.view') || access?.permissions.some((p) => p.startsWith('goods.'))) return <Navigate to="/invoices" replace />;
-  if (can('money.view') || access?.permissions.some((p) => p.startsWith('money.'))) return <Navigate to="/receipts" replace />;
-  if (can('balances.view') || access?.permissions.some((p) => p.startsWith('balances.'))) return <Navigate to="/balances" replace />;
-  if (can('data.view') || access?.permissions.some((p) => p.startsWith('data.'))) return <Navigate to="/data" replace />;
-  if (can('management.view', 'management.edit') || access?.permissions.some((p) => p.startsWith('management.'))) return <Navigate to="/management" replace />;
-  return <Navigate to="/access-denied" replace />;
-}

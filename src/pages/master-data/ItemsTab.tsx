@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   X,
   Boxes,
@@ -98,12 +98,27 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
   const [itemOpeningQty, setItemOpeningQty] = useState('0');
   const [itemOpeningCost, setItemOpeningCost] = useState('0');
 
+  const startAdd = useCallback(() => {
+    setEditingItem(null);
+    setItemName('');
+    setItemCode('');
+    setItemUnit('قطعة');
+    setSalePrice('');
+    setPurchasePrice('');
+    setItemActive(true);
+    setItemNotes('');
+    setItemOpeningWarehouseId(warehouses.filter((w) => w.is_active)[0]?.id || '');
+    setItemOpeningQty('0');
+    setItemOpeningCost('0');
+    setIsModalOpen(true);
+  }, [warehouses]);
+
   // استجابة لزر الإضافة من الرأس
   useEffect(() => {
     if (addTrigger > 0) {
       startAdd();
     }
-  }, [addTrigger]);
+  }, [addTrigger, startAdd]);
 
   // جلب المخازن لمرة واحدة (لمودال إضافة الصنف الجديد برصيد أول المدة)
   useEffect(() => {
@@ -251,20 +266,7 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
     ];
   }, [summary]);
 
-  function startAdd() {
-    setEditingItem(null);
-    setItemName('');
-    setItemCode('');
-    setItemUnit('قطعة');
-    setSalePrice('');
-    setPurchasePrice('');
-    setItemActive(true);
-    setItemNotes('');
-    setItemOpeningWarehouseId(warehouses.filter((w) => w.is_active)[0]?.id || '');
-    setItemOpeningQty('0');
-    setItemOpeningCost('0');
-    setIsModalOpen(true);
-  }
+
 
   function startEdit(item: MasterItemRecord) {
     setEditingItem(item);
