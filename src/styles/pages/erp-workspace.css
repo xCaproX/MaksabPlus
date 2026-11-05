@@ -4,7 +4,8 @@
   flex-direction: column;
   width: 100%;
   position: relative;
-  min-height: max(600px, calc(100dvh - 175px));
+  flex: 1;
+  min-block-size: 0;
   border: 1px solid var(--erp-border);
   background: var(--erp-surface);
   border-radius: 8px;
