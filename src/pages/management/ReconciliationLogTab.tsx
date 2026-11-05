@@ -177,7 +177,7 @@ export default function ReconciliationLogTab({
                 }}
               />
 
-              <label className="erp-search" style={{ flex: '1 1 auto', maxWidth: 'none' }}>
+              <label className="erp-search">
                 <span className="sr-only">البحث</span>
                 <input
                   type="search"

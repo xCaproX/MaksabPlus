@@ -405,16 +405,6 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
         <section className="erp-list-panel" aria-label={`قائمة ${entityPlural}`}>
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <label className="erp-search">
-                <span className="sr-only">البحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم…`}
-                />
-              </label>
-
               <SearchableSelect
                 ariaLabel="تصفية الحالة"
                 value={statusFilter}
@@ -425,6 +415,16 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
                 ]}
                 onChange={(val) => setStatusFilter(val as StatusFilter)}
               />
+
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم…`}
+                />
+              </label>
             </div>
           </div>
 

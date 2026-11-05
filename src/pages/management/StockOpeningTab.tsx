@@ -199,16 +199,6 @@ export default function StockOpeningTab({
         <section className="erp-list-panel" aria-label="قائمة افتتاحيات المخزون">
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <label className="erp-search">
-                <span className="sr-only">البحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="بحث باسم الصنف أو كوده…"
-                />
-              </label>
-
               <SearchableSelect
                 ariaLabel="اختيار المخزن"
                 value={selectedWarehouseId}
@@ -222,6 +212,16 @@ export default function StockOpeningTab({
                 onChange={setSelectedWarehouseId}
                 searchPlaceholder="بحث عن مخزن…"
               />
+
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="بحث باسم الصنف أو كوده…"
+                />
+              </label>
             </div>
           </div>
 

@@ -242,16 +242,6 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
         <section className="erp-list-panel" aria-label="قائمة المخازن">
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <label className="erp-search">
-                <span className="sr-only">البحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="بحث باسم المخزن أو الرقم…"
-                />
-              </label>
-
               <SearchableSelect
                 ariaLabel="تصفية الحالة"
                 value={statusFilter}
@@ -262,6 +252,16 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
                 ]}
                 onChange={(val) => setStatusFilter(val as StatusFilter)}
               />
+
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="بحث باسم المخزن أو الرقم…"
+                />
+              </label>
             </div>
           </div>
 

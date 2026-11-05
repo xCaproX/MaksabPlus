@@ -741,20 +741,6 @@ export default function Invoices() {
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <label className="erp-search">
-                <span className="sr-only">البحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={
-                    isWarehouseTransfer
-                      ? 'بحث بالرقم أو المخزن…'
-                      : `بحث بالرقم أو ${partyHeader}…`
-                  }
-                />
-              </label>
-
               {!isWarehouseTransfer && kind !== 'waste' && (
                 <SearchableSelect
                   ariaLabel="حالة السداد"
@@ -779,6 +765,20 @@ export default function Invoices() {
                   <DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" />
                 </div>
               </div>
+
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={
+                    isWarehouseTransfer
+                      ? 'بحث بالرقم أو المخزن…'
+                      : `بحث بالرقم أو ${partyHeader}…`
+                  }
+                />
+              </label>
             </div>
           </div>
 

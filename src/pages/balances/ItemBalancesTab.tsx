@@ -275,19 +275,6 @@ export default function ItemBalancesTab() {
         <section className="erp-list-panel" aria-label="قائمة أرصدة الأصناف">
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <label className="erp-search">
-                <span className="sr-only">البحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => {
-                    setSearchTerm(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="بحث باسم الصنف أو الكود…"
-                />
-              </label>
-
               <SearchableSelect
                 ariaLabel="تصفية حسب المخزن"
                 value={selectedWarehouseId}
@@ -304,6 +291,19 @@ export default function ItemBalancesTab() {
                 }}
                 searchPlaceholder="بحث عن مخزن…"
               />
+
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => {
+                    setSearchTerm(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="بحث باسم الصنف أو الكود…"
+                />
+              </label>
             </div>
           </div>
 

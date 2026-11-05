@@ -616,16 +616,6 @@ export default function Receipts() {
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <label className="erp-search">
-                <span className="sr-only">البحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={isCashBoxTransfer ? 'بحث بالرقم أو الخزنة أو الملاحظات…' : 'بحث بالرقم أو الحساب أو البيان…'}
-                />
-              </label>
-
               <SearchableSelect
                 ariaLabel="تصفية حسب الخزنة"
                 value={cashBoxFilter}
@@ -650,6 +640,16 @@ export default function Receipts() {
                   <DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" />
                 </div>
               </div>
+
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={isCashBoxTransfer ? 'بحث بالرقم أو الخزنة أو الملاحظات…' : 'بحث بالرقم أو الحساب أو البيان…'}
+                />
+              </label>
             </div>
           </div>
 

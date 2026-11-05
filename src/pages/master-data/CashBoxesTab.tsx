@@ -267,16 +267,6 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
         <section className="erp-list-panel" aria-label="قائمة الخزن">
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <label className="erp-search">
-                <span className="sr-only">البحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="بحث باسم الخزنة أو الرقم…"
-                />
-              </label>
-
               <SearchableSelect
                 ariaLabel="تصفية الحالة"
                 value={statusFilter}
@@ -287,6 +277,16 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
                 ]}
                 onChange={(val) => setStatusFilter(val as StatusFilter)}
               />
+
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="بحث باسم الخزنة أو الرقم…"
+                />
+              </label>
             </div>
           </div>
 

@@ -367,16 +367,6 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
         <section className="erp-list-panel" aria-label="قائمة الأصناف">
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <label className="erp-search">
-                <span className="sr-only">البحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="بحث باسم الصنف أو الكود أو الرقم…"
-                />
-              </label>
-
               <SearchableSelect
                 ariaLabel="تصفية الحالة"
                 value={statusFilter}
@@ -387,6 +377,16 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
                 ]}
                 onChange={(val) => setStatusFilter(val as StatusFilter)}
               />
+
+              <label className="erp-search">
+                <span className="sr-only">البحث</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="بحث باسم الصنف أو الكود أو الرقم…"
+                />
+              </label>
             </div>
           </div>
 
