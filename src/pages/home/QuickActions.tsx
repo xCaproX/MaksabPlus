@@ -50,10 +50,10 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
           <Link
             to="/receipts?tab=in&action=new"
             className="btn secondary"
-            title="تسجيل إيصال استلام نقدية"
+            title="تسجيل إيصال استلام فلوس"
           >
             <ArrowDownLeft size={15} className="text-success" />
-            <span>قبض نقدية</span>
+            <span>استلام فلوس</span>
           </Link>
         )}
 
@@ -61,10 +61,10 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
           <Link
             to="/receipts?tab=out&action=new"
             className="btn secondary"
-            title="تسجيل إيصال صرف نقدية"
+            title="تسجيل إيصال صرف فلوس"
           >
             <ArrowUpRight size={15} className="text-danger" />
-            <span>صرف نقدية</span>
+            <span>صرف فلوس</span>
           </Link>
         )}
 

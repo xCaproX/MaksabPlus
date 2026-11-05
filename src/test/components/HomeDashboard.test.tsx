@@ -28,8 +28,8 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText(/مرحباً، عبد الرحمن/)).toBeInTheDocument();
     expect(screen.getByText(/شركة الأهرام/)).toBeInTheDocument();
     expect(screen.getByText('فاتورة بيع جديدة')).toBeInTheDocument();
-    expect(screen.getByText('قبض نقدية')).toBeInTheDocument();
-    expect(screen.getByText('صرف نقدية')).toBeInTheDocument();
+    expect(screen.getByText('استلام فلوس')).toBeInTheDocument();
+    expect(screen.getByText('صرف فلوس')).toBeInTheDocument();
   });
 
   it('SalesMetricCards renders today, week, and month sales metrics', () => {
@@ -60,7 +60,7 @@ describe('Home Dashboard Components', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText('السيولة في الخزائن')).toBeInTheDocument();
+    expect(screen.getByText('الفلوس في الخزن')).toBeInTheDocument();
     expect(screen.getByText('15,000.00')).toBeInTheDocument();
     expect(screen.getByText('فلوسنا في السوق (العملاء)')).toBeInTheDocument();
     expect(screen.getByText('48,200.00')).toBeInTheDocument();

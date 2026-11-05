@@ -74,7 +74,7 @@ export default function CashBoxBalancesTab() {
     const itemsList: KpiItem[] = [
       {
         id: 'box-liquidity',
-        label: 'إجمالي السيولة النقدية بالخزن',
+        label: 'إجمالي الفلوس بالخزن',
         value: money(totalLiquidity),
         unit: 'ج.م',
         variant: totalLiquidity >= 0 ? 'success' : 'danger',
@@ -300,7 +300,7 @@ export default function CashBoxBalancesTab() {
               </dl>
 
               <div className="erp-detail-totals">
-                <span>الرصيد النقدي الحالي</span>
+                <span>رصيد الفلوس الحالي</span>
                 <strong className="num remaining">{money(selectedBox.balance)}</strong>
               </div>
 

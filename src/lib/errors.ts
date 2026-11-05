@@ -38,7 +38,7 @@ const MESSAGES: Record<string, string> = {
   transfer_has_later_movements: 'لا يمكن تعديل أثر التحويل بعد تسجيل حركات لاحقة على نفس الأصناف والمخازن.',
   insufficient_cash_box_balance: 'رصيد خزنة المصدر لا يكفي للتحويل.',
   warehouse_has_transfers: 'لا يمكن حذف المخزن لوجود تحويلات مخزنية مرتبطة به.',
-  cash_box_has_transfers: 'لا يمكن حذف الخزنة لوجود تحويلات نقدية مرتبطة بها.',
+  cash_box_has_transfers: 'لا يمكن حذف الخزنة لوجود تحويلات فلوس مرتبطة بها.',
   invalid_item: 'اختر صنفًا صحيحًا',
   invalid_item_statement_target: 'الصنف أو المخزن غير موجود أو لا يتبع شركتك',
   invalid_paid: 'قيمة المدفوع غير صحيحة',

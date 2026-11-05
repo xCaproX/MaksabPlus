@@ -73,7 +73,7 @@ export function calculateReceiptKpis({
     return [
       {
         id: 'receipt-in-total',
-        label: 'إجمالي المقبوضات',
+        label: 'إجمالي المستلم',
         value: money(totalAmount),
         unit: 'ج.م',
         variant: 'success',
@@ -95,7 +95,7 @@ export function calculateReceiptKpis({
       },
       {
         id: 'receipt-in-free',
-        label: 'مقبوضات عامة وحرة',
+        label: 'استلامات عامة وحرة',
         value: money(freeAmount),
         unit: 'ج.م',
         variant: 'info',

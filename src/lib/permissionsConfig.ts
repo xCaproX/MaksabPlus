@@ -41,7 +41,7 @@ export const PERMISSION_SECTIONS: SectionDef[] = [
     id: 'money',
     label: 'قسم الفلوس',
     items: [
-      { id: 'money.in', label: 'إيصالات الاستلام (سندات القبض)', actions: ['view', 'create', 'edit', 'delete'] },
+      { id: 'money.in', label: 'إيصالات الاستلام', actions: ['view', 'create', 'edit', 'delete'] },
       { id: 'money.out', label: 'إيصالات الصرف (سندات الدفع)', actions: ['view', 'create', 'edit', 'delete'] },
       { id: 'money.cash_box_transfer', label: 'التحويل بين الخزن', actions: ['view', 'create', 'edit', 'delete'] },
     ],

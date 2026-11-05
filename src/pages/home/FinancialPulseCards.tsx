@@ -19,14 +19,14 @@ export default function FinancialPulseCards({
   return (
     <section className="home-sales-section" aria-label="النبض المالي والأرصدة">
       <div className="home-financial-grid">
-        {/* السيولة في الخزن */}
+        {/* الفلوس في الخزن */}
         {cashBalance !== null && (
           <div className="financial-pulse-card">
             <div className="fin-icon-box fin-cash">
               <Wallet size={17} />
             </div>
             <div className="fin-content">
-              <span className="fin-label">السيولة في الخزائن</span>
+              <span className="fin-label">الفلوس في الخزن</span>
               <div className="fin-value-group">
                 <bdi dir="ltr" className="fin-value num tabular-nums">
                   {money(cashBalance)}

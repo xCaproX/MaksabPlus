@@ -521,7 +521,7 @@ export default function Receipts() {
     }
     return (
       <div className="erp-page" style={{ padding: '24px' }}>
-        <p className="danger">عفواً، ليس لديك صلاحية عرض سندات القبض أو الصرف أو التحويلات.</p>
+        <p className="danger">عفواً، ليس لديك صلاحية عرض إيصالات الاستلام أو الصرف أو التحويلات.</p>
       </div>
     );
   }

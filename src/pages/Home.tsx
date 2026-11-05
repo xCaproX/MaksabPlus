@@ -4,6 +4,7 @@ import { Package, Users, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 import { money, qty } from '../lib/format';
+import { errorMessage } from '../lib/errors';
 import QuickActions from './home/QuickActions';
 import SalesMetricCards from './home/SalesMetricCards';
 import FinancialPulseCards from './home/FinancialPulseCards';
@@ -83,7 +84,7 @@ export default function Home() {
         setCompanyName(companyRes?.data?.name || 'مكسب بلس');
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'تعذر تحميل بيانات الشاشة الرئيسية';
+      const msg = errorMessage(err);
       setError(msg);
     } finally {
       setLoading(false);
