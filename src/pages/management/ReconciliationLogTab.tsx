@@ -3,7 +3,6 @@ import {
   CheckCircle2,
   Clock,
   History,
-  Play,
   ShieldAlert,
   Sparkles,
   X,
@@ -183,23 +182,12 @@ export default function ReconciliationLogTab({
                   setModeFilter(event.target.value as 'all' | 'reconcile' | 'simulation');
                   setPage(1);
                 }}
+                style={{ width: '160px', flexShrink: 0 }}
               >
                 <option value="all">كافة أنماط الفحص</option>
                 <option value="reconcile">تصحيح فعلي فقط</option>
                 <option value="simulation">فحص استكشافي فقط</option>
               </select>
-
-              <div style={{ marginInlineStart: 'auto' }}>
-                <button
-                  type="button"
-                  className="btn primary compact"
-                  onClick={() => setIsModalOpen(true)}
-                  disabled={running}
-                >
-                  <Play size={14} />
-                  <span>بدء فحص جديد</span>
-                </button>
-              </div>
             </div>
           </div>
 
@@ -270,8 +258,10 @@ export default function ReconciliationLogTab({
                           )}
                         </td>
                         <td className="col-hide-on-detail muted" style={{ fontSize: '0.85rem' }}>
-                          <span dir="ltr" className="tabular-nums">
-                            {row.accounts_count} حساب • {row.cash_boxes_count} خزنة • {row.items_count} صنف
+                          <span>
+                            <bdi className="tabular-nums">{row.accounts_count}</bdi> حساب •{' '}
+                            <bdi className="tabular-nums">{row.cash_boxes_count}</bdi> خزنة •{' '}
+                            <bdi className="tabular-nums">{row.items_count}</bdi> صنف
                           </span>
                         </td>
                         <td>

@@ -35,6 +35,9 @@
   font-size: 12px;
   background: var(--erp-surface);
 }
+.erp-filters select {
+  width: auto;
+}
 .erp-filters .searchable-select {
   width: 145px;
   flex-shrink: 0;
