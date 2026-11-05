@@ -27,14 +27,14 @@ function makeSingleOpen(section: NavSection | null): Record<NavSection, boolean>
 }
 
 function getStoredOpenSection(uid: string | null): NavSection | null {
-  if (!uid) return 'goods';
+  if (!uid) return null;
   try {
     const raw = localStorage.getItem(`maksab_active_nav_section_${uid}`);
     if (raw && ['goods', 'money', 'balances', 'data', 'management'].includes(raw)) {
       return raw as NavSection;
     }
   } catch {}
-  return 'goods';
+  return null;
 }
 
 function saveOpenSection(uid: string | null, section: NavSection | null) {
@@ -59,7 +59,7 @@ export default function Layout() {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Record<NavSection, boolean>>(() => {
     const current = getInitialSection(location.pathname);
-    return makeSingleOpen(current || 'goods');
+    return makeSingleOpen(current);
   });
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function Layout() {
 
       const stored = getStoredOpenSection(user.id);
       const current = getInitialSection(location.pathname);
-      const active = current || stored || 'goods';
+      const active = location.pathname === '/' ? null : (current || stored);
       setOpenSections(makeSingleOpen(active));
     }
 
