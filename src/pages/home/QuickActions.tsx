@@ -1,0 +1,84 @@
+import { Link } from 'react-router-dom';
+import { ShoppingCart, ArrowDownLeft, ArrowUpRight, ShoppingBag } from 'lucide-react';
+import { useAccess } from '../../lib/access';
+
+interface QuickActionsProps {
+  userName: string;
+  companyName: string;
+}
+
+export default function QuickActions({ userName, companyName }: QuickActionsProps) {
+  const { can, access } = useAccess();
+
+  const isOwner = access?.role === 'owner';
+  const canSale = isOwner || can('goods.sale.create', 'goods.sale.view', 'goods.view');
+  const canReceiptIn = isOwner || can('money.in.create', 'money.in.view', 'money.view');
+  const canReceiptOut = isOwner || can('money.out.create', 'money.out.view', 'money.view');
+  const canPurchase = isOwner || can('goods.purchase.create', 'goods.purchase.view', 'goods.view');
+
+  const todayStr = new Intl.DateTimeFormat('ar-EG', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date());
+
+  return (
+    <div className="home-welcome-bar">
+      <div className="home-welcome-info">
+        <h1 className="home-welcome-title">
+          <span>مرحباً، {userName || 'مستخدم النظام'}</span>
+        </h1>
+        <p className="home-welcome-subtitle">
+          <span>{companyName}</span> • <span>{todayStr}</span>
+        </p>
+      </div>
+
+      <div className="home-actions-group">
+        {canSale && (
+          <Link
+            to="/invoices?tab=sale&action=new"
+            className="home-btn-primary"
+            title="إنشاء فاتورة بيع جديدة فوراً"
+          >
+            <ShoppingCart size={18} />
+            <span>فاتورة بيع جديدة</span>
+          </Link>
+        )}
+
+        {canReceiptIn && (
+          <Link
+            to="/receipts?tab=in&action=new"
+            className="home-btn-secondary"
+            title="تسجيل إيصال استلام نقدية"
+          >
+            <ArrowDownLeft size={16} className="text-success" />
+            <span>قبض نقدية</span>
+          </Link>
+        )}
+
+        {canReceiptOut && (
+          <Link
+            to="/receipts?tab=out&action=new"
+            className="home-btn-secondary"
+            title="تسجيل إيصال صرف نقدية"
+          >
+            <ArrowUpRight size={16} className="text-danger" />
+            <span>صرف نقدية</span>
+          </Link>
+        )}
+
+        {canPurchase && (
+          <Link
+            to="/invoices?tab=purchase&action=new"
+            className="home-btn-secondary"
+            title="إنشاء فاتورة شراء جديدة"
+          >
+            <ShoppingBag size={16} />
+            <span>فاتورة شراء</span>
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}

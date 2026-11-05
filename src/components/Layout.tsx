@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound } from 'lucide-react';
+import { LayoutDashboard, Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -103,7 +103,13 @@ export default function Layout() {
   // When location changes, ensure current active section is open and all others closed
   useEffect(() => {
     const current = getInitialSection(location.pathname);
-    if (!current) return;
+    if (!current) {
+      if (location.pathname === '/') {
+        setOpenSections(makeSingleOpen(null));
+        saveOpenSection(userId, null);
+      }
+      return;
+    }
     setOpenSections(makeSingleOpen(current));
     saveOpenSection(userId, current);
   }, [location.pathname, userId]);
@@ -184,6 +190,22 @@ export default function Layout() {
         </Link>
 
         <nav className="nav" aria-label="التنقل الرئيسي">
+          <div className="nav-group">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              onClick={() => {
+                setOpenSections(makeSingleOpen(null));
+                saveOpenSection(userId, null);
+              }}
+            >
+              <span className="nav-link-main">
+                <LayoutDashboard size={17} className="nav-icon" />
+                <span>الرئيسية</span>
+              </span>
+            </NavLink>
+          </div>
           {visibleGoodsTabs.length > 0 && (
             <div className="nav-group">
               <NavLink
