@@ -12,7 +12,7 @@ Core presentation components, shared form controls, accessible modal dialogs, an
 - `InvoiceForm`: Unified transaction form for sales, purchases, customer/supplier returns, and stock waste.
 - `KpiBar`: Reactive top-level metrics bar displaying contextual totals and counts.
 - `Layout`: Top-level app layout featuring persistent dark sidebar, nested accordion subnav, and user session footer.
-- `Modal`: Dialog container with background overlay, escape key handling, and responsive sizing.
+- `Modal`: Dialog container with background overlay, escape key handling, responsive sizing (`form-modal-sm`, `form-modal-md`, `form-modal-lg`), and accidental data-loss protection via `isDirty` and `confirmOnDismiss` props.
 - `MoneyDisplay`: Formatted currency presenter with `dir="ltr"` isolation and `tabular-nums` alignment.
 - `Pagination`: Page navigation bar with record count badges and page change callbacks.
 - `ReceiptForm`: Unified transaction form for cash in (inward) and cash out (outward) receipts.
@@ -28,7 +28,9 @@ Core presentation components, shared form controls, accessible modal dialogs, an
 
 ## Invariants
 - All monetary and numeric figures must render in LTR context (`dir="ltr"`) with tabular figures (`tabular-nums`).
+- Form layouts strictly adhere to the unified 12-column responsive grid (`.erp-form-grid`) with standardized 36px control heights (`--erp-control-height`).
 - Transaction forms (`InvoiceForm`, `ReceiptForm`, `WarehouseTransferForm`, `CashBoxTransferForm`) strictly share one unified layout across `create`, `edit`, and `view` (via `readOnly` mode).
+- Modals hosting user input must protect uncommitted changes via `isDirty` and `confirmOnDismiss`, intercepting `Escape`, backdrop clicks, and header dismissals with an inline confirmation prompt.
 - All destructive actions require explicit confirmation via `ConfirmDialog` or `useConfirmDialog`.
 
 ## Side Effects

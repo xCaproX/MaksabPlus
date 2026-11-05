@@ -1,11 +1,12 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Plus, RotateCcw, Save, Trash2, Pencil, Printer, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { qty as formatQty, today } from '../lib/format';
+import { qty as formatQty, today, formatDate } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
 import SearchableSelect from './SearchableSelect';
 import { searchWarehouseItemsAsync, lookupBarcodeItem } from '../lib/masterDataQueries';
+import DateInput from './DateInput';
 import { toast } from './Toast';
 import type { ItemRow, StockOpeningRow, WarehouseOption, WarehouseTransferLine, WarehouseTransferRow } from '../lib/types';
 
@@ -49,7 +50,7 @@ export default function WarehouseTransferForm({
   const [destinationId, setDestinationId] = useState(
     editing?.destination_warehouse_id ?? activeWarehouses.find((warehouse) => warehouse.id !== sourceId)?.id ?? '',
   );
-  const [date] = useState(editing?.transfer_date ?? today());
+  const [date, setDate] = useState(editing?.transfer_date ?? today());
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [lines, setLines] = useState<DraftLine[]>(() => {
     if (editing?.lines?.length) {
@@ -344,11 +345,11 @@ export default function WarehouseTransferForm({
 
   return (
     <form className="warehouse-transfer-form" onSubmit={submit}>
-      {/* بطاقة المخازن والملاحظات الموحدة */}
-      <div className="account-header-card">
-        <div className="transfer-header-grid">
+      <div className="erp-form-grid" style={{ marginBottom: '14px' }}>
+        {/* السطر الأول: مخزن المصدر (4)، مخزن الوجهة (4)، وتاريخ التحويل (4) */}
+        <div className="erp-col-4">
           <label className="field-transfer-source">
-            <span>من مخزن (المصدر)</span>
+            <span>من مخزن (المصدر) *</span>
             {readOnly ? (
               <div className="readonly-val-box">
                 {choices.find((w) => w.id === sourceId)?.name ?? '—'}
@@ -368,9 +369,11 @@ export default function WarehouseTransferForm({
               />
             )}
           </label>
+        </div>
 
+        <div className="erp-col-4">
           <label className="field-transfer-destination">
-            <span>إلى مخزن (الوجهة)</span>
+            <span>إلى مخزن (الوجهة) *</span>
             {readOnly ? (
               <div className="readonly-val-box">
                 {choices.find((w) => w.id === destinationId)?.name ?? '—'}
@@ -394,10 +397,40 @@ export default function WarehouseTransferForm({
           </label>
         </div>
 
-        <div className="account-header-row2">
-          <div className="field-account-notes">
+        <div className="erp-col-4">
+          <label className="field-transfer-date">
+            <span>تاريخ التحويل *</span>
             {readOnly ? (
-              <div className="readonly-val-box readonly-notes">
+              <div className="readonly-val-box num" dir="ltr">
+                {formatDate(date)}
+              </div>
+            ) : (
+              <DateInput value={date} onChange={setDate} />
+            )}
+          </label>
+        </div>
+
+        {/* السطر الثاني: مؤشرات ملخص التحويل (12) */}
+        <div className="erp-col-12">
+          <div className="account-balance-pills" style={{ marginTop: 0 }}>
+            <div className="stat-pill" title="عدد أصناف أمر التحويل">
+              <span>عدد الأصناف:</span>
+              <strong dir="ltr" className="num">{lines.length}</strong>
+            </div>
+
+            <div className="stat-pill" title="إجمالي الكميات المنقولة">
+              <span>إجمالي الكميات:</span>
+              <strong dir="ltr" className="num">{formatQty(totalTransferQty)}</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* السطر الثالث: ملاحظات أمر التحويل (12) */}
+        <div className="erp-col-12">
+          <label>
+            <span>ملاحظات التحويل</span>
+            {readOnly ? (
+              <div className="readonly-val-box readonly-notes" style={{ minHeight: '38px' }}>
                 {notes || 'لا توجد ملاحظات على أمر التحويل'}
               </div>
             ) : (
@@ -409,19 +442,7 @@ export default function WarehouseTransferForm({
                 aria-label="ملاحظات التحويل"
               />
             )}
-          </div>
-
-          <div className="account-balance-pills">
-            <div className="stat-pill" title="عدد أصناف أمر التحويل">
-              <span>عدد الأصناف:</span>
-              <strong dir="ltr" className="num">{lines.length}</strong>
-            </div>
-
-            <div className="stat-pill" title="إجمالي الكميات المنقولة">
-              <span>إجمالي الكميات:</span>
-              <strong dir="ltr" className="num">{formatQty(totalTransferQty)}</strong>
-            </div>
-          </div>
+          </label>
         </div>
       </div>
 
@@ -642,7 +663,7 @@ export default function WarehouseTransferForm({
 
       {/* أزرار الإجراءات الموحدة */}
       {readOnly ? (
-        <div className="form-modal-actions readonly-actions-group" style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: '10px' }}>
+        <div className="form-modal-actions readonly-actions-group">
           {onRestore && (
             <button type="button" className="btn primary" onClick={onRestore}>
               <RotateCcw size={15} />
@@ -665,20 +686,21 @@ export default function WarehouseTransferForm({
               <span>حذف</span>
             </button>
           )}
-          <button type="button" className="btn" onClick={onCancel}>
+          <button type="button" className="btn outline" onClick={onCancel}>
+            <X size={15} />
             <span>إغلاق</span>
           </button>
         </div>
       ) : (
         <div className="form-modal-actions">
           <button type="submit" className="btn primary" disabled={busy}>
-            <Save size={16} />
+            <Save size={15} />
             <span>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل المخزني'}</span>
           </button>
           {editing ? (
             <button
               type="button"
-              className="btn"
+              className="btn outline"
               onClick={onCancel}
               disabled={busy}
               title="إلغاء التعديل والعودة"
@@ -689,7 +711,7 @@ export default function WarehouseTransferForm({
           ) : (
             <button
               type="button"
-              className="btn"
+              className="btn outline"
               onClick={handleReset}
               disabled={busy}
               title="مسح بيانات التحويل الحالية والبدء من جديد"

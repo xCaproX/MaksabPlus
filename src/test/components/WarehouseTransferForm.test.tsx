@@ -132,5 +132,21 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
 
     expect(screen.getByText('استعادة أمر التحويل')).toBeInTheDocument();
   });
+
+  it('يعرض حقل إدخال تاريخ التحويل التفاعلي في وضع الإنشاء', () => {
+    render(
+      <WarehouseTransferForm
+        warehouses={mockWarehouses}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={null}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('تاريخ التحويل *')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('DD/MM/YYYY')).toBeInTheDocument();
+  });
 });
 

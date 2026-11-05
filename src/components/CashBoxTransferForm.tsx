@@ -118,26 +118,11 @@ export default function CashBoxTransferForm({
 
   return (
     <form className={`cashbox-transfer-form ${isReadOnly ? 'is-readonly' : ''}`} onSubmit={submit}>
-      {/* سطر التاريخ */}
-      <div className="account-header-card" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>تاريخ التحويل:</span>
-        {isReadOnly ? (
-          <div className="readonly-val-box num" dir="ltr" style={{ minHeight: '34px', padding: '0 10px' }}>
-            {formatDate(date)}
-          </div>
-        ) : (
-          <div style={{ width: '160px' }}>
-            <DateInput value={date} onChange={setDate} />
-          </div>
-        )}
-      </div>
-
-      {/* شبكة الخزنتين وبطاقات الأرصدة الموحدة */}
-      <div className="cashbox-transfer-boxes-grid">
-        {/* خزنة المصدر */}
-        <div className="account-header-card box-card-clean">
+      <div className="erp-form-grid" style={{ marginBottom: '14px' }}>
+        {/* السطر الأول: خزنة المصدر (4)، خزنة الوجهة (4)، وتاريخ التحويل (4) */}
+        <div className="erp-col-4">
           <label className="box-card-label">
-            <span>من خزنة (المصدر)</span>
+            <span>من خزنة (المصدر) *</span>
             {isReadOnly ? (
               <div className="readonly-val-box strong">
                 {sourceBox?.name ?? editing?.source_cash_box_name ?? '—'}
@@ -163,13 +148,13 @@ export default function CashBoxTransferForm({
             )}
           </label>
           {sourceBox && (
-            <div className="account-balance-pills" style={{ marginTop: '8px' }}>
+            <div className="account-balance-pills" style={{ marginTop: '6px' }}>
               <div className="stat-pill">
-                <span>الرصيد المتاح:</span>
+                <span>المتاح:</span>
                 <strong dir="ltr" className="num">{money(sourceAvailableBalance)}</strong>
               </div>
               <div className="stat-pill">
-                <span>الرصيد بعد:</span>
+                <span>بعد:</span>
                 <strong dir="ltr" className="num">{money(sourceBalanceAfter)}</strong>
                 {sourceBalanceAfter < 0 && (
                   <span className="stat-pill-tag tag-debit">عجز</span>
@@ -179,10 +164,9 @@ export default function CashBoxTransferForm({
           )}
         </div>
 
-        {/* خزنة الوجهة */}
-        <div className="account-header-card box-card-clean">
+        <div className="erp-col-4">
           <label className="box-card-label">
-            <span>إلى خزنة (الوجهة)</span>
+            <span>إلى خزنة (الوجهة) *</span>
             {isReadOnly ? (
               <div className="readonly-val-box strong">
                 {destBox?.name ?? editing?.destination_cash_box_name ?? '—'}
@@ -205,96 +189,117 @@ export default function CashBoxTransferForm({
             )}
           </label>
           {destBox && (
-            <div className="account-balance-pills" style={{ marginTop: '8px' }}>
+            <div className="account-balance-pills" style={{ marginTop: '6px' }}>
               <div className="stat-pill">
-                <span>الرصيد الحالي:</span>
+                <span>الحالي:</span>
                 <strong dir="ltr" className="num">{money(destInitialBalance)}</strong>
               </div>
               <div className="stat-pill">
-                <span>الرصيد بعد:</span>
+                <span>بعد:</span>
                 <strong dir="ltr" className="num">{money(destBalanceAfter)}</strong>
                 <span className="stat-pill-tag tag-credit">زيادة</span>
               </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* بطاقة المبلغ المراد تحويله والتفقيط بالعربي */}
-      <div className="receipt-amount-card">
-        <div className="row-amount-tafqeet">
-          <div className="field-amount-slot">
-            <label>
-              <span>المبلغ المحوّل</span>
-              {isReadOnly ? (
-                <div
-                  className="readonly-val-box num strong"
+        <div className="erp-col-4">
+          <label>
+            <span>تاريخ التحويل *</span>
+            {isReadOnly ? (
+              <div className="readonly-val-box num" dir="ltr">
+                {formatDate(date)}
+              </div>
+            ) : (
+              <DateInput value={date} onChange={setDate} />
+            )}
+          </label>
+        </div>
+
+        {/* السطر الثاني: المبلغ المحوّل (6)، والتفقيط بالعربي (6) */}
+        <div className="erp-col-6">
+          <label>
+            <span>المبلغ المحوّل *</span>
+            {isReadOnly ? (
+              <div
+                className="readonly-val-box num strong"
+                dir="ltr"
+                style={{ fontSize: '15px', color: 'var(--primary, #0f172a)' }}
+              >
+                {money(numAmount)}
+              </div>
+            ) : (
+              <div className="amount-input-with-action">
+                <input
+                  aria-label="المبلغ المراد تحويله"
+                  type="number"
+                  inputMode="decimal"
+                  min="0.0001"
+                  step="0.0001"
                   dir="ltr"
-                  style={{ fontSize: '16px', color: 'var(--primary, #0f172a)' }}
+                  placeholder="0.00"
+                  value={amount}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="receipt-amount-input no-spinner num"
+                  required
+                />
+                <button
+                  type="button"
+                  className="btn-settle-all-action"
+                  onClick={handleSettleAll}
+                  title="نقل كامل رصيد خزنة المصدر"
+                  aria-label="نقل كامل رصيد خزنة المصدر"
                 >
-                  {money(numAmount)}
-                </div>
-              ) : (
-                <div className="amount-input-with-action">
-                  <input
-                    aria-label="المبلغ المراد تحويله"
-                    type="number"
-                    inputMode="decimal"
-                    min="0.0001"
-                    step="0.0001"
-                    dir="ltr"
-                    placeholder="0.00"
-                    value={amount}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="receipt-amount-input no-spinner num"
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="btn-settle-all-action"
-                    onClick={handleSettleAll}
-                    title="نقل كامل رصيد خزنة المصدر"
-                    aria-label="نقل كامل رصيد خزنة المصدر"
-                  >
-                    <Check size={14} strokeWidth={2.5} />
-                    <span>كامل الرصيد</span>
-                  </button>
-                </div>
-              )}
-            </label>
-          </div>
+                  <Check size={14} strokeWidth={2.5} />
+                  <span>كامل الرصيد</span>
+                </button>
+              </div>
+            )}
+          </label>
+        </div>
 
-          <div className="field-tafqeet-card" title={tafqeetText || 'المبلغ بالحروف'}>
-            <span className="tafqeet-label">المبلغ بالحروف</span>
-            <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
+        <div className="erp-col-6">
+          <label>
+            <span>المبلغ بالحروف</span>
+            <div
+              className={`readonly-val-box ${tafqeetText ? 'has-value' : 'empty'}`}
+              title={tafqeetText || 'المبلغ بالحروف'}
+              style={{ fontSize: '12.5px', color: tafqeetText ? 'var(--primary, #0f172a)' : 'var(--muted)' }}
+            >
               {tafqeetText || 'سيظهر تفقيط المبلغ بالعربية هنا…'}
-            </span>
-          </div>
+            </div>
+          </label>
         </div>
-      </div>
 
-      {isOverdraft && (
-        <div className="overdraft-warning-badge" role="alert">
-          تنبيه: المبلغ ({money(numAmount)}) يتجاوز رصيد خزنة المصدر المتاح ({money(sourceAvailableBalance)})
-        </div>
-      )}
-
-      {/* ملاحظات التحويل */}
-      <div className="account-header-card" style={{ padding: '8px 12px' }}>
-        {isReadOnly ? (
-          <div className="readonly-val-box readonly-notes" style={{ minHeight: '38px' }}>
-            {notes || 'لا توجد ملاحظات على التحويل'}
+        {/* السطر الثالث: تنبيه تجاوز الرصيد المتاح */}
+        {isOverdraft && (
+          <div className="erp-col-12">
+            <div className="overdraft-warning-badge" role="alert">
+              تنبيه: المبلغ ({money(numAmount)}) يتجاوز رصيد خزنة المصدر المتاح ({money(sourceAvailableBalance)})
+            </div>
           </div>
-        ) : (
-          <input
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            placeholder="ملاحظات اختيارية على عملية التحويل…"
-            className="account-notes-input"
-            aria-label="ملاحظات التحويل"
-          />
         )}
+
+        {/* السطر الرابع: الملاحظات بعرض كامل (12) */}
+        <div className="erp-col-12">
+          <label>
+            <span>ملاحظات التحويل</span>
+            {isReadOnly ? (
+              <div className="readonly-val-box readonly-notes" style={{ minHeight: '38px' }}>
+                {notes || 'لا توجد ملاحظات على التحويل'}
+              </div>
+            ) : (
+              <input
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="ملاحظات اختيارية على عملية التحويل…"
+                className="account-notes-input"
+                aria-label="ملاحظات التحويل"
+              />
+            )}
+          </label>
+        </div>
       </div>
 
       {/* أزرار الإجراءات الموحدة */}
