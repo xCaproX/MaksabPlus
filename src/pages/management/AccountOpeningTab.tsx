@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Users, ShoppingBag, AlertCircle, Wallet, CheckCircle2, X } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
@@ -20,6 +20,7 @@ interface AccountOpeningTabProps {
   onRefresh: () => Promise<void>;
   saving: boolean;
   setSaving: (saving: boolean) => void;
+  saveTrigger?: number;
 }
 
 export default function AccountOpeningTab({
@@ -29,6 +30,7 @@ export default function AccountOpeningTab({
   onRefresh,
   saving,
   setSaving,
+  saveTrigger,
 }: AccountOpeningTabProps) {
   const isCustomer = kind === 'customer';
   const entityPrefix = isCustomer ? 'CUS' : 'SUP';
@@ -51,6 +53,15 @@ export default function AccountOpeningTab({
       )
     );
   }, [visibleAccounts]);
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  useEffect(() => {
+    if (saveTrigger && saveTrigger > 0) {
+      void handleSaveRef.current();
+    }
+  }, [saveTrigger]);
 
   const filteredAccounts = useMemo(() => {
     const list = visibleAccounts.filter((account) =>
@@ -221,20 +232,7 @@ export default function AccountOpeningTab({
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <KpiBar items={kpiItems} ariaLabel={`مؤشرات افتتاحيات ${isCustomer ? 'العملاء' : 'الموردين'}`} />
-        {canEditOpening && (
-          <button
-            type="button"
-            className="btn primary"
-            style={{ marginInlineStart: '12px', flexShrink: 0 }}
-            disabled={saving}
-            onClick={() => void handleSave()}
-          >
-            {saving ? 'جارٍ الحفظ…' : `حفظ أرصدة ${isCustomer ? 'العملاء' : 'الموردين'}`}
-          </button>
-        )}
-      </div>
+      <KpiBar items={kpiItems} ariaLabel={`مؤشرات افتتاحيات ${isCustomer ? 'العملاء' : 'الموردين'}`} />
 
       <div className={selectedAccount ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة افتتاحيات ${isCustomer ? 'العملاء' : 'الموردين'}`}>
@@ -269,9 +267,9 @@ export default function AccountOpeningTab({
                     onSort={(s) => setSortOrder(s as ManagementSort)}
                     defaultDirection="asc"
                   />
-                  <th className="col-hide-on-detail">النوع</th>
-                  <th className="num">الرصيد الافتتاحي</th>
-                  <th className="num">الرصيد الحالي</th>
+                  <th className="col-hide-on-detail" style={{ width: '90px' }}>النوع</th>
+                  <th className="num" style={{ width: '160px' }}>الرصيد الافتتاحي</th>
+                  <th className="num" style={{ width: '170px' }}>الرصيد الحالي</th>
                 </tr>
               </thead>
               <tbody>
@@ -299,15 +297,16 @@ export default function AccountOpeningTab({
                     >
                       <td className="num strong">{entityNumber(entityPrefix, account.serial_number)}</td>
                       <td className="strong">{account.name}</td>
-                      <td className="muted col-hide-on-detail">{isCustomer ? 'عميل' : 'مورد'}</td>
-                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
+                      <td className="muted col-hide-on-detail" style={{ width: '90px' }}>{isCustomer ? 'عميل' : 'مورد'}</td>
+                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '160px' }}>
                         <input
                           className="table-input num no-spinner"
+                          style={{ width: '100%', maxWidth: '140px' }}
                           type="number"
                           inputMode="decimal"
                           dir="ltr"
                           step="0.0001"
-                          disabled={!canEditOpening}
+                          disabled={!canEditOpening || saving}
                           value={accountValues[account.id] ?? '0'}
                           onFocus={(event) => event.target.select()}
                           onChange={(event) =>
@@ -315,7 +314,7 @@ export default function AccountOpeningTab({
                           }
                         />
                       </td>
-                      <td className="num">
+                      <td className="num" style={{ width: '170px' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
                           {(() => {
                             const status = getBalanceStatus(account.balance, account.kind);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Boxes, DollarSign, CheckCircle2, FileText, X } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
@@ -21,6 +21,7 @@ interface StockOpeningTabProps {
   onRefresh: () => Promise<void>;
   saving: boolean;
   setSaving: (saving: boolean) => void;
+  saveTrigger?: number;
 }
 
 export default function StockOpeningTab({
@@ -30,6 +31,7 @@ export default function StockOpeningTab({
   onRefresh,
   saving,
   setSaving,
+  saveTrigger,
 }: StockOpeningTabProps) {
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [stockValues, setStockValues] = useState<Record<string, { qty: string; cost: string }>>({});
@@ -54,6 +56,15 @@ export default function StockOpeningTab({
       )
     );
   }, [stockRows]);
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  useEffect(() => {
+    if (saveTrigger && saveTrigger > 0) {
+      void handleSaveRef.current();
+    }
+  }, [saveTrigger]);
 
   const filteredStockRows = useMemo(() => {
     const list = stockRows.filter((row) => {
@@ -182,20 +193,7 @@ export default function StockOpeningTab({
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <KpiBar items={kpiItems} ariaLabel="مؤشرات افتتاحيات المخزون" />
-        {canEditOpening && (
-          <button
-            type="button"
-            className="btn primary"
-            style={{ marginInlineStart: '12px', flexShrink: 0 }}
-            disabled={saving}
-            onClick={() => void handleSave()}
-          >
-            {saving ? 'جارٍ الحفظ…' : 'حفظ أرصدة المخزون'}
-          </button>
-        )}
-      </div>
+      <KpiBar items={kpiItems} ariaLabel="مؤشرات افتتاحيات المخزون" />
 
       <div className={selectedItemRow ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة افتتاحيات المخزون">
@@ -237,7 +235,7 @@ export default function StockOpeningTab({
                     currentSort={sortOrder}
                     onSort={(s) => setSortOrder(s as ManagementSort)}
                   />
-                  <th className="col-hide-on-detail">الكود</th>
+                  <th className="col-hide-on-detail" style={{ width: '100px' }}>الكود</th>
                   <SortableHeader
                     label="الصنف"
                     field="name"
@@ -245,9 +243,9 @@ export default function StockOpeningTab({
                     onSort={(s) => setSortOrder(s as ManagementSort)}
                     defaultDirection="asc"
                   />
-                  <th className="num">كمية البداية</th>
-                  <th className="num">تكلفة الوحدة</th>
-                  <th className="num">الرصيد الفعلي</th>
+                  <th className="num" style={{ width: '150px' }}>كمية البداية</th>
+                  <th className="num" style={{ width: '150px' }}>تكلفة الوحدة</th>
+                  <th className="num" style={{ width: '140px' }}>الرصيد الفعلي</th>
                 </tr>
               </thead>
               <tbody>
@@ -276,17 +274,18 @@ export default function StockOpeningTab({
                       }}
                     >
                       <td className="num strong">{entityNumber('ITM', row.item_number)}</td>
-                      <td className="num col-hide-on-detail">{row.item_code}</td>
+                      <td className="num col-hide-on-detail" style={{ width: '100px' }}>{row.item_code}</td>
                       <td className="strong">{row.item_name}</td>
-                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
+                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '150px' }}>
                         <input
                           className="table-input num no-spinner"
+                          style={{ width: '100%', maxWidth: '130px' }}
                           type="number"
                           inputMode="decimal"
                           dir="ltr"
                           min="0"
                           step="0.0001"
-                          disabled={!canEditOpening}
+                          disabled={!canEditOpening || saving}
                           value={value.qty}
                           onFocus={(event) => event.target.select()}
                           onChange={(event) =>
@@ -294,23 +293,24 @@ export default function StockOpeningTab({
                           }
                         />
                       </td>
-                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
+                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '150px' }}>
                         <input
                           className="table-input num no-spinner"
+                          style={{ width: '100%', maxWidth: '130px' }}
                           type="number"
                           inputMode="decimal"
                           dir="ltr"
                           min="0"
                           step="0.0001"
                           value={value.cost}
-                          disabled={!canEditOpening || row.cost_locked}
+                          disabled={!canEditOpening || row.cost_locked || saving}
                           onFocus={(event) => event.target.select()}
                           onChange={(event) =>
                             setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))
                           }
                         />
                       </td>
-                      <td className="num strong">
+                      <td className="num strong" style={{ width: '140px' }}>
                         {formatQty(row.current_qty)} {row.unit}
                       </td>
                     </tr>

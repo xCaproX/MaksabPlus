@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Wallet, Landmark, X } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
@@ -19,6 +19,7 @@ interface CashBoxOpeningTabProps {
   onRefresh: () => Promise<void>;
   saving: boolean;
   setSaving: (saving: boolean) => void;
+  saveTrigger?: number;
 }
 
 export default function CashBoxOpeningTab({
@@ -27,6 +28,7 @@ export default function CashBoxOpeningTab({
   onRefresh,
   saving,
   setSaving,
+  saveTrigger,
 }: CashBoxOpeningTabProps) {
   const [cashValues, setCashValues] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,6 +43,15 @@ export default function CashBoxOpeningTab({
       )
     );
   }, [cashBoxes]);
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  useEffect(() => {
+    if (saveTrigger && saveTrigger > 0) {
+      void handleSaveRef.current();
+    }
+  }, [saveTrigger]);
 
   const filteredCashBoxes = useMemo(() => {
     const list = cashBoxes.filter((box) =>
@@ -122,20 +133,7 @@ export default function CashBoxOpeningTab({
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <KpiBar items={kpiItems} ariaLabel="مؤشرات افتتاحيات الخزن" />
-        {canEditOpening && (
-          <button
-            type="button"
-            className="btn primary"
-            style={{ marginInlineStart: '12px', flexShrink: 0 }}
-            disabled={saving}
-            onClick={() => void handleSave()}
-          >
-            {saving ? 'جارٍ الحفظ…' : 'حفظ أرصدة الخزن'}
-          </button>
-        )}
-      </div>
+      <KpiBar items={kpiItems} ariaLabel="مؤشرات افتتاحيات الخزن" />
 
       <div className={selectedBox ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة افتتاحيات الخزن">
@@ -170,8 +168,8 @@ export default function CashBoxOpeningTab({
                     onSort={(s) => setSortOrder(s as ManagementSort)}
                     defaultDirection="asc"
                   />
-                  <th className="num">الرصيد الافتتاحي</th>
-                  <th className="num">الرصيد الفعلي</th>
+                  <th className="num" style={{ width: '160px' }}>الرصيد الافتتاحي</th>
+                  <th className="num" style={{ width: '160px' }}>الرصيد الفعلي</th>
                 </tr>
               </thead>
               <tbody>
@@ -199,14 +197,15 @@ export default function CashBoxOpeningTab({
                     >
                       <td className="num strong">{entityNumber('CBX', box.serial_number)}</td>
                       <td className="strong">{box.name}</td>
-                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()}>
+                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '160px' }}>
                         <input
                           className="table-input num no-spinner"
+                          style={{ width: '100%', maxWidth: '140px' }}
                           type="number"
                           inputMode="decimal"
                           dir="ltr"
                           step="0.0001"
-                          disabled={!canEditOpening}
+                          disabled={!canEditOpening || saving}
                           value={cashValues[box.id] ?? '0'}
                           onFocus={(event) => event.target.select()}
                           onChange={(event) =>
@@ -214,7 +213,7 @@ export default function CashBoxOpeningTab({
                           }
                         />
                       </td>
-                      <td className="num strong remaining">{money(box.balance)}</td>
+                      <td className="num strong remaining" style={{ width: '160px' }}>{money(box.balance)}</td>
                     </tr>
                   );
                 })}

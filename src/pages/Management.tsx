@@ -40,6 +40,7 @@ export default function Management() {
   const accounts = useMemo(() => rawAccounts.filter((account) => account.system_key === null), [rawAccounts]);
   const warehouses = useMemo(() => rawWarehouses.filter((w) => w.is_active !== false), [rawWarehouses]);
   const [saving, setSaving] = useState(false);
+  const [saveTrigger, setSaveTrigger] = useState(0);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isReconciling, setIsReconciling] = useState(false);
   const [reconcileModal, setReconcileModal] = useState<ReconcileModalData | null>(null);
@@ -87,38 +88,67 @@ export default function Management() {
     }
   }
 
+  const tabTitle =
+    tab === 'customers'
+      ? 'افتتاحيات العملاء'
+      : tab === 'suppliers'
+        ? 'افتتاحيات الموردين'
+        : tab === 'items'
+          ? 'افتتاحيات المخزون'
+          : tab === 'cashBoxes'
+            ? 'افتتاحيات الخزن'
+            : 'المستخدمون والصلاحيات';
+
+  const saveBtnLabel =
+    tab === 'customers'
+      ? 'حفظ أرصدة العملاء'
+      : tab === 'suppliers'
+        ? 'حفظ أرصدة الموردين'
+        : tab === 'items'
+          ? 'حفظ افتتاحيات المخزون'
+          : 'حفظ أرصدة الخزن';
+
   if (visibleTabs.length === 0) {
     return <Navigate to="/" replace />;
   }
 
   return (
-    <div className="erp-page">
+    <div className="stack">
       <div className="page-head">
         <div>
-          <h1>الإدارة</h1>
-          <p>إدارة الأرصدة الافتتاحية للمؤسسة وإعدادات المستخدمين والصلاحيات</p>
+          <h1>{tabTitle}</h1>
         </div>
-        {access?.role === 'owner' && (
-          <div className="page-actions">
+        <div className="actions">
+          {access?.role === 'owner' && (
             <button
               type="button"
-              className="action-btn-primary"
+              className="btn outline"
               onClick={handleReconcileBalances}
               disabled={isReconciling}
             >
-              <ShieldCheck size={18} />
-              <span>{isReconciling ? 'جاري فحص وتصحيح الأرصدة...' : 'فحص وتصحيح الأرصدة'}</span>
+              <ShieldCheck size={16} />
+              <span>{isReconciling ? 'جارٍ فحص الأرصدة…' : 'فحص ومطابقة الأرصدة'}</span>
             </button>
-          </div>
-        )}
+          )}
+          {canEditOpening && tab !== 'users' && (
+            <button
+              type="button"
+              className="btn primary"
+              disabled={saving}
+              onClick={() => setSaveTrigger((count) => count + 1)}
+            >
+              {saving ? 'جارٍ الحفظ…' : saveBtnLabel}
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="tab-buttons">
+      <div className="tabs">
         {visibleTabs.map((item) => (
           <button
             key={item.id}
             type="button"
-            className={tab === item.id ? 'tab-btn active' : 'tab-btn'}
+            className={tab === item.id ? 'tab active' : 'tab'}
             onClick={() => handleTabChange(item.id)}
           >
             {item.label}
@@ -144,6 +174,7 @@ export default function Management() {
               onRefresh={refresh}
               saving={saving}
               setSaving={setSaving}
+              saveTrigger={saveTrigger}
             />
           )}
           {tab === 'suppliers' && (
@@ -154,6 +185,7 @@ export default function Management() {
               onRefresh={refresh}
               saving={saving}
               setSaving={setSaving}
+              saveTrigger={saveTrigger}
             />
           )}
           {tab === 'items' && (
@@ -164,6 +196,7 @@ export default function Management() {
               onRefresh={refresh}
               saving={saving}
               setSaving={setSaving}
+              saveTrigger={saveTrigger}
             />
           )}
           {tab === 'cashBoxes' && (
@@ -173,6 +206,7 @@ export default function Management() {
               onRefresh={refresh}
               saving={saving}
               setSaving={setSaving}
+              saveTrigger={saveTrigger}
             />
           )}
           {tab === 'users' && (
