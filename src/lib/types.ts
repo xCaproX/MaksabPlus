@@ -213,3 +213,33 @@ export interface LineDraft {
   qty: string;
   unit_price: string;
 }
+
+
+export interface ReconciliationDiscrepancy {
+  entity_type: string;
+  entity_category: 'account' | 'cash_box' | 'stock';
+  entity_id: string;
+  entity_name: string;
+  warehouse_id?: string;
+  unit?: string;
+  old_balance: number;
+  reconciled_balance: number;
+  discrepancy: number;
+}
+
+export interface ReconciliationLogRow {
+  id: string;
+  company_id: string;
+  performed_by: string | null;
+  performed_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+  mode: 'reconcile' | 'simulation';
+  notes: string | null;
+  accounts_count: number;
+  cash_boxes_count: number;
+  items_count: number;
+  discrepancies_count: number;
+  status: 'clean' | 'discrepancies_found';
+  discrepancies: ReconciliationDiscrepancy[];
+}

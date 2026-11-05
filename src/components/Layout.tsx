@@ -164,10 +164,10 @@ export default function Layout() {
     { id: 'suppliers', label: 'افتتاحيات الموردين', permission: 'management.suppliers.view' },
     { id: 'items', label: 'افتتاحيات المخزون', permission: 'management.items.view' },
     { id: 'cashBoxes', label: 'افتتاحيات الخزن', permission: 'management.cashBoxes.view' },
-    ...(access?.role === 'owner' ? [{ id: 'users', label: 'المستخدمون والصلاحيات', permission: 'management.users.view' }] : []),
+    ...(access?.role === 'owner' ? [{ id: 'reconciliations', label: 'سجل مطابقة الأرصدة' }, { id: 'users', label: 'المستخدمون والصلاحيات', permission: 'management.users.view' }] : []),
   ];
   const visibleManagementTabs = managementTabs.filter((t) =>
-    t.id === 'users' ? access?.role === 'owner' : can(t.permission),
+    t.id === 'users' || t.id === 'reconciliations' ? access?.role === 'owner' : can(t.permission!),
   );
 
   return (

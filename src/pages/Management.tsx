@@ -1,39 +1,45 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { errorMessage } from '../lib/errors';
+import { Play } from 'lucide-react';
 import { useAccess } from '../lib/access';
 import UserPermissions from '../components/UserPermissions';
-import { toast } from '../components/Toast';
 import { useMasterData } from '../context/MasterDataContext';
 import AccountOpeningTab from './management/AccountOpeningTab';
 import StockOpeningTab from './management/StockOpeningTab';
 import CashBoxOpeningTab from './management/CashBoxOpeningTab';
-import ReconcileBalancesModal, { type DiscrepancyItem, type ReconcileModalData } from './management/ReconcileBalancesModal';
+import ReconciliationLogTab from './management/ReconciliationLogTab';
 
-type ManagementTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes' | 'users';
+type ManagementTab = 'customers' | 'suppliers' | 'items' | 'cashBoxes' | 'reconciliations' | 'users';
 
 const MANAGEMENT_TABS: { id: ManagementTab; label: string; permission?: string }[] = [
   { id: 'customers', label: 'افتتاحيات العملاء', permission: 'management.customers.view' },
   { id: 'suppliers', label: 'افتتاحيات الموردين', permission: 'management.suppliers.view' },
   { id: 'items', label: 'افتتاحيات المخزون', permission: 'management.items.view' },
   { id: 'cashBoxes', label: 'افتتاحيات الخزن', permission: 'management.cashBoxes.view' },
+  { id: 'reconciliations', label: 'سجل مطابقة الأرصدة' },
   { id: 'users', label: 'المستخدمون والصلاحيات' },
 ];
 
-const VALID_MANAGEMENT_TABS: ManagementTab[] = ['customers', 'suppliers', 'items', 'cashBoxes', 'users'];
+const VALID_MANAGEMENT_TABS: ManagementTab[] = [
+  'customers',
+  'suppliers',
+  'items',
+  'cashBoxes',
+  'reconciliations',
+  'users',
+];
 
 export default function Management() {
   const { access, can } = useAccess();
   const visibleTabs = MANAGEMENT_TABS.filter((t) =>
-    t.id === 'users' ? access?.role === 'owner' : can(t.permission!)
+    t.id === 'users' || t.id === 'reconciliations' ? access?.role === 'owner' : can(t.permission!)
   );
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as ManagementTab | null;
   const initialTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
   const [tab, setTab] = useState<ManagementTab>(initialTab);
-  const canViewCurrentTab = tab === 'users' ? access?.role === 'owner' : can(`management.${tab}.view`);
+  const canViewCurrentTab =
+    tab === 'users' || tab === 'reconciliations' ? access?.role === 'owner' : can(`management.${tab}.view`);
   const canEditOpening = can(`management.${tab}.edit`);
 
   const { accounts: rawAccounts, cashBoxes, stockRows, warehouses: rawWarehouses, loading, refresh } = useMasterData();
@@ -41,9 +47,8 @@ export default function Management() {
   const warehouses = useMemo(() => rawWarehouses.filter((w) => w.is_active !== false), [rawWarehouses]);
   const [saving, setSaving] = useState(false);
   const [saveTrigger, setSaveTrigger] = useState(0);
+  const [startRunTrigger, setStartRunTrigger] = useState(0);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [isReconciling, setIsReconciling] = useState(false);
-  const [reconcileModal, setReconcileModal] = useState<ReconcileModalData | null>(null);
 
   useEffect(() => {
     const targetTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
@@ -63,31 +68,6 @@ export default function Management() {
     setSearchParams({ tab: nextTab });
   }
 
-  async function handleReconcileBalances() {
-    setIsReconciling(true);
-    try {
-      const { data, error } = await supabase.rpc('reconcile_all_balances');
-      if (error) throw error;
-      await refresh();
-      const discrepancies = (data || []) as DiscrepancyItem[];
-      setReconcileModal({
-        isOpen: true,
-        accountsCount: accounts.length,
-        cashBoxesCount: cashBoxes.length,
-        discrepancies,
-      });
-      if (discrepancies.length === 0) {
-        toast.success('تم فحص كافة الأرصدة بنجاح، وجميعها متطابقة تماماً مع الدفاتر');
-      } else {
-        toast.warning(`تم تصحيح فروقات في ${discrepancies.length} رصيد`);
-      }
-    } catch (err: unknown) {
-      toast.error(errorMessage(err));
-    } finally {
-      setIsReconciling(false);
-    }
-  }
-
   const tabTitle =
     tab === 'customers'
       ? 'افتتاحيات العملاء'
@@ -97,7 +77,9 @@ export default function Management() {
           ? 'افتتاحيات المخزون'
           : tab === 'cashBoxes'
             ? 'افتتاحيات الخزن'
-            : 'المستخدمون والصلاحيات';
+            : tab === 'reconciliations'
+              ? 'سجل مطابقة الأرصدة والمخزون'
+              : 'المستخدمون والصلاحيات';
 
   const saveBtnLabel =
     tab === 'customers'
@@ -119,18 +101,17 @@ export default function Management() {
           <h1>{tabTitle}</h1>
         </div>
         <div className="actions">
-          {access?.role === 'owner' && (
+          {tab === 'reconciliations' && access?.role === 'owner' && (
             <button
               type="button"
-              className="btn outline"
-              onClick={handleReconcileBalances}
-              disabled={isReconciling}
+              className="btn primary"
+              onClick={() => setStartRunTrigger((count) => count + 1)}
             >
-              <ShieldCheck size={16} />
-              <span>{isReconciling ? 'جارٍ فحص الأرصدة…' : 'فحص ومطابقة الأرصدة'}</span>
+              <Play size={16} />
+              <span>بدء فحص جديد</span>
             </button>
           )}
-          {canEditOpening && tab !== 'users' && (
+          {canEditOpening && tab !== 'users' && tab !== 'reconciliations' && (
             <button
               type="button"
               className="btn primary"
@@ -209,6 +190,12 @@ export default function Management() {
               saveTrigger={saveTrigger}
             />
           )}
+          {tab === 'reconciliations' && (
+            <ReconciliationLogTab
+              startRunTrigger={startRunTrigger}
+              onRefreshMasterData={refresh}
+            />
+          )}
           {tab === 'users' && (
             <UserPermissions
               inviteOpen={isInviteOpen}
@@ -216,13 +203,6 @@ export default function Management() {
             />
           )}
         </>
-      )}
-
-      {reconcileModal && (
-        <ReconcileBalancesModal
-          data={reconcileModal}
-          onClose={() => setReconcileModal(null)}
-        />
       )}
     </div>
   );
