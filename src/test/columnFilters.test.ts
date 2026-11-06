@@ -29,6 +29,7 @@ describe('shared column-filter semantics', () => {
     expect(listColumns('warehouse_transfer', false)).toHaveLength(10);
     expect(listColumns('opening_items', false).some(c => c.key === 'unit_cost')).toBe(false);
     expect(listColumns('receipt')).toHaveLength(12);
+    expect(listColumns('receipt').find(c => c.key === 'receipt_type')?.options).toEqual([{ value: 'free', label: 'حر' }, { value: 'linked', label: 'مرتبط' }]);
     expect(listColumns('cash_transfer')).toHaveLength(9);
   });
   it('matches formatted entity numbers and displayed absolute balances', () => {

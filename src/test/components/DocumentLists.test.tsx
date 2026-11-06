@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import ReceiptTable from '../../pages/receipts/ReceiptTable';
 import InvoiceTable from '../../pages/invoices/InvoiceTable';
 import { calculateInvoiceKpis } from '../../pages/invoices/invoiceKpis';
 import { calculateReceiptKpis } from '../../pages/receipts/receiptKpis';
-import type { InvoiceRow } from '../../lib/types';
+import type { InvoiceRow, ReceiptRow } from '../../lib/types';
 
 const invoice = { id: 'i', number: 'SAL-000001', invoice_date: '2026-11-06',
   created_at: '2026-11-06T10:30:00Z', account_name: 'عميل تجريبي', account_kind: 'customer',
@@ -29,6 +30,18 @@ describe('document list presentation', () => {
     expect(screen.getByText('60.00').closest('span')).not.toHaveClass('strong');
     expect(screen.getAllByRole('columnheader')[0]).toHaveClass('col-number');
     expect(screen.getByRole('cell', { name: 'منشئ تجريبي' })).toHaveClass('col-creator');
+  });
+  it('uses short receipt types and preserves their shared semantic variants', () => {
+    const { container } = render(<ReceiptTable loading={false} sortOrder="date-desc" onSort={vi.fn()}
+      showDeleted={false} onView={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} onRestore={vi.fn()}
+      canEdit={false} canDelete={false} pageReceipts={[
+        { ...invoice, id: 'free', amount: 100, is_free: true } as unknown as ReceiptRow,
+        { ...invoice, id: 'linked', amount: 100, is_free: false, invoice_kind: 'sale_return' } as unknown as ReceiptRow,
+      ]} />);
+    const badges = container.querySelectorAll('tbody .col-receipt-type .status-badge');
+    expect([...badges].map((badge) => badge.textContent)).toEqual(['حر', 'مرتبط']);
+    expect(badges[0]).toHaveClass('status-badge-free');
+    expect(badges[1]).toHaveClass('status-badge-linked');
   });
   it('orders sales summaries and only includes profit for the owner', () => {
     const items = calculateInvoiceKpis({ kind: 'sale', isWarehouseTransfer: false, invoiceSummary: summary, canViewProfit: true });

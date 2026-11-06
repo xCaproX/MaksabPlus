@@ -41,6 +41,10 @@ export function creationTime(value: string | null | undefined): string {
   }).format(date);
 }
 
+export function receiptTypeLabel(isFree: boolean): string {
+  return isFree ? 'حر' : 'مرتبط';
+}
+
 export function accountKindLabel(kind: string): string {
   return ({ customer: 'عميل', supplier: 'مورد', waste: 'هالك' } as Record<string, string>)[kind] ?? '—';
 }

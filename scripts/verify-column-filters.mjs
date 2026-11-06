@@ -139,9 +139,17 @@ try {
         }));
         assert.ok(labels.length===3&&labels.every(l=>l.right&&l.aligned),'Inline RTL date labels '+route+' @'+width);
       }
+      if(route==='/receipts?tab=in'||route==='/receipts?tab=out'){
+        const presentation=await page.locator('.erp-table').evaluate(t=>{
+          const cell=t.querySelector('tbody .col-receipt-type'),badge=cell.querySelector('.status-badge');
+          return {width:cell.getBoundingClientRect().width,label:badge.textContent,bg:getComputedStyle(badge).backgroundColor};
+        });
+        assert.ok(presentation.width<=81,'Compact fixed receipt type');
+        assert.equal(presentation.label,'حر');assert.equal(presentation.bg,'rgb(239, 246, 255)');
+      }
       const rtl=await page.locator('.erp-table thead th, .erp-table tbody tr:not(:has(td[colspan])) > td').evaluateAll(cells=>cells.every(c=>getComputedStyle(c).direction==='rtl'&&['start','right'].includes(getComputedStyle(c).textAlign)));
       assert.ok(rtl,'Right aligned RTL columns '+route+' @'+width);
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'receipt-fit-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'receipt-type-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
       checks++;
     }
     console.log('PASS '+relevantRoutes.length+' routes @'+width);
@@ -169,7 +177,7 @@ try {
       assert.ok(after.scroll<=before.scroll,'Empty-result overflow '+route+' @'+width);
       assert.ok(after.widths.every((w,i)=>Math.abs(w-before.widths[i])<1),'Empty-result columns '+route+' @'+width);
       assert.ok(await page.locator('.column-filter-row input[placeholder="="]').evaluateAll(inputs=>inputs.every(i=>getComputedStyle(i).direction==='rtl')));
-      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'receipt-fit-empty-sales-'+width+'px.png')});
+      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'receipt-type-empty-sales-'+width+'px.png')});
       await page.getByRole('button',{name:'مسح كل الفلاتر'}).click();
     }
   }
@@ -263,7 +271,14 @@ try {
       await page.goto('http://localhost:5195/receipts?tab='+tab,{waitUntil:'networkidle'});
       assert.ok(await page.locator('.erp-table-wrap').evaluate(w=>w.scrollWidth<=w.clientWidth),'Large linked receipts overflow @'+width+' '+tab);
       assert.equal(await page.getByText('1,234,567.50',{exact:true}).count()>0,true);
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'receipt-fit-stress-'+tab+'-'+width+'px.png')});
+      const badge=page.locator('tbody .col-receipt-type .status-badge');
+      assert.equal(await badge.innerText(),'مرتبط');
+      assert.equal(await badge.evaluate(b=>getComputedStyle(b).backgroundColor),'rgb(248, 250, 252)');
+      assert.ok(await page.locator('tbody .col-receipt-type').evaluate(c=>c.getBoundingClientRect().width<=81));
+      await page.getByLabel('بحث في نوع الإيصال',{exact:true}).click();
+      await page.getByRole('option',{name:'مرتبط',exact:true}).click();
+      await page.waitForResponse(r=>r.url().includes('/get_receipt_kpis_columns')&&r.request().postDataJSON()?.p_columns?.receipt_type==='linked');
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'receipt-type-stress-'+tab+'-'+width+'px.png')});
     }
   }
   console.log('PASS 6 large linked-receipt layouts with long notes');

@@ -1,5 +1,5 @@
 import rawSchema from './listColumnSchema.json';
-import { entityNumber } from './format';
+import { entityNumber, receiptTypeLabel } from './format';
 import { supabase } from './supabase';
 
 export type ListScope = keyof typeof rawSchema;
@@ -25,7 +25,14 @@ export const LIST_COLUMN_SCHEMA = rawSchema as unknown as Record<ListScope, { gl
 export function listColumns(scope: ListScope, owner = false, kind = '') {
   return LIST_COLUMN_SCHEMA[scope].columns.filter((column) =>
     (!column.ownerOnly || owner) && !column.excludeKinds?.includes(kind),
-  );
+  ).map((column) => column.format === 'receipt_type'
+    // Presentation labels change without changing the persisted filter values.
+    ? { ...column, className: 'col-receipt-type', options: [
+      { value: 'free', label: receiptTypeLabel(true) },
+      { value: 'linked', label: receiptTypeLabel(false) },
+    ] }
+    : column);
+
 }
 
 const cairoParts = (value: unknown) => {

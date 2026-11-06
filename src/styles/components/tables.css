@@ -172,7 +172,10 @@ td.row-actions > * + * {
 .document-table--receipts .col-time { min-inline-size: 72px; }
 .document-table--receipts .col-location { min-inline-size: 80px; overflow-wrap: anywhere; }
 .document-table--receipts .col-account { min-inline-size: 90px; overflow-wrap: anywhere; }
-.document-table--receipts .col-notes { min-inline-size: 80px; max-inline-size: 180px; }
+.document-table--receipts th:not(.col-notes),
+.document-table--receipts tbody td:not(.col-notes) { inline-size: 1%; }
+.document-table--receipts .col-receipt-type { inline-size: 1%; min-inline-size: 80px; white-space: normal; }
+.document-table--receipts .col-notes { min-inline-size: 96px; max-inline-size: 180px; }
 .document-table--receipts .col-creator { min-inline-size: 80px; }
 
 .erp-row-actions { visibility: hidden; min-width: 88px; }

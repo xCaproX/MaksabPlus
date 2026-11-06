@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { accountKindLabel, creationTime, formatDate } from '../../lib/format';
+import { accountKindLabel, creationTime, formatDate, receiptTypeLabel } from '../../lib/format';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
@@ -81,7 +81,7 @@ export default function ReceiptTable({
             align="end"
             className="num"
           />
-          <th>نوع الإيصال</th>
+          <th className="col-receipt-type">نوع الإيصال</th>
           <th className="col-notes">البيان</th>
           <th className="col-notes">ملاحظات</th>
           <th className="col-creator">بواسطة</th>
@@ -124,11 +124,11 @@ export default function ReceiptTable({
               <td className="col-kind">{accountKindLabel(receipt.account_kind)}</td>
               <td className="col-account">{receipt.account_name}</td>
               <td><MoneyDisplay value={receipt.amount} strong /></td>
-              <td>
+              <td className="col-receipt-type">
                 {receipt.is_free ? (
-                  <StatusBadge variant="free">إيصال حر</StatusBadge>
+                  <StatusBadge variant="free">{receiptTypeLabel(true)}</StatusBadge>
                 ) : (
-                  <StatusBadge variant="linked">مرتبط بـ{linkKind(receipt.invoice_kind)}</StatusBadge>
+                  <StatusBadge variant="linked">{receiptTypeLabel(false)}</StatusBadge>
                 )}
               </td>
               <td className="col-notes">{receipt.statement || '—'}</td>
