@@ -80,13 +80,12 @@ describe('one query for visible rows and exports',()=>{
     return query as never;
   });});
   it.each([
-    ['invoice','filter_invoice_rows','invoice_date','total'],
     ['receipt','filter_receipt_rows','receipt_date','amount'],
     ['warehouse_transfer','filter_warehouse_transfer_rows','transfer_date','total_value'],
     ['cash_transfer','filter_cash_transfer_rows','transfer_date','amount'],
   ] as const)('retains the filters, deleted state, dates and sort for %s',(scope,rpc,date,amount)=>{
     const filters={account:'اسم، (عميل)',created_by_name:'مستخدم'};
-    documentListQuery({...options,scope,filters,sortOrder:scope==='invoice'||scope==='warehouse_transfer'?'total-asc':'amount-asc',showDeleted:true}).range(500,999);
+    documentListQuery({...options,scope,filters,sortOrder:scope==='warehouse_transfer'?'total-asc':'amount-asc',showDeleted:true}).range(500,999);
     expect(calls[0]).toEqual(['rpc',rpc,{p_columns:filters,p_search:null,...(['invoice','receipt'].includes(scope)?{p_kind:'sale'}:{})},{count:'exact'}]);
     expect(calls).toContainEqual(['not','deleted_at','is',null]);
     expect(calls).toContainEqual(['gte',date,options.dateFrom]);
@@ -95,8 +94,41 @@ describe('one query for visible rows and exports',()=>{
     expect(calls).toContainEqual(['order','number',{ascending:true}]);
     expect(calls[calls.length-1]).toEqual(['range',500,999]);
   });
+  it('sends invoice filters, dates, order and page inside one guarded RPC and retains the full count',async()=>{
+    vi.mocked(supabase.rpc).mockResolvedValueOnce({data:{rows:[row],total_count:1003},error:null} as never);
+    const filters={account:'اسم، (عميل)',created_by_name:'مستخدم'};
+    const result=await documentListQuery({...options,filters,sortOrder:'total-asc',showDeleted:true}).range(500,999);
+    expect(supabase.rpc).toHaveBeenLastCalledWith('get_invoice_page',{
+      p_columns:filters,p_kind:'sale',p_search:null,p_date_from:options.dateFrom,p_date_to:options.dateTo,
+      p_show_deleted:true,p_sort_order:'total-asc',p_offset:500,p_limit:500,
+    });
+    expect(result).toEqual({data:[row],count:1003,error:null});
+    expect(calls).toEqual([]);
+  });
+  it('preserves invoice totals on an empty later page and propagates database errors',async()=>{
+    vi.mocked(supabase.rpc).mockResolvedValueOnce({data:{rows:[],total_count:25},error:null} as never);
+    expect(await documentListQuery(options).range(40,59)).toEqual({data:[],count:25,error:null});
+    vi.mocked(supabase.rpc).mockResolvedValueOnce({data:null,error:{message:'permission_denied'}} as never);
+    expect(await documentListQuery(options).range(0,19)).toEqual({data:null,count:null,error:{message:'permission_denied'}});
+  });
+  it('uses the invoice page contract for a complete export beyond the visible page',async()=>{
+    const rows=Array.from({length:1003},(_,id)=>({id}));
+    vi.mocked(supabase.rpc).mockImplementation((_name,args)=>{
+      const parameters=args as {p_offset:number;p_limit:number};
+      return Promise.resolve({data:{rows:rows.slice(parameters.p_offset,parameters.p_offset+parameters.p_limit),total_count:1003},error:null}) as never;
+    });
+    expect(await collectExportRows((from,to)=>documentListQuery(options).range(from,to))).toEqual(rows);
+    expect(vi.mocked(supabase.rpc).mock.calls.slice(-3).map(call=>call[1]?.p_offset)).toEqual([0,500,1000]);
+  });
   it.each(['invoice','receipt','warehouse_transfer','cash_transfer'] as DocumentScope[])('retains descending default and unbounded period for %s',(scope)=>{
-    documentListQuery({...options,scope,dateFrom:'',dateTo:''});
+    const query=documentListQuery({...options,scope,dateFrom:'',dateTo:''});
+    if(scope==='invoice') {
+      void query.range(0,19);
+      expect(supabase.rpc).toHaveBeenLastCalledWith('get_invoice_page',expect.objectContaining({
+        p_date_from:null,p_date_to:null,p_sort_order:'date-desc',p_show_deleted:false,
+      }));
+      return;
+    }
     expect(calls.some(c=>c[0]==='gte'||c[0]==='lte')).toBe(false);
     expect(calls).toContainEqual(['is','deleted_at',null]);
     expect(calls.filter(c=>c[0]==='order').every(c=>(c[2] as {ascending:boolean}).ascending===false)).toBe(true);

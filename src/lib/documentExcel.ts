@@ -43,7 +43,7 @@ export function documentExcelData(rows: Record<string, unknown>[], options: Docu
   return { data, columns: columns.map(column=>({width: ['account','statement','notes','created_by_name'].includes(column.key) ? 28 : column.type==='date' ? 14 : 18})) };
 }
 export async function exportDocumentExcel(options: DocumentExportOptions) {
-  const rows = await collectExportRows<Record<string, unknown>>((from,to)=>documentListQuery(options).range(from,to));
+  const rows = await collectExportRows<Record<string, unknown>>((from,to)=>documentListQuery<Record<string, unknown>>(options).range(from,to));
   const { data, columns } = documentExcelData(rows,options);
   const { default: writeExcelFile } = await import('write-excel-file/browser');
   await writeExcelFile(data,{
