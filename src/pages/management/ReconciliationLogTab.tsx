@@ -171,7 +171,8 @@ export default function ReconciliationLogTab({
           <div className="erp-toolbar">
             <div className="erp-filters">
               <SearchableSelect
-                ariaLabel="تصفية نمط الفحص"
+                label="نوع الفحص"
+                  ariaLabel="تصفية نمط الفحص"
                 value={modeFilter}
                 options={[
                   { value: 'all', label: 'كل الأنواع' },
@@ -186,7 +187,7 @@ export default function ReconciliationLogTab({
 
               <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); setPage(1); }} />
               <label className="erp-search">
-                <span className="sr-only">البحث</span>
+                <span className="filter-label">بحث</span>
                 <input
                   type="search"
                   value={searchTerm}

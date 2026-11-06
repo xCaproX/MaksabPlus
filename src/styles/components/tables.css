@@ -146,8 +146,9 @@ td.row-actions > * + * {
 .erp-table .remaining { color: #a54a26; }
 .erp-table :is(th, td) { vertical-align: middle; text-align: start; }
 .erp-table :is(th, td).num,
-.erp-table :is(th, td).col-money { text-align: end; font-variant-numeric: tabular-nums; }
-.erp-table td:has(> .num) { text-align: end; }
+.erp-table :is(th, td).col-money { text-align: start; font-variant-numeric: tabular-nums; }
+.erp-table td:has(> .num) { text-align: start; }
+.erp-table th.num .sortable-header-content { justify-content: flex-start; }
 .erp-table :is(th, td).col-date,
 .erp-table :is(th, td).col-time,
 .erp-table :is(th, td).col-kind,

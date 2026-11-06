@@ -268,12 +268,6 @@ export function calculateInvoiceKpis({
       unit: 'ج.م',
       variant: 'success',
       icon: CheckCircle2,
-      subtext:
-        totalAmount > 0 ? (
-          <span>
-            نسبة التحصيل: <bdi dir="ltr">{Math.round((paidAmount / totalAmount) * 100)}%</bdi>
-          </span>
-        ) : undefined,
     },
     {
       id: 'sale-remaining',

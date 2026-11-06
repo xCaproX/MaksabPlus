@@ -618,7 +618,8 @@ export default function Receipts() {
           <div className="erp-toolbar">
             <div className="erp-filters">
               <SearchableSelect
-                ariaLabel="تصفية حسب الخزنة"
+                label="الخزنة"
+                  ariaLabel="تصفية حسب الخزنة"
                 value={cashBoxFilter}
                 options={[
                   { value: 'all', label: 'كل الخزن' },
@@ -634,7 +635,7 @@ export default function Receipts() {
               <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
 
               <label className="erp-search">
-                <span className="sr-only">البحث</span>
+                <span className="filter-label">بحث</span>
                 <input
                   type="search"
                   value={searchTerm}

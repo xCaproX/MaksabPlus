@@ -280,7 +280,8 @@ export default function ItemBalancesTab() {
           <div className="erp-toolbar">
             <div className="erp-filters">
               <SearchableSelect
-                ariaLabel="تصفية حسب المخزن"
+                label="المخزن"
+                  ariaLabel="تصفية حسب المخزن"
                 value={selectedWarehouseId}
                 options={[
                   { value: '', label: 'كل المخازن' },
@@ -297,7 +298,7 @@ export default function ItemBalancesTab() {
               />
 
               <label className="erp-search">
-                <span className="sr-only">البحث</span>
+                <span className="filter-label">بحث</span>
                 <input
                   type="search"
                   value={searchTerm}

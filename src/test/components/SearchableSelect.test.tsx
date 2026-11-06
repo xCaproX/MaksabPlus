@@ -3,6 +3,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SearchableSelect, { type SearchOption } from '../../components/SearchableSelect';
 
 describe('SearchableSelect component', () => {
+  it('associates a visible field label with the searchable input', () => {
+    render(<SearchableSelect label="الحالة" value="all" options={[{ value: 'all', label: 'كل الحالات' }]} onChange={vi.fn()} />);
+    expect(screen.getByText('الحالة')).toBeVisible();
+    expect(screen.getByLabelText('الحالة')).toHaveAttribute('role', 'combobox');
+    expect(screen.getByLabelText('الحالة')).toHaveValue('كل الحالات');
+  });
   const syncOptions: SearchOption[] = [
     { value: '1', label: 'صنف أ' },
     { value: '2', label: 'صنف ب' },

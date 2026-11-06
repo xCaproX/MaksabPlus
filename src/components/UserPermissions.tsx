@@ -289,13 +289,17 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
               </div>
 
               <div className="users-sidebar-filters">
+                <label>
+                  <span className="filter-label">بحث</span>
                 <input
                   type="search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="بحث بالاسم أو البريد…"
                 />
+                </label>
                 <SearchableSelect
+                  label="الحالة"
                   ariaLabel="تصفية الموظفين"
                   value={statusFilter}
                   options={[

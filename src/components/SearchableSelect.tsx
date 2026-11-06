@@ -23,6 +23,7 @@ interface SearchableSelectProps {
   disabled?: boolean;
   className?: string;
   ariaLabel?: string;
+  label?: string;
   inputRef?: Ref<HTMLInputElement>;
   onBarcodeScan?: (code: string) => void;
 }
@@ -42,6 +43,7 @@ export default function SearchableSelect({
   disabled = false,
   className = '',
   ariaLabel,
+  label,
   inputRef,
   onBarcodeScan,
 }: SearchableSelectProps) {
@@ -171,14 +173,16 @@ export default function SearchableSelect({
       className={`searchable-select ${open ? 'is-open' : ''} ${disabled ? 'disabled' : ''} ${className}`.trim()}
       ref={containerRef}
     >
+      {label && <label className="filter-label" htmlFor={`${id}-input`}>{label}</label>}
       <div className="searchable-select-input-wrap">
         <input
+          id={`${id}-input`}
           ref={inputRef}
           type="text"
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={open}
-          aria-label={ariaLabel}
+          aria-label={ariaLabel ?? label}
           aria-controls={`${id}-options`}
           aria-activedescendant={open && activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined}
           value={open ? query : selected?.label ?? selectedLabel ?? ''}

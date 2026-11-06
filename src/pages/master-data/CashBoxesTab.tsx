@@ -268,7 +268,8 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
           <div className="erp-toolbar">
             <div className="erp-filters">
               <SearchableSelect
-                ariaLabel="تصفية الحالة"
+                label="الحالة"
+                  ariaLabel="تصفية الحالة"
                 value={statusFilter}
                 options={[
                   { value: 'all', label: 'كل الحالات' },
@@ -279,7 +280,7 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
               />
 
               <label className="erp-search">
-                <span className="sr-only">البحث</span>
+                <span className="filter-label">بحث</span>
                 <input
                   type="search"
                   value={searchTerm}

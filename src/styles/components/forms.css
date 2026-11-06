@@ -101,6 +101,16 @@ input[type="number"] {
   width: 100%;
 }
 
+.filter-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 18px;
+  color: var(--erp-muted, var(--muted));
+  text-align: start;
+}
+.searchable-select > .filter-label { margin-block-end: 6px; }
+
 .searchable-select-input-wrap {
   position: relative;
   display: flex;

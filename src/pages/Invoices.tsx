@@ -743,6 +743,7 @@ export default function Invoices() {
             <div className="erp-filters">
               {!isWarehouseTransfer && kind !== 'waste' && (
                 <SearchableSelect
+                  label="الحالة"
                   ariaLabel="حالة السداد"
                   value={statusFilter}
                   options={[
@@ -758,7 +759,7 @@ export default function Invoices() {
               <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
 
               <label className="erp-search">
-                <span className="sr-only">البحث</span>
+                <span className="filter-label">بحث</span>
                 <input
                   type="search"
                   value={searchTerm}

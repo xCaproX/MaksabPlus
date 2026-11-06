@@ -30,6 +30,7 @@ describe('document list presentation', () => {
     const items = calculateInvoiceKpis({ kind: 'sale', isWarehouseTransfer: false, invoiceSummary: summary, canViewProfit: true });
     expect(items.map((item) => item.label)).toEqual(['إجمالي المبيعات','عدد الفواتير','إجمالي التحصيل','إجمالي الآجل','إجمالي الأرباح']);
     expect(items.map((item) => item.value)).toEqual(['100.00',1,'40.00','60.00','20.00']);
+    expect(items.find((item) => item.id === 'sale-paid')?.subtext).toBeUndefined();
     expect(calculateInvoiceKpis({ kind: 'sale', isWarehouseTransfer: false, invoiceSummary: summary, canViewProfit: false })).toHaveLength(4);
   });
   it('keeps sibling purchasing and return summaries appropriate to their function', () => {
@@ -42,5 +43,6 @@ describe('document list presentation', () => {
       receiptSummary: { totalAmount: 50, invoiceLinked: 40, count: 2 }, transferSummary: { totalAmount: 0, count: 0 } });
     expect(items[1].label).toBe('عدد إيصالات الاستلام');
     expect(items.find((item) => item.id === 'receipt-in-free')?.value).toBe('10.00');
+    expect(items.every((item) => item.subtext === undefined)).toBe(true);
   });
 });

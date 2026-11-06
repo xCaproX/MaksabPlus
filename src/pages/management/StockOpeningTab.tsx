@@ -202,7 +202,8 @@ export default function StockOpeningTab({
           <div className="erp-toolbar">
             <div className="erp-filters">
               <SearchableSelect
-                ariaLabel="اختيار المخزن"
+                label="المخزن"
+                  ariaLabel="اختيار المخزن"
                 value={selectedWarehouseId}
                 options={[
                   { value: '', label: 'اختر المخزن' },
@@ -216,7 +217,7 @@ export default function StockOpeningTab({
               />
 
               <label className="erp-search">
-                <span className="sr-only">البحث</span>
+                <span className="filter-label">بحث</span>
                 <input
                   type="search"
                   value={searchTerm}

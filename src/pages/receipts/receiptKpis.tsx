@@ -94,12 +94,6 @@ export function calculateReceiptKpis({
         unit: 'ج.م',
         variant: 'primary',
         icon: CheckCircle2,
-        subtext:
-          totalAmount > 0 ? (
-            <span>
-              تمثل <bdi dir="ltr">{Math.round((invoiceLinked / totalAmount) * 100)}%</bdi> من الإجمالي
-            </span>
-          ) : undefined,
       },
       {
         id: 'receipt-in-free',
@@ -137,12 +131,6 @@ export function calculateReceiptKpis({
       unit: 'ج.م',
       variant: 'primary',
       icon: ShoppingBag,
-      subtext:
-        totalAmount > 0 ? (
-          <span>
-            تمثل <bdi dir="ltr">{Math.round((invoiceLinked / totalAmount) * 100)}%</bdi> من الإجمالي
-          </span>
-        ) : undefined,
     },
     {
       id: 'receipt-out-free',

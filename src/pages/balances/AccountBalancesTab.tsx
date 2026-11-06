@@ -332,7 +332,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
           <div className="erp-toolbar">
             <div className="erp-filters">
               <label className="erp-search">
-                <span className="sr-only">البحث</span>
+                <span className="filter-label">بحث</span>
                 <input
                   type="search"
                   value={searchTerm}

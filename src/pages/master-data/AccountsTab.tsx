@@ -414,7 +414,8 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
           <div className="erp-toolbar">
             <div className="erp-filters">
               <SearchableSelect
-                ariaLabel="تصفية الحالة"
+                label="الحالة"
+                  ariaLabel="تصفية الحالة"
                 value={statusFilter}
                 options={[
                   { value: 'all', label: 'كل الحالات' },
@@ -425,7 +426,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
               />
 
               <label className="erp-search">
-                <span className="sr-only">البحث</span>
+                <span className="filter-label">بحث</span>
                 <input
                   type="search"
                   value={searchTerm}
