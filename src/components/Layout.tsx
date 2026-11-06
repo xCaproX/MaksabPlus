@@ -1,7 +1,7 @@
 import { getCurrentUserIdentity } from '../lib/company';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound } from 'lucide-react';
+import { LayoutDashboard, Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound, UserRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -443,8 +443,11 @@ export default function Layout() {
 
         <div className="sidebar-footer">
           <div className="sidebar-user-block">
-            <div className="sidebar-user-name" title={userName || 'المستخدم'}>{userName || 'المستخدم'}</div>
-            <div className="sidebar-company-name" title={companyName || 'مكسب بلس'}>{companyName || 'مكسب بلس'}</div>
+            <span className="sidebar-user-avatar" aria-hidden="true"><UserRound size={19} /></span>
+            <div className="sidebar-user-details">
+              <div className="sidebar-user-name" title={userName || 'المستخدم'}>{userName || 'المستخدم'}</div>
+              <div className="sidebar-company-name" title={companyName || 'مكسب بلس'}>{companyName || 'مكسب بلس'}</div>
+            </div>
           </div>
           <button
             type="button"
@@ -452,11 +455,11 @@ export default function Layout() {
             onClick={() => setChangePasswordOpen(true)}
             title="تغيير كلمة المرور"
           >
-            <KeyRound size={15} />
+            <KeyRound size={17} aria-hidden="true" />
             <span>تغيير كلمة المرور</span>
           </button>
           <button type="button" className="sign-out" onClick={signOut} title="تسجيل الخروج">
-            <LogOut size={16} />
+            <LogOut size={17} aria-hidden="true" />
             <span>تسجيل الخروج</span>
           </button>
         </div>
