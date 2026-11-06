@@ -75,6 +75,11 @@ begin
   values (v_company_id, 'مخزن اختبار رئيسي', true)
   returning id into v_wh_id;
 
+  -- Four item/warehouse combinations require two warehouses owned by this
+  -- company. The globally seeded warehouse belongs to a different tenant.
+  insert into public.warehouses (company_id, name, is_active)
+  values (v_company_id, 'مخزن اختبار فرعي', true);
+
   -- إنشاء صنفين للاختبار
   insert into public.items (company_id, name, code, unit, sale_price, purchase_price, is_active)
   values (v_company_id, 'صنف اختبار متوفر', 'TEST-001', 'قطعة', 100, 70, true)
@@ -126,6 +131,12 @@ begin
   v_res_stock := public.get_warehouse_stock_kpis(null, 'صنف اختبار');
   if (v_res_stock->>'count')::int <> 4 then
     raise exception 'Expected count 4 across all warehouses, got %', v_res_stock->>'count';
+  end if;
+
+  if (v_res_stock->>'total_qty')::numeric <> 15
+     or (v_res_stock->>'total_val')::numeric <> 1050
+     or (v_res_stock->>'out_of_stock_count')::int <> 3 then
+    raise exception 'Unexpected own-warehouse aggregate: %', v_res_stock;
   end if;
 end;
 $$;
