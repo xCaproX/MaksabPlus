@@ -50,7 +50,7 @@ export default function ColumnFilterRow({ scope, kind = '', owner = false, value
       step="any" inputMode={type === 'number' ? 'decimal' : undefined}
       dir={type === 'number' || key === 'number' || key === 'number_label' ? 'ltr' : 'auto'}
       className={type === 'number' ? 'no-spinner tabular-nums' : ''}
-      value={values[key] ?? ''} aria-label={ariaLabel} placeholder={type === 'number' ? '=' : 'بحث…'}
+      value={values[key] ?? ''} aria-label={ariaLabel} placeholder={type === 'number' ? '=' : ['notes', 'statement'].includes(key) ? 'بحث' : 'بحث…'}
       onFocus={(event) => event.target.select()} onChange={(event) => onChange(key, event.target.value)} />;
   }
   if (as === 'bar') return <div className="column-filter-bar" aria-label="بحث بالأعمدة">

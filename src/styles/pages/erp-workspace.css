@@ -571,3 +571,14 @@
   .erp-detail-head { position: sticky; inset-block-start: 0; z-index: 1; }
   .erp-detail-lines { max-height: none; }
 }
+
+/* The standalone document toolbar has equal stack spacing above and below. */
+.erp-kpi-bar:has(+ .document-list-toolbar) { margin-block-end: 0; }
+.document-list-toolbar {
+  margin-block: 12px;
+  flex-wrap: wrap;
+  border: 1px solid var(--erp-border);
+  border-radius: 8px;
+}
+.document-list-toolbar .erp-filters { flex: 1 1 auto; inline-size: auto; min-inline-size: 0; }
+.document-export-btn { margin-inline-start: auto; flex-shrink: 0; white-space: nowrap; gap: 8px; font-size: 12px; }

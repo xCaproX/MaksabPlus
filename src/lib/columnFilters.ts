@@ -1,5 +1,5 @@
 import rawSchema from './listColumnSchema.json';
-import { entityNumber, receiptTypeLabel } from './format';
+import { entityNumber, receiptTypeLabel, saleStatus } from './format';
 import { supabase } from './supabase';
 
 export type ListScope = keyof typeof rawSchema;
@@ -53,7 +53,7 @@ export function columnValue(row: object, column: ColumnSpec, secondary = false):
     return entityNumber(column.prefixByKind?.[String(record.kind)] ?? column.prefix ?? '', source as number);
   }
   if (column.format === 'abs') return source == null ? null : Math.abs(Number(source));
-  if (column.format === 'payment_status') return Number(record.remaining) <= 0 ? 'paid' : Number(record.paid) > 0 ? 'partial' : 'unpaid';
+  if (column.format === 'payment_status') return saleStatus({remaining: record.remaining, paid: record.paid});
   if (column.format === 'receipt_type') return record.is_free ? 'free' : 'linked';
   if (column.format === 'result_status') return record.status === 'clean' || Number(record.discrepancies_count) === 0 ? 'clean' : 'issues';
   if (column.format === 'scope_summary') return `${record.accounts_count} حساب • ${record.cash_boxes_count} خزنة • ${record.items_count} صنف`;

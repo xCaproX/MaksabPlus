@@ -156,8 +156,9 @@ td.row-actions > * + * {
 .document-table { min-inline-size: 1120px; }
 .document-table .col-number { inline-size: 1%; white-space: nowrap; }
 .document-table .col-location { min-inline-size: 110px; max-inline-size: 170px; white-space: normal; }
-.document-table .col-account { min-inline-size: 120px; max-inline-size: 200px; white-space: normal; }
+.document-table .col-account { min-inline-size: 140px; max-inline-size: 200px; white-space: normal; }
 .erp-table .col-notes { min-inline-size: 180px; max-inline-size: 280px; white-space: normal; overflow-wrap: anywhere; }
+.document-table--invoices .col-notes { min-inline-size: 160px; max-inline-size: 260px; }
 .document-table .col-creator { min-inline-size: 110px; max-inline-size: 180px; white-space: normal; overflow-wrap: anywhere; }
 .document-table td { padding-block: 10px; }
 .document-table .erp-row-actions { min-inline-size: 44px; }
@@ -167,7 +168,7 @@ td.row-actions > * + * {
 .document-table--receipts { min-inline-size: 0; }
 .document-table--receipts :is(th, td) { padding-inline: 8px; }
 .document-table--receipts .col-location { min-inline-size: 124px; overflow-wrap: anywhere; }
-.document-table--receipts .col-account { min-inline-size: 90px; overflow-wrap: anywhere; }
+.document-table--receipts .col-account { min-inline-size: 110px; overflow-wrap: anywhere; }
 .document-table--receipts th:not(.col-notes),
 .document-table--receipts tbody td:not(.col-notes) { inline-size: 1%; --preserve-column-width: 1; }
 .document-table--receipts .col-receipt-type { inline-size: 1%; min-inline-size: 80px; white-space: normal; }
@@ -185,7 +186,7 @@ td.row-actions > * + * {
   max-inline-size: var(--column-fixed-size); white-space: nowrap;
 }
 @container (inline-size < 1060px) {
-  .document-table--receipts .col-notes { min-inline-size: 58px; }
+  .document-table--receipts .col-notes { min-inline-size: 48px; }
 }
 
 

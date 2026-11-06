@@ -94,3 +94,19 @@ export function getBalanceStatus(
 }
 
 
+
+export type SaleStatus = 'all' | 'paid' | 'partial' | 'unpaid';
+
+export function saleStatus(invoice: { remaining: unknown; paid: unknown }): Exclude<SaleStatus, 'all'> {
+  if (Number(invoice.remaining) <= 0) return 'paid';
+  if (Number(invoice.paid) > 0) return 'partial';
+  return 'unpaid';
+}
+
+export function saleStatusLabel(status: Exclude<SaleStatus, 'all'>, isReturn = false): string {
+  if (isReturn) {
+    return status === 'paid' ? 'مستردة بالكامل' : status === 'partial' ? 'مستردة جزئيًا' : 'غير مستردة';
+  }
+  return status === 'paid' ? 'مسددة' : status === 'partial' ? 'جزئية' : 'غير مسددة';
+}
+

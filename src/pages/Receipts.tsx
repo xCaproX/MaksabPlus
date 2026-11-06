@@ -9,7 +9,8 @@ import Modal from '../components/Modal';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import ReceiptForm from '../components/ReceiptForm';
 import ConfirmDialog from '../components/ConfirmDialog';
-import PeriodFilter from '../components/PeriodFilter';
+import DocumentListToolbar from '../components/DocumentListToolbar';
+import { documentListQuery } from '../lib/documentListQuery';
 import { periodDates } from '../lib/period';
 import KpiBar from '../components/KpiBar';
 import { toast } from '../components/Toast';
@@ -167,42 +168,8 @@ export default function Receipts() {
 
       try {
         if (!isCashBoxTransfer) {
-          let query = supabase
-            .rpc('filter_receipt_rows', { p_columns: columns.filters, p_search: null, p_kind: direction, }, { count: 'exact' }).select('*')
-            .eq('direction', direction);
-
-          if (showDeleted) {
-            query = query.not('deleted_at', 'is', null);
-          } else {
-            query = query.is('deleted_at', null);
-          }
-
-          if (dateFrom) {
-            query = query.gte('receipt_date', dateFrom);
-          }
-          if (dateTo) {
-            query = query.lte('receipt_date', dateTo);
-          }
-
-          if (sortOrder === 'amount-desc') {
-            query = query.order('amount', { ascending: false }).order('number', { ascending: false });
-          } else if (sortOrder === 'amount-asc') {
-            query = query.order('amount', { ascending: true }).order('number', { ascending: true });
-          } else if (sortOrder === 'number-desc') {
-            query = query.order('number', { ascending: false });
-          } else if (sortOrder === 'number-asc') {
-            query = query.order('number', { ascending: true });
-          } else if (sortOrder === 'account-desc') {
-            query = query.order('account_name', { ascending: false }).order('number', { ascending: false });
-          } else if (sortOrder === 'account-asc') {
-            query = query.order('account_name', { ascending: true }).order('number', { ascending: true });
-          } else if (sortOrder === 'date-asc') {
-            query = query.order('receipt_date', { ascending: true }).order('number', { ascending: true });
-          } else {
-            query = query.order('receipt_date', { ascending: false }).order('number', { ascending: false });
-          }
-
-          query = query.range(from, to);
+          const query = documentListQuery({ scope: 'receipt', kind: direction, filters: columns.filters,
+            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to);
 
           const [dataRes, kpiRes] = await Promise.all([
             query,
@@ -236,37 +203,8 @@ export default function Receipts() {
             });
           }
         } else {
-          let query = supabase
-            .rpc('filter_cash_transfer_rows', { p_columns: columns.filters, p_search: null,  }, { count: 'exact' }).select('*');
-
-          if (showDeleted) {
-            query = query.not('deleted_at', 'is', null);
-          } else {
-            query = query.is('deleted_at', null);
-          }
-
-          if (dateFrom) {
-            query = query.gte('transfer_date', dateFrom);
-          }
-          if (dateTo) {
-            query = query.lte('transfer_date', dateTo);
-          }
-
-          if (sortOrder === 'amount-desc') {
-            query = query.order('amount', { ascending: false }).order('number', { ascending: false });
-          } else if (sortOrder === 'amount-asc') {
-            query = query.order('amount', { ascending: true }).order('number', { ascending: true });
-          } else if (sortOrder === 'number-desc') {
-            query = query.order('number', { ascending: false });
-          } else if (sortOrder === 'number-asc') {
-            query = query.order('number', { ascending: true });
-          } else if (sortOrder === 'date-asc') {
-            query = query.order('transfer_date', { ascending: true }).order('number', { ascending: true });
-          } else {
-            query = query.order('transfer_date', { ascending: false }).order('number', { ascending: false });
-          }
-
-          query = query.range(from, to);
+          const query = documentListQuery({ scope: 'cash_transfer', kind: direction, filters: columns.filters,
+            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to);
 
           const [dataRes, kpiRes] = await Promise.all([
             query,
@@ -584,15 +522,14 @@ export default function Receipts() {
       {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
       <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${tabTitle}`} />
 
+      <DocumentListToolbar options={{ scope: isCashBoxTransfer ? 'cash_transfer' : 'receipt',
+        kind: direction, filters: columns.filters, dateFrom, dateTo, showDeleted, sortOrder,
+        title: showDeleted ? 'المحذوفات — '+tabTitle : tabTitle, canViewProfit: false }}
+        disabled={loading || columns.values !== columns.filters} onDatesChange={(from,to)=>{setDateFrom(from);setDateTo(to);}} />
+
       {/* جدول المعاملات ممتد بكامل العرض 100% بتوافق تام مع فواتير المبيعات */}
       <div className="erp-sales-workspace">
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
-          <div className="erp-toolbar">
-            <div className="erp-filters">
-              <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
-            </div>
-          </div>
-
           <div className="erp-table-wrap">
             {isCashBoxTransfer ? (
               <CashBoxTransferTable

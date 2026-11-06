@@ -9,7 +9,8 @@ import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
-import PeriodFilter from '../components/PeriodFilter';
+import DocumentListToolbar from '../components/DocumentListToolbar';
+import { documentListQuery } from '../lib/documentListQuery';
 import { periodDates } from '../lib/period';
 import KpiBar from '../components/KpiBar';
 import { toast } from '../components/Toast';
@@ -244,46 +245,8 @@ export default function Invoices() {
 
       try {
         if (invoiceKind) {
-          let query = supabase
-            .rpc('filter_invoice_rows', { p_columns: columns.filters, p_search: null, p_kind: invoiceKind, }, { count: 'exact' }).select('*')
-            .eq('kind', invoiceKind);
-
-          if (showDeleted) {
-            query = query.not('deleted_at', 'is', null);
-          } else {
-            query = query.is('deleted_at', null);
-          }
-
-          if (dateFrom) {
-            query = query.gte('invoice_date', dateFrom);
-          }
-          if (dateTo) {
-            query = query.lte('invoice_date', dateTo);
-          }
-
-          if (sortOrder === 'total-desc') {
-            query = query.order('total', { ascending: false }).order('number', { ascending: false });
-          } else if (sortOrder === 'total-asc') {
-            query = query.order('total', { ascending: true }).order('number', { ascending: true });
-          } else if (sortOrder === 'number-desc') {
-            query = query.order('number', { ascending: false });
-          } else if (sortOrder === 'number-asc') {
-            query = query.order('number', { ascending: true });
-          } else if (sortOrder === 'account-desc') {
-            query = query.order('account_name', { ascending: false }).order('number', { ascending: false });
-          } else if (sortOrder === 'account-asc') {
-            query = query.order('account_name', { ascending: true }).order('number', { ascending: true });
-          } else if (sortOrder === 'remaining-desc') {
-            query = query.order('remaining', { ascending: false }).order('number', { ascending: false });
-          } else if (sortOrder === 'remaining-asc') {
-            query = query.order('remaining', { ascending: true }).order('number', { ascending: true });
-          } else if (sortOrder === 'date-asc') {
-            query = query.order('invoice_date', { ascending: true }).order('number', { ascending: true });
-          } else {
-            query = query.order('invoice_date', { ascending: false }).order('number', { ascending: false });
-          }
-
-          query = query.range(from, to);
+          const query = documentListQuery({ scope: 'invoice', kind: invoiceKind, filters: columns.filters,
+            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to);
 
           const [docRes, kpiRes] = await Promise.all([
             query,
@@ -318,45 +281,8 @@ export default function Invoices() {
             });
           }
         } else if (isWarehouseTransfer) {
-          let transferQuery = supabase
-            .rpc('filter_warehouse_transfer_rows', { p_columns: columns.filters, p_search: null,  }, { count: 'exact' }).select('*');
-
-          if (showDeleted) {
-            transferQuery = transferQuery.not('deleted_at', 'is', null);
-          } else {
-            transferQuery = transferQuery.is('deleted_at', null);
-          }
-
-          if (dateFrom) {
-            transferQuery = transferQuery.gte('transfer_date', dateFrom);
-          }
-          if (dateTo) {
-            transferQuery = transferQuery.lte('transfer_date', dateTo);
-          }
-
-          if (sortOrder === 'total-desc') {
-            transferQuery = transferQuery
-              .order('total_value', { ascending: false })
-              .order('number', { ascending: false });
-          } else if (sortOrder === 'total-asc') {
-            transferQuery = transferQuery
-              .order('total_value', { ascending: true })
-              .order('number', { ascending: true });
-          } else if (sortOrder === 'number-desc') {
-            transferQuery = transferQuery.order('number', { ascending: false });
-          } else if (sortOrder === 'number-asc') {
-            transferQuery = transferQuery.order('number', { ascending: true });
-          } else if (sortOrder === 'date-asc') {
-            transferQuery = transferQuery
-              .order('transfer_date', { ascending: true })
-              .order('number', { ascending: true });
-          } else {
-            transferQuery = transferQuery
-              .order('transfer_date', { ascending: false })
-              .order('number', { ascending: false });
-          }
-
-          transferQuery = transferQuery.range(from, to);
+          const transferQuery = documentListQuery({ scope: 'warehouse_transfer', kind: kind, filters: columns.filters,
+            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to);
 
           const [transRes, kpiRes] = await Promise.all([
             transferQuery,
@@ -708,15 +634,14 @@ export default function Invoices() {
       {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
       <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${tabTitle}`} />
 
+      <DocumentListToolbar options={{ scope: isWarehouseTransfer ? 'warehouse_transfer' : 'invoice',
+        kind: kind, filters: columns.filters, dateFrom, dateTo, showDeleted, sortOrder,
+        title: showDeleted ? 'المحذوفات — '+tabTitle : tabTitle, canViewProfit: canViewProfit }}
+        disabled={loading || columns.values !== columns.filters} onDatesChange={(from,to)=>{setDateFrom(from);setDateTo(to);}} />
+
       {/* جدول البيانات */}
       <div className="erp-sales-workspace">
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
-          <div className="erp-toolbar">
-            <div className="erp-filters">
-              <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
-            </div>
-          </div>
-
           <div className="erp-table-wrap">
             {isWarehouseTransfer ? (
               <WarehouseTransferTable

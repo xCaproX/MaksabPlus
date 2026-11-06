@@ -1,8 +1,38 @@
 import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { inflateRawSync } from 'node:zlib';
+function workbookParts(buffer) {
+  const files={};
+  const end=buffer.lastIndexOf(Buffer.from([0x50,0x4b,0x05,0x06]));
+  assert.ok(end>=0,'Valid XLSX ZIP');
+  let position=buffer.readUInt32LE(end+16);
+  for(let i=0;i<buffer.readUInt16LE(end+10);i++){
+    assert.equal(buffer.readUInt32LE(position),0x02014b50);
+    const method=buffer.readUInt16LE(position+10),size=buffer.readUInt32LE(position+20);
+    const nameLength=buffer.readUInt16LE(position+28),extraLength=buffer.readUInt16LE(position+30),commentLength=buffer.readUInt16LE(position+32);
+    const name=buffer.subarray(position+46,position+46+nameLength).toString();
+    const local=buffer.readUInt32LE(position+42);
+    const start=local+30+buffer.readUInt16LE(local+26)+buffer.readUInt16LE(local+28);
+    const compressed=buffer.subarray(start,start+size);
+    files[name]=(method===8?inflateRawSync(compressed):compressed).toString();
+    position+=46+nameLength+extraLength+commentLength;
+  }
+  return files;
+}
+
 import { createServer } from 'vite';
 import { chromium } from 'playwright-core';
+
+async function downloadWorkbook(page) {
+  const pending=page.waitForEvent('download');
+  await page.locator('.document-export-btn').click();
+  const download=await pending;
+  assert.ok(download.suggestedFilename().endsWith('.xlsx'));
+  const stream=await download.createReadStream(),chunks=[];
+  for await(const chunk of stream)chunks.push(chunk);
+  return workbookParts(Buffer.concat(chunks));
+}
 
 // Entirely synthetic session and responses: this check never contacts production.
 const user = {
@@ -30,6 +60,7 @@ const server = await createServer({
 let browser;
 let accessRole='owner';
 let largeReceipt=false;
+let exportFixture=null;
 const requests=[];
 try {
   await server.listen();
@@ -88,15 +119,87 @@ try {
     if(largeReceipt&&resource==='v_receipt_list')data=data.map(row=>({...row,amount:1234567.5,is_free:false,invoice_kind:'sale_return',invoice_id:'invoice-1',
       account_name:'اسم عميل طويل لاختبار التفاف الاسم داخل العمود',notes:'ملاحظات طويلة للتأكد من ظهور النص كاملًا على سطور داخل المساحة المتاحة'.repeat(3)}));
     if(largeReceipt&&resource==='get_receipt_kpis')data={count:1,total_amount:1234567.5,invoice_linked:1};
+    let contentRange=null;
+    if(exportFixture&&rawResource===exportFixture.rpc){
+      const from=Number(url.searchParams.get('offset')??0),limit=Math.min(Number(url.searchParams.get('limit')??20),37);
+      if(exportFixture.failFrom!=null&&from>=exportFixture.failFrom){
+        await route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({message:'تعذر تحميل دفعة التصدير التجريبية'})});return;
+      }
+      const total=exportFixture.total,base=data[0];
+      data=Array.from({length:Math.max(0,Math.min(limit,total-from))},(_,index)=>({...base,id:'export-'+(from+index+1),
+        number:'EXP-'+String(from+index+1).padStart(6,'0'),notes:'=SUM(1,2)'}));
+      contentRange=total?from+'-'+(from+data.length-1)+'/'+total:'*/0';
+    }
     if (Object.values(body?.p_columns ?? {}).includes('NO-MATCH')) data=Array.isArray(data)?[]:{count:0,total_count:0};
     if (req.headers().accept?.includes('vnd.pgrst.object') && Array.isArray(data)) data = data[0] ?? null;
     await route.fulfill({ status: 200, contentType: 'application/json',
-      headers: { 'Content-Range': Object.values(body?.p_columns ?? {}).includes('NO-MATCH') ? '*/0' : '0-0/1', 'Access-Control-Expose-Headers': 'Content-Range' },
+      headers: { 'Content-Range': contentRange ?? (Object.values(body?.p_columns ?? {}).includes('NO-MATCH') ? '*/0' : '0-0/1'), 'Access-Control-Expose-Headers': 'Content-Range' },
       body: JSON.stringify(data) });
   });
 
   const page=await context.newPage(); await page.clock.setFixedTime(new Date('2026-11-06T10:00:00Z'));
   const errors=[];page.on('pageerror',e=>errors.push(e.message));mkdirSync(outDir,{recursive:true});let checks=0;
+  // A real workbook download must include every matching page and only visible columns.
+  for (const [index,route] of routes.filter(route=>route.startsWith('/invoices')||route.startsWith('/receipts')).concat('/invoices?tab=warehouse_transfer').entries()) {
+    accessRole=index===9?'staff':'owner';
+    const tab=new URL('http://localhost'+route).searchParams.get('tab');
+    const scope=route.startsWith('/invoices')?(tab==='warehouse_transfer'?'warehouse_transfer':'invoice'):(tab==='cash_box_transfer'?'cash_transfer':'receipt');
+    const rpc={invoice:'filter_invoice_rows',receipt:'filter_receipt_rows',warehouse_transfer:'filter_warehouse_transfer_rows',cash_transfer:'filter_cash_transfer_rows'}[scope];
+    exportFixture={rpc,total:route==='/invoices?tab=sale'?1003:43,scope};
+    await page.setViewportSize({width:1920,height:1080});
+    await page.goto('http://localhost:5195'+route,{waitUntil:'networkidle'});
+    const note=page.getByLabel('بحث في ملاحظات',{exact:true});
+    await note.fill('=SUM(1,2)');
+    const exportButton=page.getByRole('button',{name:'تصدير الجدول إلى إكسيل'});
+    await page.waitForFunction(()=>!document.querySelector('.document-export-btn')?.disabled);
+    if(route==='/invoices?tab=sale'){
+      await page.getByRole('button',{name:'الصفحة التالية',exact:true}).click();
+      await page.waitForFunction(()=>!document.querySelector('.document-export-btn')?.disabled);
+    }
+    const expectedHeaders=await page.locator('.erp-table thead tr:first-child th').evaluateAll(cells=>cells.slice(0,-1).map(c=>c.textContent));
+    const before=requests.length;
+    const parts=await downloadWorkbook(page);
+    const parsed=await page.evaluate(({sheet,shared})=>{
+      const xml=new DOMParser().parseFromString(sheet,'application/xml');
+      const strings=new DOMParser().parseFromString(shared??'<sst/>','application/xml');
+      const lookup=[...strings.querySelectorAll('si')].map(si=>si.textContent);
+      const rows=[...xml.querySelectorAll('sheetData row')].map(row=>[...row.querySelectorAll('c')].map(c=>c.getAttribute('t')==='s'?lookup[Number(c.querySelector('v')?.textContent)]:c.querySelector('t')?.textContent??c.querySelector('v')?.textContent));
+      return {rows,formulas:xml.querySelectorAll('f').length,rtl:xml.querySelector('sheetView')?.getAttribute('rightToLeft')};
+    },{sheet:parts['xl/worksheets/sheet1.xml'],shared:parts['xl/sharedStrings.xml']});
+    assert.deepEqual(parsed.rows[0],expectedHeaders,'Workbook matches visible headers '+route+' '+accessRole);
+    assert.equal(parsed.rows.length,exportFixture.total+1,'All filtered pages '+route);
+    assert.equal(parsed.rows[1][0],'EXP-000001');assert.equal(parsed.rows.at(-1)[0],'EXP-'+String(exportFixture.total).padStart(6,'0'));
+    assert.equal(parsed.formulas,0,'Notes remain plain text');
+    assert.ok(parsed.rows[1].includes('=SUM(1,2)'));
+    assert.ok(parsed.rtl==='1'||parsed.rtl==='true');
+    assert.ok(parts['xl/styles.xml'].includes('dd/mm/yyyy'));
+    assert.equal(Number(parsed.rows[1][1]),(Date.UTC(2026,10,6)-Date.UTC(1899,11,30))/86400000,'Excel date stays on the same calendar day');
+    const fetched=requests.slice(before).filter(r=>r.resource===rpc);
+    assert.ok(fetched.length>1,'Export fetches beyond one page');
+    assert.ok(fetched.every(r=>r.body.p_columns.notes==='=SUM(1,2)'),'Export retains current filters');
+    assert.equal(new URL(fetched[0].url).searchParams.get('offset'),'0','Export starts at first row, even from page two');
+  }
+  accessRole='owner';
+  exportFixture={rpc:'filter_receipt_rows',scope:'receipt',total:0};
+  await page.goto('http://localhost:5195/receipts?tab=in',{waitUntil:'networkidle'});
+  await page.waitForFunction(()=>!document.querySelector('.document-export-btn')?.disabled);
+  const emptyWorkbook=await downloadWorkbook(page);
+  assert.equal((emptyWorkbook['xl/worksheets/sheet1.xml'].match(/<row\b/g)??[]).length,1,'Empty export contains headers only');
+  exportFixture={rpc:'filter_receipt_rows',scope:'receipt',total:43,failFrom:37};
+  await page.reload({waitUntil:'networkidle'});
+  await page.waitForFunction(()=>!document.querySelector('.document-export-btn')?.disabled);
+  const unexpected=[];
+  const onDownload=download=>unexpected.push(download);
+  page.on('download',onDownload);
+  await page.locator('.document-export-btn').click();
+  await page.getByText('تعذر تحميل دفعة التصدير التجريبية',{exact:true}).waitFor();
+  await page.waitForFunction(()=>!document.querySelector('.document-export-btn')?.disabled);
+  assert.equal(unexpected.length,0,'Failed later page must not download a partial workbook');
+  page.off('download',onDownload);
+  console.log('PASS header-only empty workbook and failed later-page export without partial download');
+  exportFixture=null;accessRole='owner';requests.length=0;
+  console.log('PASS 10 actual XLSX downloads: all pages, Arabic/RTL, numeric/date cells, safe text and staff permissions');
+  if(!process.argv.includes('--exports-only')) {
   // Enter the hidden action cell directly, without crossing another row cell.
   for (const width of [1280,1920]) {
     await page.setViewportSize({width,height:900});
@@ -114,7 +217,7 @@ try {
       await page.getByRole('menu',{name:'قائمة الإجراءات'}).waitFor();
       await page.keyboard.press('Escape');
       assert.equal(await button.getAttribute('aria-expanded'),'false');
-      if(screenshots)await page.screenshot({path:path.join(outDir,'compact-dates-actions-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png')});
+      if(screenshots)await page.screenshot({path:path.join(outDir,'document-export-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png')});
     }
   }
   console.log('PASS 18 direct action-cell hovers and menu open/close');
@@ -168,6 +271,23 @@ try {
         assert.ok(presentation.width<=81,'Compact fixed receipt type');
         assert.equal(presentation.label,'حر');assert.equal(presentation.bg,'rgb(239, 246, 255)');
       }
+      if(route.startsWith('/invoices')||route.startsWith('/receipts')){
+        const geometry=await page.evaluate(()=>{
+          const toolbar=document.querySelector('.document-list-toolbar').getBoundingClientRect();
+          const cards=document.querySelector('.erp-kpi-bar').getBoundingClientRect();
+          const table=document.querySelector('.erp-sales-workspace').getBoundingClientRect();
+          const period=document.querySelector('.document-list-toolbar .period-filter').getBoundingClientRect();
+          const button=document.querySelector('.document-export-btn').getBoundingClientRect();
+          return {above:toolbar.top-cards.bottom,below:table.top-toolbar.bottom,ordered:button.right<period.left};
+        });
+        assert.ok(Math.abs(geometry.above-geometry.below)<1,'Equal toolbar gaps '+route+' @'+width);
+        assert.ok(geometry.ordered,'Period on right and export on left '+route+' @'+width);
+      }
+      const narrativePlaceholders=await page.locator('.document-table .column-filter-row input[placeholder="بحث"]').evaluateAll(inputs=>inputs.every(input=>{
+        const style=getComputedStyle(input),canvas=document.createElement('canvas').getContext('2d');canvas.font=style.font;
+        return canvas.measureText(input.placeholder).width<=input.clientWidth-parseFloat(style.paddingInlineStart)-parseFloat(style.paddingInlineEnd);
+      }));
+      assert.ok(narrativePlaceholders,'Full narrative placeholders '+route+' @'+width);
       const dateSizes=await page.locator('.erp-table thead th.col-date, .erp-table thead th.col-time, .erp-table thead th.col-datetime').evaluateAll(cells=>cells.map(c=>({
         size:c.getBoundingClientRect().width,wanted:c.classList.contains('col-date')?100:c.classList.contains('col-time')?80:180
       })));
@@ -191,7 +311,7 @@ try {
       }
       const rtl=await page.locator('.erp-table thead th, .erp-table tbody tr:not(:has(td[colspan])) > td').evaluateAll(cells=>cells.every(c=>getComputedStyle(c).direction==='rtl'&&['start','right'].includes(getComputedStyle(c).textAlign)));
       assert.ok(rtl,'Right aligned RTL columns '+route+' @'+width);
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'compact-dates-actions-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'document-export-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
       checks++;
     }
     console.log('PASS '+relevantRoutes.length+' routes @'+width);
@@ -221,7 +341,7 @@ try {
       assert.ok(after.scroll<=before.scroll,'Empty-result overflow '+route+' @'+width);
       assert.ok(after.widths.every((w,i)=>Math.abs(w-before.widths[i])<1),'Empty-result columns '+route+' @'+width);
       assert.ok(await page.locator('.column-filter-row input[placeholder="="]').evaluateAll(inputs=>inputs.every(i=>getComputedStyle(i).direction==='rtl')));
-      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'compact-dates-actions-empty-sales-'+width+'px.png')});
+      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'document-export-empty-sales-'+width+'px.png')});
       await page.getByRole('button',{name:'مسح كل الفلاتر'}).click();
     }
   }
@@ -337,9 +457,10 @@ try {
       await page.getByLabel('بحث في نوع الإيصال',{exact:true}).click();
       await page.getByRole('option',{name:'مرتبط',exact:true}).click();
       await page.waitForResponse(r=>r.url().includes('/get_receipt_kpis_columns')&&r.request().postDataJSON()?.p_columns?.receipt_type==='linked');
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'compact-dates-actions-stress-'+tab+'-'+width+'px.png')});
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'document-export-stress-'+tab+'-'+width+'px.png')});
     }
   }
   console.log('PASS 8 large linked-receipt layouts with long notes');
+  }
   assert.deepEqual(errors,[]);console.log('PASS '+checks+' layouts; aligned cells; row/KPI filters; creator select; clear all; scrolling');
 }finally{await browser?.close();await server.close();}

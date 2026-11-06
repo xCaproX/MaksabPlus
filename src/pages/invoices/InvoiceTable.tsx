@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { accountKindLabel, creationTime, formatDate } from '../../lib/format';
+import { accountKindLabel, creationTime, formatDate, saleStatus, saleStatusLabel } from '../../lib/format';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
@@ -19,21 +19,6 @@ export type SaleSort =
   | 'account-desc'
   | 'remaining-desc'
   | 'remaining-asc';
-
-export type SaleStatus = 'all' | 'paid' | 'partial' | 'unpaid';
-
-export function saleStatus(invoice: InvoiceRow): Exclude<SaleStatus, 'all'> {
-  if (Number(invoice.remaining) <= 0) return 'paid';
-  if (Number(invoice.paid) > 0) return 'partial';
-  return 'unpaid';
-}
-
-export function saleStatusLabel(status: Exclude<SaleStatus, 'all'>, isReturn = false): string {
-  if (isReturn) {
-    return status === 'paid' ? 'مستردة بالكامل' : status === 'partial' ? 'مستردة جزئيًا' : 'غير مستردة';
-  }
-  return status === 'paid' ? 'مسددة' : status === 'partial' ? 'جزئية' : 'غير مسددة';
-}
 
 interface InvoiceTableProps {
   columnFilter?: ReactNode;
@@ -73,7 +58,7 @@ export default function InvoiceTable({
   canDelete,
 }: InvoiceTableProps) {
   return (
-    <table className="table erp-table document-table">
+    <table className="table erp-table document-table document-table--invoices">
       <thead>
         <tr>
           <SortableHeader
