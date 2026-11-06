@@ -1,7 +1,12 @@
-/**
- * وظيفة مطابقة نصوص البحث باللغة العربية
- * تتحقق مما إذا كان أي من الحقول النصية يحتوي على كلمة البحث، مع مراعاة الحروف والحالات.
- */
+export const DOCUMENT_SEARCH_FIELDS = {
+  invoice: ['number', 'account_name', 'account_phone', 'warehouse_name', 'notes', 'created_by_name'],
+  receipt: ['number', 'account_name', 'account_phone', 'cash_box_name', 'statement', 'notes', 'created_by_name'],
+  warehouseTransfer: ['number', 'source_warehouse_name', 'destination_warehouse_name', 'notes', 'created_by_name'],
+  cashTransfer: ['number', 'source_cash_box_name', 'destination_cash_box_name', 'notes', 'created_by_name'],
+};
+export const DOCUMENT_SEARCH_PLACEHOLDER = 'بحث في بيانات المستند أو بواسطة…';
+
+/** مطابقة نصوص البحث العربية في الحقول المعروضة. */
 export function matchesSearchQuery(
   fields: (string | number | null | undefined)[],
   query: string,

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateDbError } from '../lib/errors';
-import { buildPostgrestOrFilter } from '../lib/search';
+import { buildPostgrestOrFilter, DOCUMENT_SEARCH_FIELDS, DOCUMENT_SEARCH_PLACEHOLDER } from '../lib/search';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
@@ -195,7 +195,7 @@ export default function Receipts() {
           if (trimmedSearch) {
             query = query.or(
               buildPostgrestOrFilter(
-                ['number', 'account_name', 'account_phone', 'cash_box_name', 'statement', 'notes'],
+                DOCUMENT_SEARCH_FIELDS.receipt,
                 trimmedSearch,
               ),
             );
@@ -274,7 +274,7 @@ export default function Receipts() {
           if (trimmedSearch) {
             query = query.or(
               buildPostgrestOrFilter(
-                ['number', 'source_cash_box_name', 'destination_cash_box_name', 'notes'],
+                DOCUMENT_SEARCH_FIELDS.cashTransfer,
                 trimmedSearch,
               ),
             );
@@ -640,7 +640,7 @@ export default function Receipts() {
                   type="search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={isCashBoxTransfer ? 'بحث بالرقم أو الخزنة أو الملاحظات…' : 'رقم، حساب، هاتف، خزنة، بيان…'}
+                  placeholder={DOCUMENT_SEARCH_PLACEHOLDER}
                 />
               </label>
             </div>

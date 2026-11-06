@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { matchesSearchQuery, escapePostgrestFilterValue, buildPostgrestOrFilter } from '../lib/search';
+import { matchesSearchQuery, escapePostgrestFilterValue, buildPostgrestOrFilter, DOCUMENT_SEARCH_FIELDS } from '../lib/search';
 
 describe('search - محرك البحث العربي والمطابقة', () => {
+  it.each(Object.keys(DOCUMENT_SEARCH_FIELDS) as (keyof typeof DOCUMENT_SEARCH_FIELDS)[])(
+    '%s searches creator names with safe literal matching', (kind) => {
+      const filter = buildPostgrestOrFilter(DOCUMENT_SEARCH_FIELDS[kind], 'منشئ, (تجريبي) 50%_');
+      expect(filter).toContain('created_by_name.ilike."%منشئ, (تجريبي) 50\\%\\_%"');
+    },
+  );
   it('يُرجع true عند ترك استعلام البحث فارغاً', () => {
     expect(matchesSearchQuery(['أحمد', '01000000000'], '')).toBe(true);
     expect(matchesSearchQuery(['أحمد'], '   ')).toBe(true);

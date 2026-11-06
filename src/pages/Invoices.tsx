@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateDbError } from '../lib/errors';
-import { buildPostgrestOrFilter } from '../lib/search';
+import { buildPostgrestOrFilter, DOCUMENT_SEARCH_FIELDS, DOCUMENT_SEARCH_PLACEHOLDER } from '../lib/search';
 import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
@@ -277,7 +277,7 @@ export default function Invoices() {
           }
           if (trimmedSearch) {
             query = query.or(
-              buildPostgrestOrFilter(['number', 'account_name', 'account_phone', 'warehouse_name', 'notes'], trimmedSearch),
+              buildPostgrestOrFilter(DOCUMENT_SEARCH_FIELDS.invoice, trimmedSearch),
             );
           }
 
@@ -356,7 +356,7 @@ export default function Invoices() {
           if (trimmedSearch) {
             transferQuery = transferQuery.or(
               buildPostgrestOrFilter(
-                ['number', 'source_warehouse_name', 'destination_warehouse_name', 'notes'],
+                DOCUMENT_SEARCH_FIELDS.warehouseTransfer,
                 trimmedSearch,
               ),
             );
@@ -764,11 +764,7 @@ export default function Invoices() {
                   type="search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={
-                    isWarehouseTransfer
-                      ? 'بحث بالرقم أو المخزن أو الملاحظات…'
-                      : 'رقم، حساب، هاتف، مخزن، ملاحظات…'
-                  }
+                  placeholder={DOCUMENT_SEARCH_PLACEHOLDER}
                 />
               </label>
             </div>
