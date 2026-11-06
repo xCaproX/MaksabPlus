@@ -243,6 +243,7 @@ export default function SearchableSelect({
   return (
     <div
       className={`searchable-select ${open ? 'is-open' : ''} ${disabled ? 'disabled' : ''} ${className}`.trim()}
+      data-value={value}
       ref={containerRef}
     >
       {label && <label className="filter-label" htmlFor={`${id}-input`}>{label}</label>}

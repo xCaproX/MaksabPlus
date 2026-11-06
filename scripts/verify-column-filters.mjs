@@ -49,6 +49,7 @@ const routes = [
 ];
 const relevantRoutes=routes;
 const screenshots = process.argv.includes('--screenshots');
+const filterColorsOnly = process.argv.includes('--filter-colors-only');
 const outDir = path.resolve('docs/screenshots');
 const server = await createServer({
   define: {
@@ -139,6 +140,7 @@ try {
 
   const page=await context.newPage(); await page.clock.setFixedTime(new Date('2026-11-06T10:00:00Z'));
   const errors=[];page.on('pageerror',e=>errors.push(e.message));mkdirSync(outDir,{recursive:true});let checks=0;
+  if(!filterColorsOnly) {
   // A real workbook download must include every matching page and only visible columns.
   for (const [index,route] of routes.filter(route=>route.startsWith('/invoices')||route.startsWith('/receipts')).concat('/invoices?tab=warehouse_transfer').entries()) {
     accessRole=index===9?'staff':'owner';
@@ -199,7 +201,43 @@ try {
   console.log('PASS header-only empty workbook and failed later-page export without partial download');
   exportFixture=null;accessRole='owner';requests.length=0;
   console.log('PASS 10 actual XLSX downloads: all pages, Arabic/RTL, numeric/date cells, safe text and staff permissions');
-  if(!process.argv.includes('--exports-only')) {
+  }
+  if(filterColorsOnly) {
+    let mutedChecks=0,selectedChecks=0;
+    const emptySelector=':is(.erp-filters, .column-filter-row, .column-filter-bar) .searchable-select:is([data-value=""],[data-value="all"]):not(.is-open) input';
+    for(const width of [1280,1920]){
+      await page.setViewportSize({width,height:900});
+      for(const route of routes){
+        await page.goto('http://localhost:5195'+route,{waitUntil:'networkidle'});
+        await page.evaluate(()=>document.fonts.ready);
+        const states=await page.locator(emptySelector).evaluateAll(inputs=>inputs.map(input=>({
+          value:input.value,color:getComputedStyle(input).color,placeholder:getComputedStyle(input,'::placeholder').color,
+        })));
+        assert.ok(states.every(s=>s.color===s.placeholder),'Unfiltered select matches placeholder '+route+' @'+width+': '+JSON.stringify(states));
+        mutedChecks+=states.length;
+        if(screenshots)await page.screenshot({path:path.join(outDir,'muted-all-filters-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png')});
+        const input=page.locator(emptySelector).first();
+        if(await input.count()){
+          const id=await input.getAttribute('id');
+          const combobox=page.locator('input[id='+JSON.stringify(id)+']');
+          await input.click();
+          await page.getByRole('option').first().waitFor();
+          const choices=page.getByRole('option').filter({hasNotText:/^الكل$|^كل /});
+          if(await choices.count()){
+            await choices.first().click();
+            assert.ok(await combobox.evaluate(i=>getComputedStyle(i).color!==getComputedStyle(i,'::placeholder').color),'Specific selection stays normal '+route);
+            await combobox.click();await combobox.fill('اختبار');
+            assert.ok(await combobox.evaluate(i=>getComputedStyle(i).color!==getComputedStyle(i,'::placeholder').color),'Typed search stays normal '+route);
+            await page.keyboard.press('Escape');
+            selectedChecks++;
+          } else await page.keyboard.press('Escape');
+        }
+      }
+    }
+    assert.ok(mutedChecks>0&&selectedChecks>0);
+    console.log('PASS 48 RTL filter layouts; '+mutedChecks+' muted defaults; '+selectedChecks+' specific selections');
+  }
+  if(!filterColorsOnly&&!process.argv.includes('--exports-only')) {
   // Enter the hidden action cell directly, without crossing another row cell.
   for (const width of [1280,1920]) {
     await page.setViewportSize({width,height:900});
@@ -462,5 +500,5 @@ try {
   }
   console.log('PASS 8 large linked-receipt layouts with long notes');
   }
-  assert.deepEqual(errors,[]);console.log('PASS '+checks+' layouts; aligned cells; row/KPI filters; creator select; clear all; scrolling');
+  assert.deepEqual(errors,[]);if(!filterColorsOnly)console.log('PASS '+checks+' layouts; aligned cells; row/KPI filters; creator select; clear all; scrolling');
 }finally{await browser?.close();await server.close();}
