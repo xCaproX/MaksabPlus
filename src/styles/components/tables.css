@@ -181,7 +181,7 @@ td.row-actions > * + * {
 .row-actions-dropdown {
   position: absolute;
   inset-inline-end: 0;
-  top: calc(100% + 5px);
+  inset-block-start: calc(100% + 5px);
   z-index: 50;
   min-width: 135px;
   background: #ffffff;
@@ -193,6 +193,11 @@ td.row-actions > * + * {
   flex-direction: column;
   gap: 2px;
   animation: dropdown-pop 0.16s var(--ease-out);
+}
+
+.row-actions-dropdown[data-placement="top"] {
+  inset-block-start: auto;
+  inset-block-end: calc(100% + 8px);
 }
 
 .row-actions-item {
@@ -213,7 +218,8 @@ td.row-actions > * + * {
   transition: all var(--transition-fast);
 }
 
-.row-actions-item:hover {
+.row-actions-item:hover,
+.row-actions-item:focus-visible {
   background: #f1f5f9;
   color: var(--primary);
 }

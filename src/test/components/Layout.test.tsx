@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import { supabase } from '../../lib/supabase';
 
 vi.mock('../../lib/company', () => ({
   getCurrentUserIdentity: vi.fn().mockResolvedValue({
@@ -32,6 +33,32 @@ function storedOpenSections() {
   const stored = JSON.parse(localStorage.getItem(storageKey) ?? '{}') as Record<string, boolean>;
   return Object.keys(stored).filter((key) => stored[key]);
 }
+
+describe('sidebar account options', () => {
+  it('keeps identity visible and actions hidden until the account is opened', async () => {
+    renderLayout();
+    await waitForIdentity();
+    expect(screen.getByText('شركة تجريبية')).toBeInTheDocument();
+    expect(screen.queryByText('تسجيل الخروج')).not.toBeInTheDocument();
+    const trigger = screen.getByRole('button', { name: 'خيارات حساب مستخدم تجريبي' });
+    fireEvent.click(trigger);
+    expect(screen.getByRole('menuitem', { name: 'تغيير كلمة المرور' })).toHaveFocus();
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it('executes sign out only after explicitly selecting it', async () => {
+    vi.mocked(supabase.auth.signOut).mockClear();
+    renderLayout();
+    await waitForIdentity();
+    fireEvent.click(screen.getByRole('button', { name: 'خيارات حساب مستخدم تجريبي' }));
+    expect(supabase.auth.signOut).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'تسجيل الخروج' }));
+    await waitFor(() => expect(supabase.auth.signOut).toHaveBeenCalledOnce());
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+});
 
 describe('sidebar single open section', () => {
   beforeEach(() => localStorage.clear());

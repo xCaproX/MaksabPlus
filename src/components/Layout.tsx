@@ -5,6 +5,7 @@ import { LayoutDashboard, Package, Wallet, Database, Scale, ShieldCheck, LogOut,
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 import ChangePasswordModal from './ChangePasswordModal';
+import RowActions from './RowActions';
 
 type NavSection = 'goods' | 'money' | 'balances' | 'data' | 'management';
 
@@ -441,28 +442,24 @@ export default function Layout() {
           )}
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="sidebar-user-block">
+        <RowActions
+          className="sidebar-footer"
+          triggerClassName="sidebar-user-block"
+          triggerLabel={`خيارات حساب ${userName || 'المستخدم'}`}
+          placement="top"
+          trigger={<>
             <span className="sidebar-user-avatar" aria-hidden="true"><UserRound size={19} /></span>
-            <div className="sidebar-user-details">
-              <div className="sidebar-user-name" title={userName || 'المستخدم'}>{userName || 'المستخدم'}</div>
-              <div className="sidebar-company-name" title={companyName || 'مكسب بلس'}>{companyName || 'مكسب بلس'}</div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="sidebar-user-btn"
-            onClick={() => setChangePasswordOpen(true)}
-            title="تغيير كلمة المرور"
-          >
-            <KeyRound size={17} aria-hidden="true" />
-            <span>تغيير كلمة المرور</span>
-          </button>
-          <button type="button" className="sign-out" onClick={signOut} title="تسجيل الخروج">
-            <LogOut size={17} aria-hidden="true" />
-            <span>تسجيل الخروج</span>
-          </button>
-        </div>
+            <span className="sidebar-user-details">
+              <span className="sidebar-user-name" title={userName || 'المستخدم'}>{userName || 'المستخدم'}</span>
+              <span className="sidebar-company-name" title={companyName || 'مكسب بلس'}>{companyName || 'مكسب بلس'}</span>
+            </span>
+            <ChevronUp size={16} className="sidebar-user-chevron" aria-hidden="true" />
+          </>}
+          customActions={[
+            { label: 'تغيير كلمة المرور', icon: KeyRound, onClick: () => setChangePasswordOpen(true) },
+            { label: 'تسجيل الخروج', icon: LogOut, danger: true, onClick: () => { void signOut(); } },
+          ]}
+        />
       </header>
 
       <main className="content">
