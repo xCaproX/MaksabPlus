@@ -9,6 +9,8 @@ interface DateInputProps {
   id?: string;
   ariaLabel?: string;
   className?: string;
+  showPicker?: boolean;
+  placeholder?: string;
 }
 
 /** Convert ISO 'YYYY-MM-DD' to display 'DD/MM/YYYY' */
@@ -41,6 +43,8 @@ export default function DateInput({
   id,
   ariaLabel = 'التاريخ',
   className = '',
+  showPicker = true,
+  placeholder = 'DD/MM/YYYY',
 }: DateInputProps) {
   const [text, setText] = useState(() => toDisplay(value));
   const hiddenDateRef = useRef<HTMLInputElement>(null);
@@ -100,7 +104,7 @@ export default function DateInput({
         type="text"
         id={id}
         inputMode="numeric"
-        placeholder="DD/MM/YYYY"
+        placeholder={placeholder}
         dir="ltr"
         value={text}
         onChange={handleTextChange}
@@ -111,7 +115,7 @@ export default function DateInput({
         aria-label={ariaLabel}
         className="date-input-text num"
       />
-      <button
+      {showPicker && <button
         type="button"
         tabIndex={-1}
         className="date-picker-trigger"
@@ -120,7 +124,7 @@ export default function DateInput({
         aria-label="اختيار التاريخ من التقويم"
       >
         <CalendarIcon size={16} />
-      </button>
+      </button>}
 
       {/* Invisible native picker to leverage browser calendar */}
       <input

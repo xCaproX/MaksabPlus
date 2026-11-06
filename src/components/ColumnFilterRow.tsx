@@ -23,7 +23,7 @@ export default function ColumnFilterRow({ scope, kind = '', owner = false, value
     const ariaLabel = `بحث في ${label}`;
     if (type === 'none') return null;
     if (type === 'date' || type === 'datetime') return <div className="column-filter-date">
-      <DateInput value={values[key] ?? ''} onChange={(value) => onChange(key, value)} ariaLabel={ariaLabel} />
+      <DateInput showPicker={false} placeholder="تاريخ" value={values[key] ?? ''} onChange={(value) => onChange(key, value)} ariaLabel={ariaLabel} />
       {column.secondaryKey && <input type="time" step={60} dir="ltr" className="tabular-nums"
         aria-label="بحث في الوقت" value={values[column.secondaryKey] ?? ''} onChange={(event) => onChange(column.secondaryKey!, event.target.value)} />}
     </div>;
@@ -32,7 +32,7 @@ export default function ColumnFilterRow({ scope, kind = '', owner = false, value
       const choices = key === 'account_kind' && kind === 'waste'
         ? [{ value: 'waste', label: 'هالك' }]
         : typeof column.options === 'string' ? options[column.options] ?? [] : column.options ?? [];
-      return <SearchableSelect ariaLabel={ariaLabel} value={values[key] ?? ''}
+      return <SearchableSelect portal={as === 'row'} showIcon={false} ariaLabel={ariaLabel} value={values[key] ?? ''}
         selectedLabel={creators ? values[key] : undefined}
         options={creators ? undefined : [{ value: '', label: 'الكل' }, ...choices]}
         loadOptions={creators ? (query) => loadCreatorFilterOptions(scope, kind, query).then((items) => [{ value: '', label: 'الكل' }, ...items]) : undefined}
@@ -50,7 +50,7 @@ export default function ColumnFilterRow({ scope, kind = '', owner = false, value
       <span className="filter-label">{column.label}</span>{control(column)}
     </label>)}{clear}
   </div>;
-  return <tr className="column-filter-row" aria-label="بحث بالأعمدة">
+  return <tr className={columns.some((column) => column.secondaryKey) ? 'column-filter-row column-filter-row-double' : 'column-filter-row'} aria-label="بحث بالأعمدة">
     {columns.map((column, index) => <td key={column.key || 'actions'} className={column.className}>
       <div className="column-filter-cell">{control(column)}{index === columns.length - 1 && clear}</div>
     </td>)}

@@ -100,12 +100,24 @@ try {
       const state=await page.evaluate(()=>{
         const table=document.querySelector('.erp-table:has(.column-filter-row)');
         const heads=[...table?.querySelectorAll('thead tr:first-child > *')??[]],filters=[...table?.querySelectorAll('.column-filter-row > *')??[]];
-        return {rtl:document.documentElement.dir,height:document.scrollingElement.scrollHeight,viewport:innerHeight,width:document.scrollingElement.scrollWidth,viewportWidth:document.documentElement.clientWidth,count:heads.length,filterCount:filters.length,aligned:heads.every((h,i)=>Math.abs(h.getBoundingClientRect().width-filters[i]?.getBoundingClientRect().width)<1),row:!!table,bar:!!document.querySelector('.column-filter-bar')};
+        const withFilters=heads.map(h=>h.getBoundingClientRect().width);
+        const filterRow=table?.querySelector('.column-filter-row');
+        const scrollWith=table?.parentElement.scrollWidth;
+        filterRow?.remove();
+        const withoutFilters=heads.map(h=>h.getBoundingClientRect().width);
+        const scrollWithout=table?.parentElement.scrollWidth;
+        if(filterRow)table.querySelector('thead').append(filterRow);
+        const unchanged=withFilters.every((w,i)=>Math.abs(w-withoutFilters[i])<1)&&scrollWith===scrollWithout;
+        const icons=[...table?.querySelectorAll('.column-filter-cell svg')??[]].filter(svg=>!svg.closest('.column-filter-clear')).length;
+        const contained=[...table?.querySelectorAll('.column-filter-cell > *')??[]].every(el=>{
+          const cell=el.closest('td').getBoundingClientRect(),box=el.getBoundingClientRect();return box.left>=cell.left&&box.right<=cell.right;
+        });
+        return {unchanged,icons,contained,rtl:document.documentElement.dir,height:document.scrollingElement.scrollHeight,viewport:innerHeight,width:document.scrollingElement.scrollWidth,viewportWidth:document.documentElement.clientWidth,count:heads.length,filterCount:filters.length,aligned:heads.every((h,i)=>Math.abs(h.getBoundingClientRect().width-filters[i]?.getBoundingClientRect().width)<1),row:!!table,bar:!!document.querySelector('.column-filter-bar')};
       });
       assert.equal(state.rtl,'rtl');assert.ok(state.height<=state.viewport,'Vertical overflow '+route+' @'+width+': '+state.height);
       assert.ok(state.width<=state.viewportWidth,'Page horizontal overflow '+route+' @'+width);
-      assert.ok(state.row||state.bar,'Missing row '+route);assert.equal(state.count,state.filterCount,'Cell parity '+route);assert.ok(state.aligned,'Widths '+route);
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'column-filters-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
+      assert.ok(state.row||state.bar,'Missing row '+route);assert.equal(state.count,state.filterCount,'Cell parity '+route);assert.ok(state.aligned,'Widths '+route);assert.ok(state.unchanged,'Filters expanded original columns '+route+' @'+width);assert.equal(state.icons,0,'Field icons '+route);assert.ok(state.contained,'Fields outside cells '+route);
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'column-filter-fit-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
       checks++;
     }
     console.log('PASS '+relevantRoutes.length+' routes @'+width);

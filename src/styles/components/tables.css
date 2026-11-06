@@ -382,29 +382,29 @@ td.row-actions > * + * {
 }
 .table:has(.column-filter-row) thead th { position: static; }
 .column-filter-row td {
+  position: relative;
+  block-size: 52px;
   background: #f7f9fc;
-  padding-block: 8px;
-  padding-inline: 7px;
   border-block-end: 1px solid var(--border, #dbe3ef);
-  vertical-align: top;
 }
-.column-filter-cell { display: flex; align-items: flex-start; gap: 5px; min-inline-size: 0; }
+.column-filter-row-double td { block-size: 90px; }
+/* Out-of-flow controls cannot contribute intrinsic width to table columns.
+   Headings and record cells determine exactly the same widths without this row. */
+.column-filter-cell {
+  position: absolute; inset-inline: 9px; inset-block-start: 8px;
+  display: flex; align-items: flex-start; gap: 4px; min-inline-size: 0;
+}
 .column-filter-cell > :first-child:not(.column-filter-clear) { flex: 1; min-inline-size: 0; }
-.column-filter-row input,
-.column-filter-bar input {
-  inline-size: 100%; min-inline-size: 72px; block-size: 36px;
-  padding-block: 6px; padding-inline: 8px; font-size: 12px;
+.column-filter-row input, .column-filter-bar input {
+  inline-size: 100%; min-inline-size: 0; block-size: 36px;
+  padding-block: 6px; padding-inline: 5px; font-size: 12px;
 }
-.column-filter-row .searchable-select { min-inline-size: 108px; }
+.column-filter-row :is(.searchable-select, .date-input-wrap) { inline-size: 100%; min-inline-size: 0; }
+.column-filter-row .date-input-text { padding-inline: 5px !important; font-size: 12px; }
 .column-filter-row .searchable-select-input-wrap input,
-.column-filter-bar .searchable-select-input-wrap input { min-block-size: 36px; padding-inline-end: 30px; font-size: 12px; }
-.column-filter-row .date-input-wrap { min-inline-size: 140px; }
-.column-filter-row .col-number input { min-inline-size: 106px; inline-size: 112px; }
-.column-filter-row .col-time input { min-inline-size: 100px; }
-.column-filter-row .col-money input { min-inline-size: 90px; }
-.column-filter-row .col-notes input { min-inline-size: 150px; }
-.column-filter-row .col-creator .searchable-select { min-inline-size: 124px; }
-.column-filter-date { display: flex; flex-direction: column; gap: 6px; }
+.column-filter-bar .searchable-select-input-wrap input { padding-inline: 5px; }
+:is(.column-filter-row, .column-filter-bar) input[type="time"]::-webkit-calendar-picker-indicator { display: none; }
+.column-filter-date { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
 .column-filter-clear {
   display: inline-flex; align-items: center; justify-content: center; flex: 0 0 34px;
   inline-size: 34px; block-size: 36px; padding: 0;
