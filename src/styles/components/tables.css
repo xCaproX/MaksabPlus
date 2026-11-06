@@ -163,6 +163,18 @@ td.row-actions > * + * {
 .document-table .col-creator { min-inline-size: 110px; max-inline-size: 180px; white-space: normal; overflow-wrap: anywhere; }
 .document-table td { padding-block: 10px; }
 .document-table .erp-row-actions { min-inline-size: 44px; }
+
+/* Receipts have two narrative columns; let them wrap rather than reserving
+   invoice-sized minima for every cell. Monetary values keep their natural width. */
+.document-table--receipts { min-inline-size: 0; }
+.document-table--receipts :is(th, td) { padding-inline: 8px; }
+.document-table--receipts .col-date { min-inline-size: 86px; }
+.document-table--receipts .col-time { min-inline-size: 72px; }
+.document-table--receipts .col-location { min-inline-size: 80px; overflow-wrap: anywhere; }
+.document-table--receipts .col-account { min-inline-size: 90px; overflow-wrap: anywhere; }
+.document-table--receipts .col-notes { min-inline-size: 80px; max-inline-size: 180px; }
+.document-table--receipts .col-creator { min-inline-size: 80px; }
+
 .erp-row-actions { visibility: hidden; min-width: 88px; }
 .erp-table tr:hover .erp-row-actions,
 .erp-table tr.selected .erp-row-actions,
@@ -375,6 +387,7 @@ td.row-actions > * + * {
 }
 
 /* A real table row keeps every filter aligned with its heading and records. */
+.column-filter-row, .column-filter-bar { --column-filter-control-size: 36px; }
 .table:has(.column-filter-row) thead {
   position: sticky;
   inset-block-start: 0;
@@ -396,19 +409,19 @@ td.row-actions > * + * {
 }
 .column-filter-cell > :first-child:not(.column-filter-clear) { flex: 1; min-inline-size: 0; }
 .column-filter-row input, .column-filter-bar input {
-  inline-size: 100%; min-inline-size: 0; block-size: 36px;
+  inline-size: 100%; min-inline-size: 0; block-size: var(--column-filter-control-size); min-block-size: var(--column-filter-control-size);
   padding-block: 6px; padding-inline: 5px; font-size: 12px; text-align: match-parent;
 }
 .column-filter-row :is(.searchable-select, .date-input-wrap) { inline-size: 100%; min-inline-size: 0; }
 .column-filter-row .date-input-text { padding-inline: 5px !important; font-size: 12px; }
 .column-filter-row .searchable-select-input-wrap input,
-.column-filter-bar .searchable-select-input-wrap input { padding-inline-start: 5px; padding-inline-end: 22px; }
+.column-filter-bar .searchable-select-input-wrap input { block-size: var(--column-filter-control-size); min-block-size: var(--column-filter-control-size); padding-inline-start: 5px; padding-inline-end: 22px; }
 :is(.column-filter-row, .column-filter-bar) .searchable-select-arrow { inset-inline-end: 5px; }
 :is(.column-filter-row, .column-filter-bar) .searchable-select-arrow svg { inline-size: 12px; block-size: 12px; }
 :is(.column-filter-row, .column-filter-bar) input:placeholder-shown {
   direction: rtl; text-align: start;
 }
-:is(.column-filter-row, .column-filter-bar) .picker-input { block-size: 36px; min-block-size: 36px; }
+:is(.column-filter-row, .column-filter-bar) .picker-input { block-size: var(--column-filter-control-size); min-block-size: var(--column-filter-control-size); }
 :is(.column-filter-row, .column-filter-bar) .date-picker-trigger {
   flex: 0 0 22px; inline-size: 22px; min-inline-size: 0;
 }
@@ -417,7 +430,7 @@ td.row-actions > * + * {
 .column-filter-date { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
 .column-filter-clear {
   display: inline-flex; align-items: center; justify-content: center; flex: 0 0 34px;
-  inline-size: 34px; block-size: 36px; padding: 0;
+  inline-size: 34px; block-size: var(--column-filter-control-size); padding: 0;
   color: var(--text-muted, #63758e); background: white; border: 1px solid #dbe3ef; border-radius: 7px;
 }
 .column-filter-clear:hover { background: #edf2f8; color: var(--text, #30465f); }

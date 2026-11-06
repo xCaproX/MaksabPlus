@@ -29,6 +29,7 @@ const server = await createServer({
 });
 let browser;
 let accessRole='owner';
+let largeReceipt=false;
 const requests=[];
 try {
   await server.listen();
@@ -84,6 +85,9 @@ try {
     else if(resource==='balance_reconciliation_logs') data=[{id:'log-1',created_at:invoice.created_at,performed_by_name:'مستخدم تجريبي',mode:'simulation',accounts_count:2,cash_boxes_count:1,items_count:2,discrepancies_count:0,status:'clean',notes:'فحص تجريبي',details:{accounts:[],cash_boxes:[],items:[]}}];
     else if(resource==='get_reconciliation_log_kpis') data={count:1,total_discrepancies:0,latest_created_at:invoice.created_at,latest_status:'clean'};
     else if (resource.endsWith('_kpis')) data = {count:1,total_count:1,active_count:1,total_invoiced:100,total_paid:40,total_balance:60};
+    if(largeReceipt&&resource==='v_receipt_list')data=data.map(row=>({...row,amount:1234567.5,is_free:false,invoice_kind:'sale_return',invoice_id:'invoice-1',
+      account_name:'اسم عميل طويل لاختبار التفاف الاسم داخل العمود',notes:'ملاحظات طويلة للتأكد من ظهور النص كاملًا على سطور داخل المساحة المتاحة'.repeat(3)}));
+    if(largeReceipt&&resource==='get_receipt_kpis')data={count:1,total_amount:1234567.5,invoice_linked:1};
     if (Object.values(body?.p_columns ?? {}).includes('NO-MATCH')) data=Array.isArray(data)?[]:{count:0,total_count:0};
     if (req.headers().accept?.includes('vnd.pgrst.object') && Array.isArray(data)) data = data[0] ?? null;
     await route.fulfill({ status: 200, contentType: 'application/json',
@@ -118,6 +122,13 @@ try {
       assert.equal(state.rtl,'rtl');assert.ok(state.height<=state.viewport,'Vertical overflow '+route+' @'+width+': '+state.height);
       assert.ok(state.width<=state.viewportWidth,'Page horizontal overflow '+route+' @'+width);
       assert.ok(state.row||state.bar,'Missing row '+route);assert.equal(state.count,state.filterCount,'Cell parity '+route);assert.ok(state.aligned,'Widths '+route);assert.ok(state.unchanged,'Filters expanded original columns '+route+' @'+width);assert.equal(state.icons,0,'Field icons '+route);assert.ok(state.contained,'Fields outside cells '+route);
+      const heights=await page.locator('.column-filter-row .column-filter-cell, .column-filter-bar').evaluateAll(groups=>
+        groups.flatMap(group=>[...group.querySelectorAll('input:not([aria-hidden=true]):not(.date-input-text), .picker-input, .column-filter-clear')])
+          .map(field=>field.getBoundingClientRect().height));
+      assert.ok(heights.every(height=>Math.abs(height-36)<0.1),'Consistent 36px filter controls '+route+' @'+width);
+      if(route==='/receipts?tab=in'||route==='/receipts?tab=out'){
+        assert.ok(await page.locator('.erp-table-wrap').evaluate(w=>w.scrollWidth<=w.clientWidth),'Receipts horizontal overflow '+route+' @'+width);
+      }
       if(route.startsWith('/invoices')||route.startsWith('/receipts')||route.endsWith('tab=reconciliations')){
         assert.equal(await page.locator('.erp-toolbar input[type=search]').count(),0);
         assert.equal(await page.locator('.erp-toolbar .searchable-select').count(),1,'Only period selector in toolbar');
@@ -130,7 +141,7 @@ try {
       }
       const rtl=await page.locator('.erp-table thead th, .erp-table tbody tr:not(:has(td[colspan])) > td').evaluateAll(cells=>cells.every(c=>getComputedStyle(c).direction==='rtl'&&['start','right'].includes(getComputedStyle(c).textAlign)));
       assert.ok(rtl,'Right aligned RTL columns '+route+' @'+width);
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'column-filter-toolbar-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'receipt-fit-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
       checks++;
     }
     console.log('PASS '+relevantRoutes.length+' routes @'+width);
@@ -158,7 +169,7 @@ try {
       assert.ok(after.scroll<=before.scroll,'Empty-result overflow '+route+' @'+width);
       assert.ok(after.widths.every((w,i)=>Math.abs(w-before.widths[i])<1),'Empty-result columns '+route+' @'+width);
       assert.ok(await page.locator('.column-filter-row input[placeholder="="]').evaluateAll(inputs=>inputs.every(i=>getComputedStyle(i).direction==='rtl')));
-      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'column-filter-toolbar-empty-sales-'+width+'px.png')});
+      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'receipt-fit-empty-sales-'+width+'px.png')});
       await page.getByRole('button',{name:'مسح كل الفلاتر'}).click();
     }
   }
@@ -245,5 +256,16 @@ try {
     }
   }
   console.log('PASS 8 sibling server request pairs; 6 local filtering/reset flows; 8 employee layouts');
+  largeReceipt=true;accessRole='owner';
+  for(const width of [1280,1366,1920]){
+    await page.setViewportSize({width,height:900});
+    for(const tab of ['in','out']){
+      await page.goto('http://localhost:5195/receipts?tab='+tab,{waitUntil:'networkidle'});
+      assert.ok(await page.locator('.erp-table-wrap').evaluate(w=>w.scrollWidth<=w.clientWidth),'Large linked receipts overflow @'+width+' '+tab);
+      assert.equal(await page.getByText('1,234,567.50',{exact:true}).count()>0,true);
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'receipt-fit-stress-'+tab+'-'+width+'px.png')});
+    }
+  }
+  console.log('PASS 6 large linked-receipt layouts with long notes');
   assert.deepEqual(errors,[]);console.log('PASS '+checks+' layouts; aligned cells; row/KPI filters; creator select; clear all; scrolling');
 }finally{await browser?.close();await server.close();}

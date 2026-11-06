@@ -51,7 +51,7 @@ export default function ReceiptTable({
   canDelete,
 }: ReceiptTableProps) {
   return (
-    <table className="table erp-table document-table">
+    <table className="table erp-table document-table document-table--receipts">
       <thead>
         <tr>
           <SortableHeader
@@ -63,6 +63,7 @@ export default function ReceiptTable({
           />
           <SortableHeader
             label="التاريخ"
+            className="col-date"
             field="date"
             currentSort={sortOrder}
             onSort={(s) => onSort(s as ReceiptSort)}
