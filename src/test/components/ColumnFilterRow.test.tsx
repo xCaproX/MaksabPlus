@@ -31,7 +31,9 @@ describe('column-filter controls and reset', () => {
   });
   it('uses searchable options and supports clearing a date without the reset button', () => {
     render(<Example />);
-    expect(screen.queryByRole('button', { name: 'اختيار التاريخ من التقويم' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'اختيار التاريخ من التقويم' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'اختيار الوقت' })).toBeInTheDocument();
+    expect(screen.getByLabelText('بحث في المسدد')).toHaveAttribute('placeholder', '=');
     expect(document.querySelector('.column-filter-row .searchable-select-arrow')).toBeNull();
     expect(screen.getByLabelText('بحث في التاريخ')).toHaveAttribute('placeholder', 'تاريخ');
     fireEvent.click(screen.getByRole('combobox', { name: 'بحث في الحالة' }));

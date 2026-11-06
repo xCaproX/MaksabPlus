@@ -403,7 +403,15 @@ td.row-actions > * + * {
 .column-filter-row .date-input-text { padding-inline: 5px !important; font-size: 12px; }
 .column-filter-row .searchable-select-input-wrap input,
 .column-filter-bar .searchable-select-input-wrap input { padding-inline: 5px; }
-:is(.column-filter-row, .column-filter-bar) input[type="time"]::-webkit-calendar-picker-indicator { display: none; }
+:is(.column-filter-row, .column-filter-bar) input:placeholder-shown {
+  direction: rtl; text-align: start;
+}
+:is(.column-filter-row, .column-filter-bar) .picker-input { block-size: 36px; min-block-size: 36px; }
+:is(.column-filter-row, .column-filter-bar) .date-picker-trigger {
+  flex: 0 0 22px; inline-size: 22px; min-inline-size: 0;
+}
+:is(.column-filter-row, .column-filter-bar) .date-picker-trigger svg { inline-size: 14px; block-size: 14px; }
+.column-filter-cell .column-filter-clear { flex-shrink: 1; max-inline-size: 100%; min-inline-size: 0; }
 .column-filter-date { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
 .column-filter-clear {
   display: inline-flex; align-items: center; justify-content: center; flex: 0 0 34px;

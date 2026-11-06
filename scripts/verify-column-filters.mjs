@@ -84,9 +84,10 @@ try {
     else if(resource==='balance_reconciliation_logs') data=[{id:'log-1',created_at:invoice.created_at,performed_by_name:'مستخدم تجريبي',mode:'simulation',accounts_count:2,cash_boxes_count:1,items_count:2,discrepancies_count:0,status:'clean',notes:'فحص تجريبي',details:{accounts:[],cash_boxes:[],items:[]}}];
     else if(resource==='get_reconciliation_log_kpis') data={count:1,total_discrepancies:0,latest_created_at:invoice.created_at,latest_status:'clean'};
     else if (resource.endsWith('_kpis')) data = {count:1,total_count:1,active_count:1,total_invoiced:100,total_paid:40,total_balance:60};
+    if (Object.values(body?.p_columns ?? {}).includes('NO-MATCH')) data=Array.isArray(data)?[]:{count:0,total_count:0};
     if (req.headers().accept?.includes('vnd.pgrst.object') && Array.isArray(data)) data = data[0] ?? null;
     await route.fulfill({ status: 200, contentType: 'application/json',
-      headers: { 'Content-Range': '0-0/1', 'Access-Control-Expose-Headers': 'Content-Range' },
+      headers: { 'Content-Range': Object.values(body?.p_columns ?? {}).includes('NO-MATCH') ? '*/0' : '0-0/1', 'Access-Control-Expose-Headers': 'Content-Range' },
       body: JSON.stringify(data) });
   });
 
@@ -108,7 +109,7 @@ try {
         const scrollWithout=table?.parentElement.scrollWidth;
         if(filterRow)table.querySelector('thead').append(filterRow);
         const unchanged=withFilters.every((w,i)=>Math.abs(w-withoutFilters[i])<1)&&scrollWith===scrollWithout;
-        const icons=[...table?.querySelectorAll('.column-filter-cell svg')??[]].filter(svg=>!svg.closest('.column-filter-clear')).length;
+        const icons=[...table?.querySelectorAll('.column-filter-cell svg')??[]].filter(svg=>!svg.closest('.column-filter-clear, .date-picker-trigger')).length;
         const contained=[...table?.querySelectorAll('.column-filter-cell > *')??[]].every(el=>{
           const cell=el.closest('td').getBoundingClientRect(),box=el.getBoundingClientRect();return box.left>=cell.left&&box.right<=cell.right;
         });
@@ -117,12 +118,54 @@ try {
       assert.equal(state.rtl,'rtl');assert.ok(state.height<=state.viewport,'Vertical overflow '+route+' @'+width+': '+state.height);
       assert.ok(state.width<=state.viewportWidth,'Page horizontal overflow '+route+' @'+width);
       assert.ok(state.row||state.bar,'Missing row '+route);assert.equal(state.count,state.filterCount,'Cell parity '+route);assert.ok(state.aligned,'Widths '+route);assert.ok(state.unchanged,'Filters expanded original columns '+route+' @'+width);assert.equal(state.icons,0,'Field icons '+route);assert.ok(state.contained,'Fields outside cells '+route);
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'column-filter-fit-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'column-filter-controls-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
       checks++;
     }
     console.log('PASS '+relevantRoutes.length+' routes @'+width);
   }
+
+  // A no-results colspan must preserve the populated widths and reset control.
+  for(const width of [1280,1920]) {
+    await page.setViewportSize({width,height:800});
+    for(const route of relevantRoutes.filter(r=>!r.endsWith('tab=users'))) {
+      await page.goto('http://localhost:5195'+route,{waitUntil:'networkidle'});
+      const measure=()=>page.locator('.erp-table').first().evaluate(table=>({
+        widths:[...table.querySelectorAll('thead tr:first-child > *')].map(cell=>cell.getBoundingClientRect().width),
+        scroll:table.parentElement.scrollWidth
+      }));
+      const before=await measure();
+      const input=page.locator('.column-filter-row input[type=text]:not(.date-input-text)').first();
+      await input.fill('NO-MATCH');
+      await page.waitForFunction(()=>{
+        const message=document.querySelector('.erp-table tbody .empty');
+        return !!message && !/جار/.test(message.textContent);
+      });
+      const after=await measure();
+      // Removing painted record text can reduce the rounded scrollWidth by a
+      // pixel; the regression is any increase, with column geometry checked below.
+      assert.ok(after.scroll<=before.scroll,'Empty-result overflow '+route+' @'+width);
+      assert.ok(after.widths.every((w,i)=>Math.abs(w-before.widths[i])<1),'Empty-result columns '+route+' @'+width);
+      assert.ok(await page.locator('.column-filter-row input[placeholder="="]').evaluateAll(inputs=>inputs.every(i=>getComputedStyle(i).direction==='rtl')));
+      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'column-filter-controls-empty-sales-'+width+'px.png')});
+      await page.getByRole('button',{name:'مسح كل الفلاتر'}).click();
+    }
+  }
+  console.log('PASS 46 no-results width/overflow cases');
   await page.setViewportSize({width:1920,height:1080});await page.goto('http://localhost:5195/invoices?tab=sale',{waitUntil:'networkidle'});
+  await page.evaluate(() => {
+    window.pickerResults = [];
+    const native = HTMLInputElement.prototype.showPicker;
+    HTMLInputElement.prototype.showPicker = function () {
+      try { native.call(this); window.pickerResults.push(this.type + ':opened'); }
+      catch (error) { window.pickerResults.push(this.type + ':failed'); throw error; }
+    };
+  });
+  await page.locator('.column-filter-row').getByRole('button',{name:'اختيار التاريخ من التقويم'}).click();
+  await page.keyboard.press('Escape');
+  await page.locator('.column-filter-row').getByRole('button',{name:'اختيار الوقت',exact:true}).click();
+  await page.keyboard.press('Escape');
+  assert.deepEqual(await page.evaluate(()=>window.pickerResults),['date:opened','time:opened']);
+  console.log('PASS native date and time picker buttons');
   await page.getByLabel('بحث في الإجمالي',{exact:true}).fill('0');
   await page.waitForResponse(r=>r.url().includes('/get_invoice_kpis_columns')&&r.request().postDataJSON()?.p_columns?.total==='0');
   assert.ok(requests.some(r=>r.resource==='filter_invoice_rows'&&r.body.p_columns.total==='0'));

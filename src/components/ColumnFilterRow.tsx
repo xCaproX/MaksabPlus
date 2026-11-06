@@ -1,3 +1,6 @@
+import { useRef } from 'react';
+import TimeInput from './TimeInput';
+import { useStableTableColumns } from '../lib/useStableTableColumns';
 import { X } from 'lucide-react';
 import DateInput from './DateInput';
 import SearchableSelect, { type SearchOption } from './SearchableSelect';
@@ -16,6 +19,9 @@ export interface ColumnFilterRowProps {
 
 export default function ColumnFilterRow({ scope, kind = '', owner = false, values, onChange, onReset, options = {}, as = 'row' }: ColumnFilterRowProps) {
   const columns = listColumns(scope, owner, kind);
+  const rowRef = useRef<HTMLTableRowElement>(null);
+  useStableTableColumns(rowRef, scope + kind + owner);
+
   const clear = <button type="button" className="column-filter-clear" onClick={onReset}
     aria-label="مسح كل الفلاتر" title="مسح كل الفلاتر"><X size={17} aria-hidden="true" /></button>;
   function control(column: ColumnSpec) {
@@ -23,10 +29,12 @@ export default function ColumnFilterRow({ scope, kind = '', owner = false, value
     const ariaLabel = `بحث في ${label}`;
     if (type === 'none') return null;
     if (type === 'date' || type === 'datetime') return <div className="column-filter-date">
-      <DateInput showPicker={false} placeholder="تاريخ" value={values[key] ?? ''} onChange={(value) => onChange(key, value)} ariaLabel={ariaLabel} />
-      {column.secondaryKey && <input type="time" step={60} dir="ltr" className="tabular-nums"
-        aria-label="بحث في الوقت" value={values[column.secondaryKey] ?? ''} onChange={(event) => onChange(column.secondaryKey!, event.target.value)} />}
+      <DateInput placeholder="تاريخ" value={values[key] ?? ''} onChange={(value) => onChange(key, value)} ariaLabel={ariaLabel} />
+      {column.secondaryKey && <TimeInput placeholder="وقت" ariaLabel="بحث في الوقت"
+        value={values[column.secondaryKey] ?? ''} onChange={(value) => onChange(column.secondaryKey!, value)} />}
     </div>;
+    if (type === 'time') return <TimeInput placeholder="وقت" ariaLabel={ariaLabel}
+      value={values[key] ?? ''} onChange={(value) => onChange(key, value)} />;
     if (type === 'select') {
       const creators = column.options === 'creators';
       const choices = key === 'account_kind' && kind === 'waste'
@@ -38,19 +46,19 @@ export default function ColumnFilterRow({ scope, kind = '', owner = false, value
         loadOptions={creators ? (query) => loadCreatorFilterOptions(scope, kind, query).then((items) => [{ value: '', label: 'الكل' }, ...items]) : undefined}
         onChange={(value) => onChange(key, value)} placeholder="الكل" searchPlaceholder="بحث…" />;
     }
-    return <input type={type === 'number' ? 'number' : type === 'time' ? 'time' : 'text'}
-      step={type === 'time' ? 60 : 'any'} inputMode={type === 'number' ? 'decimal' : undefined}
-      dir={type === 'number' || type === 'time' || key === 'number' || key === 'number_label' ? 'ltr' : 'auto'}
-      className={type === 'number' || type === 'time' ? 'no-spinner tabular-nums' : ''}
-      value={values[key] ?? ''} aria-label={ariaLabel} placeholder={type === 'number' ? 'يساوي' : 'بحث…'}
-      onFocus={(event) => { if (type !== 'time') event.target.select(); }} onChange={(event) => onChange(key, event.target.value)} />;
+    return <input type={type === 'number' ? 'number' : 'text'}
+      step="any" inputMode={type === 'number' ? 'decimal' : undefined}
+      dir={type === 'number' || key === 'number' || key === 'number_label' ? 'ltr' : 'auto'}
+      className={type === 'number' ? 'no-spinner tabular-nums' : ''}
+      value={values[key] ?? ''} aria-label={ariaLabel} placeholder={type === 'number' ? '=' : 'بحث…'}
+      onFocus={(event) => event.target.select()} onChange={(event) => onChange(key, event.target.value)} />;
   }
   if (as === 'bar') return <div className="column-filter-bar" aria-label="بحث بالأعمدة">
     {columns.filter((column) => column.type !== 'none').map((column) => <label key={column.key}>
       <span className="filter-label">{column.label}</span>{control(column)}
     </label>)}{clear}
   </div>;
-  return <tr className={columns.some((column) => column.secondaryKey) ? 'column-filter-row column-filter-row-double' : 'column-filter-row'} aria-label="بحث بالأعمدة">
+  return <tr ref={rowRef} className={columns.some((column) => column.secondaryKey) ? 'column-filter-row column-filter-row-double' : 'column-filter-row'} aria-label="بحث بالأعمدة">
     {columns.map((column, index) => <td key={column.key || 'actions'} className={column.className}>
       <div className="column-filter-cell">{control(column)}{index === columns.length - 1 && clear}</div>
     </td>)}
