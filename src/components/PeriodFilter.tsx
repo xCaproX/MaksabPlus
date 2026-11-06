@@ -11,14 +11,15 @@ interface PeriodFilterProps {
 }
 
 export default function PeriodFilter({ from, to, onChange, required = false, disabled = false }: PeriodFilterProps) {
+  const period = matchingPeriod(from, to);
   return (
     <div className="period-filter">
       <div className="period-preset print-hidden">
-        <SearchableSelect ariaLabel="الفترة" label="الفترة" disabled={disabled} value={matchingPeriod(from, to)}
+        <SearchableSelect ariaLabel="الفترة" label="الفترة" disabled={disabled} value={period === 'custom' ? '' : period}
+          placeholder="اختر الفترة"
           options={[
             ...PERIODS.map(({ value, label }) => ({ value, label })),
             ...(!required ? [{ value: 'all', label: 'كل الفترات' }] : []),
-            { value: 'custom', label: 'تاريخ مخصص', disabled: true },
           ]}
           searchPlaceholder="بحث عن فترة…"
           onChange={(value) => {

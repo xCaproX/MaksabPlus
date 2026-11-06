@@ -52,6 +52,7 @@ export default function ReceiptTable({
         <tr>
           <SortableHeader
             label="الرقم"
+            className="col-number"
             field="number"
             currentSort={sortOrder}
             onSort={(s) => onSort(s as ReceiptSort)}

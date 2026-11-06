@@ -74,6 +74,7 @@ export default function InvoiceTable({
         <tr>
           <SortableHeader
             label="الرقم"
+            className="col-number"
             field="number"
             currentSort={sortOrder}
             onSort={(s) => onSort(s as SaleSort)}
@@ -153,11 +154,7 @@ export default function InvoiceTable({
                 {kind !== 'waste' && <td className="col-money"><MoneyDisplay value={invoice.paid} /></td>}
                 {kind !== 'waste' && (
                   <td>
-                    <MoneyDisplay
-                      value={invoice.remaining}
-                      strong={Number(invoice.remaining) > 0}
-                      className={Number(invoice.remaining) > 0 ? 'remaining' : ''}
-                    />
+                    <MoneyDisplay value={invoice.remaining} />
                   </td>
                 )}
                 {kind !== 'waste' && <td className="col-status"><StatusBadge variant={status}>{saleStatusLabel(status, isReturn)}</StatusBadge></td>}

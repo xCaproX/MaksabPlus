@@ -743,7 +743,7 @@ export default function Invoices() {
             <div className="erp-filters">
               {!isWarehouseTransfer && kind !== 'waste' && (
                 <SearchableSelect
-                  label="الحالة"
+                  label="حالة السداد"
                   ariaLabel="حالة السداد"
                   value={statusFilter}
                   options={[

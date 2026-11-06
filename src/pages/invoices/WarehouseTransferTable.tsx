@@ -40,6 +40,7 @@ export default function WarehouseTransferTable({
         <tr>
           <SortableHeader
             label="الرقم"
+            className="col-number"
             field="number"
             currentSort={sortOrder}
             onSort={(s) => onSort(s as SaleSort)}

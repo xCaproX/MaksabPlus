@@ -16,6 +16,7 @@ describe('shared period filter', () => {
     expect(screen.getByRole('combobox', { name: 'الفترة' })).toHaveValue('النهاردة');
     expect(screen.getByLabelText('من تاريخ')).toHaveValue('06/11/2026');
     fireEvent.click(screen.getByRole('combobox', { name: 'الفترة' }));
+    expect(screen.queryByRole('option', { name: 'تاريخ مخصص' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole('combobox', { name: 'الفترة' }), { target: { value: 'أسبوع' } });
     expect(screen.queryByRole('option', { name: 'آخر يومين' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('option', { name: 'آخر أسبوع' }));
@@ -31,10 +32,12 @@ describe('shared period filter', () => {
     render(<Example required />);
     fireEvent.click(screen.getByRole('combobox', { name: 'الفترة' }));
     expect(screen.queryByRole('option', { name: 'كل الفترات' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'تاريخ مخصص' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('من تاريخ'), { target: { value: '01/10/2026' } });
     expect(screen.getByLabelText('من تاريخ')).toHaveValue('01/10/2026');
     fireEvent.pointerDown(document.body);
-    expect(screen.getByLabelText('الفترة')).toHaveValue('تاريخ مخصص');
+    expect(screen.getByLabelText('الفترة')).toHaveValue('');
+    expect(screen.getByLabelText('الفترة')).toHaveAttribute('placeholder', 'اختر الفترة');
   });
   it('locks preset and manual dates while a statement is loading', () => {
     render(<PeriodFilter from="2026-11-06" to="2026-11-06" onChange={vi.fn()} disabled />);

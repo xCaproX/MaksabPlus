@@ -25,6 +25,9 @@ describe('document list presentation', () => {
     }
     expect(screen.queryByText('123,456.00')).not.toBeInTheDocument();
     expect(screen.getByText('06/11/2026')).toHaveAttribute('dir', 'ltr');
+    expect(screen.getByText('60.00').closest('span')).not.toHaveClass('remaining');
+    expect(screen.getByText('60.00').closest('span')).not.toHaveClass('strong');
+    expect(screen.getAllByRole('columnheader')[0]).toHaveClass('col-number');
   });
   it('orders sales summaries and only includes profit for the owner', () => {
     const items = calculateInvoiceKpis({ kind: 'sale', isWarehouseTransfer: false, invoiceSummary: summary, canViewProfit: true });

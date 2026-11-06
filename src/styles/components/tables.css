@@ -154,7 +154,7 @@ td.row-actions > * + * {
 .erp-table :is(th, td).col-kind,
 .erp-table :is(th, td).col-status { text-align: center; }
 .document-table { min-inline-size: 1120px; }
-.document-table .col-number { min-inline-size: 110px; }
+.document-table .col-number { inline-size: 1%; white-space: nowrap; }
 .document-table .col-date { min-inline-size: 96px; }
 .document-table .col-time { min-inline-size: 84px; }
 .document-table .col-location { min-inline-size: 110px; max-inline-size: 170px; white-space: normal; }
