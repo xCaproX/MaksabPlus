@@ -85,6 +85,7 @@ export default function InvoiceTable({
           />
           <SortableHeader
             label="التاريخ"
+            className="col-date"
             field="date"
             currentSort={sortOrder}
             onSort={(s) => onSort(s as SaleSort)}

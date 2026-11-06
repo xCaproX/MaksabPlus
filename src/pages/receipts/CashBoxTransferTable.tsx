@@ -49,6 +49,7 @@ export default function CashBoxTransferTable({
           />
           <SortableHeader
             label="التاريخ"
+            className="col-date"
             field="date"
             currentSort={sortOrder}
             onSort={(s) => onSort(s as ReceiptSort)}

@@ -181,7 +181,7 @@ export default function ReconciliationLogTab({
             <table className="table erp-table">
               <thead>
                 <tr>
-                  <th style={{ width: '170px' }}>تاريخ وتوقيت الفحص</th>
+                  <th className="col-datetime">تاريخ وتوقيت الفحص</th>
                   <th style={{ width: '130px' }}>القائم بالفحص</th>
                   <th style={{ width: '130px' }}>نوع العملية</th>
                   <th className="col-hide-on-detail" style={{ width: '180px' }}>نطاق الفحص</th>
@@ -222,7 +222,7 @@ export default function ReconciliationLogTab({
                           }
                         }}
                       >
-                        <td className="num strong">
+                        <td className="num strong col-datetime">
                           <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
                             <bdi dir="ltr" className="tabular-nums">{creationDate(row.created_at)}</bdi>
                             <bdi dir="ltr" className="tabular-nums" style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>

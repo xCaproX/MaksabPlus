@@ -155,8 +155,6 @@ td.row-actions > * + * {
 .erp-table :is(th, td).col-status { text-align: start; }
 .document-table { min-inline-size: 1120px; }
 .document-table .col-number { inline-size: 1%; white-space: nowrap; }
-.document-table .col-date { min-inline-size: 96px; }
-.document-table .col-time { min-inline-size: 84px; }
 .document-table .col-location { min-inline-size: 110px; max-inline-size: 170px; white-space: normal; }
 .document-table .col-account { min-inline-size: 120px; max-inline-size: 200px; white-space: normal; }
 .erp-table .col-notes { min-inline-size: 180px; max-inline-size: 280px; white-space: normal; overflow-wrap: anywhere; }
@@ -168,15 +166,28 @@ td.row-actions > * + * {
    invoice-sized minima for every cell. Monetary values keep their natural width. */
 .document-table--receipts { min-inline-size: 0; }
 .document-table--receipts :is(th, td) { padding-inline: 8px; }
-.document-table--receipts .col-date { min-inline-size: 86px; }
-.document-table--receipts .col-time { min-inline-size: 72px; }
-.document-table--receipts .col-location { min-inline-size: 80px; overflow-wrap: anywhere; }
+.document-table--receipts .col-location { min-inline-size: 124px; overflow-wrap: anywhere; }
 .document-table--receipts .col-account { min-inline-size: 90px; overflow-wrap: anywhere; }
 .document-table--receipts th:not(.col-notes),
-.document-table--receipts tbody td:not(.col-notes) { inline-size: 1%; }
+.document-table--receipts tbody td:not(.col-notes) { inline-size: 1%; --preserve-column-width: 1; }
 .document-table--receipts .col-receipt-type { inline-size: 1%; min-inline-size: 80px; white-space: normal; }
 .document-table--receipts .col-notes { min-inline-size: 96px; max-inline-size: 180px; }
 .document-table--receipts .col-creator { min-inline-size: 80px; }
+/* Natural table layout may exceed a soft maximum. Keep the captured widths
+   when switching to fixed empty layout rather than clamping and redistributing. */
+.table[data-columns-frozen] :is(th, td):not(.col-date, .col-time, .col-datetime) { max-inline-size: none; }
+/* Dates and times use one project-wide column width, including empty tables. */
+.table :is(th, td).col-date { --column-fixed-size: var(--table-date-width); }
+.table :is(th, td).col-time { --column-fixed-size: var(--table-time-width); }
+.table :is(th, td).col-datetime { --column-fixed-size: calc(var(--table-date-width) + var(--table-time-width)); }
+.table :is(th, td):is(.col-date, .col-time, .col-datetime) {
+  inline-size: var(--column-fixed-size); min-inline-size: var(--column-fixed-size);
+  max-inline-size: var(--column-fixed-size); white-space: nowrap;
+}
+@container (inline-size < 1060px) {
+  .document-table--receipts .col-notes { min-inline-size: 58px; }
+}
+
 
 .erp-row-actions { visibility: hidden; min-width: 88px; }
 .erp-table tr:hover .erp-row-actions,
@@ -430,6 +441,8 @@ td.row-actions > * + * {
 }
 :is(.column-filter-row, .column-filter-bar) .date-picker-trigger svg { inline-size: 14px; block-size: 14px; }
 .column-filter-cell .column-filter-clear { flex-shrink: 1; max-inline-size: 100%; min-inline-size: 0; }
+.column-filter-row .picker-input:has(> input[type="date"]) { inline-size: calc(var(--table-date-width) - 18px); }
+.column-filter-row .picker-input:has(> input[type="time"]) { inline-size: calc(var(--table-time-width) - 18px); }
 .column-filter-date { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
 .column-filter-clear {
   display: inline-flex; align-items: center; justify-content: center; flex: 0 0 34px;

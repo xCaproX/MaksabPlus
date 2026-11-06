@@ -567,7 +567,7 @@ export default function ItemBalancesTab() {
                   <table className="table account-statement-table">
                     <thead>
                       <tr>
-                        <th>التاريخ</th>
+                        <th className="col-date">التاريخ</th>
                         <th>البيان</th>
                         <th>وارد</th>
                         <th>صادر</th>
@@ -580,7 +580,7 @@ export default function ItemBalancesTab() {
                           key={`${row.row_type}-${row.transaction_date}-${row.transfer_number ?? row.invoice_number ?? index}`}
                           className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}
                         >
-                          <td className="num" data-label="التاريخ">
+                          <td className="num col-date" data-label="التاريخ">
                             {formatDate(row.transaction_date)}
                           </td>
                           <td className="card-wide-cell" data-label="البيان">

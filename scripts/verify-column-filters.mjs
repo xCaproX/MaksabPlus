@@ -68,14 +68,14 @@ try {
     else if (resource === 'companies') data = { name: 'شركة تجريبية' };
     else if (resource === 'warehouses') data = [warehouse];
     else if (resource === 'v_cash_box_balances' || resource === 'cash_boxes') data = [{
-      id: 'cash-1', name: 'خزنة تجريبية', serial_number: 1, is_active: true, balance: 0, opening_balance: 0,
+      id: 'cash-1', name: 'الخزنة الرئيسية', serial_number: 1, is_active: true, balance: 0, opening_balance: 0,
     }];
     else if (['accounts','v_account_balances'].includes(resource)) data=[{...account,kind:body?.p_kind??url.searchParams.get('kind')?.slice(3)??'customer'}];
     else if (['items','v_item_stock'].includes(resource)) data=[item];
     else if (['v_warehouse_items','v_stock_opening_balances'].includes(resource)) data=[stock];
     else if(resource==='v_invoice_list') data=[invoice];
     else if(resource==='v_warehouse_transfer_list'||resource==='v_cash_box_transfer_list') data=[transfer];
-    else if(resource==='v_receipt_list') data=[{...invoice,number:'RCP-000001',receipt_date:invoice.invoice_date,amount:100,cash_box_id:'cash-1',cash_box_name:'خزنة تجريبية',direction:'in',statement:'إيصال حر تجريبي',is_free:true,invoice_id:null,invoice_kind:null}];
+    else if(resource==='v_receipt_list') data=[{...invoice,number:'RCP-000001',receipt_date:invoice.invoice_date,amount:100,cash_box_id:'cash-1',cash_box_name:'الخزنة الرئيسية',direction:'in',statement:'إيصال حر تجريبي',is_free:true,invoice_id:null,invoice_kind:null}];
     else if(resource==='get_invoice_kpis') data={count:1,total_amount:invoice.total,paid_amount:invoice.paid,remaining_amount:invoice.remaining,profit_total:invoice.profit_total};
     else if(resource==='get_receipt_kpis') data={count:1,total_amount:100,invoice_linked:0};
     else if(resource==='get_warehouse_transfer_kpis') data={count:1,total_value:175,total_qty:2.5};
@@ -147,9 +147,30 @@ try {
         assert.ok(presentation.width<=81,'Compact fixed receipt type');
         assert.equal(presentation.label,'حر');assert.equal(presentation.bg,'rgb(239, 246, 255)');
       }
+      const dateSizes=await page.locator('.erp-table thead th.col-date, .erp-table thead th.col-time, .erp-table thead th.col-datetime').evaluateAll(cells=>cells.map(c=>({
+        size:c.getBoundingClientRect().width,wanted:c.classList.contains('col-date')?112:c.classList.contains('col-time')?84:196
+      })));
+      assert.ok(dateSizes.every(s=>Math.abs(s.size-s.wanted)<1),'Fixed shared date/time widths '+route+' @'+width);
+      if(route==='/receipts?tab=in'||route==='/receipts?tab=out'){
+        const cash=await page.locator('tbody td.col-location').evaluate(c=>{
+          const text=document.createRange();text.selectNodeContents(c);
+          const input=document.querySelector('.column-filter-row [aria-label="بحث في الخزنة"]');
+          return {lines:text.getClientRects().length,bodyWidth:c.clientWidth,inputWidth:input.clientWidth,padding:parseFloat(getComputedStyle(input).paddingInlineStart)+parseFloat(getComputedStyle(input).paddingInlineEnd)};
+        });
+        assert.equal(cash.lines,1,'Primary cash-box name wraps');
+        assert.ok(cash.bodyWidth>=124);
+        const input=page.getByLabel('بحث في الخزنة',{exact:true});
+        await input.click();await page.getByRole('option',{name:'الخزنة الرئيسية',exact:true}).click();
+        const fits=await input.evaluate(i=>{
+          const ctx=document.createElement('canvas').getContext('2d');ctx.font=getComputedStyle(i).font;
+          return ctx.measureText(i.value).width<=i.clientWidth-parseFloat(getComputedStyle(i).paddingInlineStart)-parseFloat(getComputedStyle(i).paddingInlineEnd);
+        });
+        assert.ok(fits,'Full selected cash-box label fits');
+        await page.getByRole('button',{name:'مسح كل الفلاتر'}).click();
+      }
       const rtl=await page.locator('.erp-table thead th, .erp-table tbody tr:not(:has(td[colspan])) > td').evaluateAll(cells=>cells.every(c=>getComputedStyle(c).direction==='rtl'&&['start','right'].includes(getComputedStyle(c).textAlign)));
       assert.ok(rtl,'Right aligned RTL columns '+route+' @'+width);
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'receipt-type-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'fixed-date-cash-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
       checks++;
     }
     console.log('PASS '+relevantRoutes.length+' routes @'+width);
@@ -172,16 +193,33 @@ try {
         return !!message && !/جار/.test(message.textContent);
       });
       const after=await measure();
+      const fixed=await page.locator('.erp-table thead th.col-date, .erp-table thead th.col-time, .erp-table thead th.col-datetime').evaluateAll(cells=>cells.every(c=>Math.abs(c.getBoundingClientRect().width-(c.classList.contains('col-date')?112:c.classList.contains('col-time')?84:196))<1));
+      assert.ok(fixed,'Empty fixed date/time widths '+route+' @'+width);
       // Removing painted record text can reduce the rounded scrollWidth by a
       // pixel; the regression is any increase, with column geometry checked below.
       assert.ok(after.scroll<=before.scroll,'Empty-result overflow '+route+' @'+width);
       assert.ok(after.widths.every((w,i)=>Math.abs(w-before.widths[i])<1),'Empty-result columns '+route+' @'+width);
       assert.ok(await page.locator('.column-filter-row input[placeholder="="]').evaluateAll(inputs=>inputs.every(i=>getComputedStyle(i).direction==='rtl')));
-      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'receipt-type-empty-sales-'+width+'px.png')});
+      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'fixed-date-cash-empty-sales-'+width+'px.png')});
       await page.getByRole('button',{name:'مسح كل الفلاتر'}).click();
     }
   }
   console.log('PASS 46 no-results width/overflow cases');
+  for(const route of ['/invoices?tab=sale','/receipts?tab=in','/receipts?tab=out','/invoices?tab=warehouse_transfer','/receipts?tab=cash_box_transfer','/management?tab=reconciliations']){
+    await page.setViewportSize({width:1920,height:900});
+    await page.goto('http://localhost:5195'+route,{waitUntil:'networkidle'});
+    await page.locator('.column-filter-row input[type=text]:not(.date-input-text)').first().fill('NO-MATCH');
+    await page.waitForFunction(()=>{const m=document.querySelector('.erp-table tbody .empty');return !!m&&!/جار/.test(m.textContent);});
+    for(const width of [1280,1320,1366,1920]){
+      await page.setViewportSize({width,height:900});
+      await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+      const fixed=await page.locator('.erp-table thead th.col-date, .erp-table thead th.col-time, .erp-table thead th.col-datetime').evaluateAll(cells=>cells.every(c=>Math.abs(c.getBoundingClientRect().width-(c.classList.contains('col-date')?112:c.classList.contains('col-time')?84:196))<1));
+      assert.ok(fixed,'Resized empty fixed columns '+route+' @'+width);
+      if(route.startsWith('/receipts?tab=in')||route.startsWith('/receipts?tab=out'))assert.ok(await page.locator('.erp-table-wrap').evaluate(w=>w.scrollWidth<=w.clientWidth),'Resized empty receipt overflow');
+    }
+  }
+  console.log('PASS 24 empty-table resizes retain fixed date/time widths');
+
   await page.setViewportSize({width:1920,height:1080});await page.goto('http://localhost:5195/invoices?tab=sale',{waitUntil:'networkidle'});
   await page.evaluate(() => {
     window.pickerResults = [];
@@ -265,7 +303,7 @@ try {
   }
   console.log('PASS 8 sibling server request pairs; 6 local filtering/reset flows; 8 employee layouts');
   largeReceipt=true;accessRole='owner';
-  for(const width of [1280,1366,1920]){
+  for(const width of [1280,1320,1366,1920]){
     await page.setViewportSize({width,height:900});
     for(const tab of ['in','out']){
       await page.goto('http://localhost:5195/receipts?tab='+tab,{waitUntil:'networkidle'});
@@ -278,9 +316,9 @@ try {
       await page.getByLabel('بحث في نوع الإيصال',{exact:true}).click();
       await page.getByRole('option',{name:'مرتبط',exact:true}).click();
       await page.waitForResponse(r=>r.url().includes('/get_receipt_kpis_columns')&&r.request().postDataJSON()?.p_columns?.receipt_type==='linked');
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'receipt-type-stress-'+tab+'-'+width+'px.png')});
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'fixed-date-cash-stress-'+tab+'-'+width+'px.png')});
     }
   }
-  console.log('PASS 6 large linked-receipt layouts with long notes');
+  console.log('PASS 8 large linked-receipt layouts with long notes');
   assert.deepEqual(errors,[]);console.log('PASS '+checks+' layouts; aligned cells; row/KPI filters; creator select; clear all; scrolling');
 }finally{await browser?.close();await server.close();}

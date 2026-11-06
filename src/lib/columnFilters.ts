@@ -25,14 +25,15 @@ export const LIST_COLUMN_SCHEMA = rawSchema as unknown as Record<ListScope, { gl
 export function listColumns(scope: ListScope, owner = false, kind = '') {
   return LIST_COLUMN_SCHEMA[scope].columns.filter((column) =>
     (!column.ownerOnly || owner) && !column.excludeKinds?.includes(kind),
-  ).map((column) => column.format === 'receipt_type'
-    // Presentation labels change without changing the persisted filter values.
-    ? { ...column, className: 'col-receipt-type', options: [
+  ).map((column) => {
+    const widthClass = column.type === 'date' ? 'col-date' : column.type === 'time' ? 'col-time' : column.type === 'datetime' ? 'col-datetime' : '';
+    const styled = { ...column, className: [...new Set([column.className, widthClass].filter(Boolean))].join(' ') };
+    // UI labels share a formatter; the query values remain free/linked.
+    return column.format === 'receipt_type' ? { ...styled, className: 'col-receipt-type', options: [
       { value: 'free', label: receiptTypeLabel(true) },
       { value: 'linked', label: receiptTypeLabel(false) },
-    ] }
-    : column);
-
+    ] } : styled;
+  });
 }
 
 const cairoParts = (value: unknown) => {

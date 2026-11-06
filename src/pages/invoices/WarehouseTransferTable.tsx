@@ -51,6 +51,7 @@ export default function WarehouseTransferTable({
           />
           <SortableHeader
             label="التاريخ"
+            className="col-date"
             field="date"
             currentSort={sortOrder}
             onSort={(s) => onSort(s as SaleSort)}
