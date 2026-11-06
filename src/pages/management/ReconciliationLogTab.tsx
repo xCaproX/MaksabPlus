@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CheckCircle2,
   Clock,
@@ -13,9 +15,8 @@ import { periodDates, shiftCalendarDate } from '../../lib/period';
 import Pagination from '../../components/Pagination';
 import SearchableSelect from '../../components/SearchableSelect';
 import { supabase } from '../../lib/supabase';
-import { creationTime, formatDate, money } from '../../lib/format';
+import { creationTime, creationDate, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
-import { buildPostgrestOrFilter } from '../../lib/search';
 import { toast } from '../../components/Toast';
 import type { ReconciliationLogRow } from '../../lib/types';
 import RunReconciliationModal from './RunReconciliationModal';
@@ -43,6 +44,12 @@ export default function ReconciliationLogTab({
   const [modeFilter, setModeFilter] = useState<'all' | 'reconcile' | 'simulation'>('all');
   const [selectedLog, setSelectedLog] = useState<ReconciliationLogRow | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [summary, setSummary] = useState<{ total_discrepancies: number; latest_created_at: string | null; latest_status: string | null }>({ total_discrepancies: 0, latest_created_at: null, latest_status: null });
+  const columns = useColumnFilters('reconciliations', () => {
+    setSearchTerm(''); setModeFilter('all'); setDateFrom(periodDates().from); setDateTo(periodDates().to); setPage(1);
+  });
+  useEffect(() => { setPage(1); }, [columns.filters]);
+
 
   useEffect(() => {
     if (startRunTrigger && startRunTrigger > 0) {
@@ -50,41 +57,44 @@ export default function ReconciliationLogTab({
     }
   }, [startRunTrigger]);
 
+  const requestVersion = useRef(0);
   const loadLogs = useCallback(async () => {
+    const request = ++requestVersion.current;
     setLoading(true);
     try {
       let query = supabase
-        .from('balance_reconciliation_logs')
-        .select('*', { count: 'exact' });
+        .rpc('filter_reconciliation_rows', { p_columns: columns.filters, p_search: searchTerm.trim() || null }, { count: 'exact' }).select('*');
 
       if (dateFrom) query = query.gte('created_at', `${dateFrom} 00:00:00 Africa/Cairo`);
       if (dateTo) query = query.lt('created_at', `${shiftCalendarDate(dateTo, 1)} 00:00:00 Africa/Cairo`);
       if (modeFilter !== 'all') {
         query = query.eq('mode', modeFilter);
       }
-      if (searchTerm.trim()) {
-        const term = searchTerm.trim();
-        query = query.or(buildPostgrestOrFilter(['notes', 'performed_by_name'], term));
-      }
 
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
-      const { data, count, error } = await query
-        .order('created_at', { ascending: false })
-        .range(from, to);
+      const [result, kpis] = await Promise.all([
+        query.order('created_at', { ascending: false }).range(from, to),
+        supabase.rpc('get_reconciliation_log_kpis_columns', { p_columns: columns.filters, p_search: searchTerm.trim() || null, p_mode: modeFilter, p_date_from: dateFrom || null, p_date_to: dateTo || null }),
+      ]);
+      if (request !== requestVersion.current) return;
+      const { data, count, error } = result;
+      if (kpis.error) throw kpis.error;
+      if (kpis.data) setSummary(kpis.data);
 
       if (error) throw error;
       setLogs((data || []) as ReconciliationLogRow[]);
       setTotalCount(count || 0);
     } catch (err: unknown) {
-      toast.error(translateDbError(errorMessage(err)));
+      if (request === requestVersion.current) toast.error(translateDbError(errorMessage(err)));
     } finally {
-      setLoading(false);
+      if (request === requestVersion.current) setLoading(false);
     }
-  }, [modeFilter, page, searchTerm, dateFrom, dateTo]);
+  }, [modeFilter, page, searchTerm, dateFrom, dateTo, columns.filters]);
 
   useEffect(() => {
     void loadLogs();
+    return () => { requestVersion.current += 1; };
   }, [loadLogs]);
 
   async function handleConfirmRun(mode: 'reconcile' | 'simulation', notes: string) {
@@ -126,12 +136,12 @@ export default function ReconciliationLogTab({
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const kpiItems = useMemo<KpiItem[]>(() => {
-    const latestLog = logs[0];
+    const latestLog = summary.latest_created_at ? { created_at: summary.latest_created_at, status: summary.latest_status } : null;
     const latestTime = latestLog
-      ? `${formatDate(latestLog.created_at)} ${creationTime(latestLog.created_at)}`
+      ? `${creationDate(latestLog.created_at)} ${creationTime(latestLog.created_at)}`
       : 'لا يوجد فحص سابق';
 
-    const totalDiscrepancies = logs.reduce((sum, item) => sum + (item.discrepancies_count || 0), 0);
+    const totalDiscrepancies = Number(summary.total_discrepancies);
 
     return [
       {
@@ -160,7 +170,7 @@ export default function ReconciliationLogTab({
         subtext: totalDiscrepancies === 0 ? 'كافة السجلات نظيفة' : 'تم تدقيقها وتوثيقها',
       },
     ];
-  }, [logs, totalCount]);
+  }, [summary, totalCount]);
 
   return (
     <>
@@ -212,6 +222,7 @@ export default function ReconciliationLogTab({
                   <th style={{ width: '140px' }}>نتيجة الفحص</th>
                   <th>الملاحظات</th>
                 </tr>
+                <ColumnFilterRow scope="reconciliations" owner values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && (
@@ -247,7 +258,7 @@ export default function ReconciliationLogTab({
                       >
                         <td className="num strong">
                           <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
-                            <bdi dir="ltr" className="tabular-nums">{formatDate(row.created_at)}</bdi>
+                            <bdi dir="ltr" className="tabular-nums">{creationDate(row.created_at)}</bdi>
                             <bdi dir="ltr" className="tabular-nums" style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
                               {creationTime(row.created_at)}
                             </bdi>
@@ -314,7 +325,7 @@ export default function ReconciliationLogTab({
               <div className="erp-detail-head">
                 <div>
                   <span>سجل التدقيق والمطابقة</span>
-                  <h2>{formatDate(selectedLog.created_at)} ({creationTime(selectedLog.created_at)})</h2>
+                  <h2>{creationDate(selectedLog.created_at)} ({creationTime(selectedLog.created_at)})</h2>
                 </div>
                 <button
                   type="button"

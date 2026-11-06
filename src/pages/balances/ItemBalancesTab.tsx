@@ -1,3 +1,5 @@
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
 import { useAccess } from '../../lib/access';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
@@ -11,7 +13,6 @@ import {
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
-import { buildPostgrestOrFilter } from '../../lib/search';
 import { entityNumber, formatDate, money, qty as formatQty } from '../../lib/format';
 import { translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
@@ -72,6 +73,9 @@ export default function ItemBalancesTab() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
   const [page, setPage] = useState(1);
+  const columns = useColumnFilters("warehouse_items", () => {
+    setSearchTerm(''); setDebouncedSearch(''); setSelectedWarehouseId(''); setPage(1);
+  });
   const [totalCount, setTotalCount] = useState(0);
 
   const [summary, setSummary] = useState<StockBalancesSummary>({
@@ -119,21 +123,12 @@ export default function ItemBalancesTab() {
 
       try {
         let query = supabase
-          .from('v_warehouse_items')
-          .select('*', { count: 'exact' });
+          .rpc('filter_warehouse_item_rows', { p_columns: columns.filters, p_search: trimmed || null }, { count: 'exact' }).select('*');
 
         if (selectedWarehouseId) {
           query = query.eq('warehouse_id', selectedWarehouseId);
         }
 
-        if (trimmed) {
-          query = query.or(
-            buildPostgrestOrFilter(
-              ['item_name', 'item_code', 'item_number', 'item_notes'],
-              trimmed,
-            ),
-          );
-        }
 
         if (sortOrder === 'balance-desc') {
           query = query.order('current_qty', { ascending: false });
@@ -153,7 +148,8 @@ export default function ItemBalancesTab() {
 
         const [dataRes, kpiRes] = await Promise.all([
           query,
-          supabase.rpc('get_warehouse_stock_kpis', {
+          supabase.rpc('get_warehouse_stock_kpis_columns', {
+            p_columns: columns.filters,
             p_warehouse_id: selectedWarehouseId || null,
             p_search: trimmed || null,
           }),
@@ -165,6 +161,7 @@ export default function ItemBalancesTab() {
         setItems((dataRes.data ?? []) as WarehouseItemRow[]);
         setTotalCount(dataRes.count ?? 0);
 
+        if (kpiRes.error) throw kpiRes.error;
         if (kpiRes.data) {
           const raw = kpiRes.data as {
             total_qty?: number;
@@ -191,13 +188,13 @@ export default function ItemBalancesTab() {
     return () => {
       alive = false;
     };
-  }, [page, debouncedSearch, selectedWarehouseId, sortOrder]);
+  }, [columns.filters, page, debouncedSearch, selectedWarehouseId, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, selectedWarehouseId, sortOrder]);
+  }, [columns.filters, debouncedSearch, selectedWarehouseId, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -341,6 +338,7 @@ export default function ItemBalancesTab() {
                   <th className="col-hide-on-detail col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
+                <ColumnFilterRow scope="warehouse_items" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && (

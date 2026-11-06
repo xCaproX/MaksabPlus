@@ -1,0 +1,1026 @@
+{
+  "invoice": {
+    "globalFields": [
+      "number",
+      "account_name",
+      "account_phone",
+      "warehouse_name",
+      "notes",
+      "created_by_name"
+    ],
+    "columns": [
+      {
+        "key": "number",
+        "label": "الرقم",
+        "type": "text",
+        "className": "col-number"
+      },
+      {
+        "key": "invoice_date",
+        "label": "التاريخ",
+        "type": "date",
+        "className": "col-date"
+      },
+      {
+        "key": "created_time",
+        "label": "الوقت",
+        "type": "time",
+        "source": "created_at",
+        "format": "time",
+        "className": "col-time"
+      },
+      {
+        "key": "warehouse_id",
+        "label": "المخزن",
+        "type": "select",
+        "options": "warehouses"
+      },
+      {
+        "key": "account_kind",
+        "label": "نوع الحساب",
+        "type": "select",
+        "options": [
+          {
+            "value": "customer",
+            "label": "عميل"
+          },
+          {
+            "value": "supplier",
+            "label": "مورد"
+          }
+        ]
+      },
+      {
+        "key": "account",
+        "label": "الحساب",
+        "type": "text",
+        "fields": [
+          "account_name",
+          "account_phone"
+        ],
+        "className": "col-account"
+      },
+      {
+        "key": "total",
+        "label": "الإجمالي",
+        "type": "number",
+        "className": "col-money"
+      },
+      {
+        "key": "paid",
+        "label": "المسدد",
+        "type": "number",
+        "className": "col-money",
+        "excludeKinds": [
+          "waste"
+        ]
+      },
+      {
+        "key": "remaining",
+        "label": "الآجل",
+        "type": "number",
+        "className": "col-money",
+        "excludeKinds": [
+          "waste"
+        ]
+      },
+      {
+        "key": "payment_status",
+        "label": "الحالة",
+        "type": "select",
+        "options": [
+          {
+            "value": "paid",
+            "label": "مسددة"
+          },
+          {
+            "value": "partial",
+            "label": "جزئية"
+          },
+          {
+            "value": "unpaid",
+            "label": "غير مسددة"
+          }
+        ],
+        "format": "payment_status",
+        "excludeKinds": [
+          "waste"
+        ]
+      },
+      {
+        "key": "notes",
+        "label": "ملاحظات",
+        "type": "text",
+        "className": "col-notes"
+      },
+      {
+        "key": "created_by_name",
+        "label": "بواسطة",
+        "type": "select",
+        "options": "creators",
+        "className": "col-creator"
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  },
+  "receipt": {
+    "globalFields": [
+      "number",
+      "account_name",
+      "account_phone",
+      "cash_box_name",
+      "statement",
+      "notes",
+      "created_by_name"
+    ],
+    "columns": [
+      {
+        "key": "number",
+        "label": "الرقم",
+        "type": "text",
+        "className": "col-number"
+      },
+      {
+        "key": "receipt_date",
+        "label": "التاريخ",
+        "type": "date"
+      },
+      {
+        "key": "created_time",
+        "label": "الوقت",
+        "type": "time",
+        "source": "created_at",
+        "format": "time",
+        "className": "col-time"
+      },
+      {
+        "key": "cash_box_id",
+        "label": "الخزنة",
+        "type": "select",
+        "options": "cashBoxes"
+      },
+      {
+        "key": "account_kind",
+        "label": "نوع الحساب",
+        "type": "select",
+        "options": [
+          {
+            "value": "customer",
+            "label": "عميل"
+          },
+          {
+            "value": "supplier",
+            "label": "مورد"
+          }
+        ]
+      },
+      {
+        "key": "account",
+        "label": "الحساب",
+        "type": "text",
+        "fields": [
+          "account_name",
+          "account_phone"
+        ]
+      },
+      {
+        "key": "amount",
+        "label": "المبلغ",
+        "type": "number",
+        "className": "col-money"
+      },
+      {
+        "key": "receipt_type",
+        "label": "نوع الإيصال",
+        "type": "select",
+        "options": [
+          {
+            "value": "free",
+            "label": "إيصال حر"
+          },
+          {
+            "value": "linked",
+            "label": "مرتبط بمستند"
+          }
+        ],
+        "format": "receipt_type"
+      },
+      {
+        "key": "statement",
+        "label": "البيان",
+        "type": "text"
+      },
+      {
+        "key": "notes",
+        "label": "ملاحظات",
+        "type": "text",
+        "className": "col-notes"
+      },
+      {
+        "key": "created_by_name",
+        "label": "بواسطة",
+        "type": "select",
+        "options": "creators",
+        "className": "col-creator"
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  },
+  "warehouse_transfer": {
+    "globalFields": [
+      "number",
+      "source_warehouse_name",
+      "destination_warehouse_name",
+      "notes",
+      "created_by_name"
+    ],
+    "columns": [
+      {
+        "key": "number",
+        "label": "الرقم",
+        "type": "text",
+        "className": "col-number"
+      },
+      {
+        "key": "transfer_date",
+        "label": "التاريخ",
+        "type": "date"
+      },
+      {
+        "key": "created_time",
+        "label": "الوقت",
+        "type": "time",
+        "source": "created_at",
+        "format": "time",
+        "className": "col-time"
+      },
+      {
+        "key": "source_warehouse_id",
+        "label": "من مخزن",
+        "type": "select",
+        "options": "warehouses"
+      },
+      {
+        "key": "destination_warehouse_id",
+        "label": "إلى مخزن",
+        "type": "select",
+        "options": "warehouses"
+      },
+      {
+        "key": "line_count",
+        "label": "عدد الأصناف",
+        "type": "number"
+      },
+      {
+        "key": "total_qty",
+        "label": "إجمالي الكميات",
+        "type": "number"
+      },
+      {
+        "key": "total_value",
+        "label": "قيمة التكلفة",
+        "type": "number",
+        "className": "col-money",
+        "ownerOnly": true
+      },
+      {
+        "key": "notes",
+        "label": "ملاحظات",
+        "type": "text",
+        "className": "col-notes"
+      },
+      {
+        "key": "created_by_name",
+        "label": "بواسطة",
+        "type": "select",
+        "options": "creators",
+        "className": "col-creator"
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  },
+  "cash_transfer": {
+    "globalFields": [
+      "number",
+      "source_cash_box_name",
+      "destination_cash_box_name",
+      "notes",
+      "created_by_name"
+    ],
+    "columns": [
+      {
+        "key": "number",
+        "label": "الرقم",
+        "type": "text",
+        "className": "col-number"
+      },
+      {
+        "key": "transfer_date",
+        "label": "التاريخ",
+        "type": "date"
+      },
+      {
+        "key": "created_time",
+        "label": "الوقت",
+        "type": "time",
+        "source": "created_at",
+        "format": "time",
+        "className": "col-time"
+      },
+      {
+        "key": "source_cash_box_id",
+        "label": "من خزنة",
+        "type": "select",
+        "options": "cashBoxes"
+      },
+      {
+        "key": "destination_cash_box_id",
+        "label": "إلى خزنة",
+        "type": "select",
+        "options": "cashBoxes"
+      },
+      {
+        "key": "amount",
+        "label": "المبلغ",
+        "type": "number",
+        "className": "col-money"
+      },
+      {
+        "key": "notes",
+        "label": "ملاحظات",
+        "type": "text",
+        "className": "col-notes"
+      },
+      {
+        "key": "created_by_name",
+        "label": "بواسطة",
+        "type": "select",
+        "options": "creators",
+        "className": "col-creator"
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  },
+  "master_accounts": {
+    "globalFields": [
+      "name",
+      "phone",
+      "serial_number",
+      "number_label",
+      "notes"
+    ],
+    "columns": [
+      {
+        "key": "number_label",
+        "label": "الرقم",
+        "type": "text",
+        "format": "serial",
+        "source": "serial_number",
+        "prefix": "CUS",
+        "prefixByKind": {
+          "customer": "CUS",
+          "supplier": "SUP"
+        }
+      },
+      {
+        "key": "name",
+        "label": "الحساب",
+        "type": "text"
+      },
+      {
+        "key": "phone",
+        "label": "الهاتف",
+        "type": "text",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "is_active",
+        "label": "الحالة",
+        "type": "select",
+        "options": [
+          {
+            "value": "true",
+            "label": "نشط"
+          },
+          {
+            "value": "false",
+            "label": "موقوف"
+          }
+        ],
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "notes",
+        "label": "ملاحظات",
+        "type": "text",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  },
+  "master_items": {
+    "globalFields": [
+      "name",
+      "code",
+      "serial_number",
+      "number_label",
+      "notes"
+    ],
+    "columns": [
+      {
+        "key": "number_label",
+        "label": "الرقم",
+        "type": "text",
+        "format": "serial",
+        "source": "serial_number",
+        "prefix": "ITM"
+      },
+      {
+        "key": "code",
+        "label": "الكود",
+        "type": "text",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "name",
+        "label": "الصنف",
+        "type": "text"
+      },
+      {
+        "key": "unit",
+        "label": "الوحدة",
+        "type": "text",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "sale_price",
+        "label": "سعر البيع",
+        "type": "number"
+      },
+      {
+        "key": "purchase_price",
+        "label": "سعر الشراء",
+        "type": "number",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "is_active",
+        "label": "الحالة",
+        "type": "select",
+        "options": [
+          {
+            "value": "true",
+            "label": "نشط"
+          },
+          {
+            "value": "false",
+            "label": "موقوف"
+          }
+        ]
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  },
+  "warehouses": {
+    "globalFields": [
+      "name",
+      "serial_number",
+      "number_label",
+      "notes"
+    ],
+    "columns": [
+      {
+        "key": "number_label",
+        "label": "الرقم",
+        "type": "text",
+        "format": "serial",
+        "source": "serial_number",
+        "prefix": "WH"
+      },
+      {
+        "key": "name",
+        "label": "المخزن",
+        "type": "text"
+      },
+      {
+        "key": "is_primary",
+        "label": "النوع",
+        "type": "select",
+        "options": [
+          {
+            "value": "true",
+            "label": "رئيسي"
+          },
+          {
+            "value": "false",
+            "label": "فرعي"
+          }
+        ],
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "notes",
+        "label": "ملاحظات",
+        "type": "text",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "is_active",
+        "label": "الحالة",
+        "type": "select",
+        "options": [
+          {
+            "value": "true",
+            "label": "نشط"
+          },
+          {
+            "value": "false",
+            "label": "موقوف"
+          }
+        ]
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  },
+  "cash_boxes": {
+    "globalFields": [
+      "name",
+      "serial_number",
+      "number_label",
+      "notes"
+    ],
+    "columns": [
+      {
+        "key": "number_label",
+        "label": "الرقم",
+        "type": "text",
+        "format": "serial",
+        "source": "serial_number",
+        "prefix": "CBX"
+      },
+      {
+        "key": "name",
+        "label": "الخزنة",
+        "type": "text"
+      },
+      {
+        "key": "is_primary",
+        "label": "النوع",
+        "type": "select",
+        "options": [
+          {
+            "value": "true",
+            "label": "رئيسية"
+          },
+          {
+            "value": "false",
+            "label": "فرعية"
+          }
+        ],
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "notes",
+        "label": "ملاحظات",
+        "type": "text",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "is_active",
+        "label": "الحالة",
+        "type": "select",
+        "options": [
+          {
+            "value": "true",
+            "label": "نشط"
+          },
+          {
+            "value": "false",
+            "label": "موقوف"
+          }
+        ]
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  },
+  "account_balances": {
+    "globalFields": [
+      "name",
+      "phone",
+      "serial_number",
+      "number_label",
+      "notes"
+    ],
+    "columns": [
+      {
+        "key": "number_label",
+        "label": "الرقم",
+        "type": "text",
+        "format": "serial",
+        "source": "serial_number",
+        "prefix": "CUS",
+        "prefixByKind": {
+          "customer": "CUS",
+          "supplier": "SUP"
+        }
+      },
+      {
+        "key": "name",
+        "label": "الحساب",
+        "type": "text"
+      },
+      {
+        "key": "phone",
+        "label": "الهاتف",
+        "type": "text",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "balance",
+        "label": "الرصيد",
+        "type": "number",
+        "className": "col-money",
+        "format": "abs",
+        "source": "balance",
+        "fallbackSource": "current_balance"
+      },
+      {
+        "key": "notes",
+        "label": "ملاحظات",
+        "type": "text",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  },
+  "warehouse_items": {
+    "globalFields": [
+      "item_name",
+      "item_code",
+      "item_number",
+      "number_label",
+      "item_notes"
+    ],
+    "columns": [
+      {
+        "key": "number_label",
+        "label": "الرقم",
+        "type": "text",
+        "format": "serial",
+        "source": "item_number",
+        "prefix": "ITM"
+      },
+      {
+        "key": "item_code",
+        "label": "الكود",
+        "type": "text",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "item_name",
+        "label": "الصنف",
+        "type": "text"
+      },
+      {
+        "key": "current_qty",
+        "label": "الكمية الحالية",
+        "type": "number"
+      },
+      {
+        "key": "item_notes",
+        "label": "الملاحظات",
+        "type": "text",
+        "className": "col-hide-on-detail col-notes"
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  },
+  "opening_accounts": {
+    "globalFields": [
+      "name",
+      "phone",
+      "serial_number",
+      "number_label",
+      "notes"
+    ],
+    "columns": [
+      {
+        "key": "number_label",
+        "label": "الرقم",
+        "type": "text",
+        "format": "serial",
+        "source": "serial_number",
+        "prefix": "CUS",
+        "prefixByKind": {
+          "customer": "CUS",
+          "supplier": "SUP"
+        }
+      },
+      {
+        "key": "name",
+        "label": "الحساب",
+        "type": "text"
+      },
+      {
+        "key": "kind",
+        "label": "النوع",
+        "type": "select",
+        "options": [
+          {
+            "value": "customer",
+            "label": "عميل"
+          },
+          {
+            "value": "supplier",
+            "label": "مورد"
+          }
+        ],
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "opening_balance",
+        "label": "الرصيد الافتتاحي",
+        "type": "number"
+      },
+      {
+        "key": "balance",
+        "label": "الرصيد الحالي",
+        "type": "number",
+        "format": "abs"
+      }
+    ]
+  },
+  "opening_items": {
+    "globalFields": [
+      "item_name",
+      "item_code",
+      "item_number",
+      "number_label",
+      "item_notes",
+      "warehouse_name",
+      "warehouse_notes"
+    ],
+    "columns": [
+      {
+        "key": "number_label",
+        "label": "الرقم",
+        "type": "text",
+        "format": "serial",
+        "source": "item_number",
+        "prefix": "ITM"
+      },
+      {
+        "key": "item_code",
+        "label": "الكود",
+        "type": "text",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "item_name",
+        "label": "الصنف",
+        "type": "text"
+      },
+      {
+        "key": "opening_qty",
+        "label": "كمية البداية",
+        "type": "number"
+      },
+      {
+        "key": "unit_cost",
+        "label": "تكلفة الوحدة",
+        "type": "number",
+        "ownerOnly": true
+      },
+      {
+        "key": "current_qty",
+        "label": "الرصيد الفعلي",
+        "type": "number"
+      }
+    ]
+  },
+  "opening_cash": {
+    "globalFields": [
+      "name",
+      "serial_number",
+      "number_label",
+      "notes"
+    ],
+    "columns": [
+      {
+        "key": "number_label",
+        "label": "الرقم",
+        "type": "text",
+        "format": "serial",
+        "source": "serial_number",
+        "prefix": "CBX"
+      },
+      {
+        "key": "name",
+        "label": "الخزنة",
+        "type": "text"
+      },
+      {
+        "key": "opening_balance",
+        "label": "الرصيد الافتتاحي",
+        "type": "number"
+      },
+      {
+        "key": "balance",
+        "label": "الرصيد الفعلي",
+        "type": "number"
+      }
+    ]
+  },
+  "reconciliations": {
+    "globalFields": [
+      "notes",
+      "performed_by_name"
+    ],
+    "columns": [
+      {
+        "key": "created_date",
+        "label": "التاريخ والوقت",
+        "type": "datetime",
+        "source": "created_at",
+        "secondaryKey": "created_time"
+      },
+      {
+        "key": "performed_by_name",
+        "label": "القائم بالفحص",
+        "type": "text"
+      },
+      {
+        "key": "mode",
+        "label": "نوع العملية",
+        "type": "select",
+        "options": [
+          {
+            "value": "reconcile",
+            "label": "تصحيح فعلي"
+          },
+          {
+            "value": "simulation",
+            "label": "استكشافي"
+          }
+        ]
+      },
+      {
+        "key": "scope_summary",
+        "label": "نطاق الفحص",
+        "type": "text",
+        "format": "scope_summary",
+        "className": "col-hide-on-detail"
+      },
+      {
+        "key": "result_status",
+        "label": "نتيجة الفحص",
+        "type": "select",
+        "options": [
+          {
+            "value": "clean",
+            "label": "متطابقة"
+          },
+          {
+            "value": "issues",
+            "label": "بها فروقات"
+          }
+        ],
+        "format": "result_status"
+      },
+      {
+        "key": "notes",
+        "label": "ملاحظات",
+        "type": "text",
+        "className": "col-notes"
+      }
+    ]
+  },
+  "users": {
+    "globalFields": [
+      "full_name",
+      "email"
+    ],
+    "columns": [
+      {
+        "key": "full_name",
+        "label": "الاسم",
+        "type": "text"
+      },
+      {
+        "key": "email",
+        "label": "البريد الإلكتروني",
+        "type": "text"
+      },
+      {
+        "key": "access_role",
+        "label": "نوع المستخدم",
+        "type": "select",
+        "options": [
+          {
+            "value": "owner",
+            "label": "مدير"
+          },
+          {
+            "value": "employee",
+            "label": "موظف"
+          }
+        ]
+      },
+      {
+        "key": "is_active",
+        "label": "الحالة",
+        "type": "select",
+        "options": [
+          {
+            "value": "true",
+            "label": "نشط"
+          },
+          {
+            "value": "false",
+            "label": "موقوف"
+          }
+        ]
+      }
+    ]
+  },
+  "cash_balances": {
+    "globalFields": [
+      "name",
+      "serial_number",
+      "notes",
+      "number_label"
+    ],
+    "columns": [
+      {
+        "key": "number_label",
+        "label": "الرقم",
+        "type": "text",
+        "format": "serial",
+        "source": "serial_number",
+        "prefix": "CBX"
+      },
+      {
+        "key": "name",
+        "label": "الخزنة",
+        "type": "text"
+      },
+      {
+        "key": "balance",
+        "label": "الرصيد الحالي",
+        "type": "number",
+        "className": "col-money"
+      },
+      {
+        "key": "notes",
+        "label": "الملاحظات",
+        "type": "text",
+        "className": "col-hide-on-detail col-notes"
+      },
+      {
+        "key": "",
+        "label": "",
+        "type": "none"
+      }
+    ]
+  }
+}

@@ -1,3 +1,6 @@
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
+import { matchesColumnFilters } from '../../lib/columnFilters';
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { X, Landmark, CheckCircle2, Wallet } from 'lucide-react';
@@ -48,6 +51,9 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<CashBoxSort>('name-asc');
   const [page, setPage] = useState(1);
+  const columns = useColumnFilters("cash_boxes", () => {
+    setSearchTerm(''); setStatusFilter('all'); setPage(1);
+  });
 
   // التحديد والتفاصيل
   const [selectedBox, setSelectedBox] = useState<CashBoxRecord | null>(null);
@@ -105,7 +111,7 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
         [box.name, box.serial_number, box.notes],
         searchTerm,
       );
-      return matchStatus && matchQuery;
+      return matchStatus && matchQuery && matchesColumnFilters(box, 'cash_boxes', columns.filters);
     });
 
     return list.sort((firstBox, secondBox) => {
@@ -114,7 +120,7 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
       if (sortOrder === 'name-desc') return secondBox.name.localeCompare(firstBox.name, 'ar');
       return firstBox.name.localeCompare(secondBox.name, 'ar');
     });
-  }, [cashBoxes, searchTerm, statusFilter, sortOrder]);
+  }, [columns.filters, cashBoxes, searchTerm, statusFilter, sortOrder]);
 
   const totalCount = filteredCashBoxes.length;
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -122,7 +128,7 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, sortOrder]);
+  }, [columns.filters, searchTerm, statusFilter, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -313,6 +319,7 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
                   <th>الحالة</th>
                   <th aria-label="الإجراءات" />
                 </tr>
+                <ColumnFilterRow scope="cash_boxes" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && (

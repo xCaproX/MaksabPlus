@@ -26,7 +26,7 @@ function toIso(display: string): string | null {
     const d = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
     const y = parseInt(parts[2], 10);
-    if (y >= 1970 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+    if (y >= 1970 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= new Date(Date.UTC(y, m, 0)).getUTCDate()) {
       return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     }
   }
@@ -62,7 +62,8 @@ export default function DateInput({
     if (raw.length <= 10) {
       setText(raw);
       const iso = toIso(raw);
-      if (iso) {
+      if (!raw) onChange('');
+      else if (iso) {
         onChange(iso);
       }
     }
@@ -73,8 +74,8 @@ export default function DateInput({
     if (iso) {
       onChange(iso);
       setText(toDisplay(iso));
-    } else if (value) {
-      // Revert to current valid value if typed input is incomplete
+    } else {
+      // Incomplete or impossible dates never remain visible as active filters.
       setText(toDisplay(value));
     }
   }

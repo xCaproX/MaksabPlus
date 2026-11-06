@@ -409,3 +409,14 @@
   color: #94a3b8;
   font-size: 14px;
 }
+
+/* Keep the user filters and long permission matrix inside the desktop workspace. */
+@media (min-width: 901px) {
+  .content:has(.user-permissions-page) { block-size: 100dvh; }
+  .user-permissions-page { flex: 1; min-block-size: 0; }
+  .erp-users-workspace { flex: 1; min-block-size: 0; grid-template-rows: minmax(0, 1fr); align-items: stretch; }
+  .users-sidebar-panel { position: static; align-self: stretch; min-block-size: 0; }
+  .users-sidebar-head, .users-sidebar-panel > .column-filter-bar { flex-shrink: 0; }
+  .users-list-scroll { flex: 1; min-block-size: 0; max-block-size: none; }
+  .permissions-main-panel { min-block-size: 0; overflow: auto; }
+}

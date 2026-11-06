@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { accountKindLabel, creationTime, formatDate } from '../../lib/format';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
@@ -35,6 +36,7 @@ export function saleStatusLabel(status: Exclude<SaleStatus, 'all'>, isReturn = f
 }
 
 interface InvoiceTableProps {
+  columnFilter?: ReactNode;
   loading: boolean;
   pageInvoices: InvoiceRow[];
   kind: InvoiceTab;
@@ -54,6 +56,7 @@ interface InvoiceTableProps {
 }
 
 export default function InvoiceTable({
+  columnFilter,
   loading,
   pageInvoices,
   kind,
@@ -115,6 +118,7 @@ export default function InvoiceTable({
           <th className="col-creator">بواسطة</th>
           <th aria-label="الإجراءات" />
         </tr>
+        {columnFilter}
       </thead>
       <tbody>
         {loading && (

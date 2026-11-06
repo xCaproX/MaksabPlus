@@ -1,5 +1,8 @@
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
+import { matchesColumnFilters } from '../../lib/columnFilters';
 import Pagination from '../../components/Pagination';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   X,
   Printer,
@@ -37,6 +40,9 @@ export default function CashBoxBalancesTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
   const [page, setPage] = useState(1);
+  const columns = useColumnFilters("cash_balances", () => {
+    setSearchTerm('');  setPage(1);
+  });
 
   // التحديد والتفاصيل
   const [selectedBox, setSelectedBox] = useState<CashBoxRow | null>(null);
@@ -51,7 +57,7 @@ export default function CashBoxBalancesTab() {
   // تصفية وترتيب الخزن
   const filteredCashBoxes = useMemo(() => {
     const list = cashBoxes.filter((box) =>
-      matchesSearchQuery([box.name, box.notes, box.serial_number], searchTerm),
+      matchesColumnFilters(box, 'cash_balances', columns.filters) && matchesSearchQuery([box.name, box.notes, box.serial_number], searchTerm),
     );
 
     return list.sort((firstBox, secondBox) => {
@@ -62,8 +68,9 @@ export default function CashBoxBalancesTab() {
       if (sortOrder === 'name-desc') return secondBox.name.localeCompare(firstBox.name, 'ar');
       return firstBox.name.localeCompare(secondBox.name, 'ar');
     });
-  }, [cashBoxes, searchTerm, sortOrder]);
+  }, [columns.filters, cashBoxes, searchTerm, sortOrder]);
 
+  useEffect(() => { setPage(1); }, [columns.filters]);
   const totalCount = filteredCashBoxes.length;
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const pagedBoxes = filteredCashBoxes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -71,7 +78,7 @@ export default function CashBoxBalancesTab() {
   // شريط المؤشرات
   const kpiItems = useMemo<KpiItem[]>(() => {
     const totalLiquidity = filteredCashBoxes.reduce((sum, b) => sum + Number(b.balance || 0), 0);
-    const primaryBox = cashBoxes.find((b) => b.is_primary);
+    const primaryBox = filteredCashBoxes.find((b) => b.is_primary);
 
     const itemsList: KpiItem[] = [
       {
@@ -104,7 +111,7 @@ export default function CashBoxBalancesTab() {
     }
 
     return itemsList;
-  }, [filteredCashBoxes, cashBoxes]);
+  }, [filteredCashBoxes]);
 
   function openCashBoxStatement(box: CashBoxRow) {
     setCashStatementBox(box);
@@ -184,6 +191,7 @@ export default function CashBoxBalancesTab() {
                   <th className="col-hide-on-detail col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
+                <ColumnFilterRow scope="cash_balances" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && (

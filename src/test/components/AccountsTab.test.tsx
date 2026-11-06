@@ -9,17 +9,23 @@ const api = vi.hoisted(() => ({
 vi.mock('../../lib/access', () => ({ useAccess: () => ({ can: () => true }) }));
 vi.mock('../../context/MasterDataContext', () => ({ useMasterData: () => ({ refresh: api.refresh }) }));
 vi.mock('../../components/Toast', () => ({ toast: { error: api.error, success: api.success } }));
-vi.mock('../../lib/supabase', () => ({ supabase: {
-  rpc: api.rpc,
-  from: () => {
+vi.mock('../../lib/supabase', () => {
+  function queryBuilder() {
     const query = {
       select: () => query, eq: () => query, is: () => query, order: () => query,
       range: () => Promise.resolve({ data: api.rows, count: api.rows.length, error: null }),
       update: (value: object) => ({ eq: () => api.update(value) }),
     };
     return query;
-  },
-} }));
+  }
+  return { supabase: {
+    rpc: (name: string, ...args: unknown[]) => {
+      const result = api.rpc(name, ...args);
+      return name === 'filter_master_account_rows' ? queryBuilder() : result;
+    },
+    from: queryBuilder,
+  } };
+});
 
 function deferredSave() {
   let resolve!: (value: { error: { message: string } | null }) => void;

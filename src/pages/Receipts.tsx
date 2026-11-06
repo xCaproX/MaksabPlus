@@ -1,9 +1,11 @@
+import ColumnFilterRow from '../components/ColumnFilterRow';
+import { useColumnFilters } from '../lib/useColumnFilters';
 import Pagination from '../components/Pagination';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateDbError } from '../lib/errors';
-import { buildPostgrestOrFilter, DOCUMENT_SEARCH_FIELDS, DOCUMENT_SEARCH_PLACEHOLDER } from '../lib/search';
+import { DOCUMENT_SEARCH_PLACEHOLDER } from '../lib/search';
 import Modal from '../components/Modal';
 import SearchableSelect from '../components/SearchableSelect';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
@@ -128,6 +130,15 @@ export default function Receipts() {
 
   const [totalCount, setTotalCount] = useState(0);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const columns = useColumnFilters(tab, () => {
+    setSearchTerm(''); setDebouncedSearch(''); setCashBoxFilter('all');
+    setDateFrom(periodDates().from); setDateTo(periodDates().to); setShowDeleted(false); setPage(1);
+  });
+  const columnFilter = <ColumnFilterRow scope={isCashBoxTransfer ? 'cash_transfer' : 'receipt'} kind={direction}
+     values={columns.values} onChange={columns.setField} onReset={columns.reset}
+    options={{ cashBoxes: cashBoxes.map((b) => ({ value: b.id, label: b.name })) }} />;
+
   const [receiptSummary, setReceiptSummary] = useState<ReceiptKpiSummary>({
     totalAmount: 0,
     invoiceLinked: 0,
@@ -173,8 +184,7 @@ export default function Receipts() {
       try {
         if (!isCashBoxTransfer) {
           let query = supabase
-            .from('v_receipt_list')
-            .select('*', { count: 'exact' })
+            .rpc('filter_receipt_rows', { p_columns: columns.filters, p_search: trimmedSearch || null, p_kind: direction, }, { count: 'exact' }).select('*')
             .eq('direction', direction);
 
           if (showDeleted) {
@@ -191,14 +201,6 @@ export default function Receipts() {
           }
           if (dateTo) {
             query = query.lte('receipt_date', dateTo);
-          }
-          if (trimmedSearch) {
-            query = query.or(
-              buildPostgrestOrFilter(
-                DOCUMENT_SEARCH_FIELDS.receipt,
-                trimmedSearch,
-              ),
-            );
           }
 
           if (sortOrder === 'amount-desc') {
@@ -223,7 +225,8 @@ export default function Receipts() {
 
           const [dataRes, kpiRes] = await Promise.all([
             query,
-            supabase.rpc('get_receipt_kpis', {
+            supabase.rpc('get_receipt_kpis_columns', {
+              p_columns: columns.filters,
               p_direction: direction,
               p_cash_box_id: cashBoxFilter !== 'all' ? cashBoxFilter : null,
               p_search: trimmedSearch || null,
@@ -238,7 +241,7 @@ export default function Receipts() {
 
           setRows((dataRes.data || []) as ReceiptRow[]);
           setTotalCount(dataRes.count ?? 0);
-
+          if (kpiRes.error) throw kpiRes.error;
           if (kpiRes.data) {
             const raw = kpiRes.data as {
               total_amount?: number;
@@ -253,8 +256,7 @@ export default function Receipts() {
           }
         } else {
           let query = supabase
-            .from('v_cash_box_transfer_list')
-            .select('*', { count: 'exact' });
+            .rpc('filter_cash_transfer_rows', { p_columns: columns.filters, p_search: trimmedSearch || null,  }, { count: 'exact' }).select('*');
 
           if (showDeleted) {
             query = query.not('deleted_at', 'is', null);
@@ -270,14 +272,6 @@ export default function Receipts() {
           }
           if (dateTo) {
             query = query.lte('transfer_date', dateTo);
-          }
-          if (trimmedSearch) {
-            query = query.or(
-              buildPostgrestOrFilter(
-                DOCUMENT_SEARCH_FIELDS.cashTransfer,
-                trimmedSearch,
-              ),
-            );
           }
 
           if (sortOrder === 'amount-desc') {
@@ -298,7 +292,8 @@ export default function Receipts() {
 
           const [dataRes, kpiRes] = await Promise.all([
             query,
-            supabase.rpc('get_cash_box_transfer_kpis', {
+            supabase.rpc('get_cash_box_transfer_kpis_columns', {
+              p_columns: columns.filters,
               p_cash_box_id: cashBoxFilter !== 'all' ? cashBoxFilter : null,
               p_search: trimmedSearch || null,
               p_date_from: dateFrom || null,
@@ -312,7 +307,7 @@ export default function Receipts() {
 
           setTransferRows((dataRes.data || []) as CashBoxTransferRow[]);
           setTotalCount(dataRes.count ?? 0);
-
+          if (kpiRes.error) throw kpiRes.error;
           if (kpiRes.data) {
             const raw = kpiRes.data as {
               total_amount?: number;
@@ -347,6 +342,7 @@ export default function Receipts() {
     canViewCurrentTab,
     page,
     debouncedSearch,
+    columns.filters,
     cashBoxFilter,
     dateFrom,
     dateTo,
@@ -355,7 +351,7 @@ export default function Receipts() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, cashBoxFilter, dateFrom, dateTo, sortOrder, tab, showDeleted]);
+  }, [columns.filters, debouncedSearch, cashBoxFilter, dateFrom, dateTo, sortOrder, tab, showDeleted]);
 
   useEffect(() => {
     if (page > pageCount && pageCount > 0) {
@@ -649,6 +645,7 @@ export default function Receipts() {
           <div className="erp-table-wrap">
             {isCashBoxTransfer ? (
               <CashBoxTransferTable
+                columnFilter={columnFilter}
                 loading={loading}
                 pageTransfers={pageTransfers}
                 sortOrder={sortOrder}
@@ -663,6 +660,7 @@ export default function Receipts() {
               />
             ) : (
               <ReceiptTable
+                columnFilter={columnFilter}
                 loading={loading}
                 pageReceipts={pageReceipts}
                 sortOrder={sortOrder}

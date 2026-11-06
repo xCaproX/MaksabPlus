@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { creationTime, formatDate, qty as formatQty } from '../../lib/format';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
@@ -7,6 +8,7 @@ import type { WarehouseTransferRow } from '../../lib/types';
 import type { SaleSort } from './InvoiceTable';
 
 interface WarehouseTransferTableProps {
+  columnFilter?: ReactNode;
   loading: boolean;
   pageTransfers: WarehouseTransferRow[];
   sortOrder: SaleSort;
@@ -22,6 +24,7 @@ interface WarehouseTransferTableProps {
 }
 
 export default function WarehouseTransferTable({
+  columnFilter,
   loading,
   pageTransfers,
   sortOrder,
@@ -69,6 +72,7 @@ export default function WarehouseTransferTable({
           <th className="col-creator">بواسطة</th>
           <th aria-label="الإجراءات" />
         </tr>
+        {columnFilter}
       </thead>
       <tbody>
         {loading && (

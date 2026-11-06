@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { creationTime, formatDate } from '../../lib/format';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
@@ -7,6 +8,7 @@ import type { CashBoxTransferRow } from '../../lib/types';
 import type { ReceiptSort } from './ReceiptTable';
 
 interface CashBoxTransferTableProps {
+  columnFilter?: ReactNode;
   loading: boolean;
   pageTransfers: CashBoxTransferRow[];
   sortOrder: ReceiptSort;
@@ -21,6 +23,7 @@ interface CashBoxTransferTableProps {
 }
 
 export default function CashBoxTransferTable({
+  columnFilter,
   loading,
   pageTransfers,
   sortOrder,
@@ -65,6 +68,7 @@ export default function CashBoxTransferTable({
           <th className="col-creator">بواسطة</th>
           <th aria-label="الإجراءات" />
         </tr>
+        {columnFilter}
       </thead>
       <tbody>
         {loading && (

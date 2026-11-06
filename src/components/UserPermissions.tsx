@@ -1,3 +1,6 @@
+import ColumnFilterRow from './ColumnFilterRow';
+import { useColumnFilters } from '../lib/useColumnFilters';
+import { matchesColumnFilters } from '../lib/columnFilters';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -44,6 +47,7 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<UserFilterStatus>('all');
+  const columns = useColumnFilters('users', () => { setSearchTerm(''); setStatusFilter('all'); });
 
   // حالة طي/فرد الأقسام الهرمية
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -122,9 +126,9 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
           : statusFilter === 'active'
           ? user.access_role !== 'owner' && user.is_active
           : user.access_role !== 'owner' && !user.is_active;
-      return matchQuery && matchStatus;
+      return matchQuery && matchStatus && matchesColumnFilters(user, 'users', columns.filters);
     });
-  }, [users, searchTerm, statusFilter]);
+  }, [users, searchTerm, statusFilter, columns.filters]);
 
   useEffect(() => {
     if (filteredUsers.length > 0 && (!selectedUserId || !filteredUsers.some((u) => u.user_id === selectedUserId))) {
@@ -276,7 +280,7 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
   }
 
   return (
-    <div className="stack">
+    <div className="stack user-permissions-page">
       {loading ? (
         <div className="card empty">جارٍ تحميل المستخدمين والصلاحيات…</div>
       ) : (
@@ -313,6 +317,7 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
               </div>
             </div>
 
+            <ColumnFilterRow as="bar" scope="users" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
             <div className="users-list-scroll">
               {filteredUsers.length === 0 && (
                 <p className="empty" style={{ padding: '16px', fontSize: '12px' }}>

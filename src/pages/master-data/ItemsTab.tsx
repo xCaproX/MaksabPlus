@@ -1,3 +1,5 @@
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
@@ -9,7 +11,6 @@ import {
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
-import { buildPostgrestOrFilter } from '../../lib/search';
 import { entityNumber, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
@@ -65,6 +66,9 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<ItemSort>('name-asc');
   const [page, setPage] = useState(1);
+  const columns = useColumnFilters("master_items", () => {
+    setSearchTerm(''); setDebouncedSearch(''); setStatusFilter('all'); setPage(1);
+  });
   const [totalCount, setTotalCount] = useState(0);
 
   const [summary, setSummary] = useState<MasterItemsSummary>({
@@ -146,8 +150,7 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
 
       try {
         let query = supabase
-          .from('items')
-          .select('*', { count: 'exact' });
+          .rpc('filter_master_item_rows', { p_columns: columns.filters, p_search: trimmed || null }, { count: 'exact' }).select('*');
 
         if (statusFilter === 'active') {
           query = query.eq('is_active', true);
@@ -155,11 +158,6 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
           query = query.eq('is_active', false);
         }
 
-        if (trimmed) {
-          query = query.or(
-            buildPostgrestOrFilter(['name', 'code', 'serial_number', 'notes'], trimmed),
-          );
-        }
 
         if (sortOrder === 'price-desc') {
           query = query.order('sale_price', { ascending: false });
@@ -179,7 +177,8 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
 
         const [dataRes, kpiRes] = await Promise.all([
           query,
-          supabase.rpc('get_master_items_kpis', {
+          supabase.rpc('get_master_items_kpis_columns', {
+            p_columns: columns.filters,
             p_search: trimmed || null,
             p_status: statusFilter,
           }),
@@ -191,6 +190,7 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
         setItems((dataRes.data ?? []) as MasterItemRecord[]);
         setTotalCount(dataRes.count ?? 0);
 
+        if (kpiRes.error) throw kpiRes.error;
         if (kpiRes.data) {
           const raw = kpiRes.data as {
             total_count?: number;
@@ -217,13 +217,13 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
     return () => {
       alive = false;
     };
-  }, [page, debouncedSearch, statusFilter, sortOrder, version]);
+  }, [columns.filters, page, debouncedSearch, statusFilter, sortOrder, version]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, statusFilter, sortOrder]);
+  }, [columns.filters, debouncedSearch, statusFilter, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -422,6 +422,7 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
                   <th>الحالة</th>
                   <th aria-label="الإجراءات" />
                 </tr>
+                <ColumnFilterRow scope="master_items" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && (

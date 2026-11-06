@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { accountKindLabel, creationTime, formatDate } from '../../lib/format';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
@@ -21,6 +22,7 @@ export function linkKind(kind: ReceiptRow['invoice_kind']) {
 }
 
 interface ReceiptTableProps {
+  columnFilter?: ReactNode;
   loading: boolean;
   pageReceipts: ReceiptRow[];
   sortOrder: ReceiptSort;
@@ -35,6 +37,7 @@ interface ReceiptTableProps {
 }
 
 export default function ReceiptTable({
+  columnFilter,
   loading,
   pageReceipts,
   sortOrder,
@@ -83,6 +86,7 @@ export default function ReceiptTable({
           <th className="col-creator">بواسطة</th>
           <th aria-label="الإجراءات" />
         </tr>
+        {columnFilter}
       </thead>
       <tbody>
         {loading && (

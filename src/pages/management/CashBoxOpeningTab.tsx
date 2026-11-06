@@ -1,3 +1,6 @@
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
+import { matchesColumnFilters } from '../../lib/columnFilters';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Wallet, Landmark, X } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
@@ -34,6 +37,9 @@ export default function CashBoxOpeningTab({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<ManagementSort>('name-asc');
   const [page, setPage] = useState(1);
+  const columns = useColumnFilters("opening_cash", () => {
+    setSearchTerm('');  setPage(1);
+  });
   const [selectedBox, setSelectedBox] = useState<CashBoxRow | null>(null);
 
   useEffect(() => {
@@ -55,7 +61,7 @@ export default function CashBoxOpeningTab({
 
   const filteredCashBoxes = useMemo(() => {
     const list = cashBoxes.filter((box) =>
-      matchesSearchQuery([box.name, box.serial_number, box.notes], searchTerm)
+      matchesColumnFilters(box, 'opening_cash', columns.filters) && matchesSearchQuery([box.name, box.serial_number, box.notes], searchTerm)
     );
     return list.sort((firstBox, secondBox) => {
       if (sortOrder === 'serial-desc') return secondBox.serial_number - firstBox.serial_number;
@@ -63,14 +69,14 @@ export default function CashBoxOpeningTab({
       if (sortOrder === 'name-desc') return secondBox.name.localeCompare(firstBox.name, 'ar');
       return firstBox.name.localeCompare(secondBox.name, 'ar');
     });
-  }, [cashBoxes, searchTerm, sortOrder]);
+  }, [columns.filters, cashBoxes, searchTerm, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(filteredCashBoxes.length / PAGE_SIZE));
   const pageBoxes = filteredCashBoxes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, sortOrder]);
+  }, [columns.filters, searchTerm, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -171,6 +177,7 @@ export default function CashBoxOpeningTab({
                   <th className="num" style={{ width: '160px' }}>الرصيد الافتتاحي</th>
                   <th className="num" style={{ width: '160px' }}>الرصيد الفعلي</th>
                 </tr>
+                <ColumnFilterRow scope="opening_cash" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {pageBoxes.length === 0 && (

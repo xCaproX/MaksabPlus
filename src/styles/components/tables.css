@@ -373,3 +373,45 @@ td.row-actions > * + * {
   .erp-pagination { padding: 8px 10px; }
   .erp-row-actions { visibility: visible; }
 }
+
+/* A real table row keeps every filter aligned with its heading and records. */
+.table:has(.column-filter-row) thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 4;
+}
+.table:has(.column-filter-row) thead th { position: static; }
+.column-filter-row td {
+  background: #f7f9fc;
+  padding-block: 8px;
+  padding-inline: 7px;
+  border-block-end: 1px solid var(--border, #dbe3ef);
+  vertical-align: top;
+}
+.column-filter-cell { display: flex; align-items: flex-start; gap: 5px; min-inline-size: 0; }
+.column-filter-cell > :first-child:not(.column-filter-clear) { flex: 1; min-inline-size: 0; }
+.column-filter-row input,
+.column-filter-bar input {
+  inline-size: 100%; min-inline-size: 72px; block-size: 36px;
+  padding-block: 6px; padding-inline: 8px; font-size: 12px;
+}
+.column-filter-row .searchable-select { min-inline-size: 108px; }
+.column-filter-row .searchable-select-input-wrap input,
+.column-filter-bar .searchable-select-input-wrap input { min-block-size: 36px; padding-inline-end: 30px; font-size: 12px; }
+.column-filter-row .date-input-wrap { min-inline-size: 140px; }
+.column-filter-row .col-number input { min-inline-size: 106px; inline-size: 112px; }
+.column-filter-row .col-time input { min-inline-size: 100px; }
+.column-filter-row .col-money input { min-inline-size: 90px; }
+.column-filter-row .col-notes input { min-inline-size: 150px; }
+.column-filter-row .col-creator .searchable-select { min-inline-size: 124px; }
+.column-filter-date { display: flex; flex-direction: column; gap: 6px; }
+.column-filter-clear {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 34px;
+  inline-size: 34px; block-size: 36px; padding: 0;
+  color: var(--text-muted, #63758e); background: white; border: 1px solid #dbe3ef; border-radius: 7px;
+}
+.column-filter-clear:hover { background: #edf2f8; color: var(--text, #30465f); }
+.column-filter-clear:focus-visible { outline: 2px solid #268ed1; outline-offset: 2px; }
+.column-filter-bar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px; border-block-end: 1px solid #dbe3ef; }
+.column-filter-bar label { display: grid; gap: 4px; min-inline-size: 0; }
+.column-filter-bar .searchable-select { min-inline-size: 0; }

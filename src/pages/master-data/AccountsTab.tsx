@@ -1,3 +1,5 @@
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
@@ -12,7 +14,6 @@ import {
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
-import { buildPostgrestOrFilter } from '../../lib/search';
 import { entityNumber } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
@@ -65,6 +66,9 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<AccountSort>('name-asc');
   const [page, setPage] = useState(1);
+  const columns = useColumnFilters("master_accounts" + kind, () => {
+    setSearchTerm(''); setDebouncedSearch(''); setStatusFilter('all'); setPage(1);
+  });
   const [totalCount, setTotalCount] = useState(0);
 
   const [summary, setSummary] = useState<MasterAccountsSummary>({
@@ -123,8 +127,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
 
       try {
         let query = supabase
-          .from('accounts')
-          .select('*', { count: 'exact' })
+          .rpc('filter_master_account_rows', { p_columns: columns.filters, p_search: trimmed || null, p_kind: kind }, { count: 'exact' }).select('*')
           .eq('kind', kind)
           .is('system_key', null);
 
@@ -134,11 +137,6 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
           query = query.eq('is_active', false);
         }
 
-        if (trimmed) {
-          query = query.or(
-            buildPostgrestOrFilter(['name', 'phone', 'serial_number', 'notes'], trimmed),
-          );
-        }
 
         if (sortOrder === 'serial-desc') {
           query = query.order('serial_number', { ascending: false });
@@ -154,7 +152,8 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
 
         const [dataRes, kpiRes] = await Promise.all([
           query,
-          supabase.rpc('get_master_accounts_kpis', {
+          supabase.rpc('get_master_accounts_kpis_columns', {
+            p_columns: columns.filters,
             p_kind: kind,
             p_search: trimmed || null,
             p_status: statusFilter,
@@ -167,6 +166,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
         setAccounts((dataRes.data ?? []) as AccountRow[]);
         setTotalCount(dataRes.count ?? 0);
 
+        if (kpiRes.error) throw kpiRes.error;
         if (kpiRes.data) {
           const raw = kpiRes.data as {
             total_count?: number;
@@ -195,14 +195,14 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
     return () => {
       alive = false;
     };
-  }, [kind, version, page, debouncedSearch, statusFilter, sortOrder]);
+  }, [columns.filters, kind, version, page, debouncedSearch, statusFilter, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const pagedAccounts = accounts;
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, statusFilter, sortOrder]);
+  }, [columns.filters, debouncedSearch, statusFilter, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount && pageCount > 0) setPage(pageCount);
@@ -459,6 +459,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
                   <th className="col-hide-on-detail col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
+                <ColumnFilterRow scope="master_accounts" kind={kind} values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && (

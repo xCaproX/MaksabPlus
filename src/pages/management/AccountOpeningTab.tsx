@@ -1,3 +1,6 @@
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
+import { matchesColumnFilters } from '../../lib/columnFilters';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Users, ShoppingBag, AlertCircle, Wallet, CheckCircle2, X } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
@@ -39,6 +42,9 @@ export default function AccountOpeningTab({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<ManagementSort>('name-asc');
   const [page, setPage] = useState(1);
+  const columns = useColumnFilters("opening_accounts" + kind, () => {
+    setSearchTerm('');  setPage(1);
+  });
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
 
   const visibleAccounts = useMemo(
@@ -65,7 +71,7 @@ export default function AccountOpeningTab({
 
   const filteredAccounts = useMemo(() => {
     const list = visibleAccounts.filter((account) =>
-      matchesSearchQuery([account.name, account.phone, account.serial_number, account.notes], searchTerm)
+      matchesColumnFilters(account, 'opening_accounts', columns.filters) && matchesSearchQuery([account.name, account.phone, account.serial_number, account.notes], searchTerm)
     );
     return list.sort((firstAccount, secondAccount) => {
       if (sortOrder === 'serial-desc') return (secondAccount.serial_number ?? 0) - (firstAccount.serial_number ?? 0);
@@ -73,14 +79,14 @@ export default function AccountOpeningTab({
       if (sortOrder === 'name-desc') return secondAccount.name.localeCompare(firstAccount.name, 'ar');
       return firstAccount.name.localeCompare(secondAccount.name, 'ar');
     });
-  }, [visibleAccounts, searchTerm, sortOrder]);
+  }, [columns.filters, visibleAccounts, searchTerm, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(filteredAccounts.length / PAGE_SIZE));
   const pageAccounts = filteredAccounts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, sortOrder, kind]);
+  }, [columns.filters, searchTerm, sortOrder, kind]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -271,6 +277,7 @@ export default function AccountOpeningTab({
                   <th className="num" style={{ width: '160px' }}>الرصيد الافتتاحي</th>
                   <th className="num" style={{ width: '170px' }}>الرصيد الحالي</th>
                 </tr>
+                <ColumnFilterRow scope="opening_accounts" kind={kind} values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {pageAccounts.length === 0 && (

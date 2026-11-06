@@ -1,3 +1,5 @@
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
@@ -11,7 +13,6 @@ import {
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
-import { buildPostgrestOrFilter } from '../../lib/search';
 import { entityNumber, formatDate, getBalanceStatus, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
@@ -57,6 +58,9 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
   const [page, setPage] = useState(1);
+  const columns = useColumnFilters("account_balances" + kind, () => {
+    setSearchTerm(''); setDebouncedSearch('');  setPage(1);
+  });
   const [totalCount, setTotalCount] = useState(0);
 
   const [summary, setSummary] = useState<AccountBalancesSummary>({
@@ -97,16 +101,10 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
 
       try {
         let query = supabase
-          .from('v_account_balances')
-          .select('*', { count: 'exact' })
+          .rpc('filter_account_balance_rows', { p_columns: columns.filters, p_search: trimmed || null, p_kind: kind }, { count: 'exact' }).select('*')
           .eq('kind', kind)
           .is('system_key', null);
 
-        if (trimmed) {
-          query = query.or(
-            buildPostgrestOrFilter(['name', 'phone', 'serial_number', 'notes'], trimmed),
-          );
-        }
 
         if (sortOrder === 'balance-desc') {
           query = query.order('balance', { ascending: false }).order('name', { ascending: true });
@@ -126,7 +124,8 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
 
         const [dataRes, kpiRes] = await Promise.all([
           query,
-          supabase.rpc('get_account_balances_kpis', {
+          supabase.rpc('get_account_balances_kpis_columns', {
+            p_columns: columns.filters,
             p_kind: kind,
             p_search: trimmed || null,
           }),
@@ -138,6 +137,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
         setAccounts((dataRes.data ?? []) as AccountRow[]);
         setTotalCount(dataRes.count ?? 0);
 
+        if (kpiRes.error) throw kpiRes.error;
         if (kpiRes.data) {
           const raw = kpiRes.data as {
             net_balance?: number;
@@ -168,14 +168,14 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
     return () => {
       alive = false;
     };
-  }, [kind, page, debouncedSearch, sortOrder]);
+  }, [columns.filters, kind, page, debouncedSearch, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const pagedAccounts = accounts;
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, sortOrder]);
+  }, [columns.filters, debouncedSearch, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount && pageCount > 0) setPage(pageCount);
@@ -372,6 +372,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                   <th className="col-hide-on-detail col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
+                <ColumnFilterRow scope="account_balances" kind={kind} values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && (

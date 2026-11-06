@@ -1,3 +1,6 @@
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
+import { matchesColumnFilters } from '../../lib/columnFilters';
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { X, Warehouse, CheckCircle2 } from 'lucide-react';
@@ -45,6 +48,9 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<WarehouseSort>('name-asc');
   const [page, setPage] = useState(1);
+  const columns = useColumnFilters("warehouses", () => {
+    setSearchTerm(''); setStatusFilter('all'); setPage(1);
+  });
 
   // التحديد والتفاصيل
   const [selectedWarehouse, setSelectedWarehouse] = useState<WarehouseRecord | null>(null);
@@ -101,7 +107,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
         [warehouse.name, warehouse.serial_number, warehouse.notes],
         searchTerm,
       );
-      return matchStatus && matchQuery;
+      return matchStatus && matchQuery && matchesColumnFilters(warehouse, 'warehouses', columns.filters);
     });
 
     return list.sort((firstWarehouse, secondWarehouse) => {
@@ -110,7 +116,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
       if (sortOrder === 'name-desc') return secondWarehouse.name.localeCompare(firstWarehouse.name, 'ar');
       return firstWarehouse.name.localeCompare(secondWarehouse.name, 'ar');
     });
-  }, [warehouses, searchTerm, statusFilter, sortOrder]);
+  }, [columns.filters, warehouses, searchTerm, statusFilter, sortOrder]);
 
   const totalCount = filteredWarehouses.length;
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -118,7 +124,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, sortOrder]);
+  }, [columns.filters, searchTerm, statusFilter, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -288,6 +294,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
                   <th>الحالة</th>
                   <th aria-label="الإجراءات" />
                 </tr>
+                <ColumnFilterRow scope="warehouses" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && (

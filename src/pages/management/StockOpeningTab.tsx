@@ -1,3 +1,6 @@
+import ColumnFilterRow from '../../components/ColumnFilterRow';
+import { useColumnFilters } from '../../lib/useColumnFilters';
+import { matchesColumnFilters } from '../../lib/columnFilters';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAccess } from '../../lib/access';
 import { Boxes, DollarSign, CheckCircle2, FileText, X } from 'lucide-react';
@@ -40,6 +43,9 @@ export default function StockOpeningTab({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<ManagementSort>('name-asc');
   const [page, setPage] = useState(1);
+  const columns = useColumnFilters("opening_items" + String(canViewProfit), () => {
+    setSearchTerm(''); setSelectedWarehouseId(warehouses.find((w) => w.is_primary)?.id ?? warehouses[0]?.id ?? ''); setPage(1);
+  });
   const [selectedItemRow, setSelectedItemRow] = useState<StockOpeningRow | null>(null);
 
   useEffect(() => {
@@ -72,7 +78,7 @@ export default function StockOpeningTab({
     const list = stockRows.filter((row) => {
       const matchWarehouse = row.warehouse_id === selectedWarehouseId;
       const matchSearch = matchesSearchQuery([row.item_name, row.item_code, row.item_number, row.warehouse_name, row.item_notes, row.warehouse_notes], searchTerm);
-      return matchWarehouse && matchSearch;
+      return matchWarehouse && matchSearch && matchesColumnFilters(row, 'opening_items', columns.filters);
     });
     return list.sort((firstRow, secondRow) => {
       if (sortOrder === 'serial-desc') return secondRow.item_number - firstRow.item_number;
@@ -80,14 +86,14 @@ export default function StockOpeningTab({
       if (sortOrder === 'name-desc') return secondRow.item_name.localeCompare(firstRow.item_name, 'ar');
       return firstRow.item_name.localeCompare(secondRow.item_name, 'ar');
     });
-  }, [stockRows, selectedWarehouseId, searchTerm, sortOrder]);
+  }, [columns.filters, stockRows, selectedWarehouseId, searchTerm, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(filteredStockRows.length / PAGE_SIZE));
   const pageStock = filteredStockRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, sortOrder, selectedWarehouseId]);
+  }, [columns.filters, searchTerm, sortOrder, selectedWarehouseId]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -250,6 +256,7 @@ export default function StockOpeningTab({
                   {canViewProfit && <th className="num" style={{ width: '150px' }}>تكلفة الوحدة</th>}
                   <th className="num" style={{ width: '140px' }}>الرصيد الفعلي</th>
                 </tr>
+                <ColumnFilterRow scope="opening_items" owner={canViewProfit} values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {pageStock.length === 0 && (

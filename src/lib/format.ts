@@ -21,6 +21,14 @@ export function qty(value: number | string | null | undefined): string {
   return qtyFormat.format(n);
 }
 
+/** A timestamp's calendar date in the same local zone as document times. */
+export function creationDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+}
+
 export function creationTime(value: string | null | undefined): string {
   if (!value) return '—';
   const date = new Date(value);

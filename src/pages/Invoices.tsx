@@ -1,9 +1,11 @@
+import ColumnFilterRow from '../components/ColumnFilterRow';
+import { useColumnFilters } from '../lib/useColumnFilters';
 import Pagination from '../components/Pagination';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateDbError } from '../lib/errors';
-import { buildPostgrestOrFilter, DOCUMENT_SEARCH_FIELDS, DOCUMENT_SEARCH_PLACEHOLDER } from '../lib/search';
+import { DOCUMENT_SEARCH_PLACEHOLDER } from '../lib/search';
 import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
@@ -199,6 +201,15 @@ export default function Invoices() {
 
   const [totalCount, setTotalCount] = useState(0);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const columns = useColumnFilters(kind + String(canViewProfit), () => {
+    setSearchTerm(''); setDebouncedSearch(''); setStatusFilter('all');
+    setDateFrom(periodDates().from); setDateTo(periodDates().to); setShowDeleted(false); setPage(1);
+  });
+  const columnFilter = <ColumnFilterRow scope={isWarehouseTransfer ? 'warehouse_transfer' : 'invoice'} kind={kind}
+    owner={canViewProfit} values={columns.values} onChange={columns.setField} onReset={columns.reset}
+    options={{ warehouses: warehouses.map((w) => ({ value: w.id, label: w.name })), }} />;
+
   const [invoiceSummary, setInvoiceSummary] = useState<InvoiceKpiSummary>({
     totalAmount: 0,
     paidAmount: 0,
@@ -250,8 +261,7 @@ export default function Invoices() {
       try {
         if (invoiceKind) {
           let query = supabase
-            .from('v_invoice_list')
-            .select('*', { count: 'exact' })
+            .rpc('filter_invoice_rows', { p_columns: columns.filters, p_search: trimmedSearch || null, p_kind: invoiceKind, }, { count: 'exact' }).select('*')
             .eq('kind', invoiceKind);
 
           if (showDeleted) {
@@ -274,11 +284,6 @@ export default function Invoices() {
             } else if (statusFilter === 'unpaid') {
               query = query.lte('paid', 0).gt('remaining', 0);
             }
-          }
-          if (trimmedSearch) {
-            query = query.or(
-              buildPostgrestOrFilter(DOCUMENT_SEARCH_FIELDS.invoice, trimmedSearch),
-            );
           }
 
           if (sortOrder === 'total-desc') {
@@ -307,7 +312,8 @@ export default function Invoices() {
 
           const [docRes, kpiRes] = await Promise.all([
             query,
-            supabase.rpc('get_invoice_kpis', {
+            supabase.rpc('get_invoice_kpis_columns', {
+              p_columns: columns.filters,
               p_kind: invoiceKind,
               p_search: trimmedSearch || null,
               p_status: kind === 'waste' ? 'all' : statusFilter,
@@ -325,7 +331,7 @@ export default function Invoices() {
             setRows((docRes.data ?? []) as InvoiceRow[]);
             setTotalCount(docRes.count ?? 0);
           }
-
+          if (kpiRes.error) throw kpiRes.error;
           if (kpiRes.data) {
             const raw = kpiRes.data as any;
             setInvoiceSummary({
@@ -338,8 +344,7 @@ export default function Invoices() {
           }
         } else if (isWarehouseTransfer) {
           let transferQuery = supabase
-            .from('v_warehouse_transfer_list')
-            .select('*', { count: 'exact' });
+            .rpc('filter_warehouse_transfer_rows', { p_columns: columns.filters, p_search: trimmedSearch || null,  }, { count: 'exact' }).select('*');
 
           if (showDeleted) {
             transferQuery = transferQuery.not('deleted_at', 'is', null);
@@ -352,14 +357,6 @@ export default function Invoices() {
           }
           if (dateTo) {
             transferQuery = transferQuery.lte('transfer_date', dateTo);
-          }
-          if (trimmedSearch) {
-            transferQuery = transferQuery.or(
-              buildPostgrestOrFilter(
-                DOCUMENT_SEARCH_FIELDS.warehouseTransfer,
-                trimmedSearch,
-              ),
-            );
           }
 
           if (sortOrder === 'total-desc') {
@@ -388,7 +385,8 @@ export default function Invoices() {
 
           const [transRes, kpiRes] = await Promise.all([
             transferQuery,
-            supabase.rpc('get_warehouse_transfer_kpis', {
+            supabase.rpc('get_warehouse_transfer_kpis_columns', {
+              p_columns: columns.filters,
               p_search: trimmedSearch || null,
               p_date_from: dateFrom || null,
               p_date_to: dateTo || null,
@@ -404,7 +402,7 @@ export default function Invoices() {
             setTransferRows((transRes.data ?? []) as WarehouseTransferRow[]);
             setTotalCount(transRes.count ?? 0);
           }
-
+          if (kpiRes.error) throw kpiRes.error;
           if (kpiRes.data) {
             const raw = kpiRes.data as any;
             setTransferSummary({
@@ -437,6 +435,7 @@ export default function Invoices() {
     showDeleted,
     page,
     debouncedSearch,
+    columns.filters,
     statusFilter,
     dateFrom,
     dateTo,
@@ -445,7 +444,7 @@ export default function Invoices() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, statusFilter, dateFrom, dateTo, sortOrder, kind, showDeleted]);
+  }, [columns.filters, debouncedSearch, statusFilter, dateFrom, dateTo, sortOrder, kind, showDeleted]);
 
   useEffect(() => {
     if (page > pageCount && pageCount > 0) {
@@ -773,6 +772,7 @@ export default function Invoices() {
           <div className="erp-table-wrap">
             {isWarehouseTransfer ? (
               <WarehouseTransferTable
+                columnFilter={columnFilter}
                 loading={loading}
                 pageTransfers={pageTransfers}
                 sortOrder={sortOrder}
@@ -788,6 +788,7 @@ export default function Invoices() {
               />
             ) : (
               <InvoiceTable
+                columnFilter={columnFilter}
                 loading={loading}
                 pageInvoices={pageInvoices}
                 kind={kind}
