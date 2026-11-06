@@ -75,6 +75,18 @@
 .erp-date { display: inline-flex; align-items: center; gap: 4px; color: var(--erp-muted); font-size: 11px; font-weight: 650; flex-shrink: 0; }
 .erp-date input { width: 115px; }
 
+.period-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-inline-size: 0; }
+.period-preset { display: flex; align-items: center; gap: 6px; color: var(--erp-muted); font-size: 12px; font-weight: 650; }
+.period-preset select { min-inline-size: 130px; }
+.erp-filters .erp-search { flex-basis: 300px; min-inline-size: min(100%, 300px); }
+.account-statement-period .period-filter { align-items: flex-end; }
+@media (max-width: 640px) {
+  .period-filter { inline-size: 100%; }
+  .period-preset { inline-size: 100%; }
+  .period-filter .period-preset select { inline-size: 100%; }
+  .period-filter .erp-date-range { inline-size: 100%; flex-wrap: wrap; }
+}
+
 /* Slide-over Drawer for Details */
 .erp-detail-panel {
   display: none;

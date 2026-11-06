@@ -9,7 +9,8 @@ import SearchableSelect from '../components/SearchableSelect';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import ReceiptForm from '../components/ReceiptForm';
 import ConfirmDialog from '../components/ConfirmDialog';
-import DateInput from '../components/DateInput';
+import PeriodFilter from '../components/PeriodFilter';
+import { periodDates } from '../lib/period';
 import KpiBar from '../components/KpiBar';
 import { toast } from '../components/Toast';
 import type {
@@ -62,8 +63,8 @@ export default function Receipts() {
   // الفلاتر والبحث
   const [searchTerm, setSearchTerm] = useState('');
   const [cashBoxFilter, setCashBoxFilter] = useState('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(() => periodDates().from);
+  const [dateTo, setDateTo] = useState(() => periodDates().to);
   const [sortOrder, setSortOrder] = useState<ReceiptSort>('date-desc');
   const [page, setPage] = useState(1);
 
@@ -81,8 +82,8 @@ export default function Receipts() {
       setEditingTransfer(null);
       setSearchTerm('');
       setCashBoxFilter('all');
-      setDateFrom('');
-      setDateTo('');
+      setDateFrom(periodDates().from);
+      setDateTo(periodDates().to);
       setPage(1);
 
       if (action === 'new') {
@@ -194,7 +195,7 @@ export default function Receipts() {
           if (trimmedSearch) {
             query = query.or(
               buildPostgrestOrFilter(
-                ['number', 'account_name', 'cash_box_name', 'statement', 'notes'],
+                ['number', 'account_name', 'account_phone', 'cash_box_name', 'statement', 'notes'],
                 trimmedSearch,
               ),
             );
@@ -630,16 +631,7 @@ export default function Receipts() {
                 searchPlaceholder="بحث عن خزنة…"
               />
 
-              <div className="erp-date-range">
-                <div className="erp-date">
-                  <span>من</span>
-                  <DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" />
-                </div>
-                <div className="erp-date">
-                  <span>إلى</span>
-                  <DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" />
-                </div>
-              </div>
+              <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
 
               <label className="erp-search">
                 <span className="sr-only">البحث</span>
@@ -647,7 +639,7 @@ export default function Receipts() {
                   type="search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={isCashBoxTransfer ? 'بحث بالرقم أو الخزنة أو الملاحظات…' : 'بحث بالرقم أو الحساب أو البيان…'}
+                  placeholder={isCashBoxTransfer ? 'بحث بالرقم أو الخزنة أو الملاحظات…' : 'رقم، حساب، هاتف، خزنة، بيان…'}
                 />
               </label>
             </div>

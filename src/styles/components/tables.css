@@ -144,6 +144,23 @@ td.row-actions > * + * {
 .erp-table tbody tr.selected td { background: #e9eff6; }
 .erp-table tbody tr:focus-visible { outline: 2px solid var(--erp-navy); outline-offset: -2px; }
 .erp-table .remaining { color: #a54a26; }
+.erp-table :is(th, td) { vertical-align: middle; text-align: start; }
+.erp-table :is(th, td).num,
+.erp-table :is(th, td).col-money { text-align: end; font-variant-numeric: tabular-nums; }
+.erp-table td:has(> .num) { text-align: end; }
+.erp-table :is(th, td).col-date,
+.erp-table :is(th, td).col-time,
+.erp-table :is(th, td).col-kind,
+.erp-table :is(th, td).col-status { text-align: center; }
+.document-table { min-inline-size: 1120px; }
+.document-table .col-number { min-inline-size: 110px; }
+.document-table .col-date { min-inline-size: 96px; }
+.document-table .col-time { min-inline-size: 84px; }
+.document-table .col-location { min-inline-size: 110px; max-inline-size: 170px; white-space: normal; }
+.document-table .col-account { min-inline-size: 120px; max-inline-size: 200px; white-space: normal; }
+.erp-table .col-notes { min-inline-size: 180px; max-inline-size: 280px; white-space: normal; overflow-wrap: anywhere; }
+.document-table td { padding-block: 10px; }
+.document-table .erp-row-actions { min-inline-size: 44px; }
 .erp-row-actions { visibility: hidden; min-width: 88px; }
 .erp-table tr:hover .erp-row-actions,
 .erp-table tr.selected .erp-row-actions,

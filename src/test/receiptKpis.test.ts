@@ -28,12 +28,12 @@ describe('calculateReceiptKpis', () => {
     expect(kpis).toHaveLength(4);
     expect(kpis[0].id).toBe('receipt-in-total');
     expect(kpis[0].value).toBe('10,000.00');
-    expect(kpis[1].id).toBe('receipt-in-invoice');
-    expect(kpis[1].value).toBe('8,000.00');
-    expect(kpis[2].id).toBe('receipt-in-free');
-    expect(kpis[2].value).toBe('2,000.00');
-    expect(kpis[3].id).toBe('receipt-in-count');
-    expect(kpis[3].value).toBe(5);
+    expect(kpis[1].id).toBe('receipt-in-count');
+    expect(kpis[1].value).toBe(5);
+    expect(kpis[2].id).toBe('receipt-in-invoice');
+    expect(kpis[2].value).toBe('8,000.00');
+    expect(kpis[3].id).toBe('receipt-in-free');
+    expect(kpis[3].value).toBe('2,000.00');
   });
 
   it('يحسب مؤشرات إيصالات الصرف (out)', () => {
@@ -47,11 +47,11 @@ describe('calculateReceiptKpis', () => {
     expect(kpis).toHaveLength(4);
     expect(kpis[0].id).toBe('receipt-out-total');
     expect(kpis[0].value).toBe('4,000.00');
-    expect(kpis[1].id).toBe('receipt-out-invoice');
-    expect(kpis[1].value).toBe('3,000.00');
-    expect(kpis[2].id).toBe('receipt-out-free');
-    expect(kpis[2].value).toBe('1,000.00');
-    expect(kpis[3].id).toBe('receipt-out-count');
-    expect(kpis[3].value).toBe(2);
+    expect(kpis[1].id).toBe('receipt-out-count');
+    expect(kpis[1].value).toBe(2);
+    expect(kpis[2].id).toBe('receipt-out-invoice');
+    expect(kpis[2].value).toBe('3,000.00');
+    expect(kpis[3].id).toBe('receipt-out-free');
+    expect(kpis[3].value).toBe('1,000.00');
   });
 });

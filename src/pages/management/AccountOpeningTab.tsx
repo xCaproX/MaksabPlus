@@ -65,7 +65,7 @@ export default function AccountOpeningTab({
 
   const filteredAccounts = useMemo(() => {
     const list = visibleAccounts.filter((account) =>
-      matchesSearchQuery([account.name, account.phone, account.serial_number], searchTerm)
+      matchesSearchQuery([account.name, account.phone, account.serial_number, account.notes], searchTerm)
     );
     return list.sort((firstAccount, secondAccount) => {
       if (sortOrder === 'serial-desc') return (secondAccount.serial_number ?? 0) - (firstAccount.serial_number ?? 0);
@@ -295,7 +295,7 @@ export default function AccountOpeningTab({
                         }
                       }}
                     >
-                      <td className="num strong">{entityNumber(entityPrefix, account.serial_number)}</td>
+                      <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber(entityPrefix, account.serial_number)}</bdi></td>
                       <td className="strong">{account.name}</td>
                       <td className="muted col-hide-on-detail" style={{ width: '90px' }}>{isCustomer ? 'عميل' : 'مورد'}</td>
                       <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '160px' }}>

@@ -1,4 +1,4 @@
-import { formatDate } from '../../lib/format';
+import { accountKindLabel, creationTime, formatDate } from '../../lib/format';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -47,7 +47,7 @@ export default function ReceiptTable({
   canDelete,
 }: ReceiptTableProps) {
   return (
-    <table className="table erp-table">
+    <table className="table erp-table document-table">
       <thead>
         <tr>
           <SortableHeader
@@ -62,13 +62,11 @@ export default function ReceiptTable({
             currentSort={sortOrder}
             onSort={(s) => onSort(s as ReceiptSort)}
           />
-          <SortableHeader
-            label="الحساب"
-            field="account"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as ReceiptSort)}
-          />
-          <th>الخزنة</th>
+          <th className="col-time">الوقت</th>
+          <th className="col-location">الخزنة</th>
+          <th className="col-kind">نوع الحساب</th>
+          <SortableHeader label="الحساب" field="account" currentSort={sortOrder}
+            className="col-account" onSort={(s) => onSort(s as ReceiptSort)} />
           <SortableHeader
             label="المبلغ"
             field="amount"
@@ -78,21 +76,22 @@ export default function ReceiptTable({
             className="num"
           />
           <th>نوع الإيصال</th>
-          <th>البيان</th>
+          <th className="col-notes">البيان</th>
+          <th className="col-notes">ملاحظات</th>
           <th aria-label="الإجراءات" />
         </tr>
       </thead>
       <tbody>
         {loading && (
           <tr>
-            <td colSpan={8} className="empty">
+            <td colSpan={11} className="empty">
               جارٍ التحميل…
             </td>
           </tr>
         )}
         {!loading && pageReceipts.length === 0 && (
           <tr>
-            <td colSpan={8} className="empty">
+            <td colSpan={11} className="empty">
               لا توجد إيصالات تطابق البحث أو الفلاتر.
             </td>
           </tr>
@@ -110,15 +109,12 @@ export default function ReceiptTable({
                 }
               }}
             >
-              <td className="num strong">{receipt.number}</td>
-              <td className="num">{formatDate(receipt.receipt_date)}</td>
-              <td>
-                {receipt.account_name}{' '}
-                <span className="muted">
-                  ({receipt.account_kind === 'customer' ? 'عميل' : receipt.account_kind === 'supplier' ? 'مورد' : 'هالك'})
-                </span>
-              </td>
-              <td>{receipt.cash_box_name}</td>
+              <td className="col-number strong"><bdi dir="ltr" className="tabular-nums">{receipt.number}</bdi></td>
+              <td className="col-date"><bdi dir="ltr" className="tabular-nums">{formatDate(receipt.receipt_date)}</bdi></td>
+              <td className="col-time"><bdi dir="ltr" className="tabular-nums">{creationTime(receipt.created_at)}</bdi></td>
+              <td className="col-location">{receipt.cash_box_name}</td>
+              <td className="col-kind">{accountKindLabel(receipt.account_kind)}</td>
+              <td className="col-account">{receipt.account_name}</td>
               <td><MoneyDisplay value={receipt.amount} strong /></td>
               <td>
                 {receipt.is_free ? (
@@ -127,7 +123,8 @@ export default function ReceiptTable({
                   <StatusBadge variant="linked">مرتبط بـ{linkKind(receipt.invoice_kind)}</StatusBadge>
                 )}
               </td>
-              <td className="muted">{receipt.statement || '—'}</td>
+              <td className="col-notes">{receipt.statement || '—'}</td>
+              <td className="col-notes">{receipt.notes || '—'}</td>
               <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                 {showDeleted ? (
                   canDelete ? (

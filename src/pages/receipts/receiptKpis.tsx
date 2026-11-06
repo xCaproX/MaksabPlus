@@ -80,6 +80,14 @@ export function calculateReceiptKpis({
         icon: ArrowDownLeft,
       },
       {
+        id: 'receipt-in-count',
+        label: 'عدد إيصالات الاستلام',
+        value: count,
+        unit: 'إيصال',
+        variant: 'neutral',
+        icon: FileText,
+      },
+      {
         id: 'receipt-in-invoice',
         label: 'تحصيل فواتير مبيعات',
         value: money(invoiceLinked),
@@ -101,14 +109,6 @@ export function calculateReceiptKpis({
         variant: 'info',
         icon: DollarSign,
       },
-      {
-        id: 'receipt-in-count',
-        label: 'عدد إيصالات الاستلام',
-        value: count,
-        unit: 'إيصال',
-        variant: 'neutral',
-        icon: FileText,
-      },
     ];
   }
 
@@ -121,6 +121,14 @@ export function calculateReceiptKpis({
       unit: 'ج.م',
       variant: 'danger',
       icon: ArrowUpRight,
+    },
+    {
+      id: 'receipt-out-count',
+      label: 'عدد إيصالات الصرف',
+      value: count,
+      unit: 'إيصال',
+      variant: 'neutral',
+      icon: FileText,
     },
     {
       id: 'receipt-out-invoice',
@@ -143,14 +151,6 @@ export function calculateReceiptKpis({
       unit: 'ج.م',
       variant: 'warning',
       icon: DollarSign,
-    },
-    {
-      id: 'receipt-out-count',
-      label: 'عدد إيصالات الصرف',
-      value: count,
-      unit: 'إيصال',
-      variant: 'neutral',
-      icon: FileText,
     },
   ];
 }

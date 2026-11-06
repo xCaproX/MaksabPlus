@@ -55,7 +55,7 @@ export default function CashBoxOpeningTab({
 
   const filteredCashBoxes = useMemo(() => {
     const list = cashBoxes.filter((box) =>
-      matchesSearchQuery([box.name, box.serial_number], searchTerm)
+      matchesSearchQuery([box.name, box.serial_number, box.notes], searchTerm)
     );
     return list.sort((firstBox, secondBox) => {
       if (sortOrder === 'serial-desc') return secondBox.serial_number - firstBox.serial_number;
@@ -195,7 +195,7 @@ export default function CashBoxOpeningTab({
                         }
                       }}
                     >
-                      <td className="num strong">{entityNumber('CBX', box.serial_number)}</td>
+                      <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('CBX', box.serial_number)}</bdi></td>
                       <td className="strong">{box.name}</td>
                       <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '160px' }}>
                         <input

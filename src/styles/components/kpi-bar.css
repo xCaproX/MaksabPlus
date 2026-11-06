@@ -11,6 +11,9 @@
   width: 100%;
 }
 
+.erp-kpi-card .kpi-card-label { white-space: normal; line-height: 1.6; }
+.erp-kpi-card .kpi-card-head { align-items: flex-start; min-block-size: 32px; }
+
 .erp-kpi-card {
   display: flex;
   flex-direction: column;

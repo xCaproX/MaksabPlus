@@ -71,7 +71,7 @@ export default function StockOpeningTab({
   const filteredStockRows = useMemo(() => {
     const list = stockRows.filter((row) => {
       const matchWarehouse = row.warehouse_id === selectedWarehouseId;
-      const matchSearch = matchesSearchQuery([row.item_name, row.item_code, row.item_number], searchTerm);
+      const matchSearch = matchesSearchQuery([row.item_name, row.item_code, row.item_number, row.warehouse_name, row.item_notes, row.warehouse_notes], searchTerm);
       return matchWarehouse && matchSearch;
     });
     return list.sort((firstRow, secondRow) => {
@@ -275,7 +275,7 @@ export default function StockOpeningTab({
                         }
                       }}
                     >
-                      <td className="num strong">{entityNumber('ITM', row.item_number)}</td>
+                      <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', row.item_number)}</bdi></td>
                       <td className="num col-hide-on-detail" style={{ width: '100px' }}>{row.item_code}</td>
                       <td className="strong">{row.item_name}</td>
                       <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '150px' }}>

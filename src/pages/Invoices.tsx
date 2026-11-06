@@ -8,7 +8,8 @@ import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
-import DateInput from '../components/DateInput';
+import PeriodFilter from '../components/PeriodFilter';
+import { periodDates } from '../lib/period';
 import SearchableSelect from '../components/SearchableSelect';
 import KpiBar from '../components/KpiBar';
 import { toast } from '../components/Toast';
@@ -92,8 +93,8 @@ export default function Invoices() {
   // الفلاتر الموحدة
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<SaleStatus>('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(() => periodDates().from);
+  const [dateTo, setDateTo] = useState(() => periodDates().to);
   const [sortOrder, setSortOrder] = useState<SaleSort>('date-desc');
   const [page, setPage] = useState(1);
 
@@ -113,8 +114,8 @@ export default function Invoices() {
       setEditingTransfer(null);
       setSearchTerm('');
       setStatusFilter('all');
-      setDateFrom('');
-      setDateTo('');
+      setDateFrom(periodDates().from);
+      setDateTo(periodDates().to);
       setPage(1);
 
       if (action === 'new') {
@@ -276,7 +277,7 @@ export default function Invoices() {
           }
           if (trimmedSearch) {
             query = query.or(
-              buildPostgrestOrFilter(['number', 'account_name', 'warehouse_name'], trimmedSearch),
+              buildPostgrestOrFilter(['number', 'account_name', 'account_phone', 'warehouse_name', 'notes'], trimmedSearch),
             );
           }
 
@@ -754,16 +755,7 @@ export default function Invoices() {
                 />
               )}
 
-              <div className="erp-date-range">
-                <div className="erp-date">
-                  <span>من</span>
-                  <DateInput value={dateFrom} onChange={setDateFrom} ariaLabel="من تاريخ" />
-                </div>
-                <div className="erp-date">
-                  <span>إلى</span>
-                  <DateInput value={dateTo} onChange={setDateTo} ariaLabel="إلى تاريخ" />
-                </div>
-              </div>
+              <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
 
               <label className="erp-search">
                 <span className="sr-only">البحث</span>
@@ -773,8 +765,8 @@ export default function Invoices() {
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder={
                     isWarehouseTransfer
-                      ? 'بحث بالرقم أو المخزن…'
-                      : `بحث بالرقم أو ${partyHeader}…`
+                      ? 'بحث بالرقم أو المخزن أو الملاحظات…'
+                      : 'رقم، حساب، هاتف، مخزن، ملاحظات…'
                   }
                 />
               </label>

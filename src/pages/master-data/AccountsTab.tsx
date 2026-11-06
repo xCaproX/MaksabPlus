@@ -455,7 +455,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
                   />
                   <th className="col-hide-on-detail">الهاتف</th>
                   <th className="col-hide-on-detail">الحالة</th>
-                  <th className="col-hide-on-detail">الملاحظات</th>
+                  <th className="col-hide-on-detail col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
               </thead>
@@ -490,15 +490,15 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
                           }
                         }}
                       >
-                        <td className="num strong">{entityNumber(entityPrefix, account.serial_number)}</td>
+                        <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber(entityPrefix, account.serial_number)}</bdi></td>
                         <td className="strong">{account.name}</td>
-                        <td className="num col-hide-on-detail">{account.phone || '—'}</td>
+                        <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{account.phone || '—'}</bdi></td>
                         <td className="col-hide-on-detail">
                           <StatusBadge variant={account.is_active ? 'paid' : 'unpaid'}>
                             {account.is_active ? 'نشط' : 'موقوف'}
                           </StatusBadge>
                         </td>
-                        <td className="muted col-hide-on-detail">{account.notes || '—'}</td>
+                        <td className="muted col-hide-on-detail col-notes">{account.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <RowActions
                             onEdit={can(`${permissionPrefix}.edit`) ? () => startEdit(account) : undefined}

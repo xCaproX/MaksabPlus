@@ -8,6 +8,8 @@ import {
   X,
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
+import PeriodFilter from '../../components/PeriodFilter';
+import { periodDates, shiftCalendarDate } from '../../lib/period';
 import Pagination from '../../components/Pagination';
 import SearchableSelect from '../../components/SearchableSelect';
 import { supabase } from '../../lib/supabase';
@@ -36,6 +38,8 @@ export default function ReconciliationLogTab({
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFrom, setDateFrom] = useState(() => periodDates().from);
+  const [dateTo, setDateTo] = useState(() => periodDates().to);
   const [modeFilter, setModeFilter] = useState<'all' | 'reconcile' | 'simulation'>('all');
   const [selectedLog, setSelectedLog] = useState<ReconciliationLogRow | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,6 +57,8 @@ export default function ReconciliationLogTab({
         .from('balance_reconciliation_logs')
         .select('*', { count: 'exact' });
 
+      if (dateFrom) query = query.gte('created_at', `${dateFrom} 00:00:00 Africa/Cairo`);
+      if (dateTo) query = query.lt('created_at', `${shiftCalendarDate(dateTo, 1)} 00:00:00 Africa/Cairo`);
       if (modeFilter !== 'all') {
         query = query.eq('mode', modeFilter);
       }
@@ -75,7 +81,7 @@ export default function ReconciliationLogTab({
     } finally {
       setLoading(false);
     }
-  }, [modeFilter, page, searchTerm]);
+  }, [modeFilter, page, searchTerm, dateFrom, dateTo]);
 
   useEffect(() => {
     void loadLogs();
@@ -178,6 +184,7 @@ export default function ReconciliationLogTab({
                 }}
               />
 
+              <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); setPage(1); }} />
               <label className="erp-search">
                 <span className="sr-only">البحث</span>
                 <input
@@ -239,10 +246,10 @@ export default function ReconciliationLogTab({
                       >
                         <td className="num strong">
                           <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
-                            <span>{formatDate(row.created_at)}</span>
-                            <span style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
+                            <bdi dir="ltr" className="tabular-nums">{formatDate(row.created_at)}</bdi>
+                            <bdi dir="ltr" className="tabular-nums" style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
                               {creationTime(row.created_at)}
-                            </span>
+                            </bdi>
                           </span>
                         </td>
                         <td>{row.performed_by_name || 'المالك'}</td>

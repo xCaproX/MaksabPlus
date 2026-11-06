@@ -1,4 +1,4 @@
-import { formatDate, qty as formatQty } from '../../lib/format';
+import { creationTime, formatDate, qty as formatQty } from '../../lib/format';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
@@ -35,7 +35,7 @@ export default function WarehouseTransferTable({
   canViewProfit,
 }: WarehouseTransferTableProps) {
   return (
-    <table className="table erp-table">
+    <table className="table erp-table document-table">
       <thead>
         <tr>
           <SortableHeader
@@ -50,6 +50,7 @@ export default function WarehouseTransferTable({
             currentSort={sortOrder}
             onSort={(s) => onSort(s as SaleSort)}
           />
+          <th className="col-time">الوقت</th>
           <th>من مخزن</th>
           <th>إلى مخزن</th>
           <th className="num">عدد الأصناف</th>
@@ -62,21 +63,21 @@ export default function WarehouseTransferTable({
             currentSort={sortOrder}
             onSort={(s) => onSort(s as SaleSort)}
           />}
-          <th>ملاحظات</th>
+          <th className="col-notes">ملاحظات</th>
           <th aria-label="الإجراءات" />
         </tr>
       </thead>
       <tbody>
         {loading && (
           <tr>
-            <td colSpan={canViewProfit ? 9 : 8} className="empty">
+            <td colSpan={canViewProfit ? 10 : 9} className="empty">
               جارٍ التحميل…
             </td>
           </tr>
         )}
         {!loading && pageTransfers.length === 0 && (
           <tr>
-            <td colSpan={canViewProfit ? 9 : 8} className="empty">
+            <td colSpan={canViewProfit ? 10 : 9} className="empty">
               لا توجد تحويلات تطابق البحث أو الفلاتر.
             </td>
           </tr>
@@ -94,14 +95,15 @@ export default function WarehouseTransferTable({
                 }
               }}
             >
-              <td className="num strong">{transfer.number}</td>
-              <td className="num">{formatDate(transfer.transfer_date)}</td>
+              <td className="col-number strong"><bdi dir="ltr" className="tabular-nums">{transfer.number}</bdi></td>
+              <td className="col-date"><bdi dir="ltr" className="tabular-nums">{formatDate(transfer.transfer_date)}</bdi></td>
+              <td className="col-time"><bdi dir="ltr" className="tabular-nums">{creationTime(transfer.created_at)}</bdi></td>
               <td>{transfer.source_warehouse_name}</td>
               <td>{transfer.destination_warehouse_name}</td>
-              <td className="num">{transfer.line_count}</td>
-              <td className="num">{formatQty(transfer.total_qty)}</td>
+              <td className="num"><bdi dir="ltr" className="tabular-nums">{transfer.line_count}</bdi></td>
+              <td className="num"><bdi dir="ltr" className="tabular-nums">{formatQty(transfer.total_qty)}</bdi></td>
               {canViewProfit && <td><MoneyDisplay value={transfer.total_value} strong /></td>}
-              <td>{transfer.notes || '—'}</td>
+              <td className="col-notes">{transfer.notes || '—'}</td>
               <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                 {showDeleted ? (
                   canDelete && (

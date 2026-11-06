@@ -12,10 +12,11 @@ import {
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { buildPostgrestOrFilter } from '../../lib/search';
-import { entityNumber, formatDate, money, qty as formatQty, today } from '../../lib/format';
+import { entityNumber, formatDate, money, qty as formatQty } from '../../lib/format';
 import { translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
-import DateInput from '../../components/DateInput';
+import PeriodFilter from '../../components/PeriodFilter';
+import { periodDates } from '../../lib/period';
 import SearchableSelect from '../../components/SearchableSelect';
 import SortableHeader from '../../components/SortableHeader';
 import { toast } from '../../components/Toast';
@@ -99,8 +100,8 @@ export default function ItemBalancesTab() {
 
   // كشف حركة الصنف
   const [itemStatementRow, setItemStatementRow] = useState<WarehouseItemRow | null>(null);
-  const [statementFrom, setStatementFrom] = useState(`${today().slice(0, 7)}-01`);
-  const [statementTo, setStatementTo] = useState(today());
+  const [statementFrom, setStatementFrom] = useState(() => periodDates().from);
+  const [statementTo, setStatementTo] = useState(() => periodDates().to);
   const [itemStatementRows, setItemStatementRows] = useState<ItemMovementStatementRow[]>([]);
   const [itemStatementLoading, setItemStatementLoading] = useState(false);
 
@@ -244,8 +245,8 @@ export default function ItemBalancesTab() {
 
   function openItemStatement(row: WarehouseItemRow) {
     setItemStatementRow(row);
-    setStatementFrom(`${today().slice(0, 7)}-01`);
-    setStatementTo(today());
+    setStatementFrom(periodDates().from);
+    setStatementTo(periodDates().to);
     setItemStatementRows([]);
   }
 
@@ -336,7 +337,7 @@ export default function ItemBalancesTab() {
                     align="end"
                     className="num"
                   />
-                  <th className="col-hide-on-detail">الملاحظات</th>
+                  <th className="col-hide-on-detail col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
               </thead>
@@ -372,13 +373,13 @@ export default function ItemBalancesTab() {
                           }
                         }}
                       >
-                        <td className="num strong">{entityNumber('ITM', row.item_number)}</td>
-                        <td className="num col-hide-on-detail">{row.item_code}</td>
+                        <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', row.item_number)}</bdi></td>
+                        <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{row.item_code}</bdi></td>
                         <td className="strong">{row.item_name}</td>
                         <td className="num strong">
-                          {formatQty(row.current_qty)} {row.unit}
+                          <bdi dir="ltr" className="tabular-nums">{formatQty(row.current_qty)}</bdi> {row.unit}
                         </td>
-                        <td className="muted col-hide-on-detail">{row.item_notes || '—'}</td>
+                        <td className="muted col-hide-on-detail col-notes">{row.item_notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
@@ -500,24 +501,8 @@ export default function ItemBalancesTab() {
                 <p>{selectedWarehouse?.name ?? itemStatementRow.warehouse_name}</p>
               </div>
               <div className="account-statement-period">
-                <label>
-                  <span>من تاريخ</span>
-                  <DateInput
-                    value={statementFrom}
-                    onChange={setStatementFrom}
-                    ariaLabel="من تاريخ"
-                    required
-                  />
-                </label>
-                <label>
-                  <span>إلى تاريخ</span>
-                  <DateInput
-                    value={statementTo}
-                    onChange={setStatementTo}
-                    ariaLabel="إلى تاريخ"
-                    required
-                  />
-                </label>
+                <PeriodFilter from={statementFrom} to={statementTo} required disabled={itemStatementLoading}
+                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); setItemStatementRows([]); }} />
               </div>
             </div>
 

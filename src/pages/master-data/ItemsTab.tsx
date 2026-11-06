@@ -453,12 +453,12 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
                           }
                         }}
                       >
-                        <td className="num strong">{entityNumber('ITM', item.serial_number)}</td>
-                        <td className="num col-hide-on-detail">{item.code}</td>
+                        <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', item.serial_number)}</bdi></td>
+                        <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{item.code}</bdi></td>
                         <td className="strong">{item.name}</td>
                         <td className="col-hide-on-detail">{item.unit}</td>
-                        <td className="num strong">{money(item.sale_price)}</td>
-                        <td className="num col-hide-on-detail">{money(item.purchase_price)}</td>
+                        <td className="num strong"><bdi dir="ltr" className="tabular-nums">{money(item.sale_price)}</bdi></td>
+                        <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{money(item.purchase_price)}</bdi></td>
                         <td>
                           <StatusBadge variant={item.is_active ? 'paid' : 'unpaid'}>
                             {item.is_active ? 'نشط' : 'موقوف'}

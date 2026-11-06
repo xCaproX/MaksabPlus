@@ -283,7 +283,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
                     defaultDirection="asc"
                   />
                   <th className="col-hide-on-detail">النوع</th>
-                  <th className="col-hide-on-detail">ملاحظات</th>
+                  <th className="col-hide-on-detail col-notes">ملاحظات</th>
                   <th>الحالة</th>
                   <th aria-label="الإجراءات" />
                 </tr>
@@ -319,7 +319,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
                           }
                         }}
                       >
-                        <td className="num strong">{entityNumber('WH', warehouse.serial_number)}</td>
+                        <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('WH', warehouse.serial_number)}</bdi></td>
                         <td className="strong">{warehouse.name}</td>
                         <td className="col-hide-on-detail">
                           {warehouse.is_primary ? (
@@ -328,7 +328,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
                             <span className="muted">فرعي</span>
                           )}
                         </td>
-                        <td className="muted col-hide-on-detail">{warehouse.notes || '—'}</td>
+                        <td className="muted col-hide-on-detail col-notes">{warehouse.notes || '—'}</td>
                         <td>
                           <StatusBadge variant={warehouse.is_active ? 'paid' : 'unpaid'}>
                             {warehouse.is_active ? 'نشط' : 'موقوف'}

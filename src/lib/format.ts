@@ -33,6 +33,10 @@ export function creationTime(value: string | null | undefined): string {
   }).format(date);
 }
 
+export function accountKindLabel(kind: string): string {
+  return ({ customer: 'عميل', supplier: 'مورد', waste: 'هالك' } as Record<string, string>)[kind] ?? '—';
+}
+
 export function entityNumber(prefix: string, value: number | string | null | undefined): string {
   const number = Number(value);
   return `${prefix}-${Number.isFinite(number) ? String(number).padStart(5, '0') : '00000'}`;

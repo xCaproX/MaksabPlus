@@ -308,7 +308,7 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
                     defaultDirection="asc"
                   />
                   <th className="col-hide-on-detail">النوع</th>
-                  <th className="col-hide-on-detail">ملاحظات</th>
+                  <th className="col-hide-on-detail col-notes">ملاحظات</th>
                   <th>الحالة</th>
                   <th aria-label="الإجراءات" />
                 </tr>
@@ -344,7 +344,7 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
                           }
                         }}
                       >
-                        <td className="num strong">{entityNumber('CBX', box.serial_number)}</td>
+                        <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('CBX', box.serial_number)}</bdi></td>
                         <td className="strong">{box.name}</td>
                         <td className="col-hide-on-detail">
                           {box.is_primary ? (
@@ -353,7 +353,7 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
                             <span className="muted">فرعية</span>
                           )}
                         </td>
-                        <td className="muted col-hide-on-detail">{box.notes || '—'}</td>
+                        <td className="muted col-hide-on-detail col-notes">{box.notes || '—'}</td>
                         <td>
                           <StatusBadge variant={box.is_active ? 'paid' : 'unpaid'}>
                             {box.is_active ? 'نشطة' : 'موقوفة'}

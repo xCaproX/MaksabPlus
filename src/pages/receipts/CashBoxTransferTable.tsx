@@ -1,4 +1,4 @@
-import { formatDate } from '../../lib/format';
+import { creationTime, formatDate } from '../../lib/format';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
@@ -33,7 +33,7 @@ export default function CashBoxTransferTable({
   canDelete,
 }: CashBoxTransferTableProps) {
   return (
-    <table className="table erp-table">
+    <table className="table erp-table document-table">
       <thead>
         <tr>
           <SortableHeader
@@ -48,6 +48,7 @@ export default function CashBoxTransferTable({
             currentSort={sortOrder}
             onSort={(s) => onSort(s as ReceiptSort)}
           />
+          <th className="col-time">الوقت</th>
           <th>من خزنة</th>
           <th>إلى خزنة</th>
           <SortableHeader
@@ -58,21 +59,21 @@ export default function CashBoxTransferTable({
             align="end"
             className="num"
           />
-          <th>ملاحظات</th>
+          <th className="col-notes">ملاحظات</th>
           <th aria-label="الإجراءات" />
         </tr>
       </thead>
       <tbody>
         {loading && (
           <tr>
-            <td colSpan={7} className="empty">
+            <td colSpan={8} className="empty">
               جارٍ التحميل…
             </td>
           </tr>
         )}
         {!loading && pageTransfers.length === 0 && (
           <tr>
-            <td colSpan={7} className="empty">
+            <td colSpan={8} className="empty">
               لا توجد تحويلات تطابق البحث أو الفلاتر.
             </td>
           </tr>
@@ -90,12 +91,13 @@ export default function CashBoxTransferTable({
                 }
               }}
             >
-              <td className="num strong">{transfer.number}</td>
-              <td className="num">{formatDate(transfer.transfer_date)}</td>
+              <td className="col-number strong"><bdi dir="ltr" className="tabular-nums">{transfer.number}</bdi></td>
+              <td className="col-date"><bdi dir="ltr" className="tabular-nums">{formatDate(transfer.transfer_date)}</bdi></td>
+              <td className="col-time"><bdi dir="ltr" className="tabular-nums">{creationTime(transfer.created_at)}</bdi></td>
               <td>{transfer.source_cash_box_name}</td>
               <td>{transfer.destination_cash_box_name}</td>
               <td><MoneyDisplay value={transfer.amount} strong /></td>
-              <td className="muted">{transfer.notes || '—'}</td>
+              <td className="col-notes">{transfer.notes || '—'}</td>
               <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                 {showDeleted ? (
                   canDelete && (

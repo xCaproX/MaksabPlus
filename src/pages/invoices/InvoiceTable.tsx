@@ -1,4 +1,4 @@
-import { formatDate } from '../../lib/format';
+import { accountKindLabel, creationTime, formatDate } from '../../lib/format';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -56,10 +56,8 @@ export default function InvoiceTable({
   loading,
   pageInvoices,
   kind,
-  partyHeader,
   sortOrder,
   onSort,
-  canViewProfit,
   showDeleted,
   newLabel,
   isReturn,
@@ -71,7 +69,7 @@ export default function InvoiceTable({
   canDelete,
 }: InvoiceTableProps) {
   return (
-    <table className="table erp-table">
+    <table className="table erp-table document-table">
       <thead>
         <tr>
           <SortableHeader
@@ -86,14 +84,11 @@ export default function InvoiceTable({
             currentSort={sortOrder}
             onSort={(s) => onSort(s as SaleSort)}
           />
-          <SortableHeader
-            label={partyHeader}
-            field="account"
-            defaultDirection="asc"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as SaleSort)}
-          />
-          <th>المخزن</th>
+          <th className="col-time">الوقت</th>
+          <th className="col-location">المخزن</th>
+          <th className="col-kind">نوع الحساب</th>
+          <SortableHeader label="الحساب" field="account" defaultDirection="asc" currentSort={sortOrder}
+            className="col-account" onSort={(s) => onSort(s as SaleSort)} />
           <SortableHeader
             label="الإجمالي"
             field="total"
@@ -102,16 +97,10 @@ export default function InvoiceTable({
             currentSort={sortOrder}
             onSort={(s) => onSort(s as SaleSort)}
           />
-          {(kind === 'sale' || kind === 'sale_return') && canViewProfit && (
-            <th className="num">الربح</th>
-          )}
-          {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && (
-            <th className="num">{kind === 'waste' ? 'الخسارة' : 'التكلفة'}</th>
-          )}
-          {kind !== 'waste' && <th>{isReturn ? 'الاسترداد' : 'السداد'}</th>}
+          {kind !== 'waste' && <th className="col-money">{isReturn ? 'المسترد' : 'المسدد'}</th>}
           {kind !== 'waste' && (
             <SortableHeader
-              label={isReturn ? 'غير المسترد' : 'المتبقي'}
+              label={isReturn ? 'غير المسترد' : 'الآجل'}
               field="remaining"
               align="end"
               className="num"
@@ -119,20 +108,22 @@ export default function InvoiceTable({
               onSort={(s) => onSort(s as SaleSort)}
             />
           )}
+          {kind !== 'waste' && <th className="col-status">الحالة</th>}
+          <th className="col-notes">ملاحظات</th>
           <th aria-label="الإجراءات" />
         </tr>
       </thead>
       <tbody>
         {loading && (
           <tr>
-            <td colSpan={10} className="empty">
+            <td colSpan={kind === 'waste' ? 9 : 12} className="empty">
               جارٍ التحميل…
             </td>
           </tr>
         )}
         {!loading && pageInvoices.length === 0 && (
           <tr>
-            <td colSpan={10} className="empty">
+            <td colSpan={kind === 'waste' ? 9 : 12} className="empty">
               لا توجد فواتير تطابق البحث أو الفلاتر.
             </td>
           </tr>
@@ -152,22 +143,14 @@ export default function InvoiceTable({
                   }
                 }}
               >
-                <td className="num strong">{invoice.number}</td>
-                <td className="num">{formatDate(invoice.invoice_date)}</td>
-                <td>{invoice.account_name}</td>
-                <td>{invoice.warehouse_name}</td>
+                <td className="col-number strong"><bdi dir="ltr" className="tabular-nums">{invoice.number}</bdi></td>
+                <td className="col-date"><bdi dir="ltr" className="tabular-nums">{formatDate(invoice.invoice_date)}</bdi></td>
+                <td className="col-time"><bdi dir="ltr" className="tabular-nums">{creationTime(invoice.created_at)}</bdi></td>
+                <td className="col-location">{invoice.warehouse_name}</td>
+                <td className="col-kind">{accountKindLabel(invoice.account_kind)}</td>
+                <td className="col-account">{invoice.account_name}</td>
                 <td><MoneyDisplay value={invoice.total} strong /></td>
-                {(kind === 'sale' || kind === 'sale_return') && canViewProfit && (
-                  <td><MoneyDisplay value={invoice.profit_total} /></td>
-                )}
-                {(kind === 'purchase' || kind === 'purchase_return' || kind === 'waste') && (
-                  <td><MoneyDisplay value={invoice.cost_total} /></td>
-                )}
-                {kind !== 'waste' && (
-                  <td>
-                    <StatusBadge variant={status}>{saleStatusLabel(status, isReturn)}</StatusBadge>
-                  </td>
-                )}
+                {kind !== 'waste' && <td className="col-money"><MoneyDisplay value={invoice.paid} /></td>}
                 {kind !== 'waste' && (
                   <td>
                     <MoneyDisplay
@@ -177,6 +160,8 @@ export default function InvoiceTable({
                     />
                   </td>
                 )}
+                {kind !== 'waste' && <td className="col-status"><StatusBadge variant={status}>{saleStatusLabel(status, isReturn)}</StatusBadge></td>}
+                <td className="col-notes">{invoice.notes || '—'}</td>
                 <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                   {showDeleted ? (
                     canDelete && (

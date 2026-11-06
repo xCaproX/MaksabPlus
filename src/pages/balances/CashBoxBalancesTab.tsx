@@ -9,10 +9,11 @@ import {
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
-import { entityNumber, formatDate, money, today } from '../../lib/format';
+import { entityNumber, formatDate, money } from '../../lib/format';
 import { translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
-import DateInput from '../../components/DateInput';
+import PeriodFilter from '../../components/PeriodFilter';
+import { periodDates } from '../../lib/period';
 import SortableHeader from '../../components/SortableHeader';
 import { toast } from '../../components/Toast';
 import { matchesSearchQuery } from '../../lib/search';
@@ -42,8 +43,8 @@ export default function CashBoxBalancesTab() {
 
   // كشف حركة الخزنة
   const [cashStatementBox, setCashStatementBox] = useState<CashBoxRow | null>(null);
-  const [statementFrom, setStatementFrom] = useState(`${today().slice(0, 7)}-01`);
-  const [statementTo, setStatementTo] = useState(today());
+  const [statementFrom, setStatementFrom] = useState(() => periodDates().from);
+  const [statementTo, setStatementTo] = useState(() => periodDates().to);
   const [cashStatementRows, setCashStatementRows] = useState<CashBoxStatementRow[]>([]);
   const [cashStatementLoading, setCashStatementLoading] = useState(false);
 
@@ -107,8 +108,8 @@ export default function CashBoxBalancesTab() {
 
   function openCashBoxStatement(box: CashBoxRow) {
     setCashStatementBox(box);
-    setStatementFrom(`${today().slice(0, 7)}-01`);
-    setStatementTo(today());
+    setStatementFrom(periodDates().from);
+    setStatementTo(periodDates().to);
     setCashStatementRows([]);
   }
 
@@ -180,7 +181,7 @@ export default function CashBoxBalancesTab() {
                     align="end"
                     className="num"
                   />
-                  <th className="col-hide-on-detail">الملاحظات</th>
+                  <th className="col-hide-on-detail col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
               </thead>
@@ -215,10 +216,10 @@ export default function CashBoxBalancesTab() {
                           }
                         }}
                       >
-                        <td className="num strong">{entityNumber('CBX', box.serial_number)}</td>
+                        <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('CBX', box.serial_number)}</bdi></td>
                         <td className="strong">{box.name}</td>
-                        <td className="num strong">{money(box.balance)}</td>
-                        <td className="muted col-hide-on-detail">{box.notes || '—'}</td>
+                        <td className="num strong"><bdi dir="ltr" className="tabular-nums">{money(box.balance)}</bdi></td>
+                        <td className="muted col-hide-on-detail col-notes">{box.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
@@ -330,24 +331,8 @@ export default function CashBoxBalancesTab() {
                 <strong>{cashStatementBox.name}</strong>
               </div>
               <div className="account-statement-period">
-                <label>
-                  <span>من تاريخ</span>
-                  <DateInput
-                    value={statementFrom}
-                    onChange={setStatementFrom}
-                    ariaLabel="من تاريخ"
-                    required
-                  />
-                </label>
-                <label>
-                  <span>إلى تاريخ</span>
-                  <DateInput
-                    value={statementTo}
-                    onChange={setStatementTo}
-                    ariaLabel="إلى تاريخ"
-                    required
-                  />
-                </label>
+                <PeriodFilter from={statementFrom} to={statementTo} required disabled={cashStatementLoading}
+                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); setCashStatementRows([]); }} />
               </div>
             </div>
 
