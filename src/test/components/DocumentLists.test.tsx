@@ -8,7 +8,7 @@ import type { InvoiceRow } from '../../lib/types';
 const invoice = { id: 'i', number: 'SAL-000001', invoice_date: '2026-11-06',
   created_at: '2026-11-06T10:30:00Z', account_name: 'عميل تجريبي', account_kind: 'customer',
   warehouse_name: 'مخزن رئيسي', total: 100, paid: 40, remaining: 60, profit_total: 123456,
-  notes: 'تسليم الدور الثاني' } as InvoiceRow;
+  notes: 'تسليم الدور الثاني', created_by_name: 'منشئ تجريبي' } as InvoiceRow;
 const summary = { totalAmount: 100, paidAmount: 40, remainingAmount: 60, profitTotal: 20, count: 1 };
 
 describe('document list presentation', () => {
@@ -18,7 +18,7 @@ describe('document list presentation', () => {
       newLabel="فاتورة" isReturn={false} onView={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()}
       onRestore={vi.fn()} canEdit={false} canDelete={false} />);
     expect(screen.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
-      'الرقم', 'التاريخ', 'الوقت', 'المخزن', 'نوع الحساب', 'الحساب', 'الإجمالي', 'المسدد', 'الآجل', 'الحالة', 'ملاحظات', '',
+      'الرقم', 'التاريخ', 'الوقت', 'المخزن', 'نوع الحساب', 'الحساب', 'الإجمالي', 'المسدد', 'الآجل', 'الحالة', 'ملاحظات', 'بواسطة', '',
     ]);
     for (const text of ['06/11/2026', '12:30 PM', 'عميل', '40.00', '60.00', 'جزئية', 'تسليم الدور الثاني']) {
       expect(screen.getByText(text)).toBeInTheDocument();
@@ -28,6 +28,7 @@ describe('document list presentation', () => {
     expect(screen.getByText('60.00').closest('span')).not.toHaveClass('remaining');
     expect(screen.getByText('60.00').closest('span')).not.toHaveClass('strong');
     expect(screen.getAllByRole('columnheader')[0]).toHaveClass('col-number');
+    expect(screen.getByRole('cell', { name: 'منشئ تجريبي' })).toHaveClass('col-creator');
   });
   it('orders sales summaries and only includes profit for the owner', () => {
     const items = calculateInvoiceKpis({ kind: 'sale', isWarehouseTransfer: false, invoiceSummary: summary, canViewProfit: true });

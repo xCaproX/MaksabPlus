@@ -1,4 +1,5 @@
 import { accountKindLabel, creationTime, formatDate } from '../../lib/format';
+import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -79,20 +80,21 @@ export default function ReceiptTable({
           <th>نوع الإيصال</th>
           <th className="col-notes">البيان</th>
           <th className="col-notes">ملاحظات</th>
+          <th className="col-creator">بواسطة</th>
           <th aria-label="الإجراءات" />
         </tr>
       </thead>
       <tbody>
         {loading && (
           <tr>
-            <td colSpan={11} className="empty">
+            <td colSpan={12} className="empty">
               جارٍ التحميل…
             </td>
           </tr>
         )}
         {!loading && pageReceipts.length === 0 && (
           <tr>
-            <td colSpan={11} className="empty">
+            <td colSpan={12} className="empty">
               لا توجد إيصالات تطابق البحث أو الفلاتر.
             </td>
           </tr>
@@ -126,6 +128,7 @@ export default function ReceiptTable({
               </td>
               <td className="col-notes">{receipt.statement || '—'}</td>
               <td className="col-notes">{receipt.notes || '—'}</td>
+              <DocumentCreatorCell name={receipt.created_by_name} />
               <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                 {showDeleted ? (
                   canDelete ? (

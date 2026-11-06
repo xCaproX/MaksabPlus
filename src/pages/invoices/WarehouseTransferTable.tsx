@@ -1,4 +1,5 @@
 import { creationTime, formatDate, qty as formatQty } from '../../lib/format';
+import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
@@ -65,20 +66,21 @@ export default function WarehouseTransferTable({
             onSort={(s) => onSort(s as SaleSort)}
           />}
           <th className="col-notes">ملاحظات</th>
+          <th className="col-creator">بواسطة</th>
           <th aria-label="الإجراءات" />
         </tr>
       </thead>
       <tbody>
         {loading && (
           <tr>
-            <td colSpan={canViewProfit ? 10 : 9} className="empty">
+            <td colSpan={canViewProfit ? 11 : 10} className="empty">
               جارٍ التحميل…
             </td>
           </tr>
         )}
         {!loading && pageTransfers.length === 0 && (
           <tr>
-            <td colSpan={canViewProfit ? 10 : 9} className="empty">
+            <td colSpan={canViewProfit ? 11 : 10} className="empty">
               لا توجد تحويلات تطابق البحث أو الفلاتر.
             </td>
           </tr>
@@ -105,6 +107,7 @@ export default function WarehouseTransferTable({
               <td className="num"><bdi dir="ltr" className="tabular-nums">{formatQty(transfer.total_qty)}</bdi></td>
               {canViewProfit && <td><MoneyDisplay value={transfer.total_value} strong /></td>}
               <td className="col-notes">{transfer.notes || '—'}</td>
+              <DocumentCreatorCell name={transfer.created_by_name} />
               <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                 {showDeleted ? (
                   canDelete && (

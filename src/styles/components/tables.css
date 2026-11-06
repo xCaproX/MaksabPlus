@@ -160,6 +160,7 @@ td.row-actions > * + * {
 .document-table .col-location { min-inline-size: 110px; max-inline-size: 170px; white-space: normal; }
 .document-table .col-account { min-inline-size: 120px; max-inline-size: 200px; white-space: normal; }
 .erp-table .col-notes { min-inline-size: 180px; max-inline-size: 280px; white-space: normal; overflow-wrap: anywhere; }
+.document-table .col-creator { min-inline-size: 110px; max-inline-size: 180px; white-space: normal; overflow-wrap: anywhere; }
 .document-table td { padding-block: 10px; }
 .document-table .erp-row-actions { min-inline-size: 44px; }
 .erp-row-actions { visibility: hidden; min-width: 88px; }

@@ -1,4 +1,5 @@
 import { accountKindLabel, creationTime, formatDate } from '../../lib/format';
+import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -111,20 +112,21 @@ export default function InvoiceTable({
           )}
           {kind !== 'waste' && <th className="col-status">الحالة</th>}
           <th className="col-notes">ملاحظات</th>
+          <th className="col-creator">بواسطة</th>
           <th aria-label="الإجراءات" />
         </tr>
       </thead>
       <tbody>
         {loading && (
           <tr>
-            <td colSpan={kind === 'waste' ? 9 : 12} className="empty">
+            <td colSpan={kind === 'waste' ? 10 : 13} className="empty">
               جارٍ التحميل…
             </td>
           </tr>
         )}
         {!loading && pageInvoices.length === 0 && (
           <tr>
-            <td colSpan={kind === 'waste' ? 9 : 12} className="empty">
+            <td colSpan={kind === 'waste' ? 10 : 13} className="empty">
               لا توجد فواتير تطابق البحث أو الفلاتر.
             </td>
           </tr>
@@ -159,6 +161,7 @@ export default function InvoiceTable({
                 )}
                 {kind !== 'waste' && <td className="col-status"><StatusBadge variant={status}>{saleStatusLabel(status, isReturn)}</StatusBadge></td>}
                 <td className="col-notes">{invoice.notes || '—'}</td>
+                <DocumentCreatorCell name={invoice.created_by_name} />
                 <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                   {showDeleted ? (
                     canDelete && (

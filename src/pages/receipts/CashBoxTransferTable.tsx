@@ -1,4 +1,5 @@
 import { creationTime, formatDate } from '../../lib/format';
+import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
@@ -61,20 +62,21 @@ export default function CashBoxTransferTable({
             className="num"
           />
           <th className="col-notes">ملاحظات</th>
+          <th className="col-creator">بواسطة</th>
           <th aria-label="الإجراءات" />
         </tr>
       </thead>
       <tbody>
         {loading && (
           <tr>
-            <td colSpan={8} className="empty">
+            <td colSpan={9} className="empty">
               جارٍ التحميل…
             </td>
           </tr>
         )}
         {!loading && pageTransfers.length === 0 && (
           <tr>
-            <td colSpan={8} className="empty">
+            <td colSpan={9} className="empty">
               لا توجد تحويلات تطابق البحث أو الفلاتر.
             </td>
           </tr>
@@ -99,6 +101,7 @@ export default function CashBoxTransferTable({
               <td>{transfer.destination_cash_box_name}</td>
               <td><MoneyDisplay value={transfer.amount} strong /></td>
               <td className="col-notes">{transfer.notes || '—'}</td>
+              <DocumentCreatorCell name={transfer.created_by_name} />
               <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
                 {showDeleted ? (
                   canDelete && (
