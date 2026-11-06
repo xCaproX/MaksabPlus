@@ -97,6 +97,27 @@ try {
 
   const page=await context.newPage(); await page.clock.setFixedTime(new Date('2026-11-06T10:00:00Z'));
   const errors=[];page.on('pageerror',e=>errors.push(e.message));mkdirSync(outDir,{recursive:true});let checks=0;
+  // Enter the hidden action cell directly, without crossing another row cell.
+  for (const width of [1280,1920]) {
+    await page.setViewportSize({width,height:900});
+    for (const route of routes.filter(route=>route.startsWith('/invoices')||route.startsWith('/receipts'))) {
+      await page.goto('http://localhost:5195'+route,{waitUntil:'networkidle'});
+      await page.evaluate(()=>document.fonts.ready);
+      const button=page.locator('tbody .erp-row-actions .row-actions-trigger-btn').first();
+      await button.scrollIntoViewIfNeeded();
+      const box=await button.boundingBox();
+      await page.mouse.move(box.x+box.width/2,0);
+      assert.ok(await button.evaluate(b=>getComputedStyle(b).visibility==='hidden'||getComputedStyle(b.closest('.erp-row-actions')).opacity==='0'),'Actions hidden away from row');
+      await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
+      assert.ok(await button.evaluate(b=>getComputedStyle(b).visibility==='visible'&&getComputedStyle(b.closest('.erp-row-actions')).opacity==='1'),'Direct action hover '+route+' @'+width);
+      await button.click();
+      await page.getByRole('menu',{name:'قائمة الإجراءات'}).waitFor();
+      await page.keyboard.press('Escape');
+      assert.equal(await button.getAttribute('aria-expanded'),'false');
+      if(screenshots)await page.screenshot({path:path.join(outDir,'compact-dates-actions-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png')});
+    }
+  }
+  console.log('PASS 18 direct action-cell hovers and menu open/close');
   for(const [width,height] of (process.argv.includes('--interactions-only') ? [] : [[1920,1080],[1280,800],[1366,768]])){
     await page.setViewportSize({width,height});
     for(const route of relevantRoutes){
@@ -148,7 +169,7 @@ try {
         assert.equal(presentation.label,'حر');assert.equal(presentation.bg,'rgb(239, 246, 255)');
       }
       const dateSizes=await page.locator('.erp-table thead th.col-date, .erp-table thead th.col-time, .erp-table thead th.col-datetime').evaluateAll(cells=>cells.map(c=>({
-        size:c.getBoundingClientRect().width,wanted:c.classList.contains('col-date')?112:c.classList.contains('col-time')?84:196
+        size:c.getBoundingClientRect().width,wanted:c.classList.contains('col-date')?100:c.classList.contains('col-time')?80:180
       })));
       assert.ok(dateSizes.every(s=>Math.abs(s.size-s.wanted)<1),'Fixed shared date/time widths '+route+' @'+width);
       if(route==='/receipts?tab=in'||route==='/receipts?tab=out'){
@@ -170,7 +191,7 @@ try {
       }
       const rtl=await page.locator('.erp-table thead th, .erp-table tbody tr:not(:has(td[colspan])) > td').evaluateAll(cells=>cells.every(c=>getComputedStyle(c).direction==='rtl'&&['start','right'].includes(getComputedStyle(c).textAlign)));
       assert.ok(rtl,'Right aligned RTL columns '+route+' @'+width);
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'fixed-date-cash-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'compact-dates-actions-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
       checks++;
     }
     console.log('PASS '+relevantRoutes.length+' routes @'+width);
@@ -193,14 +214,14 @@ try {
         return !!message && !/جار/.test(message.textContent);
       });
       const after=await measure();
-      const fixed=await page.locator('.erp-table thead th.col-date, .erp-table thead th.col-time, .erp-table thead th.col-datetime').evaluateAll(cells=>cells.every(c=>Math.abs(c.getBoundingClientRect().width-(c.classList.contains('col-date')?112:c.classList.contains('col-time')?84:196))<1));
+      const fixed=await page.locator('.erp-table thead th.col-date, .erp-table thead th.col-time, .erp-table thead th.col-datetime').evaluateAll(cells=>cells.every(c=>Math.abs(c.getBoundingClientRect().width-(c.classList.contains('col-date')?100:c.classList.contains('col-time')?80:180))<1));
       assert.ok(fixed,'Empty fixed date/time widths '+route+' @'+width);
       // Removing painted record text can reduce the rounded scrollWidth by a
       // pixel; the regression is any increase, with column geometry checked below.
       assert.ok(after.scroll<=before.scroll,'Empty-result overflow '+route+' @'+width);
       assert.ok(after.widths.every((w,i)=>Math.abs(w-before.widths[i])<1),'Empty-result columns '+route+' @'+width);
       assert.ok(await page.locator('.column-filter-row input[placeholder="="]').evaluateAll(inputs=>inputs.every(i=>getComputedStyle(i).direction==='rtl')));
-      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'fixed-date-cash-empty-sales-'+width+'px.png')});
+      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'compact-dates-actions-empty-sales-'+width+'px.png')});
       await page.getByRole('button',{name:'مسح كل الفلاتر'}).click();
     }
   }
@@ -213,7 +234,7 @@ try {
     for(const width of [1280,1320,1366,1920]){
       await page.setViewportSize({width,height:900});
       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-      const fixed=await page.locator('.erp-table thead th.col-date, .erp-table thead th.col-time, .erp-table thead th.col-datetime').evaluateAll(cells=>cells.every(c=>Math.abs(c.getBoundingClientRect().width-(c.classList.contains('col-date')?112:c.classList.contains('col-time')?84:196))<1));
+      const fixed=await page.locator('.erp-table thead th.col-date, .erp-table thead th.col-time, .erp-table thead th.col-datetime').evaluateAll(cells=>cells.every(c=>Math.abs(c.getBoundingClientRect().width-(c.classList.contains('col-date')?100:c.classList.contains('col-time')?80:180))<1));
       assert.ok(fixed,'Resized empty fixed columns '+route+' @'+width);
       if(route.startsWith('/receipts?tab=in')||route.startsWith('/receipts?tab=out'))assert.ok(await page.locator('.erp-table-wrap').evaluate(w=>w.scrollWidth<=w.clientWidth),'Resized empty receipt overflow');
     }
@@ -316,7 +337,7 @@ try {
       await page.getByLabel('بحث في نوع الإيصال',{exact:true}).click();
       await page.getByRole('option',{name:'مرتبط',exact:true}).click();
       await page.waitForResponse(r=>r.url().includes('/get_receipt_kpis_columns')&&r.request().postDataJSON()?.p_columns?.receipt_type==='linked');
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'fixed-date-cash-stress-'+tab+'-'+width+'px.png')});
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'compact-dates-actions-stress-'+tab+'-'+width+'px.png')});
     }
   }
   console.log('PASS 8 large linked-receipt layouts with long notes');

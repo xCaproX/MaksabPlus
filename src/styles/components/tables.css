@@ -189,10 +189,11 @@ td.row-actions > * + * {
 }
 
 
-.erp-row-actions { visibility: hidden; min-width: 88px; }
+/* Keep hidden action cells hit-testable so direct pointer entry reveals them. */
+.erp-row-actions { opacity: 0; min-inline-size: 88px; }
 .erp-table tr:hover .erp-row-actions,
 .erp-table tr.selected .erp-row-actions,
-.erp-table tr:focus-within .erp-row-actions { visibility: visible; }
+.erp-table tr:focus-within .erp-row-actions { opacity: 1; }
 .erp-row-actions .link { font-size: 12px; }
 
 /* Row Actions dropdown menu */
@@ -397,7 +398,7 @@ td.row-actions > * + * {
   }
   .erp-table-wrap { max-height: 52dvh; }
   .erp-pagination { padding: 8px 10px; }
-  .erp-row-actions { visibility: visible; }
+  .erp-row-actions { opacity: 1; }
 }
 
 /* A real table row keeps every filter aligned with its heading and records. */

@@ -1,6 +1,6 @@
 :root {
-  --table-date-width: 112px;
-  --table-time-width: 84px;
+  --table-date-width: 100px;
+  --table-time-width: 80px;
   /* Brand Core Palette */
   --bg: #f4f6f8;
   --card: #ffffff;
