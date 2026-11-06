@@ -40,7 +40,7 @@ export default function ColumnFilterRow({ scope, kind = '', owner = false, value
       const choices = key === 'account_kind' && kind === 'waste'
         ? [{ value: 'waste', label: 'هالك' }]
         : typeof column.options === 'string' ? options[column.options] ?? [] : column.options ?? [];
-      return <SearchableSelect portal={as === 'row'} showIcon={false} ariaLabel={ariaLabel} value={values[key] ?? ''}
+      return <SearchableSelect portal={as === 'row'} showIcon ariaLabel={ariaLabel} value={values[key] ?? ''}
         selectedLabel={creators ? values[key] : undefined}
         options={creators ? undefined : [{ value: '', label: 'الكل' }, ...choices]}
         loadOptions={creators ? (query) => loadCreatorFilterOptions(scope, kind, query).then((items) => [{ value: '', label: 'الكل' }, ...items]) : undefined}

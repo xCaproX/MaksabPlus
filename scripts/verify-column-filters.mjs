@@ -109,7 +109,7 @@ try {
         const scrollWithout=table?.parentElement.scrollWidth;
         if(filterRow)table.querySelector('thead').append(filterRow);
         const unchanged=withFilters.every((w,i)=>Math.abs(w-withoutFilters[i])<1)&&scrollWith===scrollWithout;
-        const icons=[...table?.querySelectorAll('.column-filter-cell svg')??[]].filter(svg=>!svg.closest('.column-filter-clear, .date-picker-trigger')).length;
+        const icons=[...table?.querySelectorAll('.column-filter-cell svg')??[]].filter(svg=>!svg.closest('.column-filter-clear, .date-picker-trigger, .searchable-select-arrow')).length;
         const contained=[...table?.querySelectorAll('.column-filter-cell > *')??[]].every(el=>{
           const cell=el.closest('td').getBoundingClientRect(),box=el.getBoundingClientRect();return box.left>=cell.left&&box.right<=cell.right;
         });
@@ -118,7 +118,19 @@ try {
       assert.equal(state.rtl,'rtl');assert.ok(state.height<=state.viewport,'Vertical overflow '+route+' @'+width+': '+state.height);
       assert.ok(state.width<=state.viewportWidth,'Page horizontal overflow '+route+' @'+width);
       assert.ok(state.row||state.bar,'Missing row '+route);assert.equal(state.count,state.filterCount,'Cell parity '+route);assert.ok(state.aligned,'Widths '+route);assert.ok(state.unchanged,'Filters expanded original columns '+route+' @'+width);assert.equal(state.icons,0,'Field icons '+route);assert.ok(state.contained,'Fields outside cells '+route);
-      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'column-filter-controls-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
+      if(route.startsWith('/invoices')||route.startsWith('/receipts')||route.endsWith('tab=reconciliations')){
+        assert.equal(await page.locator('.erp-toolbar input[type=search]').count(),0);
+        assert.equal(await page.locator('.erp-toolbar .searchable-select').count(),1,'Only period selector in toolbar');
+        const labels=await page.locator('.erp-toolbar .filter-label').evaluateAll(labels=>labels.map(label=>{
+          const field=label.parentElement.querySelector('.searchable-select-input-wrap, .date-input-wrap');
+          const a=label.getBoundingClientRect(),b=field.getBoundingClientRect();
+          return {right:a.left>=b.right-1,aligned:Math.abs((a.top+a.height/2)-(b.top+b.height/2))<2};
+        }));
+        assert.ok(labels.length===3&&labels.every(l=>l.right&&l.aligned),'Inline RTL date labels '+route+' @'+width);
+      }
+      const rtl=await page.locator('.erp-table thead th, .erp-table tbody tr:not(:has(td[colspan])) > td').evaluateAll(cells=>cells.every(c=>getComputedStyle(c).direction==='rtl'&&['start','right'].includes(getComputedStyle(c).textAlign)));
+      assert.ok(rtl,'Right aligned RTL columns '+route+' @'+width);
+      if(screenshots&&width!==1366)await page.screenshot({path:path.join(outDir,'column-filter-toolbar-'+route.slice(1).replace('?tab=','-')+'-'+width+'px.png'),animations:'disabled'});
       checks++;
     }
     console.log('PASS '+relevantRoutes.length+' routes @'+width);
@@ -146,7 +158,7 @@ try {
       assert.ok(after.scroll<=before.scroll,'Empty-result overflow '+route+' @'+width);
       assert.ok(after.widths.every((w,i)=>Math.abs(w-before.widths[i])<1),'Empty-result columns '+route+' @'+width);
       assert.ok(await page.locator('.column-filter-row input[placeholder="="]').evaluateAll(inputs=>inputs.every(i=>getComputedStyle(i).direction==='rtl')));
-      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'column-filter-controls-empty-sales-'+width+'px.png')});
+      if(route==='/invoices?tab=sale' && screenshots)await page.screenshot({path:path.join(outDir,'column-filter-toolbar-empty-sales-'+width+'px.png')});
       await page.getByRole('button',{name:'مسح كل الفلاتر'}).click();
     }
   }
@@ -171,8 +183,10 @@ try {
   assert.ok(requests.some(r=>r.resource==='filter_invoice_rows'&&r.body.p_columns.total==='0'));
   await page.getByLabel('بحث في الحساب',{exact:true}).fill('010');
   await page.waitForResponse(r=>r.url().includes('/get_invoice_kpis_columns')&&r.request().postDataJSON()?.p_columns?.account==='010');
-  await page.locator('input[type=search]').fill('منشئ');
-  await page.waitForResponse(r=>r.url().includes('/get_invoice_kpis_columns')&&r.request().postDataJSON()?.p_search==='منشئ');
+  assert.equal(await page.locator('.erp-toolbar input[type=search]').count(),0);
+  assert.equal(await page.getByLabel('حالة السداد',{exact:true}).count(),0);
+  await page.getByLabel('بحث في ملاحظات',{exact:true}).fill('منشئ');
+  await page.waitForResponse(r=>r.url().includes('/get_invoice_kpis_columns')&&r.request().postDataJSON()?.p_columns?.notes==='منشئ');
   assert.deepEqual(requests.filter(r=>r.resource==='filter_invoice_rows').at(-1).body.p_columns,requests.filter(r=>r.resource==='get_invoice_kpis_columns').at(-1).body.p_columns);
   await page.getByRole('combobox',{name:'بحث في بواسطة'}).click();
   await page.getByRole('option',{name:'منشئ المستند التجريبي'}).click();
@@ -183,7 +197,7 @@ try {
     page.getByRole('button',{name:'مسح كل الفلاتر'}).click(),
   ]);
   assert.equal(await page.getByLabel('بحث في الحساب',{exact:true}).inputValue(),'');assert.equal(await page.getByLabel('بحث في الإجمالي',{exact:true}).inputValue(),'');
-  assert.equal(await page.locator('input[type=search]').inputValue(),'');assert.equal(await page.getByLabel('الفترة',{exact:true}).inputValue(),'النهاردة');
+  assert.equal(await page.getByLabel('بحث في ملاحظات',{exact:true}).inputValue(),'');assert.equal(await page.getByLabel('الفترة',{exact:true}).inputValue(),'النهاردة');
   await page.locator('.erp-table tbody').evaluate(body=>{body.innerHTML=Array.from({length:40},(_,i)=>'<tr><td colspan="13">'+(i+1)+'</td></tr>').join('');});
   await page.locator('.erp-table tbody tr').last().scrollIntoViewIfNeeded();assert.ok(await page.locator('.erp-table tbody tr').last().isVisible());
 

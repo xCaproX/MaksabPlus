@@ -72,16 +72,21 @@
   gap: var(--erp-space-2);
   flex-shrink: 0;
 }
-.erp-date { display: flex; flex-direction: column; align-items: stretch; gap: 6px; color: var(--erp-muted); font-size: 12px; font-weight: 650; flex-shrink: 0; }
+.erp-date { display: flex; flex-direction: row; align-items: center; gap: 6px; color: var(--erp-muted); font-size: 12px; font-weight: 650; flex-shrink: 0; }
 .erp-date input { width: 115px; }
 .erp-filters .date-input-wrap { block-size: var(--erp-control-height); min-block-size: var(--erp-control-height); }
 
-.period-filter { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; min-inline-size: 0; }
-.period-preset { inline-size: 145px; }
-.period-preset .searchable-select { inline-size: 100%; }
+.period-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-inline-size: 0; }
+.period-preset { inline-size: auto; }
+.period-preset .searchable-select { display: flex; align-items: center; gap: 8px; }
+.period-preset .searchable-select > .filter-label { margin-block-end: 0; flex-shrink: 0; }
+.period-preset .searchable-select-input-wrap { inline-size: 145px; flex: 0 0 145px; }
+.erp-date > .filter-label { flex-shrink: 0; }
+.period-preset .searchable-select { inline-size: auto; }
 .erp-filters .erp-search { flex-basis: 300px; min-inline-size: min(100%, 300px); }
-.account-statement-period .period-filter { align-items: flex-end; }
-.account-statement-period .period-preset { inline-size: 155px; }
+.account-statement-period .period-filter { align-items: center; }
+.account-statement-period .period-preset { inline-size: auto; }
+.account-statement-period .period-preset .searchable-select-input-wrap { inline-size: 155px; flex-basis: 155px; }
 @media (max-width: 640px) {
   .period-filter { inline-size: 100%; }
   .period-preset { inline-size: 100%; }

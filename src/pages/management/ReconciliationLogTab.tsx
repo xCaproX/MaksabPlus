@@ -13,7 +13,6 @@ import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import PeriodFilter from '../../components/PeriodFilter';
 import { periodDates, shiftCalendarDate } from '../../lib/period';
 import Pagination from '../../components/Pagination';
-import SearchableSelect from '../../components/SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { creationTime, creationDate, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
@@ -38,15 +37,12 @@ export default function ReconciliationLogTab({
   const [running, setRunning] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState(() => periodDates().from);
   const [dateTo, setDateTo] = useState(() => periodDates().to);
-  const [modeFilter, setModeFilter] = useState<'all' | 'reconcile' | 'simulation'>('all');
   const [selectedLog, setSelectedLog] = useState<ReconciliationLogRow | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [summary, setSummary] = useState<{ total_discrepancies: number; latest_created_at: string | null; latest_status: string | null }>({ total_discrepancies: 0, latest_created_at: null, latest_status: null });
-  const columns = useColumnFilters('reconciliations', () => {
-    setSearchTerm(''); setModeFilter('all'); setDateFrom(periodDates().from); setDateTo(periodDates().to); setPage(1);
+  const columns = useColumnFilters('reconciliations', () => { setDateFrom(periodDates().from); setDateTo(periodDates().to); setPage(1);
   });
   useEffect(() => { setPage(1); }, [columns.filters]);
 
@@ -63,19 +59,16 @@ export default function ReconciliationLogTab({
     setLoading(true);
     try {
       let query = supabase
-        .rpc('filter_reconciliation_rows', { p_columns: columns.filters, p_search: searchTerm.trim() || null }, { count: 'exact' }).select('*');
+        .rpc('filter_reconciliation_rows', { p_columns: columns.filters, p_search: null }, { count: 'exact' }).select('*');
 
       if (dateFrom) query = query.gte('created_at', `${dateFrom} 00:00:00 Africa/Cairo`);
       if (dateTo) query = query.lt('created_at', `${shiftCalendarDate(dateTo, 1)} 00:00:00 Africa/Cairo`);
-      if (modeFilter !== 'all') {
-        query = query.eq('mode', modeFilter);
-      }
 
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
       const [result, kpis] = await Promise.all([
         query.order('created_at', { ascending: false }).range(from, to),
-        supabase.rpc('get_reconciliation_log_kpis_columns', { p_columns: columns.filters, p_search: searchTerm.trim() || null, p_mode: modeFilter, p_date_from: dateFrom || null, p_date_to: dateTo || null }),
+        supabase.rpc('get_reconciliation_log_kpis_columns', { p_columns: columns.filters, p_search: null, p_mode: 'all', p_date_from: dateFrom || null, p_date_to: dateTo || null }),
       ]);
       if (request !== requestVersion.current) return;
       const { data, count, error } = result;
@@ -90,7 +83,7 @@ export default function ReconciliationLogTab({
     } finally {
       if (request === requestVersion.current) setLoading(false);
     }
-  }, [modeFilter, page, searchTerm, dateFrom, dateTo, columns.filters]);
+  }, [page, dateFrom, dateTo, columns.filters]);
 
   useEffect(() => {
     void loadLogs();
@@ -180,34 +173,7 @@ export default function ReconciliationLogTab({
         <section className="erp-list-panel" aria-label="قائمة سجلات المطابقة والتدقيق">
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <SearchableSelect
-                label="نوع الفحص"
-                  ariaLabel="تصفية نمط الفحص"
-                value={modeFilter}
-                options={[
-                  { value: 'all', label: 'كل الأنواع' },
-                  { value: 'reconcile', label: 'تصحيح فعلي' },
-                  { value: 'simulation', label: 'فحص استكشافي' },
-                ]}
-                onChange={(val) => {
-                  setModeFilter(val as 'all' | 'reconcile' | 'simulation');
-                  setPage(1);
-                }}
-              />
-
               <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); setPage(1); }} />
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => {
-                    setSearchTerm(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="بحث باسم المنفذ أو الملاحظات…"
-                />
-              </label>
             </div>
           </div>
 

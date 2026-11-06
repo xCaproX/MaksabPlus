@@ -144,7 +144,7 @@ td.row-actions > * + * {
 .erp-table tbody tr.selected td { background: #e9eff6; }
 .erp-table tbody tr:focus-visible { outline: 2px solid var(--erp-navy); outline-offset: -2px; }
 .erp-table .remaining { color: #a54a26; }
-.erp-table :is(th, td) { vertical-align: middle; text-align: start; }
+.erp-table :is(th, td) { direction: rtl; vertical-align: middle; text-align: start; }
 .erp-table :is(th, td).num,
 .erp-table :is(th, td).col-money { text-align: start; font-variant-numeric: tabular-nums; }
 .erp-table td:has(> .num) { text-align: start; }
@@ -152,7 +152,7 @@ td.row-actions > * + * {
 .erp-table :is(th, td).col-date,
 .erp-table :is(th, td).col-time,
 .erp-table :is(th, td).col-kind,
-.erp-table :is(th, td).col-status { text-align: center; }
+.erp-table :is(th, td).col-status { text-align: start; }
 .document-table { min-inline-size: 1120px; }
 .document-table .col-number { inline-size: 1%; white-space: nowrap; }
 .document-table .col-date { min-inline-size: 96px; }
@@ -397,12 +397,14 @@ td.row-actions > * + * {
 .column-filter-cell > :first-child:not(.column-filter-clear) { flex: 1; min-inline-size: 0; }
 .column-filter-row input, .column-filter-bar input {
   inline-size: 100%; min-inline-size: 0; block-size: 36px;
-  padding-block: 6px; padding-inline: 5px; font-size: 12px;
+  padding-block: 6px; padding-inline: 5px; font-size: 12px; text-align: match-parent;
 }
 .column-filter-row :is(.searchable-select, .date-input-wrap) { inline-size: 100%; min-inline-size: 0; }
 .column-filter-row .date-input-text { padding-inline: 5px !important; font-size: 12px; }
 .column-filter-row .searchable-select-input-wrap input,
-.column-filter-bar .searchable-select-input-wrap input { padding-inline: 5px; }
+.column-filter-bar .searchable-select-input-wrap input { padding-inline-start: 5px; padding-inline-end: 22px; }
+:is(.column-filter-row, .column-filter-bar) .searchable-select-arrow { inset-inline-end: 5px; }
+:is(.column-filter-row, .column-filter-bar) .searchable-select-arrow svg { inline-size: 12px; block-size: 12px; }
 :is(.column-filter-row, .column-filter-bar) input:placeholder-shown {
   direction: rtl; text-align: start;
 }

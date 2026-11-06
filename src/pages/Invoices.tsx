@@ -5,14 +5,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateDbError } from '../lib/errors';
-import { DOCUMENT_SEARCH_PLACEHOLDER } from '../lib/search';
 import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import PeriodFilter from '../components/PeriodFilter';
 import { periodDates } from '../lib/period';
-import SearchableSelect from '../components/SearchableSelect';
 import KpiBar from '../components/KpiBar';
 import { toast } from '../components/Toast';
 import type {
@@ -31,7 +29,7 @@ import {
   type WarehouseTransferKpiSummary,
   type InvoiceTab,
 } from './invoices/invoiceKpis';
-import InvoiceTable, { type SaleSort, type SaleStatus } from './invoices/InvoiceTable';
+import InvoiceTable, { type SaleSort } from './invoices/InvoiceTable';
 import WarehouseTransferTable from './invoices/WarehouseTransferTable';
 
 interface EditingInvoice {
@@ -93,8 +91,6 @@ export default function Invoices() {
   const [showDeleted, setShowDeleted] = useState(false);
 
   // الفلاتر الموحدة
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<SaleStatus>('all');
   const [dateFrom, setDateFrom] = useState(() => periodDates().from);
   const [dateTo, setDateTo] = useState(() => periodDates().to);
   const [sortOrder, setSortOrder] = useState<SaleSort>('date-desc');
@@ -114,8 +110,6 @@ export default function Invoices() {
       setKind(targetKind);
       setEditing(null);
       setEditingTransfer(null);
-      setSearchTerm('');
-      setStatusFilter('all');
       setDateFrom(periodDates().from);
       setDateTo(periodDates().to);
       setPage(1);
@@ -200,10 +194,8 @@ export default function Invoices() {
       : `${newLabel} ${isWarehouseTransfer ? 'جديد' : 'جديدة'}`;
 
   const [totalCount, setTotalCount] = useState(0);
-  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const columns = useColumnFilters(kind + String(canViewProfit), () => {
-    setSearchTerm(''); setDebouncedSearch(''); setStatusFilter('all');
     setDateFrom(periodDates().from); setDateTo(periodDates().to); setShowDeleted(false); setPage(1);
   });
   const columnFilter = <ColumnFilterRow scope={isWarehouseTransfer ? 'warehouse_transfer' : 'invoice'} kind={kind}
@@ -223,13 +215,6 @@ export default function Invoices() {
     count: 0,
   });
 
-  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   const activeTotalCount = totalCount;
   const pageCount = Math.max(1, Math.ceil(activeTotalCount / PAGE_SIZE));
@@ -256,12 +241,11 @@ export default function Invoices() {
 
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
-      const trimmedSearch = debouncedSearch.trim();
 
       try {
         if (invoiceKind) {
           let query = supabase
-            .rpc('filter_invoice_rows', { p_columns: columns.filters, p_search: trimmedSearch || null, p_kind: invoiceKind, }, { count: 'exact' }).select('*')
+            .rpc('filter_invoice_rows', { p_columns: columns.filters, p_search: null, p_kind: invoiceKind, }, { count: 'exact' }).select('*')
             .eq('kind', invoiceKind);
 
           if (showDeleted) {
@@ -275,15 +259,6 @@ export default function Invoices() {
           }
           if (dateTo) {
             query = query.lte('invoice_date', dateTo);
-          }
-          if (kind !== 'waste' && statusFilter !== 'all') {
-            if (statusFilter === 'paid') {
-              query = query.lte('remaining', 0);
-            } else if (statusFilter === 'partial') {
-              query = query.gt('paid', 0).gt('remaining', 0);
-            } else if (statusFilter === 'unpaid') {
-              query = query.lte('paid', 0).gt('remaining', 0);
-            }
           }
 
           if (sortOrder === 'total-desc') {
@@ -315,8 +290,8 @@ export default function Invoices() {
             supabase.rpc('get_invoice_kpis_columns', {
               p_columns: columns.filters,
               p_kind: invoiceKind,
-              p_search: trimmedSearch || null,
-              p_status: kind === 'waste' ? 'all' : statusFilter,
+              p_search: null,
+              p_status: 'all',
               p_date_from: dateFrom || null,
               p_date_to: dateTo || null,
               p_show_deleted: showDeleted,
@@ -344,7 +319,7 @@ export default function Invoices() {
           }
         } else if (isWarehouseTransfer) {
           let transferQuery = supabase
-            .rpc('filter_warehouse_transfer_rows', { p_columns: columns.filters, p_search: trimmedSearch || null,  }, { count: 'exact' }).select('*');
+            .rpc('filter_warehouse_transfer_rows', { p_columns: columns.filters, p_search: null,  }, { count: 'exact' }).select('*');
 
           if (showDeleted) {
             transferQuery = transferQuery.not('deleted_at', 'is', null);
@@ -387,7 +362,7 @@ export default function Invoices() {
             transferQuery,
             supabase.rpc('get_warehouse_transfer_kpis_columns', {
               p_columns: columns.filters,
-              p_search: trimmedSearch || null,
+              p_search: null,
               p_date_from: dateFrom || null,
               p_date_to: dateTo || null,
               p_show_deleted: showDeleted,
@@ -434,9 +409,7 @@ export default function Invoices() {
     version,
     showDeleted,
     page,
-    debouncedSearch,
     columns.filters,
-    statusFilter,
     dateFrom,
     dateTo,
     sortOrder,
@@ -444,7 +417,7 @@ export default function Invoices() {
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, debouncedSearch, statusFilter, dateFrom, dateTo, sortOrder, kind, showDeleted]);
+  }, [columns.filters, dateFrom, dateTo, sortOrder, kind, showDeleted]);
 
   useEffect(() => {
     if (page > pageCount && pageCount > 0) {
@@ -740,32 +713,7 @@ export default function Invoices() {
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
             <div className="erp-filters">
-              {!isWarehouseTransfer && kind !== 'waste' && (
-                <SearchableSelect
-                  label="حالة السداد"
-                  ariaLabel="حالة السداد"
-                  value={statusFilter}
-                  options={[
-                    { value: 'all', label: 'كل الحالات' },
-                    { value: 'paid', label: isReturn ? 'مستردة' : 'مسددة' },
-                    { value: 'partial', label: isReturn ? 'مستردة جزئيًا' : 'مسددة جزئيًا' },
-                    { value: 'unpaid', label: isReturn ? 'غير مستردة' : 'غير مسددة' },
-                  ]}
-                  onChange={(val) => setStatusFilter(val as SaleStatus)}
-                />
-              )}
-
               <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
-
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={DOCUMENT_SEARCH_PLACEHOLDER}
-                />
-              </label>
             </div>
           </div>
 

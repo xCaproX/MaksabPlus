@@ -5,9 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateDbError } from '../lib/errors';
-import { DOCUMENT_SEARCH_PLACEHOLDER } from '../lib/search';
 import Modal from '../components/Modal';
-import SearchableSelect from '../components/SearchableSelect';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import ReceiptForm from '../components/ReceiptForm';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -63,8 +61,6 @@ export default function Receipts() {
   const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
 
   // الفلاتر والبحث
-  const [searchTerm, setSearchTerm] = useState('');
-  const [cashBoxFilter, setCashBoxFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState(() => periodDates().from);
   const [dateTo, setDateTo] = useState(() => periodDates().to);
   const [sortOrder, setSortOrder] = useState<ReceiptSort>('date-desc');
@@ -82,8 +78,6 @@ export default function Receipts() {
       resetForm();
       setEditing(null);
       setEditingTransfer(null);
-      setSearchTerm('');
-      setCashBoxFilter('all');
       setDateFrom(periodDates().from);
       setDateTo(periodDates().to);
       setPage(1);
@@ -129,10 +123,8 @@ export default function Receipts() {
   const tabTitle = isCashBoxTransfer ? 'تحويلات الخزن' : isIn ? 'إيصالات الاستلام' : 'إيصالات الصرف';
 
   const [totalCount, setTotalCount] = useState(0);
-  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const columns = useColumnFilters(tab, () => {
-    setSearchTerm(''); setDebouncedSearch(''); setCashBoxFilter('all');
     setDateFrom(periodDates().from); setDateTo(periodDates().to); setShowDeleted(false); setPage(1);
   });
   const columnFilter = <ColumnFilterRow scope={isCashBoxTransfer ? 'cash_transfer' : 'receipt'} kind={direction}
@@ -149,13 +141,6 @@ export default function Receipts() {
     count: 0,
   });
 
-  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   const activeTotalCount = totalCount;
   const pageCount = Math.max(1, Math.ceil(activeTotalCount / PAGE_SIZE));
@@ -179,12 +164,11 @@ export default function Receipts() {
       setLoading(true);
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
-      const trimmedSearch = debouncedSearch.trim();
 
       try {
         if (!isCashBoxTransfer) {
           let query = supabase
-            .rpc('filter_receipt_rows', { p_columns: columns.filters, p_search: trimmedSearch || null, p_kind: direction, }, { count: 'exact' }).select('*')
+            .rpc('filter_receipt_rows', { p_columns: columns.filters, p_search: null, p_kind: direction, }, { count: 'exact' }).select('*')
             .eq('direction', direction);
 
           if (showDeleted) {
@@ -193,9 +177,6 @@ export default function Receipts() {
             query = query.is('deleted_at', null);
           }
 
-          if (cashBoxFilter !== 'all') {
-            query = query.eq('cash_box_id', cashBoxFilter);
-          }
           if (dateFrom) {
             query = query.gte('receipt_date', dateFrom);
           }
@@ -228,8 +209,8 @@ export default function Receipts() {
             supabase.rpc('get_receipt_kpis_columns', {
               p_columns: columns.filters,
               p_direction: direction,
-              p_cash_box_id: cashBoxFilter !== 'all' ? cashBoxFilter : null,
-              p_search: trimmedSearch || null,
+              p_cash_box_id: null,
+              p_search: null,
               p_date_from: dateFrom || null,
               p_date_to: dateTo || null,
               p_show_deleted: showDeleted,
@@ -256,7 +237,7 @@ export default function Receipts() {
           }
         } else {
           let query = supabase
-            .rpc('filter_cash_transfer_rows', { p_columns: columns.filters, p_search: trimmedSearch || null,  }, { count: 'exact' }).select('*');
+            .rpc('filter_cash_transfer_rows', { p_columns: columns.filters, p_search: null,  }, { count: 'exact' }).select('*');
 
           if (showDeleted) {
             query = query.not('deleted_at', 'is', null);
@@ -264,9 +245,6 @@ export default function Receipts() {
             query = query.is('deleted_at', null);
           }
 
-          if (cashBoxFilter !== 'all') {
-            query = query.or(`source_cash_box_id.eq.${cashBoxFilter},destination_cash_box_id.eq.${cashBoxFilter}`);
-          }
           if (dateFrom) {
             query = query.gte('transfer_date', dateFrom);
           }
@@ -294,8 +272,8 @@ export default function Receipts() {
             query,
             supabase.rpc('get_cash_box_transfer_kpis_columns', {
               p_columns: columns.filters,
-              p_cash_box_id: cashBoxFilter !== 'all' ? cashBoxFilter : null,
-              p_search: trimmedSearch || null,
+              p_cash_box_id: null,
+              p_search: null,
               p_date_from: dateFrom || null,
               p_date_to: dateTo || null,
               p_show_deleted: showDeleted,
@@ -341,9 +319,7 @@ export default function Receipts() {
     version,
     canViewCurrentTab,
     page,
-    debouncedSearch,
     columns.filters,
-    cashBoxFilter,
     dateFrom,
     dateTo,
     sortOrder,
@@ -351,7 +327,7 @@ export default function Receipts() {
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, debouncedSearch, cashBoxFilter, dateFrom, dateTo, sortOrder, tab, showDeleted]);
+  }, [columns.filters, dateFrom, dateTo, sortOrder, tab, showDeleted]);
 
   useEffect(() => {
     if (page > pageCount && pageCount > 0) {
@@ -613,32 +589,7 @@ export default function Receipts() {
         <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
           <div className="erp-toolbar">
             <div className="erp-filters">
-              <SearchableSelect
-                label="الخزنة"
-                  ariaLabel="تصفية حسب الخزنة"
-                value={cashBoxFilter}
-                options={[
-                  { value: 'all', label: 'كل الخزن' },
-                  ...cashBoxes.map((box) => ({
-                    value: box.id,
-                    label: `${box.name}${!box.is_active ? ' — موقوفة' : ''}`,
-                  })),
-                ]}
-                onChange={setCashBoxFilter}
-                searchPlaceholder="بحث عن خزنة…"
-              />
-
               <PeriodFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
-
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={DOCUMENT_SEARCH_PLACEHOLDER}
-                />
-              </label>
             </div>
           </div>
 
