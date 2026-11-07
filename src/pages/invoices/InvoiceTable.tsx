@@ -187,7 +187,7 @@ export default function InvoiceTable({
 
   return (
     <DocumentTable
-      className="table erp-table document-table document-table--invoices"
+      className={`table erp-table document-table document-table--invoices${isReturn ? ' document-table--returns' : ''}`}
       columns={columns}
       rows={pageInvoices}
       loading={loading}
