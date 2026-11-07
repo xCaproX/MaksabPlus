@@ -577,6 +577,7 @@
 .document-list-toolbar {
   margin-block: 12px;
   flex-wrap: wrap;
+  background: var(--tone-info-bg);
   border: 1px solid var(--erp-border);
   border-radius: 8px;
 }
