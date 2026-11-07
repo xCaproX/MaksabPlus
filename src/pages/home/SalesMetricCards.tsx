@@ -23,7 +23,7 @@ export default function SalesMetricCards({ sales }: { sales: DashboardSales | nu
     <section aria-label="مبيعات الفترات">
       <div className="home-sales-grid">
         {periods.map(({ key, label, amount, count }) => (
-          <div key={key} className={count === undefined ? 'sales-kpi-card' : 'sales-kpi-card sales-kpi-card-with-count'}>
+          <div key={key} className={`sales-kpi-card${key === 'today' ? ' sales-kpi-today' : ''}`}>
             <div className="sales-kpi-main">
               <h2 className="sales-kpi-label">{label}</h2>
               <MoneyDisplay value={amount} currency className="sales-kpi-amount" />

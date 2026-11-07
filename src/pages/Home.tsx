@@ -119,6 +119,7 @@ export default function Home() {
     formattedValue: money(c.total_amount),
     unit: 'ج.م',
   }));
+  const rankingPeriod = <>آخر <bdi dir="ltr" className="num tabular-nums">30</bdi> يوماً</>;
 
   return (
     <div className="home-dashboard" dir="rtl">
@@ -139,7 +140,7 @@ export default function Home() {
       <div className="home-insights-grid">
         {data?.permissions.can_view_sales && (
           <TopRankedList
-            title="أكثر الأصناف مبيعاً (آخر 30 يوماً)"
+            title={<>أكثر الأصناف مبيعاً ({rankingPeriod})</>}
             icon={Package}
             items={topItems}
             barVariant="items"
@@ -151,7 +152,7 @@ export default function Home() {
 
         {data?.permissions.can_view_sales && (
           <TopRankedList
-            title="أكثر العملاء شراءً (آخر 30 يوماً)"
+            title={<>أكثر العملاء شراءً ({rankingPeriod})</>}
             icon={Users}
             items={topCustomers}
             barVariant="customers"

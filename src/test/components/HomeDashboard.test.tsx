@@ -81,7 +81,9 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByRole('region', { name: 'النبض المالي والأرصدة' })).toBeInTheDocument();
     expect(screen.getByText('الفلوس في الخزن')).toBeInTheDocument();
     expect(screen.getByText('15,000.00')).toBeInTheDocument();
-    expect(screen.getByTitle('عرض كشف الخزن')).toHaveAttribute('href', '/balances?tab=cashBoxes');
+    const cashLink = screen.getByRole('link', { name: 'عرض كشف الخزن' });
+    expect(cashLink).toHaveAttribute('href', '/balances?tab=cashBoxes');
+    expect(cashLink).toHaveTextContent('15,000.00');
 
     expect(screen.getByText('فلوسنا في السوق (العملاء)')).toBeInTheDocument();
     expect(screen.getByText('48,200.00')).toBeInTheDocument();
@@ -90,6 +92,17 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText('ديون الموردين (التزامات)')).toBeInTheDocument();
     expect(screen.getByText('18,500.00')).toBeInTheDocument();
     expect(screen.getByTitle('عرض حسابات الموردين')).toHaveAttribute('href', '/balances?tab=suppliers');
+  });
+
+  it('FinancialPulseCards keeps zero balances and omits unavailable balances', () => {
+    render(
+      <BrowserRouter>
+        <FinancialPulseCards cashBalance={0} receivablesBalance={null} payablesBalance={null} />
+      </BrowserRouter>
+    );
+
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'عرض كشف الخزن' })).toHaveTextContent('0.00');
   });
 
   it('TopRankedList renders ranked bars and formatted values', () => {

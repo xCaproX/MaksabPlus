@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ShoppingCart, ArrowDownLeft, ArrowUpRight, ShoppingBag } from 'lucide-react';
 import { useAccess } from '../../lib/access';
-import { formatTodayLongAr } from '../../lib/format';
+import { creationDate } from '../../lib/format';
 
 interface QuickActionsProps {
   userName: string;
@@ -17,7 +17,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
   const canReceiptOut = isOwner || can('money.out.create', 'money.out.view', 'money.view');
   const canPurchase = isOwner || can('goods.purchase.create', 'goods.purchase.view', 'goods.view');
 
-  const todayStr = formatTodayLongAr();
+  const todayStr = creationDate(new Date().toISOString());
 
   return (
     <div className="home-welcome-bar">
@@ -26,7 +26,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
           <span>مرحباً، {userName || 'مستخدم النظام'}</span>
         </h1>
         <p className="home-welcome-subtitle">
-          <span>{companyName}</span> • <span>{todayStr}</span>
+          <span>{companyName}</span> • <bdi dir="ltr" className="num tabular-nums">{todayStr}</bdi>
         </p>
       </div>
 
@@ -34,7 +34,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canSale && (
           <Link
             to="/invoices?tab=sale&action=new"
-            className="btn primary"
+            className="btn primary compact"
             title="إنشاء فاتورة بيع جديدة فوراً"
           >
             <ShoppingCart size={16} />
@@ -45,7 +45,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canReceiptIn && (
           <Link
             to="/receipts?tab=in&action=new"
-            className="btn secondary"
+            className="btn secondary compact"
             title="تسجيل إيصال استلام فلوس"
           >
             <ArrowDownLeft size={15} className="text-success" />
@@ -56,7 +56,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canReceiptOut && (
           <Link
             to="/receipts?tab=out&action=new"
-            className="btn secondary"
+            className="btn secondary compact"
             title="تسجيل إيصال صرف فلوس"
           >
             <ArrowUpRight size={15} className="text-danger" />
@@ -67,7 +67,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canPurchase && (
           <Link
             to="/invoices?tab=purchase&action=new"
-            className="btn secondary"
+            className="btn secondary compact"
             title="إنشاء فاتورة شراء جديدة"
           >
             <ShoppingBag size={15} />

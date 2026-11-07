@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import DashboardCardAction from './DashboardCardAction';
 
 export interface RankedItem {
@@ -11,7 +12,7 @@ export interface RankedItem {
 }
 
 interface TopRankedListProps {
-  title: string;
+  title: ReactNode;
   icon: LucideIcon;
   items: RankedItem[];
   barVariant: 'items' | 'customers';
@@ -34,10 +35,10 @@ export default function TopRankedList({
   return (
     <div className="dashboard-card">
       <div className="dashboard-card-head">
-        <h3 className="dashboard-card-title">
-          <Icon size={15} className="text-primary" />
+        <h2 className="dashboard-card-title">
+          <Icon size={16} aria-hidden="true" />
           <span>{title}</span>
-        </h3>
+        </h2>
         {linkTo && (
           <DashboardCardAction to={linkTo} label={linkText} />
         )}
