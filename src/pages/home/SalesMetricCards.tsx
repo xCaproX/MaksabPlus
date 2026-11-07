@@ -22,7 +22,7 @@ export default function SalesMetricCards({ sales }: { sales: DashboardSales | nu
   ];
 
   return (
-    <HomeSection title="المبيعات">
+    <HomeSection title="المبيعات" icon={ShoppingCart}>
       <div className="home-sales-grid">
         {periods.map(({ key, label, amount, count }) => (
           <div key={key} className={`sales-kpi-card metric-card metric-card-primary${count === undefined ? '' : ' sales-kpi-card-with-count'}`}>

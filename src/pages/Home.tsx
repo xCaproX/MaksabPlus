@@ -2,7 +2,7 @@ import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { getCurrentUserIdentity } from '../lib/company';
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Package, Users, RefreshCw } from 'lucide-react';
+import { ChartNoAxesColumnIncreasing, Package, Users, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 import { money, qty } from '../lib/format';
@@ -131,7 +131,7 @@ export default function Home() {
       />
 
       {data?.permissions.can_view_sales && (
-        <HomeSection title="الإحصائيات">
+        <HomeSection title="الإحصائيات" icon={ChartNoAxesColumnIncreasing}>
           <div className="home-insights-grid">
             <TopRankedList
               title="أكثر الأصناف مبيعاً (آخر 30 يوماً)"

@@ -18,7 +18,7 @@ export default function FinancialPulseCards({
   if (!hasAny) return null;
 
   return (
-    <HomeSection title="الأرصدة">
+    <HomeSection title="الأرصدة" icon={Wallet}>
       <div className="home-financial-grid">
         {/* الفلوس في الخزن */}
         {cashBalance !== null && (
