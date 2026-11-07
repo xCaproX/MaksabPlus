@@ -93,7 +93,7 @@ td.row-actions > * + * {
 .erp-table th.sortable-th.active {
   color: var(--primary-dark);
   font-weight: 800;
-  background-color: #dce5f0;
+  background-color: var(--surface-highlight);
 }
 
 .sortable-header-content {
