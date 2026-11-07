@@ -147,7 +147,8 @@
 .sales-kpi-count {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 8px;
   border-block-start: 1px solid var(--line);
   padding-block-start: 10px;
   margin-block-start: 10px;
@@ -358,17 +359,33 @@
   padding: 0;
 }
 
+.dashboard-card--ok .dashboard-card-action {
+  display: none;
+}
+
 /* Ranked List / Pure CSS Bar Chart - Calm & Elegant */
 .ranked-list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 0;
 }
 
 .ranked-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  border-block-end: 1px solid var(--line);
+  transition: background var(--transition-fast);
+}
+
+.ranked-item:last-child {
+  border-block-end: 0;
+}
+
+.ranked-item:hover {
+  background: var(--bg);
 }
 
 .ranked-item-info {
@@ -448,7 +465,7 @@
 }
 
 .bar-fill-customers {
-  background: var(--primary);
+  background: var(--tone-in);
 }
 
 /* Low Stock Alert List */
@@ -514,21 +531,49 @@
   gap: 6px;
 }
 
-/* 5. Responsive Adjustments (Step 5) */
-@media (min-width: 640px) and (max-width: 1099px) {
-  .home-sales-grid,
-  .home-financial-grid,
-  .home-insights-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* 5. Responsive Adjustments */
 
-  .home-sales-grid > :nth-child(3),
-  .home-financial-grid > :nth-child(3),
-  .home-insights-grid > :nth-child(3) {
-    grid-column: 1 / -1;
+/* Sales grid KPI amount: between 820px and 1099px */
+@media (min-width: 820px) and (max-width: 1099px) {
+  .sales-kpi-amount {
+    font-size: 24px;
   }
 }
 
+/* Financial grid: below 980px -> 1 column */
+@media (max-width: 979px) {
+  .home-financial-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sales grid: below 820px -> 1 column */
+@media (max-width: 819px) {
+  .home-sales-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Insights grid: 760px to 1099px */
+@media (min-width: 760px) and (max-width: 1099px) {
+  .home-insights-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-insights-grid:has(.dashboard-card--ok) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Insights grid: below 760px -> 1 column */
+@media (max-width: 759px) {
+  .home-insights-grid,
+  .home-insights-grid:has(.dashboard-card--ok) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile: below 640px */
 @media (max-width: 639px) {
   .home-dashboard {
     gap: 16px;
@@ -545,12 +590,6 @@
   .home-insights-grid,
   .home-insights-grid:has(.dashboard-card--ok) {
     grid-template-columns: 1fr;
-  }
-
-  .home-sales-grid > :nth-child(3),
-  .home-financial-grid > :nth-child(3),
-  .home-insights-grid > :nth-child(3) {
-    grid-column: auto;
   }
 
   .home-actions-group {
