@@ -150,20 +150,21 @@ export default function Home() {
           />
         )}
 
-        {data?.permissions.can_view_sales && (
-          <TopRankedList
-            title={<>أكثر العملاء شراءً ({rankingPeriod})</>}
-            icon={Users}
-            items={topCustomers}
-            barVariant="customers"
-            emptyText="لا توجد مشتريات عملاء مسجلة خلال آخر 30 يوماً"
-            linkTo="/balances?tab=customers"
-            linkText="عرض كشوف العملاء"
-          />
-        )}
-
-        {data?.permissions.can_view_items && (
-          <LowStockCard items={data?.low_stock_items ?? null} />
+        {(data?.permissions.can_view_sales || data?.permissions.can_view_items) && (
+          <div className="home-follow-up">
+            {data.permissions.can_view_sales && (
+              <TopRankedList
+                title={<>أكثر العملاء شراءً ({rankingPeriod})</>}
+                icon={Users}
+                items={topCustomers}
+                barVariant="customers"
+                emptyText="لا توجد مشتريات عملاء مسجلة خلال آخر 30 يوماً"
+                linkTo="/balances?tab=customers"
+                linkText="عرض كشوف العملاء"
+              />
+            )}
+            {data.permissions.can_view_items && <LowStockCard items={data.low_stock_items} />}
+          </div>
         )}
       </div>
     </div>

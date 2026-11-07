@@ -38,7 +38,7 @@ export default function FinancialPulseCards({
         <Link
           key={tab}
           to={`/balances?tab=${tab}`}
-          className="financial-pulse-card"
+          className={`financial-pulse-card financial-pulse-card-${tab}`}
           aria-label={action}
           aria-describedby={`${balanceId}-${tab}`}
           title={action}

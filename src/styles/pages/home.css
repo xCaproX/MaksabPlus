@@ -1,42 +1,71 @@
 /* Home layout uses the same surfaces, controls and type scale as the workspace. */
 .home-dashboard {
   display: grid;
-  gap: var(--space-4);
+  gap: clamp(24px, 2.2vw, 32px);
   inline-size: 100%;
   max-inline-size: 1400px;
   margin-inline: auto;
+  padding-block-end: var(--space-6);
+  container: home-dashboard / inline-size;
 }
 
 .home-welcome-bar {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  gap: clamp(12px, 2vw, 28px);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card);
 }
 
 .home-welcome-title {
-  font-size: var(--font-xl);
+  margin: 0;
+  font-size: clamp(18px, 1.65vw, 26px);
+  line-height: 1.4;
   color: var(--ink);
+  overflow-wrap: anywhere;
 }
 
 .home-welcome-subtitle {
   font-size: var(--font-sm);
   color: var(--muted);
+  margin: var(--space-1) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.home-welcome-clock {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: end;
+  padding-inline-start: var(--space-4);
+  border-inline-start: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--font-xs);
+  white-space: nowrap;
+}
+
+.home-welcome-clock bdi:first-child {
+  color: var(--ink);
+  font-size: var(--font-sm);
+  font-weight: 700;
 }
 
 .home-actions-group {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  justify-content: flex-end;
 }
 
 .home-actions-group .btn {
   text-decoration: none;
+  min-block-size: 40px;
+  white-space: nowrap;
 }
 
 .home-sales-grid,
-.home-financial-grid,
 .dashboard-card {
   background: var(--card);
   border: 1px solid var(--line);
@@ -45,32 +74,48 @@
 
 .home-sales-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));
-  align-items: stretch;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  background: var(--bg);
+  grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  grid-template-areas:
+    'today week'
+    'today month';
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--card);
 }
 
 .sales-kpi-card {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  align-items: start;
   justify-content: center;
-  gap: var(--space-2) clamp(var(--space-2), 5%, var(--space-8));
-  padding: var(--space-4) var(--space-3);
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--card);
 }
 
-.financial-pulse-card + .financial-pulse-card {
-  border-inline-start: 1px solid var(--line);
+.sales-kpi-main {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
 }
 
 .sales-kpi-today {
+  grid-area: today;
   background: var(--primary);
   border-color: var(--primary);
+  padding: clamp(20px, 2.4vw, 38px);
+}
+
+.sales-kpi-week {
+  grid-area: week;
+  background: var(--primary-light);
+}
+
+.sales-kpi-month {
+  grid-area: month;
+  background: var(--bg);
 }
 
 .sales-kpi-label,
@@ -113,41 +158,37 @@
 }
 
 .sales-kpi-count {
-  display: grid;
-  justify-items: center;
-  padding-inline-start: clamp(var(--space-2), 4%, var(--space-6));
-  border-inline-start: 1px solid var(--line-strong);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   font-size: var(--font-xs);
   color: var(--muted);
 }
 
 .sales-kpi-count bdi {
   color: var(--ink);
-  font-size: var(--font-lg);
+  font-size: var(--font-base);
   font-weight: 750;
 }
 
 .sales-kpi-today .sales-kpi-amount {
-  font-size: clamp(24px, 2vw, 32px);
+  font-size: clamp(28px, 3.4vw, 52px);
 }
 
 .sales-kpi-today .sales-kpi-count {
-  border-inline-start-color: var(--muted-light);
+  background: var(--primary-dark);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
 }
 
 .sales-kpi-today :is(.sales-kpi-label, .sales-kpi-amount, .currency-suffix, .sales-kpi-count, .sales-kpi-count bdi) {
   color: var(--card);
 }
 
-.home-financial-grid,
-.home-insights-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 255px), 1fr));
-}
-
 .home-financial-grid {
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: var(--space-4);
 }
 
 .financial-pulse-card {
@@ -155,10 +196,24 @@
   align-items: center;
   gap: var(--space-3);
   min-inline-size: 0;
-  padding: var(--space-4);
+  padding: var(--space-5);
   color: var(--primary);
   text-decoration: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--balance-surface, var(--card));
+}
+
+.financial-pulse-card-cashBoxes {
+  --balance-surface: color-mix(in srgb, var(--accent-light) 45%, var(--card));
+}
+
+.financial-pulse-card-customers {
+  --balance-surface: color-mix(in srgb, var(--primary-light) 65%, var(--card));
+}
+
+.financial-pulse-card-suppliers {
+  --balance-surface: var(--card);
 }
 
 .fin-icon-box {
@@ -186,9 +241,21 @@
 }
 
 .home-insights-grid {
-  --follow-up-row-size: 52px;
-  gap: var(--space-3);
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(255px, (100% - 2 * var(--space-3)) / 3)), 1fr));
+  --follow-up-row-size: 46px;
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.home-insights-grid:has(.ranked-card-items):has(.home-follow-up) {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+}
+
+.home-follow-up {
+  display: grid;
+  gap: var(--space-4);
+  min-inline-size: 0;
 }
 
 .home-insights-grid:empty {
@@ -205,9 +272,6 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-}
-
-.dashboard-card-head {
   border-block-end: 1px solid var(--line);
   padding-block-end: var(--space-2);
   margin-block-end: var(--space-2);
@@ -228,6 +292,14 @@
 
 .ranked-card-items .dashboard-card-title svg {
   color: var(--accent);
+}
+
+.ranked-card-items {
+  background: color-mix(in srgb, var(--accent-light) 24%, var(--card));
+}
+
+.ranked-card-customers {
+  background: color-mix(in srgb, var(--primary-light) 50%, var(--card));
 }
 
 .dashboard-card-action {
@@ -300,9 +372,7 @@
 .ranked-item-title,
 .low-stock-name {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   font-size: var(--font-base);
   font-weight: 600;
 }
@@ -350,6 +420,8 @@
 .low-stock-card {
   display: flex;
   flex-direction: column;
+  background: color-mix(in srgb, var(--warning-light) 55%, var(--card));
+  border-color: var(--warning-border);
 }
 
 .low-stock-stable {
@@ -400,58 +472,31 @@
   font-size: var(--font-sm);
 }
 
-@media (min-width: 1200px) and (min-height: 820px) {
-  .home-dashboard {
-    gap: var(--space-5);
+@container home-dashboard (max-width: 810px) {
+  .home-welcome-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .dashboard-card {
-    padding: var(--space-4);
+  .home-actions-group {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
   }
 
-  .sales-kpi-card {
-    padding: var(--space-5) var(--space-4);
-  }
-
-  .financial-pulse-card {
-    padding: var(--space-5) var(--space-6);
-  }
-
-  .home-insights-grid,
-  .ranked-list,
-  .low-stock-list {
-    gap: var(--space-3);
-  }
-
-  .home-insights-grid {
-    --follow-up-row-size: 58px;
-  }
-
-  .ranked-item {
-    gap: var(--space-2);
+  .home-welcome-clock {
+    grid-column: 2;
+    grid-row: 1;
   }
 }
 
-@media (max-width: 1024px) {
-  .home-financial-grid {
-    grid-auto-flow: row;
-  }
-
-  .financial-pulse-card + .financial-pulse-card {
-    border-inline-start: 0;
-  }
-}
-
-@media (max-width: 640px) {
-  .home-sales-grid,
-  .home-financial-grid,
-  .home-insights-grid {
+@container home-dashboard (max-width: 580px) {
+  .home-sales-grid {
+    grid-template-areas: 'today' 'week' 'month';
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .financial-pulse-card + .financial-pulse-card {
-    border-inline-start: 0;
-    border-block-start: 1px solid var(--line);
+  .home-insights-grid:has(.ranked-card-items):has(.home-follow-up) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
