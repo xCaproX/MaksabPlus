@@ -32,8 +32,10 @@ type BalanceSort =
 
 const PAGE_SIZE = 20;
 
+const REQUIRED_RESOURCES = ['cashBoxes'] as const;
+
 export default function CashBoxBalancesTab() {
-  const { cashBoxes, resourceStatus } = useMasterData();
+  const { cashBoxes, resourceStatus } = useMasterData(REQUIRED_RESOURCES);
   const { loading, error } = resourceStatus.cashBoxes;
 
   // الفلاتر

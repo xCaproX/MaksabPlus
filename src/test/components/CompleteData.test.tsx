@@ -22,6 +22,10 @@ vi.mock('../../lib/supabase', () => ({
   },
 }));
 
+const OPENING_RESOURCES = ['accounts', 'stock'] as const;
+const WAREHOUSE_RESOURCES = ['warehouses'] as const;
+const ACCOUNT_RESOURCES = ['accounts'] as const;
+
 const rows = Array.from({ length: 1202 }, (_, index) => ({
   id: String(index + 1), running_balance: index + 1,
 }));
@@ -33,12 +37,49 @@ function cappedPage(from: number, to: number) {
 describe('complete data loading', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('loads nothing by default, then reads only subscribed resources', async () => {
+    api.range.mockResolvedValue({ data: [], count: 0, error: null });
+    const initialProps: { keys?: Parameters<typeof useMasterData>[0] } = {};
+    const { result, rerender } = renderHook(
+      ({ keys }) => useMasterData(keys),
+      { wrapper: MasterDataProvider, initialProps },
+    );
+    expect(api.range).not.toHaveBeenCalled();
+
+    rerender({ keys: WAREHOUSE_RESOURCES });
+    await waitFor(() => expect(result.current.resourceStatus.warehouses.hasLoaded).toBe(true));
+    expect(api.range.mock.calls.map(([table]) => table)).toEqual(['warehouses']);
+
+    await act(async () => { await result.current.refresh(['warehouses', 'accounts']); });
+    expect(api.range.mock.calls.map(([table]) => table)).toEqual(['warehouses', 'warehouses']);
+
+    rerender({ keys: ACCOUNT_RESOURCES });
+    await waitFor(() => expect(result.current.resourceStatus.accounts.hasLoaded).toBe(true));
+    expect(api.range.mock.calls.map(([table]) => table)).toEqual(['warehouses', 'warehouses', 'v_account_balances']);
+
+    rerender({ keys: WAREHOUSE_RESOURCES });
+    expect(api.range).toHaveBeenCalledTimes(3);
+  });
+
+  it('publishes the refreshed balance instead of an older in-flight read', async () => {
+    const firstRows = [{ id: 'account', balance: 50 }];
+    const refreshedRows = [{ id: 'account', balance: 75 }];
+    let finish!: (page: CountedPage<(typeof firstRows)[number]>) => void;
+    const first = new Promise<CountedPage<(typeof firstRows)[number]>>((resolve) => { finish = resolve; });
+    api.range.mockReturnValueOnce(first)
+      .mockResolvedValueOnce({ data: refreshedRows, count: 1, error: null });
+    const { result } = renderHook(() => useMasterData(ACCOUNT_RESOURCES), { wrapper: MasterDataProvider });
+    await act(async () => { await result.current.refresh(ACCOUNT_RESOURCES); });
+    await act(async () => { finish({ data: firstRows, count: 1, error: null }); });
+    expect(result.current.accounts).toEqual(refreshedRows);
+  });
+
   it('loads shared stock and opening accounts past the row limit', async () => {
     const large = ['v_account_balances', 'v_stock_opening_balances'];
     api.range.mockImplementation(async (table, from, to) =>
       large.includes(table) ? cappedPage(from, to) : { data: [], count: 0, error: null },
     );
-    const { result } = renderHook(useMasterData, { wrapper: MasterDataProvider });
+    const { result } = renderHook(() => useMasterData(OPENING_RESOURCES), { wrapper: MasterDataProvider });
     await waitFor(() => expect(result.current.resourceStatus.stock.loading).toBe(false));
     expect(result.current.accounts).toHaveLength(1202);
     expect(result.current.stockRows).toHaveLength(1202);
@@ -50,7 +91,7 @@ describe('complete data loading', () => {
   it('keeps the last complete shared result and reports a later page failure', async () => {
     api.range.mockImplementation(async (table) => table === 'v_account_balances'
       ? { data: [rows[0]], count: 1, error: null } : { data: [], count: 0, error: null });
-    const { result } = renderHook(useMasterData, { wrapper: MasterDataProvider });
+    const { result } = renderHook(() => useMasterData(OPENING_RESOURCES), { wrapper: MasterDataProvider });
     await waitFor(() => expect(result.current.resourceStatus.accounts.loading).toBe(false));
 
     api.range.mockImplementation(async (_table, from, to) => from === 0

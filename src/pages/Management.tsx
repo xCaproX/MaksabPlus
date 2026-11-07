@@ -3,7 +3,7 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 import { Play } from 'lucide-react';
 import { useAccess } from '../lib/access';
 import UserPermissions from '../components/UserPermissions';
-import { useMasterData } from '../context/MasterDataContext';
+import { useMasterData, type MasterDataResource } from '../context/MasterDataContext';
 import AccountOpeningTab from './management/AccountOpeningTab';
 import StockOpeningTab from './management/StockOpeningTab';
 import CashBoxOpeningTab from './management/CashBoxOpeningTab';
@@ -29,6 +29,11 @@ const VALID_MANAGEMENT_TABS: ManagementTab[] = [
   'users',
 ];
 
+const TAB_RESOURCES: Record<ManagementTab, readonly MasterDataResource[]> = {
+  customers: ['accounts'], suppliers: ['accounts'], items: ['stock', 'warehouses'],
+  cashBoxes: ['cashBoxes'], reconciliations: [], users: [],
+};
+
 export default function Management() {
   const { access, can } = useAccess();
   const visibleTabs = MANAGEMENT_TABS.filter((t) =>
@@ -42,10 +47,8 @@ export default function Management() {
     tab === 'users' || tab === 'reconciliations' ? access?.role === 'owner' : can(`management.${tab}.view`);
   const canEditOpening = can(`management.${tab}.edit`);
 
-  const { accounts: rawAccounts, cashBoxes, stockRows, warehouses: rawWarehouses, resourceStatus, refresh } = useMasterData();
-  const resources = tab === 'customers' || tab === 'suppliers' ? [resourceStatus.accounts]
-    : tab === 'items' ? [resourceStatus.stock, resourceStatus.warehouses]
-      : tab === 'cashBoxes' ? [resourceStatus.cashBoxes] : [];
+  const { accounts: rawAccounts, cashBoxes, stockRows, warehouses: rawWarehouses, resourceStatus, refresh } = useMasterData(canViewCurrentTab ? TAB_RESOURCES[tab] : undefined);
+  const resources = TAB_RESOURCES[tab].map((key) => resourceStatus[key]);
   const loading = resources.some((resource) => resource.loading);
   const hasLoaded = resources.every((resource) => resource.hasLoaded);
   const loadError = resources.find((resource) => resource.error)?.error;
@@ -164,7 +167,7 @@ export default function Management() {
               kind="customer"
               accounts={accounts}
               canEditOpening={canEditOpening}
-              onRefresh={refresh}
+              onRefresh={() => refresh(['accounts'])}
               saving={saving}
               setSaving={setSaving}
               saveTrigger={saveTrigger}
@@ -175,7 +178,7 @@ export default function Management() {
               kind="supplier"
               accounts={accounts}
               canEditOpening={canEditOpening}
-              onRefresh={refresh}
+              onRefresh={() => refresh(['accounts'])}
               saving={saving}
               setSaving={setSaving}
               saveTrigger={saveTrigger}
@@ -186,7 +189,7 @@ export default function Management() {
               warehouses={warehouses}
               stockRows={stockRows}
               canEditOpening={canEditOpening}
-              onRefresh={refresh}
+              onRefresh={() => refresh(['stock', 'items'])}
               saving={saving}
               setSaving={setSaving}
               saveTrigger={saveTrigger}
@@ -196,7 +199,7 @@ export default function Management() {
             <CashBoxOpeningTab
               cashBoxes={cashBoxes}
               canEditOpening={canEditOpening}
-              onRefresh={refresh}
+              onRefresh={() => refresh(['cashBoxes'])}
               saving={saving}
               setSaving={setSaving}
               saveTrigger={saveTrigger}
@@ -205,7 +208,7 @@ export default function Management() {
           {tab === 'reconciliations' && (
             <ReconciliationLogTab
               startRunTrigger={startRunTrigger}
-              onRefreshMasterData={refresh}
+              onRefreshMasterData={() => refresh(['accounts', 'cashBoxes', 'stock', 'items'])}
             />
           )}
           {tab === 'users' && (

@@ -9,6 +9,7 @@ import { errorMessage, translateDbError } from '../lib/errors';
 import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
+import MasterDataGate from '../components/MasterDataGate';
 import ConfirmDialog from '../components/ConfirmDialog';
 import DocumentListToolbar from '../components/DocumentListToolbar';
 import { collectAllRows } from '../lib/exportRows';
@@ -60,6 +61,15 @@ function loadTransferLines(transferId: string) {
 }
 
 const PAGE_SIZE = 20;
+const WAREHOUSE_LIST = ['warehouses'] as const;
+const TRANSFER_FORM = ['warehouses', 'items', 'stock'] as const;
+const INVOICE_FORM = ['warehouses', 'cashBoxes', 'accounts', 'items', 'stock'] as const;
+const STOCK_CHANGES = ['items', 'stock'] as const;
+const INVOICE_CHANGES = ['accounts', ...STOCK_CHANGES] as const;
+
+function invoiceChanges(affectsCash: boolean) {
+  return affectsCash ? [...INVOICE_CHANGES, 'cashBoxes'] as const : INVOICE_CHANGES;
+}
 
 const VALID_INVOICE_TABS: InvoiceTab[] = [
   'sale',
@@ -88,16 +98,6 @@ export default function Invoices() {
 
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [transferRows, setTransferRows] = useState<WarehouseTransferRow[]>([]);
-  const {
-    accounts: rawAccounts,
-    warehouses,
-    items: rawItems,
-    cashBoxes,
-    stockRows,
-    refresh,
-  } = useMasterData();
-  const accounts = useMemo(() => rawAccounts.filter((a) => a.is_active), [rawAccounts]);
-  const items = useMemo(() => rawItems.filter((i) => i.is_active), [rawItems]);
   const [loading, setLoading] = useState(true);
 
   const [formOpen, setFormOpen] = useState(false);
@@ -122,6 +122,19 @@ export default function Invoices() {
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
   const visibleTabs = INVOICE_TABS.filter((tab) => can(`goods.${tab.value}.view`));
   const canViewCurrentTab = can(`goods.${kind}.view`);
+  const formResources = isWarehouseTransfer ? TRANSFER_FORM : INVOICE_FORM;
+  const {
+    accounts: rawAccounts,
+    warehouses,
+    items: rawItems,
+    cashBoxes,
+    stockRows,
+    refresh,
+    resourceStatus,
+  } = useMasterData(canViewCurrentTab ? (formOpen ? formResources : WAREHOUSE_LIST) : undefined);
+  const accounts = useMemo(() => rawAccounts.filter((a) => a.is_active), [rawAccounts]);
+  const items = useMemo(() => rawItems.filter((i) => i.is_active), [rawItems]);
+
 
   useEffect(() => {
     const targetKind = tabParam && VALID_INVOICE_TABS.includes(tabParam) ? tabParam : 'sale';
@@ -445,7 +458,7 @@ export default function Invoices() {
     setFormOpen(false);
     setEditing(null);
     setVersion((current) => current + 1);
-    void refresh();
+    void refresh(invoiceChanges(Number(invoice.paid) > 0));
   }
 
   async function restore(invoice: InvoiceRow) {
@@ -474,7 +487,7 @@ export default function Invoices() {
     setFormOpen(false);
     setEditing(null);
     setVersion((current) => current + 1);
-    void refresh();
+    void refresh(invoiceChanges(Number(invoice.paid) > 0));
   }
 
   async function removeTransfer(transfer: WarehouseTransferRow) {
@@ -497,7 +510,7 @@ export default function Invoices() {
     setFormOpen(false);
     setEditingTransfer(null);
     setVersion((current) => current + 1);
-    void refresh();
+    void refresh(STOCK_CHANGES);
   }
 
   async function restoreTransfer(transfer: WarehouseTransferRow) {
@@ -520,13 +533,13 @@ export default function Invoices() {
     setFormOpen(false);
     setEditingTransfer(null);
     setVersion((current) => current + 1);
-    void refresh();
+    void refresh(STOCK_CHANGES);
   }
 
-  async function handleSaved(message: string) {
+  async function handleSaved(message: string, affectsCash = false) {
     toast.success(message);
     setVersion((current) => current + 1);
-    void refresh();
+    void refresh(isWarehouseTransfer ? STOCK_CHANGES : invoiceChanges(affectsCash));
 
     try {
       if (modalMode === 'edit' && openedFromViewRef.current && editing) {
@@ -692,78 +705,84 @@ export default function Invoices() {
             setEditingTransfer(null);
           }}
         >
-          {isWarehouseTransfer ? (
-            <WarehouseTransferForm
-              key={`${editingTransfer?.id ?? 'new-transfer'}-${modalMode}`}
-              warehouses={warehouses}
-              items={items}
-              stockRows={stockRows}
-              editing={editingTransfer}
-              readOnly={modalMode === 'view'}
-              onSaved={handleSaved}
-              onCancel={() => {
-                if (modalMode === 'edit' && openedTransferFromViewRef.current) {
-                  setModalMode('view');
-                } else {
-                  setFormOpen(false);
-                  setEditingTransfer(null);
+          <MasterDataGate
+            key={isWarehouseTransfer ? (editingTransfer?.id ?? 'new-transfer') + modalMode : (editing?.invoice.id ?? 'new-invoice') + modalMode}
+            resources={formResources}
+            status={resourceStatus}
+          >
+            {isWarehouseTransfer ? (
+              <WarehouseTransferForm
+                key={`${editingTransfer?.id ?? 'new-transfer'}-${modalMode}`}
+                warehouses={warehouses}
+                items={items}
+                stockRows={stockRows}
+                editing={editingTransfer}
+                readOnly={modalMode === 'view'}
+                onSaved={handleSaved}
+                onCancel={() => {
+                  if (modalMode === 'edit' && openedTransferFromViewRef.current) {
+                    setModalMode('view');
+                  } else {
+                    setFormOpen(false);
+                    setEditingTransfer(null);
+                  }
+                }}
+                onEdit={!showDeleted && can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
+                onDelete={
+                  !showDeleted && can(`goods.${kind}.delete`) && editingTransfer
+                    ? () => void removeTransfer(editingTransfer)
+                    : undefined
                 }
-              }}
-              onEdit={!showDeleted && can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
-              onDelete={
-                !showDeleted && can(`goods.${kind}.delete`) && editingTransfer
-                  ? () => void removeTransfer(editingTransfer)
-                  : undefined
-              }
-              onRestore={
-                showDeleted && can(`goods.${kind}.delete`) && editingTransfer
-                  ? async () => {
-                      await restoreTransfer(editingTransfer);
-                      setFormOpen(false);
-                      setEditingTransfer(null);
-                    }
-                  : undefined
-              }
-              onPrint={() => window.print()}
-            />
-          ) : (
-            <InvoiceForm
-              key={`${editing?.invoice.id ?? 'new-invoice'}-${modalMode}`}
-              kind={kind as InvoiceKind}
-              accounts={accounts}
-              warehouses={warehouses}
-              cashBoxes={cashBoxes}
-              items={items}
-              stockRows={stockRows}
-              editing={editing}
-              readOnly={modalMode === 'view'}
-              onSaved={handleSaved}
-              onCancel={() => {
-                if (modalMode === 'edit' && openedFromViewRef.current) {
-                  setModalMode('view');
-                } else {
-                  setFormOpen(false);
-                  setEditing(null);
+                onRestore={
+                  showDeleted && can(`goods.${kind}.delete`) && editingTransfer
+                    ? async () => {
+                        await restoreTransfer(editingTransfer);
+                        setFormOpen(false);
+                        setEditingTransfer(null);
+                      }
+                    : undefined
                 }
-              }}
-              onEdit={!showDeleted && can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
-              onDelete={
-                !showDeleted && can(`goods.${kind}.delete`) && editing
-                  ? () => void remove(editing.invoice)
-                  : undefined
-              }
-              onRestore={
-                showDeleted && can(`goods.${kind}.delete`) && editing
-                  ? async () => {
-                      await restore(editing.invoice);
-                      setFormOpen(false);
-                      setEditing(null);
-                    }
-                  : undefined
-              }
-              onPrint={() => window.print()}
-            />
-          )}
+                onPrint={() => window.print()}
+              />
+            ) : (
+              <InvoiceForm
+                key={`${editing?.invoice.id ?? 'new-invoice'}-${modalMode}`}
+                kind={kind as InvoiceKind}
+                accounts={accounts}
+                warehouses={warehouses}
+                cashBoxes={cashBoxes}
+                items={items}
+                stockRows={stockRows}
+                editing={editing}
+                readOnly={modalMode === 'view'}
+                onSaved={handleSaved}
+                onCancel={() => {
+                  if (modalMode === 'edit' && openedFromViewRef.current) {
+                    setModalMode('view');
+                  } else {
+                    setFormOpen(false);
+                    setEditing(null);
+                  }
+                }}
+                onEdit={!showDeleted && can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
+                onDelete={
+                  !showDeleted && can(`goods.${kind}.delete`) && editing
+                    ? () => void remove(editing.invoice)
+                    : undefined
+                }
+                onRestore={
+                  showDeleted && can(`goods.${kind}.delete`) && editing
+                    ? async () => {
+                        await restore(editing.invoice);
+                        setFormOpen(false);
+                        setEditing(null);
+                      }
+                    : undefined
+                }
+                onPrint={() => window.print()}
+              />
+            )}
+          </MasterDataGate>
         </Modal>
       )}
 

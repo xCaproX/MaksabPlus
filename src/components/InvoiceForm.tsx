@@ -36,7 +36,7 @@ interface InvoiceFormProps {
   stockRows: StockOpeningRow[];
   editing: EditingInvoice | null;
   readOnly?: boolean;
-  onSaved: (message: string) => void;
+  onSaved: (message: string, affectsCash: boolean) => void;
   onCancel: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -476,6 +476,7 @@ export default function InvoiceForm({
       editing
         ? `تم تعديل ${isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}${paidNumber > 0 ? ' وتحديث الإيصال' : ''}`
         : `تم حفظ ${isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}${paidNumber > 0 ? ' وإنشاء الإيصال' : ''}`,
+      args.p_paid > 0 || Number(editing?.invoice.paid ?? 0) > 0,
     );
   }
 

@@ -196,7 +196,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
     cancelEdit();
     setSelectedWarehouse(null);
     setVersion((v) => v + 1);
-    void refresh(['warehouses']);
+    void refresh(['warehouses', 'stock']);
   }
 
   async function toggleWarehouse(warehouse: WarehouseRecord) {
@@ -209,7 +209,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
     }
     toast.success(`تم ${warehouse.is_active ? 'إيقاف' : 'تفعيل'} المخزن «${warehouse.name}»`);
     setVersion((v) => v + 1);
-    void refresh(['warehouses']);
+    void refresh(['warehouses', 'stock']);
   }
 
   async function removeWarehouse(warehouse: WarehouseRecord) {
@@ -232,7 +232,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
     toast.success(`تم حذف المخزن «${warehouse.name}»`);
     setSelectedWarehouse(null);
     setVersion((v) => v + 1);
-    void refresh(['warehouses']);
+    void refresh(['warehouses', 'stock']);
   }
 
   return (

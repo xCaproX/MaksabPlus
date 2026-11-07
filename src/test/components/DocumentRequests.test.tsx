@@ -5,18 +5,32 @@ import { supabase } from '../../lib/supabase';
 import Invoices from '../../pages/Invoices';
 import Receipts from '../../pages/Receipts';
 
+const masterData = vi.hoisted(() => ({
+  refresh: vi.fn(),
+  ready: { loading: false, error: null, hasLoaded: true },
+  pending: { loading: true, error: null, hasLoaded: false },
+  stock: { loading: false, error: null, hasLoaded: true },
+}));
+
 vi.mock('../../lib/supabase', () => ({ supabase: { rpc: vi.fn() } }));
 vi.mock('../../lib/access', () => {
   const can = () => true;
   return { useAccess: () => ({ can, canViewProfit: true }) };
 });
 vi.mock('../../context/MasterDataContext', () => {
-  const data = { accounts: [], items: [], warehouses: [], cashBoxes: [], stockRows: [], refresh: vi.fn() };
-  return { useMasterData: () => data };
+  const { ready, refresh } = masterData;
+  return { useMasterData: () => ({
+    accounts: [], items: [], warehouses: [], cashBoxes: [], stockRows: [], refresh,
+    resourceStatus: { accounts: ready, items: ready, warehouses: ready, cashBoxes: ready, stock: masterData.stock },
+  }) };
 });
 vi.mock('../../components/InvoiceForm', () => ({
-  default: ({ onSaved }: { onSaved: (message: string) => void }) =>
-    <button onClick={() => onSaved('تم الحفظ')}>اختبار إتمام الحفظ</button>,
+  default: ({ onSaved }: { onSaved: (message: string, affectsCash: boolean) => void }) => (
+    <>
+      <button onClick={() => onSaved('تم الحفظ', false)}>اختبار إتمام الحفظ</button>
+      <button onClick={() => onSaved('تم الحفظ', true)}>اختبار إتمام الحفظ بتحصيل</button>
+    </>
+  ),
 }));
 
 type Request = {
@@ -56,6 +70,8 @@ async function changeNotes(value: string) {
 describe('document list request lifecycle', () => {
   beforeEach(() => {
     requests.length = 0;
+    masterData.refresh.mockClear();
+    masterData.stock = masterData.ready;
     vi.useFakeTimers();
     vi.mocked(supabase.rpc).mockImplementation((name, args) => ({
       abortSignal: (signal: AbortSignal) => new Promise((resolve) => {
@@ -104,11 +120,28 @@ describe('document list request lifecycle', () => {
     expect(screen.queryByText('700.00')).not.toBeInTheDocument();
   });
 
-  it('refreshes rows and summaries after a successful save', async () => {
+  it.each([
+    ['اختبار إتمام الحفظ', ['accounts', 'items', 'stock']],
+    ['اختبار إتمام الحفظ بتحصيل', ['accounts', 'items', 'stock', 'cashBoxes']],
+  ])('refreshes rows, summaries and affected resources after %s', async (button, resources) => {
     render(<MemoryRouter><Invoices /></MemoryRouter>);
     await resolvePair(expectPair(0, 'get_invoice_kpis_columns', 0));
     fireEvent.click(screen.getByRole('button', { name: '+ فاتورة مبيعات' }));
-    fireEvent.click(screen.getByRole('button', { name: 'اختبار إتمام الحفظ' }));
+    fireEvent.click(screen.getByRole('button', { name: button }));
+    expect(masterData.refresh.mock.calls).toEqual([[resources]]);
     await resolvePair(expectPair(2, 'get_invoice_kpis_columns', 0));
+  });
+
+  it('waits for complete stock before mounting the invoice form', async () => {
+    masterData.stock = masterData.pending;
+    const view = render(<MemoryRouter><Invoices /></MemoryRouter>);
+    await resolvePair(expectPair(0, 'get_invoice_kpis_columns', 0));
+    fireEvent.click(screen.getByRole('button', { name: '+ فاتورة مبيعات' }));
+    expect(screen.getByRole('status')).toHaveTextContent('جارٍ تحميل بيانات النموذج');
+    expect(screen.queryByRole('button', { name: 'اختبار إتمام الحفظ' })).not.toBeInTheDocument();
+
+    masterData.stock = masterData.ready;
+    view.rerender(<MemoryRouter><Invoices /></MemoryRouter>);
+    expect(screen.getByRole('button', { name: 'اختبار إتمام الحفظ' })).toBeInTheDocument();
   });
 });

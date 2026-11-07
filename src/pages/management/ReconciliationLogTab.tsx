@@ -116,7 +116,7 @@ export default function ReconciliationLogTab({
 
       setIsModalOpen(false);
       await loadLogs();
-      if (onRefreshMasterData) {
+      if (mode === 'reconcile' && result.discrepancies_count > 0 && onRefreshMasterData) {
         await onRefreshMasterData();
       }
     } catch (err: unknown) {

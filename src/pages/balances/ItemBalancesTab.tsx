@@ -60,9 +60,11 @@ type BalanceSort =
 
 const PAGE_SIZE = 20;
 
+const REQUIRED_RESOURCES = ['warehouses'] as const;
+
 export default function ItemBalancesTab() {
   const { canViewProfit } = useAccess();
-  const { warehouses: rawWarehouses } = useMasterData();
+  const { warehouses: rawWarehouses } = useMasterData(REQUIRED_RESOURCES);
   const warehouses = useMemo(() => rawWarehouses.filter((w) => w.is_active !== false), [rawWarehouses]);
 
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');

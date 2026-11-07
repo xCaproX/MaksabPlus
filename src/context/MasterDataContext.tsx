@@ -16,6 +16,13 @@ export type MasterDataResource = 'accounts' | 'items' | 'warehouses' | 'cashBoxe
 type ResourceStatus = { loading: boolean; error: string | null; hasLoaded: boolean };
 
 const pending: ResourceStatus = { loading: true, error: null, hasLoaded: false };
+const noResources: readonly MasterDataResource[] = [];
+
+interface ResourceRequest {
+  subscribers: number;
+  stale: boolean;
+  request?: symbol;
+}
 
 export interface MasterDataContextType {
   accounts: AccountRow[];
@@ -23,9 +30,9 @@ export interface MasterDataContextType {
   warehouses: WarehouseOption[];
   cashBoxes: CashBoxRow[];
   stockRows: StockOpeningRow[];
-  loading: boolean;
   resourceStatus: Record<MasterDataResource, ResourceStatus>;
-  refresh: (keys?: MasterDataResource[]) => Promise<void>;
+  refresh: (keys: readonly MasterDataResource[]) => Promise<void>;
+  subscribe: (keys: readonly MasterDataResource[]) => () => void;
 }
 
 const MasterDataContext = createContext<MasterDataContextType | null>(null);
@@ -39,29 +46,36 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   const [resourceStatus, setResourceStatus] = useState({
     accounts: pending, items: pending, warehouses: pending, cashBoxes: pending, stock: pending,
   });
-  const requests = useRef<Partial<Record<MasterDataResource, symbol>>>({});
+  const resources = useRef<Record<MasterDataResource, ResourceRequest>>({
+    accounts: { subscribers: 0, stale: true },
+    items: { subscribers: 0, stale: true },
+    warehouses: { subscribers: 0, stale: true },
+    cashBoxes: { subscribers: 0, stale: true },
+    stock: { subscribers: 0, stale: true },
+  });
 
-  const fetchResources = useCallback(async (keys?: MasterDataResource[]) => {
-    const selected = keys ?? ['accounts', 'items', 'warehouses', 'cashBoxes', 'stock'];
-
+  const fetchResources = useCallback(async (keys: readonly MasterDataResource[]) => {
     async function load<Row>(
       key: MasterDataResource,
       fetchRows: () => Promise<Row[]>,
       publish: (rows: Row[]) => void,
     ) {
+      const resource = resources.current[key];
       const request = Symbol(key);
-      requests.current[key] = request;
+      resource.request = request;
       setResourceStatus((status) => ({
         ...status, [key]: { ...status[key], loading: true, error: null },
       }));
       let error: string | null = null;
       try {
         const rows = await fetchRows();
-        if (requests.current[key] === request) publish(rows);
+        if (resource.request === request) publish(rows);
       } catch (cause) {
         error = errorMessage(cause);
       } finally {
-        if (requests.current[key] === request) {
+        if (resource.request === request) {
+          resource.request = undefined;
+          resource.stale = Boolean(error);
           setResourceStatus((status) => ({
             ...status, [key]: { loading: false, error, hasLoaded: !error || status[key].hasLoaded },
           }));
@@ -89,33 +103,31 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
           .order('warehouse_id').order('item_id').range(from, to),
       ), setStockRows),
     };
-    await Promise.all(selected.map((key) => loaders[key]()));
+    await Promise.all(keys.map((key) => loaders[key]()));
   }, []);
 
-  const refresh = useCallback(
-    async (keys?: MasterDataResource[]) => {
-      await fetchResources(keys);
-    },
-    [fetchResources],
-  );
-
-  useEffect(() => {
-    let alive = true;
-
-    async function bootstrap() {
-      // تحميل البيانات الإعدادية الخفيفة أولاً لفتح الواجهة فورياً
-      await fetchResources(['warehouses', 'cashBoxes']);
-      if (!alive) return;
-
-      // استكمال تحميل الحسابات والأصناف في الخلفية دون حظر واجهة المستخدم
-      await fetchResources(['accounts', 'items', 'stock']);
-    }
-
-    void bootstrap();
-
+  const subscribe = useCallback((keys: readonly MasterDataResource[]) => {
+    const requested = keys.filter((key) => {
+      const resource = resources.current[key];
+      resource.subscribers += 1;
+      return resource.stale && !resource.request;
+    });
+    void fetchResources(requested);
     return () => {
-      alive = false;
+      for (const key of keys) resources.current[key].subscribers -= 1;
     };
+  }, [fetchResources]);
+
+  const refresh = useCallback(async (keys: readonly MasterDataResource[]) => {
+    const active = keys.filter((key) => {
+      const resource = resources.current[key];
+      resource.stale = true;
+      if (resource.subscribers > 0) return true;
+      resource.request = undefined;
+      setResourceStatus((status) => ({ ...status, [key]: pending }));
+      return false;
+    });
+    await fetchResources(active);
   }, [fetchResources]);
 
   return (
@@ -126,9 +138,9 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
         warehouses,
         cashBoxes,
         stockRows,
-        loading: resourceStatus.cashBoxes.loading || resourceStatus.warehouses.loading,
         resourceStatus,
         refresh,
+        subscribe,
       }}
     >
       {children}
@@ -136,8 +148,10 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useMasterData(): MasterDataContextType {
+export function useMasterData(keys: readonly MasterDataResource[] = noResources): MasterDataContextType {
   const context = useContext(MasterDataContext);
+  const subscribe = context?.subscribe;
+  useEffect(() => subscribe?.(keys), [keys, subscribe]);
   if (!context) {
     throw new Error('useMasterData must be used within a MasterDataProvider');
   }

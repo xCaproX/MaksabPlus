@@ -7,6 +7,7 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateDbError } from '../lib/errors';
 import Modal from '../components/Modal';
+import MasterDataGate from '../components/MasterDataGate';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import ReceiptForm from '../components/ReceiptForm';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -35,6 +36,8 @@ import {
 } from './receipts/receiptKpis';
 
 const PAGE_SIZE = 20;
+const CASH_BOX_RESOURCES = ['cashBoxes'] as const;
+const RECEIPT_RESOURCES = ['cashBoxes', 'accounts'] as const;
 
 export default function Receipts() {
   const { can } = useAccess();
@@ -46,8 +49,6 @@ export default function Receipts() {
 
   const [rows, setRows] = useState<ReceiptRow[]>([]);
   const [transferRows, setTransferRows] = useState<CashBoxTransferRow[]>([]);
-  const { accounts: rawAccounts, cashBoxes, refresh } = useMasterData();
-  const accounts = useMemo(() => rawAccounts.filter((a) => a.is_active), [rawAccounts]);
   const [loading, setLoading] = useState(true);
 
   // حالة النافذة المنبثقة الموحدة (عرض، تعديل، إنشاء)
@@ -119,6 +120,10 @@ export default function Receipts() {
   const isIn = direction === 'in';
   const visibleTabs = RECEIPT_TABS.filter((item) => can(`money.${item.value}.view`));
   const canViewCurrentTab = can(`money.${tab}.view`);
+  const formResources = formOpen && !isCashBoxTransfer ? RECEIPT_RESOURCES : CASH_BOX_RESOURCES;
+  const { accounts: rawAccounts, cashBoxes, refresh, resourceStatus } = useMasterData(canViewCurrentTab ? formResources : undefined);
+  const accounts = useMemo(() => rawAccounts.filter((a) => a.is_active), [rawAccounts]);
+
 
   const tabTitle = isCashBoxTransfer ? 'تحويلات الخزن' : isIn ? 'إيصالات الاستلام' : 'إيصالات الصرف';
 
@@ -349,7 +354,7 @@ export default function Receipts() {
   async function handleSaved(message: string) {
     toast.success(message);
     setVersion((current) => current + 1);
-    void refresh();
+    void refresh(isCashBoxTransfer ? CASH_BOX_RESOURCES : RECEIPT_RESOURCES);
 
     // إذا كان الإيصال مفتوحاً من وضع العرض وتم تعديله، نعيده لوضع العرض مع تحديث البيانات فورياً
     if (modalMode === 'edit' && openedFromViewRef.current && editing) {
@@ -408,7 +413,7 @@ export default function Receipts() {
       closeForm();
     }
     setVersion((current) => current + 1);
-    void refresh();
+    void refresh(RECEIPT_RESOURCES);
   }
 
   async function restore(receipt: ReceiptRow) {
@@ -429,7 +434,7 @@ export default function Receipts() {
 
     toast.success(`تم استعادة الإيصال ${receipt.number}`);
     setVersion((current) => current + 1);
-    void refresh();
+    void refresh(RECEIPT_RESOURCES);
   }
 
   async function removeTransfer(transfer: CashBoxTransferRow) {
@@ -441,7 +446,7 @@ export default function Receipts() {
       closeForm();
     }
     setVersion((current) => current + 1);
-    void refresh();
+    void refresh(CASH_BOX_RESOURCES);
   }
 
   async function restoreTransfer(transfer: CashBoxTransferRow) {
@@ -450,7 +455,7 @@ export default function Receipts() {
     if (rpcError) return toast.error(translateDbError(rpcError.message));
     toast.success(`تم استعادة التحويل ${transfer.number}`);
     setVersion((current) => current + 1);
-    void refresh();
+    void refresh(CASH_BOX_RESOURCES);
   }
 
   if (!canViewCurrentTab) {
@@ -587,29 +592,31 @@ export default function Receipts() {
             }
             onClose={closeForm}
           >
-            <CashBoxTransferForm
-              key={`${editingTransfer?.id ?? 'new-transfer'}-${modalMode}`}
-              cashBoxes={cashBoxes}
-              editing={editingTransfer}
-              readOnly={modalMode === 'view'}
-              onEdit={!showDeleted && can(`money.${tab}.edit`) ? () => setModalMode('edit') : undefined}
-              onDelete={
-                !showDeleted && can(`money.${tab}.delete`) && editingTransfer
-                  ? () => void removeTransfer(editingTransfer)
-                  : undefined
-              }
-              onRestore={
-                showDeleted && can(`money.${tab}.delete`) && editingTransfer
-                  ? async () => {
-                      await restoreTransfer(editingTransfer);
-                      closeForm();
-                    }
-                  : undefined
-              }
-              onPrint={() => window.print()}
-              onSaved={handleSaved}
-              onCancel={handleCancel}
-            />
+            <MasterDataGate key={(editingTransfer?.id ?? 'new-transfer') + modalMode} resources={formResources} status={resourceStatus}>
+              <CashBoxTransferForm
+                key={`${editingTransfer?.id ?? 'new-transfer'}-${modalMode}`}
+                cashBoxes={cashBoxes}
+                editing={editingTransfer}
+                readOnly={modalMode === 'view'}
+                onEdit={!showDeleted && can(`money.${tab}.edit`) ? () => setModalMode('edit') : undefined}
+                onDelete={
+                  !showDeleted && can(`money.${tab}.delete`) && editingTransfer
+                    ? () => void removeTransfer(editingTransfer)
+                    : undefined
+                }
+                onRestore={
+                  showDeleted && can(`money.${tab}.delete`) && editingTransfer
+                    ? async () => {
+                        await restoreTransfer(editingTransfer);
+                        closeForm();
+                      }
+                    : undefined
+                }
+                onPrint={() => window.print()}
+                onSaved={handleSaved}
+                onCancel={handleCancel}
+              />
+            </MasterDataGate>
           </Modal>
         ) : (
           <Modal
@@ -624,35 +631,37 @@ export default function Receipts() {
             }
             onClose={closeForm}
           >
-            <ReceiptForm
-              key={`${editing?.id ?? 'new-receipt'}-${modalMode}`}
-              direction={editing?.direction ?? direction}
-              accounts={accounts}
-              cashBoxes={cashBoxes}
-              editing={editing}
-              readOnly={modalMode === 'view'}
-              onEdit={
-                !showDeleted && can(`money.${tab}.edit`) && editing?.is_free
-                  ? () => setModalMode('edit')
-                  : undefined
-              }
-              onDelete={
-                !showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
-                  ? () => void remove(editing)
-                  : undefined
-              }
-              onRestore={
-                showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
-                  ? async () => {
-                      await restore(editing);
-                      closeForm();
-                    }
-                  : undefined
-              }
-              onPrint={() => window.print()}
-              onSaved={handleSaved}
-              onCancel={handleCancel}
-            />
+            <MasterDataGate key={(editing?.id ?? 'new-receipt') + modalMode} resources={formResources} status={resourceStatus}>
+              <ReceiptForm
+                key={`${editing?.id ?? 'new-receipt'}-${modalMode}`}
+                direction={editing?.direction ?? direction}
+                accounts={accounts}
+                cashBoxes={cashBoxes}
+                editing={editing}
+                readOnly={modalMode === 'view'}
+                onEdit={
+                  !showDeleted && can(`money.${tab}.edit`) && editing?.is_free
+                    ? () => setModalMode('edit')
+                    : undefined
+                }
+                onDelete={
+                  !showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
+                    ? () => void remove(editing)
+                    : undefined
+                }
+                onRestore={
+                  showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
+                    ? async () => {
+                        await restore(editing);
+                        closeForm();
+                      }
+                    : undefined
+                }
+                onPrint={() => window.print()}
+                onSaved={handleSaved}
+                onCancel={handleCancel}
+              />
+            </MasterDataGate>
           </Modal>
         ))}
 
