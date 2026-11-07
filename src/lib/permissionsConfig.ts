@@ -90,6 +90,39 @@ export function getAllPermissionKeys(): PermissionKey[] {
   );
 }
 
+/** مفاتيح صلاحيات بند واحد (كل أفعاله مثل: goods.sale.view + goods.sale.create ...) */
+export function getItemPermissionKeys(item: PermissionItemDef): PermissionKey[] {
+  return item.actions.map((act) => `${item.id}.${act}` as PermissionKey);
+}
+
+/** مفاتيح صلاحيات قسم كامل */
+export function getSectionPermissionKeys(section: SectionDef): PermissionKey[] {
+  return section.items.flatMap(getItemPermissionKeys);
+}
+
+/** مفاتيح عمود فعل واحد عبر أقسام معطاة (مثل تحديد/إلغاء view للكل) */
+export function getActionColumnKeys(sections: SectionDef[], action: ActionKey): PermissionKey[] {
+  return sections.flatMap((section) =>
+    section.items
+      .filter((item) => item.actions.includes(action))
+      .map((item) => `${item.id}.${action}` as PermissionKey),
+  );
+}
+
+/**
+ * تبديل مجموعة مفاتيح في مسودة صلاحيات: لو الكل مفعّل → تُشال،
+ * وإلا → يُفعّل الناقص منها فقط. (المصدر الواحد لمنطق تبديل مصفوفة الصلاحيات)
+ */
+export function togglePermissionKeys(
+  current: PermissionKey[],
+  keys: PermissionKey[],
+): PermissionKey[] {
+  const allChecked = keys.every((k) => current.includes(k));
+  return allChecked
+    ? current.filter((k) => !keys.includes(k))
+    : [...current, ...keys.filter((k) => !current.includes(k))];
+}
+
 /**
  * قوالب الصلاحيات السريعة لتوفير الوقت
  */

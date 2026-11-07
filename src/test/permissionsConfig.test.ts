@@ -3,6 +3,10 @@ import {
   PERMISSION_SECTIONS,
   PERMISSION_PRESETS,
   getAllPermissionKeys,
+  getActionColumnKeys,
+  getItemPermissionKeys,
+  getSectionPermissionKeys,
+  togglePermissionKeys,
 } from '../lib/permissionsConfig';
 
 describe('permissionsConfig - هيكل وقوالب الصلاحيات', () => {
@@ -39,5 +43,38 @@ describe('permissionsConfig - هيكل وقوالب الصلاحيات', () => {
         ).toBe(true);
       });
     });
+  });
+});
+
+describe('permissionsConfig - مساعدات تبديل الصلاحيات', () => {
+  const goods = PERMISSION_SECTIONS.find((s) => s.id === 'goods')!;
+  const saleItem = goods.items.find((i) => i.id === 'goods.sale')!;
+
+  it('مفاتيح البند = كل أفعاله الظاهرة فقط', () => {
+    const keys = getItemPermissionKeys(saleItem);
+    expect(keys).toEqual(saleItem.actions.map((act) => `goods.sale.${act}`));
+    expect(getSectionPermissionKeys(goods)).toEqual(goods.items.flatMap(getItemPermissionKeys));
+  });
+
+  it('مفاتيح عمود الفعل تلتزم بالأقسام التي تحتوي الفعل فقط', () => {
+    const viewKeys = getActionColumnKeys(PERMISSION_SECTIONS, 'view');
+    // كل مفتاح رجعه لازم يكون view
+    expect(viewKeys.length).toBeGreaterThan(0);
+    viewKeys.forEach((key) => expect(key.endsWith('.view')).toBe(true));
+  });
+
+  it('togglePermissionKeys: الحذف لما الكل متفعل، والإضافة للناقص فقط', () => {
+    const keys = getItemPermissionKeys(saleItem);
+    const activated = togglePermissionKeys([], keys);
+    keys.forEach((k) => expect(activated).toContain(k));
+
+    // الجزئي: نفعّل أول مفتاح فقط ثم نبدّل → يكمل باقي المفاتيح بدون تكرار
+    const partial = togglePermissionKeys([keys[0]], keys);
+    keys.forEach((k) => expect(partial).toContain(k));
+    expect(partial.filter((k) => k === keys[0]).length).toBe(1);
+
+    // الكل متفعل → يُشالوا كلهم
+    const removed = togglePermissionKeys([...keys], keys);
+    expect(removed).toEqual([]);
   });
 });

@@ -4,21 +4,25 @@ import { matchesColumnFilters } from '../lib/columnFilters';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import {
+  sections,
+  PRESETS,
+  getAllPermissionKeys,
+  getActionColumnKeys,
+  getItemPermissionKeys,
+  getSectionPermissionKeys,
+  togglePermissionKeys,
+  type ActionKey,
+  type PermissionKey,
+  type PermissionItemDef,
+  type SectionDef,
+} from '../lib/permissionsConfig';
 import { errorMessage } from '../lib/errors';
 import { collectAllRows } from '../lib/exportRows';
 import Modal from './Modal';
 import SearchableSelect from './SearchableSelect';
 import ChangePasswordModal from './ChangePasswordModal';
 import { toast } from './Toast';
-import {
-  sections,
-  PRESETS,
-  getAllPermissionKeys,
-  type ActionKey,
-  type PermissionItemDef,
-  type SectionDef,
-  type PermissionKey,
-} from '../lib/permissionsConfig';
 
 type CompanyUser = {
   user_id: string;
@@ -160,24 +164,20 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
   // تبديل قسم رئيسي بالكامل
   function toggleSection(section: SectionDef) {
     if (!selectedUser || selectedUser.access_role === 'owner') return;
-    const sectionKeys = section.items.flatMap((item) =>
-      item.actions.map((act) => `${item.id}.${act}` as PermissionKey),
+    const updated = togglePermissionKeys(
+      currentDraftKeys,
+      getSectionPermissionKeys(section),
     );
-    const allChecked = sectionKeys.every((k) => currentDraftKeys.includes(k));
-    const updated = allChecked
-      ? currentDraftKeys.filter((k) => !sectionKeys.includes(k))
-      : [...currentDraftKeys, ...sectionKeys.filter((k) => !currentDraftKeys.includes(k))];
     setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: updated }));
   }
 
   // تبديل سطر فرعي بالكامل
   function toggleItem(item: PermissionItemDef) {
     if (!selectedUser || selectedUser.access_role === 'owner') return;
-    const itemKeys = item.actions.map((act) => `${item.id}.${act}` as PermissionKey);
-    const allChecked = itemKeys.every((k) => currentDraftKeys.includes(k));
-    const updated = allChecked
-      ? currentDraftKeys.filter((k) => !itemKeys.includes(k))
-      : [...currentDraftKeys, ...itemKeys.filter((k) => !currentDraftKeys.includes(k))];
+    const updated = togglePermissionKeys(
+      currentDraftKeys,
+      getItemPermissionKeys(item),
+    );
     setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: updated }));
   }
 
@@ -190,15 +190,10 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
   // تبديل عمود كامل (مثل تفعيل/إلغاء 'عرض' للكل)
   function toggleColumnAction(action: ActionKey) {
     if (!selectedUser || selectedUser.access_role === 'owner') return;
-    const actionKeys = sections.flatMap((section) =>
-      section.items
-        .filter((item) => item.actions.includes(action))
-        .map((item) => `${item.id}.${action}` as PermissionKey),
+    const updated = togglePermissionKeys(
+      currentDraftKeys,
+      getActionColumnKeys(sections, action),
     );
-    const allActionChecked = actionKeys.every((k) => currentDraftKeys.includes(k));
-    const updated = allActionChecked
-      ? currentDraftKeys.filter((k) => !actionKeys.includes(k))
-      : [...currentDraftKeys, ...actionKeys.filter((k) => !currentDraftKeys.includes(k))];
     setDrafts((prev) => ({ ...prev, [selectedUser.user_id]: updated }));
   }
 
@@ -592,39 +587,21 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
                     prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
                   )
                 }
-                onToggleSection={(sec) => {
-                  const secKeys = sec.items.flatMap((item) =>
-                    item.actions.map((act) => `${item.id}.${act}` as PermissionKey),
-                  );
-                  const allChecked = secKeys.every((k) => invitePermissions.includes(k));
+                onToggleSection={(sec) =>
                   setInvitePermissions((prev) =>
-                    allChecked
-                      ? prev.filter((k) => !secKeys.includes(k))
-                      : [...prev, ...secKeys.filter((k) => !prev.includes(k))],
-                  );
-                }}
-                onToggleItem={(item) => {
-                  const itemKeys = item.actions.map((act) => `${item.id}.${act}` as PermissionKey);
-                  const allChecked = itemKeys.every((k) => invitePermissions.includes(k));
+                    togglePermissionKeys(prev, getSectionPermissionKeys(sec)),
+                  )
+                }
+                onToggleItem={(item) =>
                   setInvitePermissions((prev) =>
-                    allChecked
-                      ? prev.filter((k) => !itemKeys.includes(k))
-                      : [...prev, ...itemKeys.filter((k) => !prev.includes(k))],
-                  );
-                }}
-                onToggleColumnAction={(action) => {
-                  const actionKeys = sections.flatMap((section) =>
-                    section.items
-                      .filter((item) => item.actions.includes(action))
-                      .map((item) => `${item.id}.${action}` as PermissionKey),
-                  );
-                  const allActionChecked = actionKeys.every((k) => invitePermissions.includes(k));
+                    togglePermissionKeys(prev, getItemPermissionKeys(item)),
+                  )
+                }
+                onToggleColumnAction={(action) =>
                   setInvitePermissions((prev) =>
-                    allActionChecked
-                      ? prev.filter((k) => !actionKeys.includes(k))
-                      : [...prev, ...actionKeys.filter((k) => !prev.includes(k))],
-                  );
-                }}
+                    togglePermissionKeys(prev, getActionColumnKeys(sections, action)),
+                  )
+                }
                 expandedSections={expandedSections}
                 onToggleSectionCollapse={toggleSectionCollapse}
               />
