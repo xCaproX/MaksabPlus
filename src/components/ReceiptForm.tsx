@@ -1,9 +1,10 @@
+import DateDisplay from './DateDisplay';
 import AccountBalancePills from './AccountBalancePills';
 import { useState, useEffect, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ExternalLink, FileText, Pencil, Printer, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { money, round2, today, formatDate } from '../lib/format';
+import { money, round2, today } from '../lib/format';
 import { tafqeet } from '../lib/tafqeet';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
@@ -214,7 +215,7 @@ export default function ReceiptForm({
             <span>تاريخ الإيصال</span>
             {isReadOnly ? (
               <div className="readonly-val-box num" dir="ltr">
-                {formatDate(date)}
+                <DateDisplay value={date} />
               </div>
             ) : (
               <DateInput value={date} onChange={setDate} />
@@ -223,7 +224,7 @@ export default function ReceiptForm({
 
           <label className="field-account-kind">
             <span>نوع الحساب</span>
-            {isReadOnly ? (
+            {isReadOnly || editing ? (
               <div className="readonly-val-box">
                 {accountKind === 'customer' ? 'عميل' : 'مورد'}
               </div>

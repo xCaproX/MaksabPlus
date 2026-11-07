@@ -149,6 +149,8 @@ export default function InvoiceForm({
     isEditing: Boolean(editing),
     editingTotal: Number(editing?.invoice.total || 0),
     editingPaid: Number(editing?.invoice.paid || 0),
+    accountKind: selectedAccount?.kind,
+    invoiceKind: kind,
   });
 
   const accountNotesDisplay = selectedAccount?.notes || '';

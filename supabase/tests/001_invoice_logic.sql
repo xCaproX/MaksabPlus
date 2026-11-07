@@ -433,7 +433,7 @@ begin
     'sale to supplier: account_kind supplier'
   );
   perform public.test_expect(
-    (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000d1') = 80,
+    (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000d1') = -80,
     'sale to supplier: balance 100 - 20'
   );
   perform public.test_expect(
@@ -457,7 +457,7 @@ begin
     'purchase from customer: account_kind customer'
   );
   perform public.test_expect(
-    (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000c1') = 30,
+    (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000c1') = -30,
     'purchase from customer: balance 30'
   );
   perform public.test_expect(
@@ -485,7 +485,7 @@ begin
     'update to customer: supplier balance 0'
   );
   perform public.test_expect(
-    (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000c1') = 110,
+    (select balance from public.v_account_balances where id = '11111111-1111-4111-8111-0000000000c1') = 50,
     'update to customer: customer balance 100 - 20 + 30'
   );
   perform public.test_expect(

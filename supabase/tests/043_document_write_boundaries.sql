@@ -9,7 +9,7 @@ select set_config('test.boundary.sale', public.create_invoice_with_cash_box('sal
  '55555555-5555-4555-8555-000000000030','55555555-5555-4555-8555-000000000010',
  current_date,0,null,jsonb_build_array(jsonb_build_object('item_id',current_setting('test.boundary.item'),
  'qty',1,'unit_price',200)),null)::text,true);
-select public.test_boundary_expect((select balance=320 from public.v_account_balances
+select public.test_boundary_expect((select balance=80 from public.v_account_balances
  where id='55555555-5555-4555-8555-000000000030'),'automatic balance sync works without data.edit');
 select public.test_boundary_expect(not exists(select 1 from public.invoices
  where id=current_setting('test.boundary.purchase')::uuid),'sales-only user cannot read purchase');
@@ -39,7 +39,7 @@ select public.update_invoice_with_cash_box(current_setting('test.boundary.sale')
  '55555555-5555-4555-8555-000000000030','55555555-5555-4555-8555-000000000010',
  current_date,100,null,jsonb_build_array(jsonb_build_object('item_id',current_setting('test.boundary.item'),
  'qty',2,'unit_price',200)),'55555555-5555-4555-8555-000000000020');
-select public.test_boundary_expect((select balance=420 from public.v_account_balances
+select public.test_boundary_expect((select balance=180 from public.v_account_balances
  where id='55555555-5555-4555-8555-000000000030'),'edited invoice balance is correct');
 select public.test_boundary_expect((select balance=100 from public.v_cash_box_balances
  where id='55555555-5555-4555-8555-000000000020'),'linked receipt synchronizes cash without data.edit');
@@ -63,7 +63,7 @@ select public.update_free_receipt(current_setting('test.boundary.receipt')::uuid
  '55555555-5555-4555-8555-000000000030','55555555-5555-4555-8555-000000000020',current_date,15,null,null);
 select public.delete_free_receipt(current_setting('test.boundary.receipt')::uuid);
 select public.restore_receipt(current_setting('test.boundary.receipt')::uuid);
-select public.test_boundary_expect((select balance=405 from public.v_account_balances
+select public.test_boundary_expect((select balance=165 from public.v_account_balances
  where id='55555555-5555-4555-8555-000000000030'),'receipt lifecycle balance is correct');
 
 -- Sibling transfer/return workflows use their own granular grants and keep

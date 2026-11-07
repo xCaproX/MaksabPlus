@@ -3,6 +3,7 @@ import {
   calculateInvoiceSubtotal,
   calculateRemaining,
   calculateBalancePreview,
+  getInvoiceBalanceMultiplier,
 } from '../lib/invoiceMath';
 import type { LineDraft } from '../lib/types';
 
@@ -51,6 +52,33 @@ describe('invoiceMath - حسابات الفواتير والأرصدة', () => {
     });
   });
 
+  describe('getInvoiceBalanceMultiplier', () => {
+    it('يحدد معاملات التأثير المالي الصحيحة لحساب العميل', () => {
+      expect(getInvoiceBalanceMultiplier('customer', 'sale')).toBe(1);
+      expect(getInvoiceBalanceMultiplier('customer', 'purchase')).toBe(-1);
+      expect(getInvoiceBalanceMultiplier('customer', 'sale_return')).toBe(-1);
+      expect(getInvoiceBalanceMultiplier('customer', 'purchase_return')).toBe(1);
+      expect(getInvoiceBalanceMultiplier('customer', 'waste')).toBe(0);
+    });
+
+    it('يحدد معاملات التأثير المالي الصحيحة لحساب المورد', () => {
+      expect(getInvoiceBalanceMultiplier('supplier', 'purchase')).toBe(1);
+      expect(getInvoiceBalanceMultiplier('supplier', 'sale')).toBe(-1);
+      expect(getInvoiceBalanceMultiplier('supplier', 'sale_return')).toBe(1);
+      expect(getInvoiceBalanceMultiplier('supplier', 'purchase_return')).toBe(-1);
+      expect(getInvoiceBalanceMultiplier('supplier', 'waste')).toBe(0);
+    });
+
+    it('حساب الهالك لا يغير في أي رصيد', () => {
+      expect(getInvoiceBalanceMultiplier('waste', 'waste')).toBe(0);
+    });
+
+    it('يدعم التوافق الرجعي عند غياب نوع الحساب', () => {
+      expect(getInvoiceBalanceMultiplier(undefined, undefined, false)).toBe(1);
+      expect(getInvoiceBalanceMultiplier(undefined, undefined, true)).toBe(-1);
+    });
+  });
+
   describe('calculateBalancePreview', () => {
     it('فاتورة مبيعات جديدة عادية: تزيد من مديونية العميل بالمبلغ الآجل', () => {
       const result = calculateBalancePreview({
@@ -58,6 +86,8 @@ describe('invoiceMath - حسابات الفواتير والأرصدة', () => {
         isReturn: false,
         total: 1000,
         paid: 300, // الآجل 700
+        accountKind: 'customer',
+        invoiceKind: 'sale',
       });
 
       expect(result.netInvoiceDebt).toBe(700);
@@ -71,11 +101,43 @@ describe('invoiceMath - حسابات الفواتير والأرصدة', () => {
         isReturn: true,
         total: 400,
         paid: 100, // المتبقي للمرتجع 300
+        accountKind: 'customer',
+        invoiceKind: 'sale_return',
       });
 
       expect(result.netInvoiceDebt).toBe(-300);
       expect(result.balanceBefore).toBe(1200);
       expect(result.balanceAfter).toBe(900); // 1200 - 300 = 900
+    });
+
+    it('بيع لمورد (مقاصة): يخفض مستحقات المورد', () => {
+      const result = calculateBalancePreview({
+        currentAccountBalance: 5000, // للمورد 5000
+        isReturn: false,
+        total: 1000,
+        paid: 0,
+        accountKind: 'supplier',
+        invoiceKind: 'sale',
+      });
+
+      expect(result.netInvoiceDebt).toBe(-1000);
+      expect(result.balanceBefore).toBe(5000);
+      expect(result.balanceAfter).toBe(4000);
+    });
+
+    it('شراء من عميل (مقاصة): يخفض مديونية العميل', () => {
+      const result = calculateBalancePreview({
+        currentAccountBalance: 3000, // العميل عليه 3000
+        isReturn: false,
+        total: 1000,
+        paid: 0,
+        accountKind: 'customer',
+        invoiceKind: 'purchase',
+      });
+
+      expect(result.netInvoiceDebt).toBe(-1000);
+      expect(result.balanceBefore).toBe(3000);
+      expect(result.balanceAfter).toBe(2000);
     });
 
     it('تعديل فاتورة قائمة: يستبعد الأثر المالي القديم ويعيد حساب الرصيد بشكل صحيح', () => {
@@ -90,6 +152,8 @@ describe('invoiceMath - حسابات الفواتير والأرصدة', () => {
         isEditing: true,
         editingTotal: 1000,
         editingPaid: 200,
+        accountKind: 'customer',
+        invoiceKind: 'sale',
       });
 
       // الرصيد قبل الفاتورة = 1500 - 800 = 700
