@@ -388,8 +388,6 @@
   .subnav { display: none !important; }
   .sidebar-footer {
     margin-block-start: 0;
-    inline-size: 100%;
-    min-inline-size: 0;
   }
   .sidebar-user-block {
     min-block-size: 56px;

@@ -1,5 +1,4 @@
 import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
 import DashboardCardAction from './DashboardCardAction';
 
 export interface RankedItem {
@@ -12,7 +11,7 @@ export interface RankedItem {
 }
 
 interface TopRankedListProps {
-  title: ReactNode;
+  title: string;
   icon: LucideIcon;
   items: RankedItem[];
   barVariant: 'items' | 'customers';
@@ -33,12 +32,12 @@ export default function TopRankedList({
   const maxValue = Math.max(...items.map((i) => i.value), 1);
 
   return (
-    <div className={`dashboard-card ranked-card ranked-card-${barVariant}`}>
+    <div className="dashboard-card">
       <div className="dashboard-card-head">
-        <h2 className="dashboard-card-title">
-          <Icon size={16} aria-hidden="true" />
+        <h3 className="dashboard-card-title">
+          <Icon size={15} className="text-primary" />
           <span>{title}</span>
-        </h2>
+        </h3>
         {linkTo && (
           <DashboardCardAction to={linkTo} label={linkText} />
         )}
@@ -74,8 +73,12 @@ export default function TopRankedList({
                   </div>
                 </div>
 
-                <div className="ranked-bar-track" aria-hidden="true">
-                  <div className="ranked-bar-fill" style={{ inlineSize: `${percentage}%` }} />
+                <div className="ranked-bar-track">
+                  <div
+                    className={`ranked-bar-fill bar-fill-${barVariant}`}
+                    style={{ width: `${percentage}%` }}
+                    aria-hidden="true"
+                  />
                 </div>
               </div>
             );

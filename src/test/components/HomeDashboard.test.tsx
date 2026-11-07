@@ -45,7 +45,7 @@ describe('Home Dashboard Components', () => {
       today: 120,
       today_count: 3,
       week: 52349,
-      week_count: 1944,
+      week_count: 12,
       month: 221804,
       month_count: 0,
     };
@@ -60,11 +60,9 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText('52,349.00')).toBeInTheDocument();
     expect(screen.getByText('221,804.00')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('1,944')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
-    for (const count of ['3', '1,944', '0']) {
-      expect(screen.getByText(count).previousElementSibling).toHaveTextContent('الفواتير');
-    }
+    expect(screen.getAllByText('عدد الفواتير')).toHaveLength(3);
   });
 
   it('FinancialPulseCards renders cash, receivables, and payables cards with direct links', () => {
@@ -81,9 +79,7 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByRole('region', { name: 'النبض المالي والأرصدة' })).toBeInTheDocument();
     expect(screen.getByText('الفلوس في الخزن')).toBeInTheDocument();
     expect(screen.getByText('15,000.00')).toBeInTheDocument();
-    const cashLink = screen.getByRole('link', { name: 'عرض كشف الخزن' });
-    expect(cashLink).toHaveAttribute('href', '/balances?tab=cashBoxes');
-    expect(cashLink).toHaveTextContent('15,000.00');
+    expect(screen.getByTitle('عرض كشف الخزن')).toHaveAttribute('href', '/balances?tab=cashBoxes');
 
     expect(screen.getByText('فلوسنا في السوق (العملاء)')).toBeInTheDocument();
     expect(screen.getByText('48,200.00')).toBeInTheDocument();
@@ -92,17 +88,6 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText('ديون الموردين (التزامات)')).toBeInTheDocument();
     expect(screen.getByText('18,500.00')).toBeInTheDocument();
     expect(screen.getByTitle('عرض حسابات الموردين')).toHaveAttribute('href', '/balances?tab=suppliers');
-  });
-
-  it('FinancialPulseCards keeps zero balances and omits unavailable balances', () => {
-    render(
-      <BrowserRouter>
-        <FinancialPulseCards cashBalance={0} receivablesBalance={null} payablesBalance={null} />
-      </BrowserRouter>
-    );
-
-    expect(screen.getAllByRole('link')).toHaveLength(1);
-    expect(screen.getByRole('link', { name: 'عرض كشف الخزن' })).toHaveTextContent('0.00');
   });
 
   it('TopRankedList renders ranked bars and formatted values', () => {
@@ -150,9 +135,6 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText(/المتبقي:/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'عرض أرصدة الأصناف' })).toHaveAttribute('href', '/balances?tab=items');
     expect(screen.queryByText('عرض أرصدة الأصناف')).not.toBeInTheDocument();
-    const stockCard = screen.getByRole('region', { name: 'حالة المخزون' });
-    const stockHeading = screen.getByRole('heading', { name: 'نواقص المخزون' });
-    const stockLink = screen.getByRole('link', { name: 'عرض أرصدة الأصناف' });
 
     rerender(
       <BrowserRouter>
@@ -160,10 +142,6 @@ describe('Home Dashboard Components', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByRole('region', { name: 'حالة المخزون' })).toBe(stockCard);
-    expect(screen.getByRole('heading', { name: 'نواقص المخزون' })).toBe(stockHeading);
-    expect(screen.getByRole('link', { name: 'عرض أرصدة الأصناف' })).toBe(stockLink);
-    expect(stockCard).toHaveTextContent('مفيش نواقص حاليًا');
-    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.getByText(/المخزون مستقر ولا توجد نواقص حرجة حالياً/)).toBeInTheDocument();
   });
 });

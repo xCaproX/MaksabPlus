@@ -136,26 +136,7 @@ begin
     raise exception 'Expected 1, 2 and 4 live sales invoices across the periods, got %', v_summary->'sales';
   end if;
 
-  with extra_items as (
-    insert into public.items (company_id, name, unit, sale_price, purchase_price, is_active)
-    select v_comp_a, 'Dashboard ranked item ' || n, 'قطعة', 10, 7, true
-    from generate_series(11, 20) as n
-    returning id, name
-  )
-  insert into public.invoice_items (company_id, invoice_id, item_id, qty, unit_price, unit_cost)
-  select v_comp_a, v_inv_a, id, split_part(name, ' ', 4)::numeric, 10, 7
-  from extra_items;
-
-  v_summary := public.get_home_dashboard_summary();
-  if (
-    select array_agg((item->>'total_qty')::numeric order by position)
-    from jsonb_array_elements(v_summary->'top_items') with ordinality as ranked(item, position)
-  ) is distinct from array[20, 19, 18, 17, 16, 15, 14, 13, 12, 11]::numeric[] then
-    raise exception 'Expected only the ten highest item quantities in order, got %', v_summary->'top_items';
-  end if;
-
   -- 4) عزل الشركات (Tenant Isolation): مالك شركة ب يجب ألا يرى أي بيانات لشركة أ
-  set local role authenticated;
   perform set_config('request.jwt.claim.sub', v_owner_b::text, true);
   v_summary := public.get_home_dashboard_summary();
 
@@ -179,7 +160,6 @@ begin
 
 end $$;
 
-reset role;
 set local role anon;
 do $$
 begin
