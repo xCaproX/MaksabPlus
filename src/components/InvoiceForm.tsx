@@ -4,6 +4,7 @@ import { FOCUS_SETTLE_DELAY_MS } from '../lib/ui';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { resolveDefaultAccount, resolveDefaultWarehouse, resolveDefaultCashBox } from '../lib/defaults';
+import { clampDocQty, clampDocQtyOnBlur, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
 import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
 import type { WarehouseItemOption } from '../lib/masterDataQueries';
@@ -66,6 +67,7 @@ export default function InvoiceForm({
   const isPurchase = kind === 'purchase' || kind === 'purchase_return';
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
   const isWaste = kind === 'waste';
+  const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
 
   const defaultSystemKey = isWaste
     ? 'waste'
@@ -302,50 +304,17 @@ export default function InvoiceForm({
   }
 
   function handleEntryQtyChange(val: string) {
-    if (val === '') {
-      setEntryQty('');
-      return;
-    }
-    const num = parseFloat(val);
-    if (isNaN(num)) {
-      setEntryQty('1');
-      return;
-    }
-    const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-    if (isStockLimited && entryItemId && entryAvailableStock > 0 && num > entryAvailableStock) {
-      setEntryQty(String(entryAvailableStock));
-      toast.warning(`الكمية المتاحة (${formatQty(entryAvailableStock)}) هي الحد الأقصى`);
-      return;
-    }
-    if (num <= 0 && val !== '0' && val !== '0.' && val !== '.') {
-      setEntryQty('1');
-      return;
-    }
-    setEntryQty(val);
+    setEntryQty(clampDocQty(val, entryAvailableStock, isStockLimited));
   }
 
   function handleEntryQtyBlur() {
-    const num = parseFloat(entryQty);
-    const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-    if (isNaN(num) || num <= 0) {
-      setEntryQty('1');
-    } else if (isStockLimited && entryItemId && entryAvailableStock > 0 && num > entryAvailableStock) {
-      setEntryQty(String(entryAvailableStock));
-    }
+    setEntryQty((current) => clampDocQtyOnBlur(current, entryAvailableStock, isStockLimited));
   }
 
   function handleInsertLine() {
     if (!entryItemId) {
       toast.warning('اختر صنفاً أولاً');
       entryItemSearchRef.current?.focus();
-      return;
-    }
-
-    let qtyNum = Number(entryQty || 0);
-    if (!(qtyNum > 0)) {
-      toast.warning('الكمية يجب أن تكون أكبر من صفر');
-      setEntryQty('1');
-      entryQtyInputRef.current?.focus();
       return;
     }
 
@@ -356,60 +325,27 @@ export default function InvoiceForm({
       return;
     }
 
-    const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-    if (isStockLimited) {
-      if (entryAvailableStock <= 0) {
-        toast.warning('الصنف غير متوفر بالمخزن');
-        return;
-      }
-      const existingInList = lines.find((l) => l.item_id === entryItemId);
-      const currentInList = existingInList ? Number(existingInList.qty || 0) : 0;
-      if (currentInList >= entryAvailableStock) {
-        toast.warning(
-          `الكمية المتاحة بالكامل (${formatQty(entryAvailableStock)}) موجودة بالفعل في الفاتورة`,
-        );
-        return;
-      }
-      if (currentInList + qtyNum > entryAvailableStock) {
-        qtyNum = entryAvailableStock - currentInList;
-        toast.warning(
-          `تم تعديل الكمية المضافة إلى ${formatQty(qtyNum)} لتتوافق مع المتبقي من الرصيد المتاح`,
-        );
-      }
-    }
-
-    setLines((current) => {
-      const existingIndex = current.findIndex((l) => l.item_id === entryItemId);
-      if (existingIndex >= 0) {
-        const updated = [...current];
-        const existing = updated[existingIndex];
-        const mergedQty = round2(Number(existing.qty || 0) + qtyNum);
-        updated[existingIndex] = {
-          ...existing,
-          qty: String(mergedQty),
-          unit_price: String(priceNum),
-        };
-        toast.info(`تم تحديث كمية "${entrySelectedItem?.name}" إلى (${formatQty(mergedQty)})`);
-        return updated;
-      }
-      return [
-        ...current,
-        {
-          key: crypto.randomUUID(),
-          item_id: entryItemId,
-          qty: String(qtyNum),
-          unit_price: String(priceNum),
-        },
-      ];
+    const updated = mergeOrInsertDocLine({
+      lines,
+      itemId: entryItemId,
+      itemName: entrySelectedItem?.name,
+      qty: Number(entryQty || 0),
+      availableStock: entryAvailableStock,
+      isStockLimited,
+      extra: { unit_price: String(priceNum) },
+      docLabel: 'الفاتورة',
     });
 
-    setEntryItemId('');
-    setEntryAsyncOption(null);
-    setEntryQty('1');
-    setEntryUnitPrice('');
-    setTimeout(() => {
-      entryItemSearchRef.current?.focus();
-    }, FOCUS_SETTLE_DELAY_MS);
+    if (updated) {
+      setLines(updated);
+      setEntryItemId('');
+      setEntryAsyncOption(null);
+      setEntryQty('1');
+      setEntryUnitPrice('');
+      setTimeout(() => {
+        entryItemSearchRef.current?.focus();
+      }, FOCUS_SETTLE_DELAY_MS);
+    }
   }
 
   function updateLine(key: string, patch: Partial<LineDraft>) {
@@ -479,38 +415,21 @@ export default function InvoiceForm({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const activeLines = [...lines];
-
-    // إذا كان هناك صنف قيد الإدخال في شريط الإدخال الثابت، ندرجه تلقائياً قبل الحفظ
-    if (entryItemId) {
-      let qtyNum = Number(entryQty || 0);
-      const priceNum = Number(entryUnitPrice || 0);
-      if (qtyNum > 0 && priceNum >= 0) {
-        const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-        if (isStockLimited && entryAvailableStock > 0 && qtyNum > entryAvailableStock) {
-          qtyNum = entryAvailableStock;
-        }
-        const existingIndex = activeLines.findIndex((l) => l.item_id === entryItemId);
-        if (existingIndex >= 0) {
-          const existing = activeLines[existingIndex];
-          activeLines[existingIndex] = {
-            ...existing,
-            qty: String(round2(Number(existing.qty || 0) + qtyNum)),
-            unit_price: String(priceNum),
-          };
-        } else {
-          activeLines.push({
-            key: crypto.randomUUID(),
-            item_id: entryItemId,
-            qty: String(qtyNum),
-            unit_price: String(priceNum),
-          });
-        }
-        setLines(activeLines);
-        setEntryItemId('');
-        setEntryQty('1');
-        setEntryUnitPrice('');
-      }
+    const priceNum = Number(entryUnitPrice || 0);
+    const activeLines = flushPendingDocLine(
+      lines,
+      entryItemId,
+      entryQty,
+      entryAvailableStock,
+      isStockLimited,
+      { unit_price: String(priceNum) },
+    );
+    if (activeLines !== lines) {
+      setLines(activeLines);
+      setEntryItemId('');
+      setEntryAsyncOption(null);
+      setEntryQty('1');
+      setEntryUnitPrice('');
     }
 
     pendingSaveLines.current = activeLines;
@@ -530,7 +449,6 @@ export default function InvoiceForm({
         'أدخل كمية وسعرًا صحيحين لكل الأصناف (الكمية يجب أن تكون أكبر من صفر)',
       );
 
-    const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
     if (isStockLimited) {
       for (const line of activeLines) {
         const availableStock = getItemAvailableStock(line.item_id, warehouseId);

@@ -1,6 +1,7 @@
 import { type RefObject } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { qty as formatQty, round2 } from '../../lib/format';
+import { clampDocQty, clampDocQtyOnBlur } from '../../lib/docLineEntry';
 import SearchableSelect from '../SearchableSelect';
 import MoneyDisplay from '../MoneyDisplay';
 import { toast } from '../Toast';
@@ -264,48 +265,24 @@ export default function InvoiceItemsTable({
                             value={line.qty}
                             onFocus={(e) => e.target.select()}
                             onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === '') {
-                                onUpdateLine(line.key, { qty: '' });
-                                return;
-                              }
-                              const num = parseFloat(val);
-                              if (isNaN(num)) {
-                                onUpdateLine(line.key, { qty: '1' });
-                                return;
-                              }
                               const isStockLimited =
                                 kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                              if (
-                                isStockLimited &&
-                                line.item_id &&
-                                availableStock > 0 &&
-                                num > availableStock
-                              ) {
-                                onUpdateLine(line.key, { qty: String(availableStock) });
-                                toast.warning(`الكمية المتاحة (${formatQty(availableStock)}) هي الحد الأقصى`);
-                                return;
-                              }
-                              if (num <= 0 && val !== '0' && val !== '0.' && val !== '.') {
-                                onUpdateLine(line.key, { qty: '1' });
-                                return;
-                              }
+                              const val = clampDocQty(
+                                e.target.value,
+                                availableStock,
+                                isStockLimited && Boolean(line.item_id),
+                              );
                               onUpdateLine(line.key, { qty: val });
                             }}
                             onBlur={() => {
-                              const num = parseFloat(line.qty);
                               const isStockLimited =
                                 kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                              if (isNaN(num) || num <= 0) {
-                                onUpdateLine(line.key, { qty: '1' });
-                              } else if (
-                                isStockLimited &&
-                                line.item_id &&
-                                availableStock > 0 &&
-                                num > availableStock
-                              ) {
-                                onUpdateLine(line.key, { qty: String(availableStock) });
-                              }
+                              const val = clampDocQtyOnBlur(
+                                line.qty,
+                                availableStock,
+                                isStockLimited && Boolean(line.item_id),
+                              );
+                              onUpdateLine(line.key, { qty: val });
                             }}
                             className="no-spinner num"
                           />

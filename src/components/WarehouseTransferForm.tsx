@@ -8,6 +8,7 @@ import { calculateAvailableStock } from '../lib/invoiceValidation';
 import SearchableSelect from './SearchableSelect';
 import { searchWarehouseItemsAsync, lookupBarcodeItem } from '../lib/masterDataQueries';
 import { resolveDefaultWarehouse } from '../lib/defaults';
+import { clampDocQty, clampDocQtyOnBlur, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
 import { toast } from './Toast';
 import type { ItemRow, StockOpeningRow, WarehouseOption, WarehouseTransferLine, WarehouseTransferRow } from '../lib/types';
 
@@ -116,34 +117,18 @@ export default function WarehouseTransferForm({
   }
 
   function handleEntryQtyChange(val: string) {
-    if (val === '') {
-      setEntryQty('');
-      return;
-    }
-    const num = parseFloat(val);
-    if (isNaN(num)) {
-      setEntryQty('1');
-      return;
-    }
-    if (entryAvailableStock > 0 && num > entryAvailableStock) {
-      setEntryQty(String(entryAvailableStock));
-      toast.warning(`الكمية المتاحة بمخزن المصدر (${formatQty(entryAvailableStock)}) هي الحد الأقصى`);
-      return;
-    }
-    if (num <= 0 && val !== '0' && val !== '0.') {
-      setEntryQty('1');
-      return;
-    }
-    setEntryQty(val);
+    setEntryQty(
+      clampDocQty(
+        val,
+        entryAvailableStock,
+        true,
+        `الكمية المتاحة بمخزن المصدر (${formatQty(entryAvailableStock)}) هي الحد الأقصى`,
+      ),
+    );
   }
 
   function handleEntryQtyBlur() {
-    const num = parseFloat(entryQty);
-    if (isNaN(num) || num <= 0) {
-      setEntryQty('1');
-    } else if (entryAvailableStock > 0 && num > entryAvailableStock) {
-      setEntryQty(String(entryAvailableStock));
-    }
+    setEntryQty((cur) => clampDocQtyOnBlur(cur, entryAvailableStock, true));
   }
 
   function handleInsertLine() {
@@ -153,7 +138,7 @@ export default function WarehouseTransferForm({
       return;
     }
 
-    let qtyNum = Number(entryQty || 0);
+    const qtyNum = Number(entryQty || 0);
     if (!(qtyNum > 0)) {
       toast.warning('الكمية يجب أن تكون أكبر من صفر');
       setEntryQty('1');
@@ -161,51 +146,24 @@ export default function WarehouseTransferForm({
       return;
     }
 
-    if (entryAvailableStock <= 0) {
-      toast.warning('الصنف غير متوفر بمخزن المصدر');
-      return;
-    }
-
-    const existingInList = lines.find((l) => l.item_id === entryItemId);
-    const currentInList = existingInList ? Number(existingInList.qty || 0) : 0;
-    if (currentInList >= entryAvailableStock) {
-      toast.warning(`الكمية المتاحة بالكامل (${formatQty(entryAvailableStock)}) موجودة بالفعل في التحويل`);
-      return;
-    }
-
-    if (currentInList + qtyNum > entryAvailableStock) {
-      qtyNum = entryAvailableStock - currentInList;
-      toast.warning(`تم تعديل الكمية المنقولة إلى ${formatQty(qtyNum)} لتتوافق مع المتبقي بمخزن المصدر`);
-    }
-
-    setLines((current) => {
-      const existingIndex = current.findIndex((l) => l.item_id === entryItemId);
-      if (existingIndex >= 0) {
-        const updated = [...current];
-        const existing = updated[existingIndex];
-        const mergedQty = Number(existing.qty || 0) + qtyNum;
-        updated[existingIndex] = {
-          ...existing,
-          qty: String(mergedQty),
-        };
-        toast.info(`تم تحديث كمية "${entrySelectedItem?.name}" إلى (${formatQty(mergedQty)})`);
-        return updated;
-      }
-      return [
-        ...current,
-        {
-          key: crypto.randomUUID(),
-          item_id: entryItemId,
-          qty: String(qtyNum),
-        },
-      ];
+    const updated = mergeOrInsertDocLine({
+      lines,
+      itemId: entryItemId,
+      itemName: entrySelectedItem?.name,
+      qty: qtyNum,
+      availableStock: entryAvailableStock,
+      isStockLimited: true,
+      docLabel: 'التحويل',
     });
 
-    setEntryItemId('');
-    setEntryQty('1');
-    setTimeout(() => {
-      entryItemSearchRef.current?.focus();
-    }, FOCUS_SETTLE_DELAY_MS);
+    if (updated) {
+      setLines(updated);
+      setEntryItemId('');
+      setEntryQty('1');
+      setTimeout(() => {
+        entryItemSearchRef.current?.focus();
+      }, FOCUS_SETTLE_DELAY_MS);
+    }
   }
 
   function handleSourceWarehouseChange(nextSourceId: string) {
@@ -300,31 +258,18 @@ export default function WarehouseTransferForm({
       return toast.error('اختر مخزنين مختلفين (مخزن المصدر ومخزن الوجهة)');
     }
 
-    const activeLines = [...lines];
-
     // إدراج الصنف المعلق في شريط الإدخال تلقائياً
-    if (entryItemId) {
-      let qtyNum = Number(entryQty || 0);
-      if (qtyNum > 0 && entryAvailableStock > 0) {
-        if (qtyNum > entryAvailableStock) qtyNum = entryAvailableStock;
-        const existingIndex = activeLines.findIndex((l) => l.item_id === entryItemId);
-        if (existingIndex >= 0) {
-          const existing = activeLines[existingIndex];
-          activeLines[existingIndex] = {
-            ...existing,
-            qty: String(Number(existing.qty || 0) + qtyNum),
-          };
-        } else {
-          activeLines.push({
-            key: crypto.randomUUID(),
-            item_id: entryItemId,
-            qty: String(qtyNum),
-          });
-        }
-        setLines(activeLines);
-        setEntryItemId('');
-        setEntryQty('1');
-      }
+    const activeLines = flushPendingDocLine(
+      lines,
+      entryItemId,
+      entryQty,
+      entryAvailableStock,
+      true,
+    );
+    if (activeLines !== lines) {
+      setLines(activeLines);
+      setEntryItemId('');
+      setEntryQty('1');
     }
 
     pendingSaveLines.current = activeLines;
