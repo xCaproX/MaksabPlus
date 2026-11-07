@@ -45,7 +45,7 @@ describe('Home Dashboard Components', () => {
       today: 120,
       today_count: 3,
       week: 52349,
-      week_count: 12,
+      week_count: 1944,
       month: 221804,
       month_count: 0,
     };
@@ -60,9 +60,11 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText('52,349.00')).toBeInTheDocument();
     expect(screen.getByText('221,804.00')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('1,944')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
-    expect(screen.getAllByText('عدد الفواتير')).toHaveLength(3);
+    expect(screen.getByText('3').parentElement).toHaveTextContent('3 فواتير');
+    expect(screen.getByText('1,944').parentElement).toHaveTextContent('1,944 فاتورة');
+    expect(screen.getByText('0').parentElement).toHaveTextContent('0 فاتورة');
   });
 
   it('FinancialPulseCards renders cash, receivables, and payables cards with direct links', () => {
