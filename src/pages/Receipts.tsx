@@ -1,3 +1,4 @@
+import { loadDocumentSection } from '../lib/loadDocumentSection';
 import ColumnFilterRow from '../components/ColumnFilterRow';
 import { useColumnFilters } from '../lib/useColumnFilters';
 import { useDocumentPageNumber } from '../lib/useDocumentPageNumber';
@@ -44,7 +45,11 @@ export default function Receipts() {
 
   const [rows, setRows] = useState<ReceiptRow[]>([]);
   const [transferRows, setTransferRows] = useState<CashBoxTransferRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeRequest, setActiveRequest] = useState<string>();
+  const [rowsLoading, setLoading] = useState(true);
+  const [kpisLoading, setSummaryLoading] = useState(true);
+  const [rowsFailed, setListError] = useState(false);
+  const [kpisFailed, setSummaryError] = useState(false);
 
   // حالة النافذة المنبثقة الموحدة (عرض، تعديل، إنشاء)
   const [formOpen, setFormOpen] = useState(false);
@@ -159,40 +164,47 @@ export default function Receipts() {
     [isCashBoxTransfer, isIn, receiptSummary, transferSummary],
   );
 
+  const requestKey = JSON.stringify([
+    tab, direction, isCashBoxTransfer, canViewCurrentTab,
+    page, columns.filters, dateFrom, dateTo, showDeleted, sortOrder, version,
+  ]);
+  const requestChanged = activeRequest !== requestKey;
+  const loading = requestChanged || rowsLoading;
+  const summaryLoading = requestChanged || kpisLoading;
+  const listError = !requestChanged && rowsFailed;
+  const summaryError = !requestChanged && kpisFailed;
+
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
     async function fetchReceipts() {
+      setActiveRequest(requestKey);
       setLoading(true);
+      setSummaryLoading(true);
+      setListError(false);
+      setSummaryError(false);
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
 
-      try {
-        if (!isCashBoxTransfer) {
-          const query = documentListQuery({ scope: 'receipt', kind: direction, filters: columns.filters,
-            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
+      if (!isCashBoxTransfer) {
+        const query = documentListQuery({ scope: 'receipt', kind: direction, filters: columns.filters,
+          dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
 
-          const [dataRes, kpiRes] = await Promise.all([
-            query,
-            supabase.rpc('get_receipt_kpis_columns', {
-              p_columns: columns.filters,
-              p_direction: direction,
-              p_cash_box_id: null,
-              p_search: null,
-              p_date_from: dateFrom || null,
-              p_date_to: dateTo || null,
-              p_show_deleted: showDeleted,
-            }).abortSignal(signal),
-          ]);
-
-          if (signal.aborted) return;
-          if (dataRes.error) throw dataRes.error;
-
-          setRows((dataRes.data || []) as ReceiptRow[]);
-          setTotalCount(dataRes.count ?? 0);
-          if (kpiRes.error) throw kpiRes.error;
-          if (kpiRes.data) {
-            const raw = kpiRes.data as {
+        await Promise.all([
+          loadDocumentSection(signal, query, setLoading, setListError, (dataRes) => {
+            setRows((dataRes.data || []) as ReceiptRow[]);
+            setTotalCount(dataRes.count ?? 0);
+          }),
+          loadDocumentSection(signal, supabase.rpc('get_receipt_kpis_columns', {
+            p_columns: columns.filters,
+            p_direction: direction,
+            p_cash_box_id: null,
+            p_search: null,
+            p_date_from: dateFrom || null,
+            p_date_to: dateTo || null,
+            p_show_deleted: showDeleted,
+          }).abortSignal(signal), setSummaryLoading, setSummaryError, (kpiRes) => {
+            const raw = (kpiRes.data ?? {}) as {
               total_amount?: number;
               invoice_linked?: number;
               count?: number;
@@ -202,31 +214,26 @@ export default function Receipts() {
               invoiceLinked: Number(raw.invoice_linked || 0),
               count: Number(raw.count || 0),
             });
-          }
-        } else {
-          const query = documentListQuery({ scope: 'cash_transfer', kind: direction, filters: columns.filters,
-            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
+          }),
+        ]);
+      } else {
+        const query = documentListQuery({ scope: 'cash_transfer', kind: direction, filters: columns.filters,
+          dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
 
-          const [dataRes, kpiRes] = await Promise.all([
-            query,
-            supabase.rpc('get_cash_box_transfer_kpis_columns', {
-              p_columns: columns.filters,
-              p_cash_box_id: null,
-              p_search: null,
-              p_date_from: dateFrom || null,
-              p_date_to: dateTo || null,
-              p_show_deleted: showDeleted,
-            }).abortSignal(signal),
-          ]);
-
-          if (signal.aborted) return;
-          if (dataRes.error) throw dataRes.error;
-
-          setTransferRows((dataRes.data || []) as CashBoxTransferRow[]);
-          setTotalCount(dataRes.count ?? 0);
-          if (kpiRes.error) throw kpiRes.error;
-          if (kpiRes.data) {
-            const raw = kpiRes.data as {
+        await Promise.all([
+          loadDocumentSection(signal, query, setLoading, setListError, (dataRes) => {
+            setTransferRows((dataRes.data || []) as CashBoxTransferRow[]);
+            setTotalCount(dataRes.count ?? 0);
+          }),
+          loadDocumentSection(signal, supabase.rpc('get_cash_box_transfer_kpis_columns', {
+            p_columns: columns.filters,
+            p_cash_box_id: null,
+            p_search: null,
+            p_date_from: dateFrom || null,
+            p_date_to: dateTo || null,
+            p_show_deleted: showDeleted,
+          }).abortSignal(signal), setSummaryLoading, setSummaryError, (kpiRes) => {
+            const raw = (kpiRes.data ?? {}) as {
               total_amount?: number;
               count?: number;
             };
@@ -234,13 +241,8 @@ export default function Receipts() {
               totalAmount: Number(raw.total_amount || 0),
               count: Number(raw.count || 0),
             });
-          }
-        }
-      } catch (err: unknown) {
-        const errorObj = err as { message?: string };
-        if (!signal.aborted) toast.error(translateDbError(errorObj?.message || 'فشل تحميل البيانات'));
-      } finally {
-        if (!signal.aborted) setLoading(false);
+          }),
+        ]);
       }
     }
 
@@ -251,6 +253,7 @@ export default function Receipts() {
       controller.abort();
     };
   }, [
+    requestKey,
     tab,
     direction,
     isCashBoxTransfer,
@@ -489,6 +492,11 @@ export default function Receipts() {
           : switchDirection(tabValue as ReceiptDirection)
       }
       kpiItems={kpiItems}
+      summaryLoading={summaryLoading}
+      listLoading={loading}
+      listError={listError}
+      summaryError={summaryError}
+      onRetry={() => setVersion((current) => current + 1)}
       kpiAriaLabel={`مؤشرات ${tabTitle}`}
       toolbarScope={isCashBoxTransfer ? 'cash_transfer' : 'receipt'}
       toolbarKind={direction}
@@ -507,7 +515,7 @@ export default function Receipts() {
       sortOrder={sortOrder}
       newLabel={`+ ${newLabel}`}
       onNew={openNew}
-      toolbarDisabled={loading || columns.values !== columns.filters}
+      toolbarDisabled={listError || loading || columns.values !== columns.filters}
       page={page}
       totalCount={activeTotalCount}
       pageSize={PAGE_SIZE}
@@ -528,6 +536,7 @@ export default function Receipts() {
       }
       modalOnClose={closeForm}
       modalResources={formResources}
+      modalOnRetry={() => void refresh(formResources)}
       modalResourceStatus={resourceStatus}
       modalGateKey={
         isCashBoxTransfer

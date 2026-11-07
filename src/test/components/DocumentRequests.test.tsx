@@ -104,6 +104,25 @@ describe('document list request lifecycle', () => {
     await resolvePair(sorted);
   });
 
+  it('keeps receipt counts and amounts pending until their own requests succeed', async () => {
+    render(<MemoryRouter initialEntries={['/?tab=in']}><Receipts /></MemoryRouter>);
+    const [rows, summary] = expectPair(0, 'get_receipt_kpis_columns', 0);
+    const pagination = screen.getByLabelText('شريط ترقيم الصفحات');
+    expect(pagination).not.toHaveTextContent('عرض');
+    expect(screen.queryByText('0.00')).not.toBeInTheDocument();
+
+    await act(async () => rows.resolve({ error: null, data: { rows: [], total_count: 0 } }));
+    expect(pagination).toHaveTextContent('عرض');
+    expect(screen.queryByText('0.00')).not.toBeInTheDocument();
+
+    await act(async () => summary.resolve({ error: { message: 'offline' }, data: null }));
+    expect(screen.getByRole('alert')).toHaveTextContent('تعذّر تحميل الملخص');
+    expect(screen.queryByText('0.00')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'إعادة المحاولة' }));
+    await resolvePair(expectPair(2, 'get_receipt_kpis_columns', 0), 0, 0);
+    expect(screen.getAllByText('0.00').length).toBeGreaterThan(0);
+  });
+
   it('aborts both superseded requests and ignores their late responses', async () => {
     render(<MemoryRouter><Invoices /></MemoryRouter>);
     const superseded = expectPair(0, 'get_invoice_kpis_columns', 0);

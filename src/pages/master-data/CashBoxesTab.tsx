@@ -1,3 +1,4 @@
+import { SkeletonRows } from '../../components/LoadingSkeleton';
 import { collectAllRows } from '../../lib/exportRows';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
@@ -324,11 +325,7 @@ export default function CashBoxesTab() {
               </thead>
               <tbody>
                 {loading && (
-                  <tr>
-                    <td colSpan={6} className="empty">
-                      جارٍ التحميل…
-                    </td>
-                  </tr>
+                  <SkeletonRows columns={6} />
                 )}
                 {!loading && pagedBoxes.length === 0 && (
                   <EmptyState
@@ -393,6 +390,7 @@ export default function CashBoxesTab() {
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
             loading={loading}
+            countsPending={loading}
           />
         </section>
 

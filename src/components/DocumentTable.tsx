@@ -1,3 +1,4 @@
+import { SkeletonRows } from './LoadingSkeleton';
 import type { ReactNode } from 'react';
 import SortableHeader from './SortableHeader';
 import EmptyState from './EmptyState';
@@ -75,13 +76,7 @@ export default function DocumentTable<T extends { id: string }>({
         {columnFilter}
       </thead>
       <tbody>
-        {loading && (
-          <tr>
-            <td colSpan={totalCols} className="empty">
-              جارٍ التحميل…
-            </td>
-          </tr>
-        )}
+        {loading && <SkeletonRows columns={totalCols} />}
         {!loading && rows.length === 0 && (
           <EmptyState
             colSpan={totalCols}

@@ -1,3 +1,4 @@
+import { loadDocumentSection } from '../lib/loadDocumentSection';
 import ColumnFilterRow from '../components/ColumnFilterRow';
 import { useColumnFilters } from '../lib/useColumnFilters';
 import { useDocumentPageNumber } from '../lib/useDocumentPageNumber';
@@ -93,7 +94,11 @@ export default function Invoices() {
 
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [transferRows, setTransferRows] = useState<WarehouseTransferRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeRequest, setActiveRequest] = useState<string>();
+  const [rowsLoading, setLoading] = useState(true);
+  const [kpisLoading, setSummaryLoading] = useState(true);
+  const [rowsFailed, setListError] = useState(false);
+  const [kpisFailed, setSummaryError] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
@@ -262,45 +267,49 @@ export default function Invoices() {
     [kind, isWarehouseTransfer, transferSummary, invoiceSummary, canViewProfit],
   );
 
+  const requestKey = JSON.stringify([
+    kind, invoiceKind, isWarehouseTransfer,
+    page, columns.filters, dateFrom, dateTo, showDeleted, sortOrder, version,
+  ]);
+  const requestChanged = activeRequest !== requestKey;
+  const loading = requestChanged || rowsLoading;
+  const summaryLoading = requestChanged || kpisLoading;
+  const listError = !requestChanged && rowsFailed;
+  const summaryError = !requestChanged && kpisFailed;
+
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
 
     async function load() {
+      setActiveRequest(requestKey);
       setLoading(true);
+      setSummaryLoading(true);
+      setListError(false);
+      setSummaryError(false);
 
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
 
-      try {
-        if (invoiceKind) {
-          const query = documentListQuery({ scope: 'invoice', kind: invoiceKind, filters: columns.filters,
-            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
+      if (invoiceKind) {
+        const query = documentListQuery({ scope: 'invoice', kind: invoiceKind, filters: columns.filters,
+          dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
 
-          const [docRes, kpiRes] = await Promise.all([
-            query,
-            supabase.rpc('get_invoice_kpis_columns', {
-              p_columns: columns.filters,
-              p_kind: invoiceKind,
-              p_search: null,
-              p_status: 'all',
-              p_date_from: dateFrom || null,
-              p_date_to: dateTo || null,
-              p_show_deleted: showDeleted,
-            }).abortSignal(signal),
-          ]);
-
-          if (signal.aborted) return;
-
-          if (docRes.error) {
-            toast.error(translateDbError(docRes.error.message));
-          } else {
+        await Promise.all([
+          loadDocumentSection(signal, query, setLoading, setListError, (docRes) => {
             setRows((docRes.data ?? []) as InvoiceRow[]);
             setTotalCount(docRes.count ?? 0);
-          }
-          if (kpiRes.error) throw kpiRes.error;
-          if (kpiRes.data) {
-            const raw = kpiRes.data as any;
+          }),
+          loadDocumentSection(signal, supabase.rpc('get_invoice_kpis_columns', {
+            p_columns: columns.filters,
+            p_kind: invoiceKind,
+            p_search: null,
+            p_status: 'all',
+            p_date_from: dateFrom || null,
+            p_date_to: dateTo || null,
+            p_show_deleted: showDeleted,
+          }).abortSignal(signal), setSummaryLoading, setSummaryError, (kpiRes) => {
+            const raw = (kpiRes.data ?? {}) as any;
             setInvoiceSummary({
               totalAmount: Number(raw.total_amount || 0),
               paidAmount: Number(raw.paid_amount || 0),
@@ -308,48 +317,32 @@ export default function Invoices() {
               profitTotal: Number(raw.profit_total || 0),
               count: Number(raw.count || 0),
             });
-          }
-        } else if (isWarehouseTransfer) {
-          const transferQuery = documentListQuery({ scope: 'warehouse_transfer', kind: kind, filters: columns.filters,
-            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
+          }),
+        ]);
+      } else if (isWarehouseTransfer) {
+        const transferQuery = documentListQuery({ scope: 'warehouse_transfer', kind: kind, filters: columns.filters,
+          dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
 
-          const [transRes, kpiRes] = await Promise.all([
-            transferQuery,
-            supabase.rpc('get_warehouse_transfer_kpis_columns', {
-              p_columns: columns.filters,
-              p_search: null,
-              p_date_from: dateFrom || null,
-              p_date_to: dateTo || null,
-              p_show_deleted: showDeleted,
-            }).abortSignal(signal),
-          ]);
-
-          if (signal.aborted) return;
-
-          if (transRes.error) {
-            toast.error(translateDbError(transRes.error.message));
-          } else {
+        await Promise.all([
+          loadDocumentSection(signal, transferQuery, setLoading, setListError, (transRes) => {
             setTransferRows((transRes.data ?? []) as WarehouseTransferRow[]);
             setTotalCount(transRes.count ?? 0);
-          }
-          if (kpiRes.error) throw kpiRes.error;
-          if (kpiRes.data) {
-            const raw = kpiRes.data as any;
+          }),
+          loadDocumentSection(signal, supabase.rpc('get_warehouse_transfer_kpis_columns', {
+            p_columns: columns.filters,
+            p_search: null,
+            p_date_from: dateFrom || null,
+            p_date_to: dateTo || null,
+            p_show_deleted: showDeleted,
+          }).abortSignal(signal), setSummaryLoading, setSummaryError, (kpiRes) => {
+            const raw = (kpiRes.data ?? {}) as any;
             setTransferSummary({
               totalValue: Number(raw.total_value || 0),
               totalQty: Number(raw.total_qty || 0),
               count: Number(raw.count || 0),
             });
-          }
-        }
-      } catch (err: any) {
-        if (!signal.aborted) {
-          toast.error(translateDbError(err?.message || 'فشل تحميل البيانات'));
-        }
-      } finally {
-        if (!signal.aborted) {
-          setLoading(false);
-        }
+          }),
+        ]);
       }
     }
 
@@ -358,6 +351,7 @@ export default function Invoices() {
       controller.abort();
     };
   }, [
+    requestKey,
     kind,
     invoiceKind,
     isWarehouseTransfer,
@@ -602,6 +596,11 @@ export default function Invoices() {
       activeTab={kind}
       onTabChange={switchKind}
       kpiItems={kpiItems}
+      summaryLoading={summaryLoading}
+      listLoading={loading}
+      listError={listError}
+      summaryError={summaryError}
+      onRetry={() => setVersion((current) => current + 1)}
       kpiAriaLabel={`مؤشرات ${tabTitle}`}
       toolbarScope={isWarehouseTransfer ? 'warehouse_transfer' : 'invoice'}
       toolbarKind={kind}
@@ -618,7 +617,7 @@ export default function Invoices() {
       sortOrder={sortOrder}
       newLabel={`+ ${newLabel}`}
       onNew={!showDeleted && can(`goods.${kind}.create`) ? openNew : undefined}
-      toolbarDisabled={loading || columns.values !== columns.filters}
+      toolbarDisabled={listError || loading || columns.values !== columns.filters}
       page={page}
       totalCount={activeTotalCount}
       pageSize={PAGE_SIZE}
@@ -631,6 +630,7 @@ export default function Invoices() {
         setEditingTransfer(null);
       }}
       modalResources={formResources}
+      modalOnRetry={() => void refresh(formResources)}
       modalResourceStatus={resourceStatus}
       modalGateKey={
         isWarehouseTransfer

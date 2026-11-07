@@ -32,6 +32,11 @@ export interface DocumentListPageProps<TTab extends string = string> {
 
   kpiItems: KpiItem[];
   kpiAriaLabel?: string;
+  summaryLoading?: boolean;
+  listLoading?: boolean;
+  summaryError?: boolean;
+  listError?: boolean;
+  onRetry?: () => void;
 
   toolbarScope: 'invoice' | 'receipt' | 'warehouse_transfer' | 'cash_transfer';
   toolbarKind?: string;
@@ -64,6 +69,7 @@ export interface DocumentListPageProps<TTab extends string = string> {
   modalResources?: readonly MasterDataResource[];
   modalResourceStatus?: MasterDataContextType['resourceStatus'];
   modalGateKey?: string;
+  modalOnRetry?: () => void;
   renderModalContent?: () => ReactNode;
 
   confirmation?: DocumentListConfirmState | null;
@@ -78,6 +84,11 @@ export default function DocumentListPage<TTab extends string = string>({
   onTabChange,
   kpiItems,
   kpiAriaLabel,
+  summaryLoading,
+  listLoading,
+  summaryError,
+  listError,
+  onRetry,
   toolbarScope,
   toolbarKind,
   toolbarFilters,
@@ -107,6 +118,7 @@ export default function DocumentListPage<TTab extends string = string>({
   modalResources,
   modalResourceStatus,
   modalGateKey,
+  modalOnRetry,
   renderModalContent,
   confirmation,
 }: DocumentListPageProps<TTab>) {
@@ -151,7 +163,14 @@ export default function DocumentListPage<TTab extends string = string>({
       )}
 
       {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
-      <KpiBar items={kpiItems} ariaLabel={kpiAriaLabel ?? `مؤشرات ${title}`} />
+      {summaryError ? (
+        <p role="alert">تعذّر تحميل الملخص.</p>
+      ) : (
+        <KpiBar items={kpiItems} loading={summaryLoading} ariaLabel={kpiAriaLabel ?? `مؤشرات ${title}`} />
+      )}
+      {(summaryError || listError) && onRetry && (
+        <div><button type="button" className="btn outline" onClick={onRetry}>إعادة المحاولة</button></div>
+      )}
 
       {/* شريط الأدوات الموحد */}
       <DocumentListToolbar
@@ -173,15 +192,19 @@ export default function DocumentListPage<TTab extends string = string>({
       {/* مساحة عرض الجدول والترقيم */}
       <div className="erp-sales-workspace">
         <section className="erp-list-panel" aria-label={`قائمة ${title}`}>
-          {children}
+          {listError ? <p className="empty-state" role="alert">تعذّر تحميل القائمة.</p> : children}
 
-          <Pagination
-            page={page}
-            pageCount={pageCount}
-            totalCount={totalCount}
-            pageSize={pageSize}
-            onPageChange={onPageChange}
-          />
+          {!listError && (
+            <Pagination
+              loading={listLoading}
+              countsPending={listLoading}
+              page={page}
+              pageCount={pageCount}
+              totalCount={totalCount}
+              pageSize={pageSize}
+              onPageChange={onPageChange}
+            />
+          )}
         </section>
       </div>
 
@@ -202,6 +225,7 @@ export default function DocumentListPage<TTab extends string = string>({
               key={modalGateKey}
               resources={modalResources}
               status={modalResourceStatus}
+              onRetry={modalOnRetry}
             >
               {renderModalContent ? renderModalContent() : null}
             </MasterDataGate>

@@ -1,3 +1,4 @@
+import { SkeletonRows } from '../../components/LoadingSkeleton';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
@@ -471,11 +472,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
               </thead>
               <tbody>
                 {loading && (
-                  <tr>
-                    <td colSpan={6} className="empty">
-                      جارٍ التحميل…
-                    </td>
-                  </tr>
+                  <SkeletonRows columns={6} />
                 )}
                 {!loading && pagedAccounts.length === 0 && (
                   <EmptyState
@@ -530,6 +527,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
             loading={loading}
+            countsPending={loading}
           />
         </section>
 

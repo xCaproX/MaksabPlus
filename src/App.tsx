@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from './components/LoadingSkeleton';
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
@@ -16,9 +17,9 @@ const Balances = lazy(() => import('./pages/Balances'));
 const Management = lazy(() => import('./pages/Management'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
 
-function PageSuspense({ children, fullScreen = false }: { children: ReactNode; fullScreen?: boolean }) {
+function PageSuspense({ children, fullScreen = false, dashboard = false }: { children: ReactNode; fullScreen?: boolean; dashboard?: boolean }) {
   return (
-    <Suspense fallback={fullScreen ? <div className="config-screen">جارٍ تحميل الصفحة…</div> : <div className="card empty" role="status">جارٍ تحميل الصفحة…</div>}>
+    <Suspense fallback={fullScreen ? <div className="config-screen">جارٍ تحميل الصفحة…</div> : <LoadingSkeleton layout={dashboard ? "dashboard" : "page"} label="جارٍ تحميل الصفحة…" />}>
       {children}
     </Suspense>
   );
@@ -75,7 +76,7 @@ export default function App() {
         />
         <Route path="/set-password" element={session ? <PageSuspense fullScreen><SetPassword /></PageSuspense> : <Navigate to="/login" replace />} />
         <Route element={session ? <AccessProvider key={session.user.id}><MasterDataProvider><Layout /></MasterDataProvider></AccessProvider> : <Navigate to="/login" replace />}>
-          <Route path="/" element={<PageSuspense><Home /></PageSuspense>} />
+          <Route path="/" element={<PageSuspense dashboard><Home /></PageSuspense>} />
           <Route path="/invoices" element={<AccessRoute permissions={['goods.view','goods.sale.view','goods.purchase.view','goods.sale_return.view','goods.purchase_return.view','goods.waste.view','goods.warehouse_transfer.view']}><PageSuspense><Invoices /></PageSuspense></AccessRoute>} />
           <Route path="/receipts" element={<AccessRoute permissions={['money.view','money.in.view','money.out.view','money.cash_box_transfer.view']}><PageSuspense><Receipts /></PageSuspense></AccessRoute>} />
           <Route path="/data" element={<AccessRoute permissions={['data.view','data.customers.view','data.suppliers.view','data.items.view','data.warehouses.view','data.cashBoxes.view','data.create','data.edit','data.delete']}><PageSuspense><MasterData /></PageSuspense></AccessRoute>} />

@@ -1,3 +1,4 @@
+import { Skeleton } from './LoadingSkeleton';
 export interface PaginationProps {
   page: number;
   pageCount: number;
@@ -5,6 +6,7 @@ export interface PaginationProps {
   pageSize?: number;
   onPageChange: (nextPage: number) => void;
   loading?: boolean;
+  countsPending?: boolean;
 }
 
 export default function Pagination({
@@ -14,6 +16,7 @@ export default function Pagination({
   pageSize = 20,
   onPageChange,
   loading = false,
+  countsPending = false,
 }: PaginationProps) {
   const safePageCount = Math.max(1, pageCount);
   const startItem = totalCount ? (page - 1) * pageSize + 1 : 0;
@@ -22,7 +25,7 @@ export default function Pagination({
   return (
     <div className="erp-pagination" aria-label="شريط ترقيم الصفحات">
       <span>
-        {totalCount !== undefined ? (
+        {countsPending ? <Skeleton width="7rem" /> : totalCount !== undefined ? (
           <>
             عرض <bdi>{startItem}</bdi>–<bdi>{endItem}</bdi> من <bdi>{totalCount}</bdi>
           </>
@@ -41,7 +44,7 @@ export default function Pagination({
           السابق
         </button>
         <span className="tabular-nums" dir="ltr">
-          <bdi>{page}</bdi> / <bdi>{safePageCount}</bdi>
+          {countsPending ? <Skeleton width="2rem" /> : <><bdi>{page}</bdi> / <bdi>{safePageCount}</bdi></>}
         </span>
         <button
           type="button"

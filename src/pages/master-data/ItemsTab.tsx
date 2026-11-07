@@ -1,3 +1,4 @@
+import { SkeletonRows } from '../../components/LoadingSkeleton';
 import { loadAllWarehouses } from '../../lib/masterDataQueries';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
@@ -435,11 +436,7 @@ export default function ItemsTab() {
               </thead>
               <tbody>
                 {loading && (
-                  <tr>
-                    <td colSpan={8} className="empty">
-                      جارٍ التحميل…
-                    </td>
-                  </tr>
+                  <SkeletonRows columns={8} />
                 )}
                 {!loading && items.length === 0 && (
                   <EmptyState
@@ -496,6 +493,7 @@ export default function ItemsTab() {
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
             loading={loading}
+            countsPending={loading}
           />
         </section>
 

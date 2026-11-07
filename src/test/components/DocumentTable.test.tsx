@@ -94,7 +94,7 @@ describe('DocumentTable - مكوّن جدول المستندات الموحد', 
     );
 
     expect(screen.getByText('جارٍ التحميل…')).toBeInTheDocument();
-    expect(screen.getByText('جارٍ التحميل…').closest('td')).toHaveAttribute('colspan', '3');
+    expect(screen.getByRole('status').closest('tr')?.cells).toHaveLength(3);
   });
 
   it('يعرض EmptyState عند عدم وجود صفوف وانتهاء التحميل', () => {

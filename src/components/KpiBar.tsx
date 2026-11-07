@@ -1,3 +1,4 @@
+import { LoadingMessage, Skeleton } from './LoadingSkeleton';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -19,17 +20,20 @@ interface KpiBarProps {
   items: KpiItem[];
   ariaLabel?: string;
   className?: string;
+  loading?: boolean;
 }
 
 export default function KpiBar({
   items,
   ariaLabel = 'مؤشرات وإجماليات الصفحة',
   className = '',
+  loading = false,
 }: KpiBarProps) {
   if (!items || items.length === 0) return null;
 
   return (
     <div className={`erp-kpi-bar ${className}`.trim()} role="region" aria-label={ariaLabel}>
+      {loading && <LoadingMessage>جارٍ تحميل الملخص…</LoadingMessage>}
       <div className="erp-kpi-grid">
         {items.map((item) => {
           const Icon = item.icon;
@@ -48,14 +52,16 @@ export default function KpiBar({
                 )}
               </div>
               <div className="kpi-card-body">
-                <div className="kpi-value-group">
-                  <bdi dir="ltr" className="kpi-value num tabular-nums">
-                    {item.value}
-                  </bdi>
-                  {item.unit && <span className="kpi-unit">{item.unit}</span>}
-                </div>
+                {loading ? <Skeleton width="5rem" /> : (
+                  <div className="kpi-value-group">
+                    <bdi dir="ltr" className="kpi-value num tabular-nums">
+                      {item.value}
+                    </bdi>
+                    {item.unit && <span className="kpi-unit">{item.unit}</span>}
+                  </div>
+                )}
               </div>
-              {(item.subtext || item.badge) && (
+              {!loading && (item.subtext || item.badge) && (
                 <div className="kpi-card-footer">
                   {item.badge && (
                     <span className={`badge ${item.badge.variant ?? 'neutral'}`}>

@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { getCurrentUserIdentity } from '../lib/company';
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
@@ -81,11 +82,7 @@ export default function Home() {
   }, []);
 
   if (accessLoading || (loading && !data)) {
-    return (
-      <div className="card empty" role="status" style={{ minHeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p>جارٍ تحميل بيانات الشاشة الرئيسية…</p>
-      </div>
-    );
+    return <LoadingSkeleton layout="dashboard" label="جارٍ تحميل بيانات الشاشة الرئيسية…" />;
   }
 
   if (!access?.role) {

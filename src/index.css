@@ -25,6 +25,7 @@
 @import './styles/components/alerts.css';
 @import './styles/components/toast.css';
 @import './styles/components/empty-state.css';
+@import './styles/components/loading-skeleton.css';
 
 /* Pages & Complex Views */
 @import './styles/pages/auth.css';

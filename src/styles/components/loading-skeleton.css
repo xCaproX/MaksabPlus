@@ -1,0 +1,62 @@
+.loading-message {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.loading-skeleton {
+  display: inline-block;
+  max-inline-size: 100%;
+  min-block-size: 0.75rem;
+  border-radius: 0.375rem;
+  background: var(--line);
+  vertical-align: middle;
+}
+
+.skeleton-row td {
+  block-size: 2.75rem;
+}
+
+.loading-layout {
+  display: grid;
+  gap: 1rem;
+  inline-size: 100%;
+}
+
+.loading-layout-section {
+  display: grid;
+  grid-template-columns: repeat(var(--skeleton-columns), minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.loading-layout-block {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.loading-layout-page .loading-layout-section:last-child .loading-layout-block,
+.loading-layout-dashboard .loading-layout-section:last-child .loading-layout-block {
+  min-block-size: 11rem;
+}
+
+.loading-layout-form {
+  padding: 1rem;
+}
+
+.loading-layout-form .loading-layout-section:nth-of-type(2) {
+  min-block-size: 9rem;
+}
+
+@media (max-width: 650px) {
+  .loading-layout-section {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

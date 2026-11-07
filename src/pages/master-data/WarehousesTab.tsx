@@ -1,3 +1,4 @@
+import { SkeletonRows } from '../../components/LoadingSkeleton';
 import { loadAllWarehouses } from '../../lib/masterDataQueries';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
@@ -297,11 +298,7 @@ export default function WarehousesTab() {
               </thead>
               <tbody>
                 {loading && (
-                  <tr>
-                    <td colSpan={6} className="empty">
-                      جارٍ التحميل…
-                    </td>
-                  </tr>
+                  <SkeletonRows columns={6} />
                 )}
                 {!loading && pagedWarehouses.length === 0 && (
                   <EmptyState
@@ -366,6 +363,7 @@ export default function WarehousesTab() {
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
             loading={loading}
+            countsPending={loading}
           />
         </section>
 
