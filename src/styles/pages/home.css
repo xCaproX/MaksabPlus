@@ -30,7 +30,8 @@
 .home-welcome-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  min-inline-size: 0;
 }
 
 .home-welcome-title {
@@ -41,12 +42,33 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  overflow-wrap: anywhere;
 }
 
-.home-welcome-subtitle {
+.home-welcome-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
   font-size: var(--font-sm);
   color: var(--muted);
-  margin: 0;
+}
+
+.home-welcome-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.home-welcome-meta-item svg {
+  flex-shrink: 0;
+}
+
+.home-welcome-company {
+  color: var(--ink-secondary);
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .home-actions-group {

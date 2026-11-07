@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { ShoppingCart, ArrowDownLeft, ArrowUpRight, ShoppingBag } from 'lucide-react';
+import { ShoppingCart, ArrowDownLeft, ArrowUpRight, ShoppingBag, Building2, CalendarDays } from 'lucide-react';
 import { useAccess } from '../../lib/access';
-import { formatTodayLongAr } from '../../lib/format';
+import { formatDate, today } from '../../lib/format';
 
 interface QuickActionsProps {
   userName: string;
@@ -17,17 +17,30 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
   const canReceiptOut = isOwner || can('money.out.create', 'money.out.view', 'money.view');
   const canPurchase = isOwner || can('goods.purchase.create', 'goods.purchase.view', 'goods.view');
 
-  const todayStr = formatTodayLongAr();
+  const date = today();
 
   return (
     <div className="home-welcome-bar">
       <div className="home-welcome-info">
         <h1 className="home-welcome-title">
-          <span>مرحباً، {userName || 'مستخدم النظام'}</span>
+          <span>مرحباً، <bdi dir="auto" className="tabular-nums">{userName || 'مستخدم النظام'}</bdi></span>
         </h1>
-        <p className="home-welcome-subtitle">
-          <span>{companyName}</span> • <span>{todayStr}</span>
-        </p>
+        <div className="home-welcome-meta">
+          {companyName && (
+            <span className="home-welcome-meta-item home-welcome-company">
+              <Building2 size={14} aria-hidden="true" />
+              <bdi dir="auto">
+                {companyName.split(/(\p{Nd}+(?:[./-]\p{Nd}+)+)/u).map((part, index) => (
+                  index % 2 === 0 ? part : <bdi key={index} dir="ltr" className="tabular-nums">{part}</bdi>
+                ))}
+              </bdi>
+            </span>
+          )}
+          <span className="home-welcome-meta-item">
+            <CalendarDays size={14} aria-hidden="true" />
+            <time dateTime={date} dir="ltr" className="tabular-nums">{formatDate(date)}</time>
+          </span>
+        </div>
       </div>
 
       <div className="home-actions-group">
