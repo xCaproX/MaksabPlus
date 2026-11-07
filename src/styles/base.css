@@ -55,6 +55,19 @@ p {
   font-weight: 700;
 }
 
+/* ألوان دلالية للمبالغ (تباشرها MoneyDisplay عبر tone) */
+.money-success {
+  color: var(--success);
+}
+
+.money-primary {
+  color: var(--primary);
+}
+
+.money-danger {
+  color: var(--danger);
+}
+
 .num {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

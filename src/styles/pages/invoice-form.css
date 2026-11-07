@@ -1151,7 +1151,8 @@
   font-weight: 600;
 }
 
-.stat-pill strong {
+.stat-pill strong,
+.stat-pill .strong {
   font-weight: 750;
   color: var(--erp-text, #1e293b);
 }
@@ -1446,10 +1447,23 @@
   color: #334155;
 }
 
-.left-field-box .no-paid-hint {
-  color: #64748b !important;
-  font-size: 11px;
-  font-weight: 500;
+/* صف عنوان الحقل: العنوان على طرف وشارة الحالة على الطرف الآخر */
+.left-field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+/* شارة الحالة داخل شريط المتبقي: أصغر من الشارة القياسية لإتاحة المساحة */
+.left-remaining-strip .status-badge {
+  font-size: 10.5px;
+}
+
+.linked-receipt-title {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-secondary, #475569);
 }
 
 .left-notes-textarea {

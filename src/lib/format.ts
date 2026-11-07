@@ -76,6 +76,16 @@ export function today(): string {
   return `${d.getFullYear()}-${month}-${day}`;
 }
 
+/** تاريخ اليوم السابقة بالعربية للترحيب (اليوم الكامل، مثلاً: السبت، 7 نوفمبر 2026) */
+export function formatTodayLongAr(): string {
+  return new Intl.DateTimeFormat('ar-EG', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date());
+}
+
 export type BalanceStatusInfo = {
   text: 'خالص' | 'عليه' | 'له';
   type: 'settled' | 'debit' | 'credit';

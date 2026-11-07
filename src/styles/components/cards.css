@@ -198,7 +198,8 @@
   font-weight: 600;
 }
 
-.stat-pill strong {
+.stat-pill strong,
+.stat-pill .strong {
   font-weight: 750;
   color: var(--erp-text, #1e293b);
 }

@@ -103,16 +103,16 @@ export default function ChangePasswordModal({
     <Modal title={title} onClose={handleClose}>
       <form className="stack change-password-form" onSubmit={handleSubmit}>
         <div className="account-header-card">
-          <p className="hint" style={{ margin: 0, fontSize: '13px', color: 'var(--erp-muted, #64748b)' }}>
+          <p className="hint change-password-hint">
             {isTargetMode
               ? `أدخل كلمة المرور الجديدة للموظف (${targetUser?.email}). سيتمكن من تسجيل الدخول بها فورًا.`
               : 'أدخل كلمة المرور الجديدة لتسجيل الدخول إلى حسابك في مكسب بلس.'}
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '4px' }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 650 }}>كلمة المرور الجديدة</span>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <div className="pwd-fields-stack">
+            <label className="pwd-field-label">
+              <span>كلمة المرور الجديدة</span>
+              <div className="pwd-input-wrap">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -123,38 +123,27 @@ export default function ChangePasswordModal({
                   dir="ltr"
                   placeholder="••••••••"
                   disabled={busy}
-                  style={{ width: '100%', paddingInlineEnd: '40px' }}
+                  className="pwd-input pwd-password-input"
                   autoFocus
                 />
                 <button
                   type="button"
-                  className="icon-btn"
+                  className="icon-btn pwd-eye-btn"
                   tabIndex={-1}
                   onClick={() => setShowPassword((prev) => !prev)}
                   title={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                   aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
-                  style={{
-                    position: 'absolute',
-                    insetInlineEnd: '6px',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--erp-muted, #64748b)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '4px',
-                  }}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <span style={{ fontSize: '11.5px', color: 'var(--erp-muted, #64748b)' }}>
+              <span className="pwd-min-length-hint">
                 يجب ألا تقل عن 8 أحرف أو أرقام.
               </span>
             </label>
 
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 650 }}>تأكيد كلمة المرور الجديدة</span>
+            <label className="pwd-field-label">
+              <span>تأكيد كلمة المرور الجديدة</span>
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
@@ -165,7 +154,7 @@ export default function ChangePasswordModal({
                 dir="ltr"
                 placeholder="••••••••"
                 disabled={busy}
-                style={{ width: '100%' }}
+                className="pwd-input"
               />
             </label>
           </div>

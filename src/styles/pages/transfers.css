@@ -62,7 +62,7 @@
   align-items: center;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 760px) {
   .transfer-header-grid,
   .cashbox-transfer-boxes-grid {
     grid-template-columns: 1fr;

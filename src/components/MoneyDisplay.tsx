@@ -5,6 +5,8 @@ export interface MoneyDisplayProps {
   currency?: boolean | string;
   className?: string;
   strong?: boolean;
+  /** لون دلالي اختياري للقيمة (اتركها افتراضياً للون النص العادي) */
+  tone?: 'default' | 'success' | 'primary' | 'danger';
 }
 
 /**
@@ -16,14 +18,16 @@ export default function MoneyDisplay({
   currency = false,
   className = '',
   strong = false,
+  tone = 'default',
 }: MoneyDisplayProps) {
   const formatted = money(value);
   const currencyLabel = typeof currency === 'string' ? currency : currency ? 'ج.م' : null;
+  const toneClass = tone !== 'default' ? `money-${tone}` : '';
 
   return (
     <span
       dir="ltr"
-      className={`num tabular-nums ${strong ? 'strong' : ''} ${className}`.trim()}
+      className={`num tabular-nums ${strong ? 'strong' : ''} ${toneClass} ${className}`.trim()}
     >
       <bdi>{formatted}</bdi>
       {currencyLabel && <span className="currency-suffix" dir="rtl"> {currencyLabel}</span>}

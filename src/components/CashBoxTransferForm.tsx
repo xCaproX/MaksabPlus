@@ -7,6 +7,7 @@ import { tafqeet } from '../lib/tafqeet';
 import { toast } from './Toast';
 import SearchableSelect from './SearchableSelect';
 import DateInput from './DateInput';
+import MoneyDisplay from './MoneyDisplay';
 import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
 
 interface Props {
@@ -163,14 +164,14 @@ export default function CashBoxTransferForm({
             )}
           </label>
           {sourceBox && (
-            <div className="account-balance-pills" style={{ marginTop: '8px' }}>
+            <div className="account-balance-pills">
               <div className="stat-pill">
                 <span>الرصيد المتاح:</span>
-                <strong dir="ltr" className="num">{money(sourceAvailableBalance)}</strong>
+                <MoneyDisplay value={sourceAvailableBalance} strong />
               </div>
               <div className="stat-pill">
                 <span>الرصيد بعد:</span>
-                <strong dir="ltr" className="num">{money(sourceBalanceAfter)}</strong>
+                <MoneyDisplay value={sourceBalanceAfter} strong />
                 {sourceBalanceAfter < 0 && (
                   <span className="stat-pill-tag tag-debit">عجز</span>
                 )}
@@ -205,14 +206,14 @@ export default function CashBoxTransferForm({
             )}
           </label>
           {destBox && (
-            <div className="account-balance-pills" style={{ marginTop: '8px' }}>
+            <div className="account-balance-pills">
               <div className="stat-pill">
                 <span>الرصيد الحالي:</span>
-                <strong dir="ltr" className="num">{money(destInitialBalance)}</strong>
+                <MoneyDisplay value={destInitialBalance} strong />
               </div>
               <div className="stat-pill">
                 <span>الرصيد بعد:</span>
-                <strong dir="ltr" className="num">{money(destBalanceAfter)}</strong>
+                <MoneyDisplay value={destBalanceAfter} strong />
                 <span className="stat-pill-tag tag-credit">زيادة</span>
               </div>
             </div>
@@ -227,12 +228,8 @@ export default function CashBoxTransferForm({
             <label>
               <span>المبلغ المحوّل</span>
               {isReadOnly ? (
-                <div
-                  className="readonly-val-box num strong"
-                  dir="ltr"
-                  style={{ fontSize: '16px', color: 'var(--primary, #0f172a)' }}
-                >
-                  {money(numAmount)}
+                <div className="readonly-val-box readonly-amount-display">
+                  <MoneyDisplay value={numAmount} strong tone="primary" />
                 </div>
               ) : (
                 <div className="amount-input-with-action">

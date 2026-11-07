@@ -9,6 +9,7 @@ import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
 import { searchAccountsAsync } from '../lib/masterDataQueries';
 import DateInput from './DateInput';
+import MoneyDisplay from './MoneyDisplay';
 import { toast } from './Toast';
 import type {
   AccountKind,
@@ -325,15 +326,12 @@ export default function ReceiptForm({
             <label>
               <span>{isIn ? 'المبلغ المستلم' : 'المبلغ المصروف'}</span>
               {isReadOnly ? (
-                <div
-                  className="readonly-val-box num strong"
-                  dir="ltr"
-                  style={{
-                    fontSize: '16px',
-                    color: isIn ? 'var(--success, #059669)' : 'var(--primary, #0f172a)',
-                  }}
-                >
-                  {money(numAmount)}
+                <div className="readonly-val-box readonly-amount-display">
+                  <MoneyDisplay
+                    value={numAmount}
+                    strong
+                    tone={isIn ? 'success' : 'primary'}
+                  />
                 </div>
               ) : (
                 <div className="amount-input-with-action">
@@ -407,12 +405,12 @@ export default function ReceiptForm({
                 {notes || 'لا توجد ملاحظات'}
               </div>
             ) : (
-              <input
-                type="text"
+              <textarea
+                rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="ملاحظات اختيارية على الإيصال…"
-                className="receipt-notes-input"
+                className="receipt-notes-input receipt-notes-textarea"
               />
             )}
           </label>
@@ -423,9 +421,7 @@ export default function ReceiptForm({
       {!isIn && !isReadOnly && (
         <div className={`cashbox-balance-hint ${isOverdraft ? 'is-danger' : ''}`}>
           <span>رصيد الخزنة المتاح:</span>
-          <strong dir="ltr" className="num">
-            {money(cashBoxAvailableBalance)}
-          </strong>
+          <MoneyDisplay value={cashBoxAvailableBalance} strong />
         </div>
       )}
 

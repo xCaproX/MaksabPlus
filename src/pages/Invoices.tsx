@@ -445,6 +445,7 @@ export default function Invoices() {
       `حذف ${label} ${invoice.number}؟\n` +
         `سيُستثنى هو وإيصاله المرتبط من الأرصدة والتقارير، ويمكن استعادته من «عرض المحذوفات».`,
       'حذف',
+      { danger: true },
     );
     if (!confirmed) return;
 
@@ -495,6 +496,7 @@ export default function Invoices() {
       !(await askConfirmation(
         `حذف التحويل ${transfer.number}؟ سيعود المخزون إلى أرصدته السابقة إذا لم توجد حركات لاحقة على هذه الأصناف.`,
         'حذف',
+        { danger: true },
       ))
     )
       return;
@@ -791,7 +793,7 @@ export default function Invoices() {
           title={confirmation.title}
           message={confirmation.message}
           confirmLabel={confirmation.confirmLabel}
-          danger={confirmation.confirmLabel === 'حذف'}
+          danger={confirmation.danger === true}
           onConfirm={() => finishConfirmation(true)}
           onCancel={() => finishConfirmation(false)}
         />

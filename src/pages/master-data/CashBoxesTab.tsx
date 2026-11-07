@@ -244,6 +244,7 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
       !(await askConfirmation(
         `حذف الخزنة «${box.name}»؟ لا يمكن حذفها إذا كانت تحتوي على حركات سابقة.`,
         'حذف',
+        { danger: true },
       ))
     )
       return;
@@ -521,7 +522,7 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
           title={confirmation.title}
           message={confirmation.message}
           confirmLabel={confirmation.confirmLabel}
-          danger
+          danger={confirmation.danger === true}
           onConfirm={() => finishConfirmation(true)}
           onCancel={() => finishConfirmation(false)}
         />

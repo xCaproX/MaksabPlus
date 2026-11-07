@@ -217,6 +217,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
       !(await askConfirmation(
         `حذف المخزن «${warehouse.name}»؟ لا يمكن حذفه إذا كان يحتوي على حركات سابقة.`,
         'حذف',
+        { danger: true },
       ))
     )
       return;
@@ -485,7 +486,7 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
           title={confirmation.title}
           message={confirmation.message}
           confirmLabel={confirmation.confirmLabel}
-          danger
+          danger={confirmation.danger === true}
           onConfirm={() => finishConfirmation(true)}
           onCancel={() => finishConfirmation(false)}
         />

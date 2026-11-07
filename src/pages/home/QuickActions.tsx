@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ShoppingCart, ArrowDownLeft, ArrowUpRight, ShoppingBag } from 'lucide-react';
 import { useAccess } from '../../lib/access';
+import { formatTodayLongAr } from '../../lib/format';
 
 interface QuickActionsProps {
   userName: string;
@@ -16,12 +17,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
   const canReceiptOut = isOwner || can('money.out.create', 'money.out.view', 'money.view');
   const canPurchase = isOwner || can('goods.purchase.create', 'goods.purchase.view', 'goods.view');
 
-  const todayStr = new Intl.DateTimeFormat('ar-EG', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date());
+  const todayStr = formatTodayLongAr();
 
   return (
     <div className="home-welcome-bar">

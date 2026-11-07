@@ -1,4 +1,5 @@
-import { money, getBalanceStatus } from '../lib/format';
+import { getBalanceStatus } from '../lib/format';
+import MoneyDisplay from './MoneyDisplay';
 import type { AccountKind } from '../lib/types';
 
 export interface AccountBalancePillsProps {
@@ -27,9 +28,7 @@ export default function AccountBalancePills({
     <div className="account-balance-pills" aria-label="موقف مديونية الحساب">
       <div className="stat-pill">
         <span>{titleBefore}</span>
-        <strong dir="ltr" className="num">
-          {money(Math.abs(balanceBefore))}
-        </strong>
+        <MoneyDisplay value={Math.abs(balanceBefore)} strong />
         <span className={`stat-pill-tag tag-${statusBefore.type}`}>
           {statusBefore.text}
         </span>
@@ -37,16 +36,12 @@ export default function AccountBalancePills({
 
       <div className="stat-pill">
         <span>{deltaLabel}</span>
-        <strong dir="ltr" className="num">
-          {money(delta)}
-        </strong>
+        <MoneyDisplay value={delta} strong />
       </div>
 
       <div className="stat-pill">
         <span>{titleAfter}</span>
-        <strong dir="ltr" className="num">
-          {money(Math.abs(balanceAfter))}
-        </strong>
+        <MoneyDisplay value={Math.abs(balanceAfter)} strong />
         <span className={`stat-pill-tag tag-${statusAfter.type}`}>
           {statusAfter.text}
         </span>

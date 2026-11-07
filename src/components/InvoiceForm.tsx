@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
+import { FOCUS_SETTLE_DELAY_MS } from '../lib/ui';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { translateDbError } from '../lib/errors';
@@ -412,7 +413,7 @@ export default function InvoiceForm({
     setEntryUnitPrice('');
     setTimeout(() => {
       entryItemSearchRef.current?.focus();
-    }, 40);
+    }, FOCUS_SETTLE_DELAY_MS);
   }
 
   function updateLine(key: string, patch: Partial<LineDraft>) {
@@ -438,7 +439,7 @@ export default function InvoiceForm({
     toast.info('تم مسح الفاتورة وبدء فاتورة جديدة');
     setTimeout(() => {
       entryItemSearchRef.current?.focus();
-    }, 40);
+    }, FOCUS_SETTLE_DELAY_MS);
   }
 
   async function executeSave(linesToSave: LineDraft[] = pendingSaveLines.current ?? lines) {

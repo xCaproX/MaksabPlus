@@ -1,6 +1,8 @@
 import { Check, Pencil, Printer, RotateCcw, Save, Trash2, X } from 'lucide-react';
 import { money } from '../../lib/format';
 import SearchableSelect from '../SearchableSelect';
+import MoneyDisplay from '../MoneyDisplay';
+import StatusBadge from '../StatusBadge';
 import type { CashBoxRow, InvoiceRow, LineDraft } from '../../lib/types';
 
 export interface EditingInvoice {
@@ -70,9 +72,7 @@ export default function InvoiceSummarySidebar({
           إجمالي {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}
         </span>
         <div className="strip-value-box">
-          <strong dir="ltr" className="strip-value strip-value-total num">
-            {money(total)}
-          </strong>
+          <MoneyDisplay value={total} strong className="strip-value strip-value-total" />
         </div>
       </div>
 
@@ -106,9 +106,7 @@ export default function InvoiceSummarySidebar({
           )}
           <div className="strip-value-box strip-paid-box">
             {isReadOnly ? (
-              <strong dir="ltr" className="strip-value num">
-                {money(paidNumber)}
-              </strong>
+              <MoneyDisplay value={paidNumber} strong className="strip-value" />
             ) : (
               <input
                 type="text"
@@ -132,10 +130,7 @@ export default function InvoiceSummarySidebar({
         <div className={`left-row-strip left-remaining-strip ${remaining === 0 ? 'is-zero' : 'is-due'}`}>
           <span className="strip-label">{isReturn ? 'حالة الاسترداد' : 'المتبقي'}</span>
           <div className="strip-center-slot">
-            <span
-              className={`status-badge ${remaining === 0 ? 'paid' : 'unpaid'}`}
-              style={{ fontSize: '10.5px' }}
-            >
+            <StatusBadge variant={remaining === 0 ? 'paid' : 'unpaid'}>
               {isReturn
                 ? remaining === 0
                   ? 'مسترد بالكامل'
@@ -143,12 +138,10 @@ export default function InvoiceSummarySidebar({
                 : remaining === 0
                   ? 'خالص'
                   : 'آجل'}
-            </span>
+            </StatusBadge>
           </div>
           <div className="strip-value-box">
-            <strong dir="ltr" className="strip-value strip-value-remaining num">
-              {money(remaining)}
-            </strong>
+            <MoneyDisplay value={remaining} strong className="strip-value strip-value-remaining" />
           </div>
         </div>
       )}
@@ -157,9 +150,11 @@ export default function InvoiceSummarySidebar({
       {!isWaste && (
         <div className={`left-field-box ${paidNumber <= 0 ? 'disabled' : ''}`}>
           <label>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="left-field-label-row">
               <span>{isReturn ? 'الخزنة المنصرف منها' : 'الخزنة'}</span>
-              {paidNumber <= 0 && <span className="no-paid-hint">(لا يوجد مدفوع)</span>}
+              {paidNumber <= 0 && (
+                <StatusBadge variant="neutral">لا يوجد مدفوع</StatusBadge>
+              )}
             </div>
             {isReadOnly ? (
               <div className="readonly-val-box">
@@ -207,19 +202,13 @@ export default function InvoiceSummarySidebar({
       {/* السند المالي المرتبط إن وجد */}
       {editing?.invoice.receipt_number && (
         <div className="left-field-box linked-receipt-box">
-          <span style={{ fontSize: '12px', fontWeight: 650, color: '#475569' }}>السند المالي المرتبط</span>
+          <span className="linked-receipt-title">السند المالي المرتبط</span>
           <div className="linked-receipt-badge">
             <span>إيصال</span>
             <bdi className="num" dir="ltr">
               {editing.invoice.receipt_number}
             </bdi>
-            <span>
-              (
-              <bdi className="num" dir="ltr">
-                {money(editing.invoice.receipt_amount ?? 0)}
-              </bdi>{' '}
-              ج.م)
-            </span>
+            <MoneyDisplay value={editing.invoice.receipt_amount ?? 0} currency />
           </div>
         </div>
       )}

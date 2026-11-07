@@ -76,6 +76,20 @@
   outline: none;
 }
 
+/* الملاحظات كحقل حر متعدد الأسطور — مطابقة لملاحظات الفاتورة (left-notes-textarea) */
+.receipt-form .receipt-notes-textarea {
+  height: 52px;
+  min-height: 52px;
+  padding: 7px 10px;
+  resize: none;
+  font-family: inherit;
+}
+
+/* المبلغ المعروض في وضع القراءة فقط */
+.readonly-val-box.readonly-amount-display {
+  font-size: 16px;
+}
+
 /* Overdraft and Balance Alerts */
 .cashbox-balance-hint {
   font-size: 12px;

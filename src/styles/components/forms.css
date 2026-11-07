@@ -80,6 +80,76 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+/* صنف no-spinner: يستخدم على الإدخالات الرقمية ليحفظ نفس سلوك إلغاء السهام
+   حتى لو تغيرت القاعدة العامة أو انتقل الاستخدام إلى أنواع إدخال أخرى. */
+.no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ============================================================================
+   نافذة تغيير كلمة المرور (ChangePasswordModal)
+   ============================================================================ */
+.change-password-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--erp-muted, #64748b);
+}
+
+.pwd-fields-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.pwd-field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pwd-field-label > span {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.pwd-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pwd-input {
+  width: 100%;
+}
+
+.pwd-password-input {
+  padding-inline-end: 40px;
+}
+
+.pwd-eye-btn {
+  position: absolute;
+  inset-inline-end: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--erp-muted, #64748b);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.pwd-min-length-hint {
+  font-size: 11.5px;
+  color: var(--erp-muted, #64748b);
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

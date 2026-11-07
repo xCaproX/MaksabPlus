@@ -1,7 +1,8 @@
 import { type RefObject } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { money, qty as formatQty, round2 } from '../../lib/format';
+import { qty as formatQty, round2 } from '../../lib/format';
 import SearchableSelect from '../SearchableSelect';
+import MoneyDisplay from '../MoneyDisplay';
 import { toast } from '../Toast';
 import {
   searchWarehouseItemsAsync,
@@ -191,9 +192,7 @@ export default function InvoiceItemsTable({
                   />
                 </td>
                 <td className="line-total" data-label="الإجمالي">
-                  <span dir="ltr" className="num">
-                    {money(entryLineTotal)}
-                  </span>
+                  <MoneyDisplay value={entryLineTotal} />
                 </td>
                 <td className="center" data-label="إجراء">
                   <button
@@ -323,9 +322,7 @@ export default function InvoiceItemsTable({
                     </td>
                     <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
                       {isReadOnly ? (
-                        <span className="readonly-line-price num" dir="ltr">
-                          <bdi>{money(line.unit_price)}</bdi>
-                        </span>
+                        <MoneyDisplay value={line.unit_price} className="readonly-line-price" />
                       ) : (
                         <input
                           aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
@@ -344,9 +341,7 @@ export default function InvoiceItemsTable({
                       )}
                     </td>
                     <td className="line-total" data-label="الإجمالي">
-                      <span dir="ltr" className="num">
-                        {money(lineTotal)}
-                      </span>
+                      <MoneyDisplay value={lineTotal} />
                     </td>
                     {!isReadOnly && (
                       <td className="center" data-label="إجراء">

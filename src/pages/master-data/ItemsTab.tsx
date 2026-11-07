@@ -348,6 +348,7 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
       !(await askConfirmation(
         `حذف الصنف «${item.name}»؟ لن يُحذف إذا كانت له حركات أو رصيد.`,
         'حذف',
+        { danger: true },
       ))
     )
       return;
@@ -741,7 +742,7 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
           title={confirmation.title}
           message={confirmation.message}
           confirmLabel={confirmation.confirmLabel}
-          danger
+          danger={confirmation.danger === true}
           onConfirm={() => finishConfirmation(true)}
           onCancel={() => finishConfirmation(false)}
         />

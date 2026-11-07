@@ -396,6 +396,7 @@ export default function Receipts() {
       `حذف الإيصال ${receipt.number}؟\n` +
         'سيُستثنى من الأرصدة والتقارير، ويمكن استعادته من «عرض المحذوفات».',
       'حذف',
+      { danger: true },
     );
     if (!confirmed) return;
 
@@ -438,7 +439,7 @@ export default function Receipts() {
   }
 
   async function removeTransfer(transfer: CashBoxTransferRow) {
-    if (!(await askConfirmation(`حذف التحويل ${transfer.number}؟ سيعود الرصيد إلى الخزنة المصدر.`, 'حذف'))) return;
+    if (!(await askConfirmation(`حذف التحويل ${transfer.number}؟ سيعود الرصيد إلى الخزنة المصدر.`, 'حذف', { danger: true }))) return;
     const { error: rpcError } = await supabase.rpc('delete_cash_box_transfer', { p_transfer_id: transfer.id });
     if (rpcError) return toast.error(translateDbError(rpcError.message));
     toast.success(`تم نقل التحويل ${transfer.number} إلى المحذوفات`);

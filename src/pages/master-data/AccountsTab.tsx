@@ -363,6 +363,8 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
     const confirmed = await askConfirmation(
       `هل تريد ${actionLabel} ${entityTitle} «${account.name}»؟`,
       actionLabel,
+      // إيقاف الحساب يغير أرصدته في كل الشاشات → يعتبر عملية خطيرة
+      nextState ? undefined : { danger: true },
     );
     if (!confirmed) return;
 
@@ -385,6 +387,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
     const confirmed = await askConfirmation(
       `هل تريد حذف ${entityTitle} «${account.name}» نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`,
       'حذف نهائي',
+      { danger: true },
     );
     if (!confirmed) return;
 
@@ -705,7 +708,7 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
           title={confirmation.title}
           message={confirmation.message}
           confirmLabel={confirmation.confirmLabel}
-          danger={confirmation.confirmLabel === 'حذف نهائي' || confirmation.confirmLabel === 'إيقاف'}
+          danger={confirmation.danger === true}
           onConfirm={() => finishConfirmation(true)}
           onCancel={() => finishConfirmation(false)}
         />

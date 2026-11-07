@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Plus, RotateCcw, Save, Trash2, Pencil, Printer, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { FOCUS_SETTLE_DELAY_MS } from '../lib/ui';
 import { qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
@@ -110,7 +111,7 @@ export default function WarehouseTransferForm({
     setTimeout(() => {
       entryQtyInputRef.current?.focus();
       entryQtyInputRef.current?.select();
-    }, 40);
+    }, FOCUS_SETTLE_DELAY_MS);
   }
 
   function handleEntryQtyChange(val: string) {
@@ -203,7 +204,7 @@ export default function WarehouseTransferForm({
     setEntryQty('1');
     setTimeout(() => {
       entryItemSearchRef.current?.focus();
-    }, 40);
+    }, FOCUS_SETTLE_DELAY_MS);
   }
 
   function handleSourceWarehouseChange(nextSourceId: string) {
@@ -269,7 +270,7 @@ export default function WarehouseTransferForm({
     toast.info('تم تفريغ التحويل للبدء من جديد');
     setTimeout(() => {
       entryItemSearchRef.current?.focus();
-    }, 40);
+    }, FOCUS_SETTLE_DELAY_MS);
   }
 
   async function executeSave(linesToSave: DraftLine[]) {

@@ -53,12 +53,12 @@
 }
 
 .nav a:hover {
-  background: #f0f4f4;
+  background: var(--erp-surface-muted, #f8fafc);
   color: var(--ink);
 }
 
 .nav a.active {
-  background: #e6f4f2;
+  background: var(--primary-light);
   color: var(--primary-dark);
 }
 
