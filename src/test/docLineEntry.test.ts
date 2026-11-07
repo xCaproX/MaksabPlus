@@ -183,9 +183,10 @@ describe('docLineEntry - محرك التحقق ودمج سطور الأصناف'
         true,
         { unit_price: '100' },
       );
-      expect(flushed).toHaveLength(1);
-      expect(flushed[0].qty).toBe('5');
-      expect(flushed[0].unit_price).toBe('100');
+      expect(flushed).toMatchObject({
+        lines: [{ qty: '5', unit_price: '100' }],
+        adjusted: false,
+      });
     });
 
     it('يقيد الكمية بالرصيد المتاح إذا كانت الكمية المعلقة تتجاوزه', () => {
@@ -197,14 +198,36 @@ describe('docLineEntry - محرك التحقق ودمج سطور الأصناف'
         true,
         { unit_price: '100' },
       );
-      expect(flushed).toHaveLength(1);
-      expect(flushed[0].qty).toBe('8');
+      expect(flushed).toMatchObject({ lines: [{ qty: '8' }], adjusted: true });
     });
 
-    it('يتجاهل السطر المعلق إذا لم يكن هناك صنف أو كانت الكمية <= 0', () => {
+    it('يتجاهل سطر الإدخال الفارغ ويوقف الحفظ إذا اختير صنف بكمية غير صالحة', () => {
       const existing: DocLineBase[] = [{ key: 'line-1', item_id: 'item-1', qty: '3' }];
-      expect(flushPendingDocLine(existing, '', '5', 10, true)).toEqual(existing);
-      expect(flushPendingDocLine(existing, 'item-2', '0', 10, true)).toEqual(existing);
+      expect(flushPendingDocLine(existing, '', '5', 10, true)?.lines).toBe(existing);
+      expect(flushPendingDocLine(existing, 'item-2', '0', 10, true)).toBeNull();
+    });
+
+    it('يحسب المتبقي بعد خصم الكمية الموجودة ويطلب مراجعة التعديل قبل الحفظ', () => {
+      const existing = [{ key: 'line-1', item_id: 'item-1', qty: '8' }];
+      expect(flushPendingDocLine(existing, 'item-1', '5', 10, true))
+        .toEqual({ lines: [{ ...existing[0], qty: '10' }], adjusted: true });
+      expect(existing[0].qty).toBe('8');
+    });
+
+    it('يوقف الحفظ إذا كان الرصيد صفر أو استُخدم بالكامل في المستند', () => {
+      const existing = [{ key: 'line-1', item_id: 'item-1', qty: '8' }];
+      expect(flushPendingDocLine(existing, 'item-2', '1', 0, true)).toBeNull();
+      expect(flushPendingDocLine(existing, 'item-1', '1', 8, true)).toBeNull();
+    });
+
+    it('يحافظ على أربع خانات عشرية عند الدمج في مساري الإضافة والحفظ', () => {
+      const lines = [{ key: 'line-1', item_id: 'item-1', qty: '0.1001' }];
+      const added = mergeOrInsertDocLine({
+        lines, itemId: 'item-1', qty: 0.0049, availableStock: 0.105, isStockLimited: true,
+      });
+      const flushed = flushPendingDocLine(lines, 'item-1', '0.0049', 0.105, true);
+      expect(added?.[0].qty).toBe('0.105');
+      expect(flushed).toEqual({ lines: added, adjusted: false });
     });
   });
 });

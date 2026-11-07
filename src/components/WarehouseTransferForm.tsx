@@ -259,18 +259,21 @@ export default function WarehouseTransferForm({
     }
 
     // إدراج الصنف المعلق في شريط الإدخال تلقائياً
-    const activeLines = flushPendingDocLine(
+    const pending = flushPendingDocLine(
       lines,
       entryItemId,
       entryQty,
       entryAvailableStock,
       true,
     );
+    if (!pending) return;
+    const { lines: activeLines, adjusted } = pending;
     if (activeLines !== lines) {
       setLines(activeLines);
       setEntryItemId('');
       setEntryQty('1');
     }
+    if (adjusted) return;
 
     pendingSaveLines.current = activeLines;
 

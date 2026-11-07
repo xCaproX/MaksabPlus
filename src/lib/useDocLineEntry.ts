@@ -81,9 +81,8 @@ export function useDocLineEntry<T extends DocLineBase = DocLineBase>({
   );
 
   const flushPending = useCallback(
-    (currentLines: T[], extra?: Record<string, unknown>): T[] => {
-      if (!entryItemId) return currentLines;
-      const flushed = flushPendingDocLine<T>(
+    (currentLines: T[], extra?: Record<string, unknown>): T[] | null => {
+      const pending = flushPendingDocLine<T>(
         currentLines,
         entryItemId,
         entryQty,
@@ -91,11 +90,14 @@ export function useDocLineEntry<T extends DocLineBase = DocLineBase>({
         isStockLimited,
         extra,
       );
-      setLines(flushed);
+      if (!pending) return null;
+      if (pending.lines === currentLines) return currentLines;
+      setLines(pending.lines);
       setEntryItemId('');
+      setEntryAsyncOption(null);
       setEntryQty('1');
       setEntryUnitPrice('');
-      return flushed;
+      return pending.adjusted ? null : pending.lines;
     },
     [entryItemId, entryQty, availableStock, isStockLimited, setLines],
   );

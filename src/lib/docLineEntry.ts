@@ -1,5 +1,5 @@
 import { toast } from '../components/Toast';
-import { qty as formatQty, round2 } from './format';
+import { qty as formatQty } from './format';
 
 export interface DocLineBase {
   key: string;
@@ -72,7 +72,11 @@ export interface MergeOrInsertOptions<T extends DocLineBase = DocLineBase> {
  * - يعدل الكمية تلقائياً إذا كانت الإضافة تتجاوز المتبقي
  * - يحدث السطر السابق أو يضيف سطراً جديداً بـ UUID فريد
  */
-export function mergeOrInsertDocLine<T extends DocLineBase = DocLineBase>({
+export function mergeOrInsertDocLine<T extends DocLineBase>(options: MergeOrInsertOptions<T>): T[] | null {
+  return prepareDocLine(options)?.lines ?? null;
+}
+
+function prepareDocLine<T extends DocLineBase>({
   lines,
   itemId,
   itemName,
@@ -81,45 +85,50 @@ export function mergeOrInsertDocLine<T extends DocLineBase = DocLineBase>({
   isStockLimited,
   extra,
   docLabel = 'المستند',
-}: MergeOrInsertOptions<T>): T[] | null {
+}: MergeOrInsertOptions<T>): { lines: T[]; adjusted: boolean } | null {
   if (!itemId) {
     toast.warning('اختر صنفاً أولاً');
     return null;
   }
 
-  let qtyNum = qty;
-  if (!(qtyNum > 0)) {
+  let qtyNum = Math.round(qty * 10_000);
+  if (!Number.isFinite(qtyNum) || qtyNum <= 0) {
     toast.warning('الكمية يجب أن تكون أكبر من صفر');
     return null;
   }
 
+  const existingIndex = lines.findIndex((line) => line.item_id === itemId);
+  const existing = lines[existingIndex];
+  const currentQty = Math.round(Number(existing?.qty || 0) * 10_000);
+  let adjusted = qtyNum / 10_000 !== qty;
   if (isStockLimited) {
-    if (availableStock <= 0) {
+    const stock = Math.round(availableStock * 10_000);
+    if (stock <= 0) {
       toast.warning('الصنف غير متوفر بالمخزن');
       return null;
     }
 
-    const existingInList = lines.find((l) => l.item_id === itemId);
-    const currentInList = existingInList ? Number(existingInList.qty || 0) : 0;
-
-    if (currentInList >= availableStock) {
+    if (currentQty >= stock) {
       toast.warning(`الكمية المتاحة بالكامل (${formatQty(availableStock)}) موجودة بالفعل في ${docLabel}`);
       return null;
     }
 
-    if (currentInList + qtyNum > availableStock) {
-      qtyNum = availableStock - currentInList;
+    if (currentQty + qtyNum > stock) {
+      qtyNum = stock - currentQty;
+      adjusted = true;
       toast.warning(
-        `تم تعديل الكمية المضافة إلى ${formatQty(qtyNum)} لتتوافق مع المتبقي من الرصيد المتاح`,
+        `تم تعديل الكمية المضافة إلى ${formatQty(qtyNum / 10_000)} لتتوافق مع المتبقي من الرصيد المتاح`,
       );
     }
   }
 
-  const existingIndex = lines.findIndex((l) => l.item_id === itemId);
-  if (existingIndex >= 0) {
+  if (adjusted && qtyNum === Math.round(qty * 10_000)) {
+    toast.warning(`تم تقريب الكمية المضافة إلى ${formatQty(qtyNum / 10_000)}`);
+  }
+
+  if (existing) {
     const updated = [...lines];
-    const existing = updated[existingIndex];
-    const mergedQty = round2(Number(existing.qty || 0) + qtyNum);
+    const mergedQty = (currentQty + qtyNum) / 10_000;
     updated[existingIndex] = {
       ...existing,
       ...extra,
@@ -128,58 +137,38 @@ export function mergeOrInsertDocLine<T extends DocLineBase = DocLineBase>({
     if (itemName) {
       toast.info(`تم تحديث كمية "${itemName}" إلى (${formatQty(mergedQty)})`);
     }
-    return updated;
+    return { lines: updated, adjusted };
   }
 
   const newLine = {
     key: crypto.randomUUID(),
     item_id: itemId,
-    qty: String(qtyNum),
     ...extra,
+    qty: String(qtyNum / 10_000),
   } as unknown as T;
 
-  return [...lines, newLine];
+  return { lines: [...lines, newLine], adjusted };
 }
 
 /**
  * إدراج الصنف المعلق في شريط الإدخال الثابت تلقائياً قبل الحفظ:
  */
 export function flushPendingDocLine<T extends DocLineBase = DocLineBase>(
-  lines: readonly T[],
+  lines: T[],
   entryItemId: string,
   entryQty: string,
   availableStock: number,
   isStockLimited: boolean,
   extra?: Record<string, unknown>,
-): T[] {
-  if (!entryItemId) return [...lines];
+): { lines: T[]; adjusted: boolean } | null {
+  if (!entryItemId) return { lines, adjusted: false };
 
-  let qtyNum = Number(entryQty || 0);
-  if (!(qtyNum > 0)) return [...lines];
-
-  if (isStockLimited && availableStock > 0 && qtyNum > availableStock) {
-    qtyNum = availableStock;
-  }
-
-  const existingIndex = lines.findIndex((l) => l.item_id === entryItemId);
-  if (existingIndex >= 0) {
-    const updated = [...lines];
-    const existing = updated[existingIndex];
-    const mergedQty = round2(Number(existing.qty || 0) + qtyNum);
-    updated[existingIndex] = {
-      ...existing,
-      ...extra,
-      qty: String(mergedQty),
-    };
-    return updated;
-  }
-
-  const newLine = {
-    key: crypto.randomUUID(),
-    item_id: entryItemId,
-    qty: String(qtyNum),
-    ...extra,
-  } as unknown as T;
-
-  return [...lines, newLine];
+  return prepareDocLine({
+    lines,
+    itemId: entryItemId,
+    qty: Number(entryQty),
+    availableStock,
+    isStockLimited,
+    extra,
+  });
 }

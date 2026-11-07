@@ -416,7 +416,7 @@ export default function InvoiceForm({
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const priceNum = Number(entryUnitPrice || 0);
-    const activeLines = flushPendingDocLine(
+    const pending = flushPendingDocLine(
       lines,
       entryItemId,
       entryQty,
@@ -424,6 +424,8 @@ export default function InvoiceForm({
       isStockLimited,
       { unit_price: String(priceNum) },
     );
+    if (!pending) return;
+    const { lines: activeLines, adjusted } = pending;
     if (activeLines !== lines) {
       setLines(activeLines);
       setEntryItemId('');
@@ -431,6 +433,7 @@ export default function InvoiceForm({
       setEntryQty('1');
       setEntryUnitPrice('');
     }
+    if (adjusted) return;
 
     pendingSaveLines.current = activeLines;
 
