@@ -1,3 +1,4 @@
+import { useCompleteStatement } from '../../lib/useCompleteStatement';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
@@ -106,8 +107,8 @@ export default function ItemBalancesTab() {
   const [itemStatementRow, setItemStatementRow] = useState<WarehouseItemRow | null>(null);
   const [statementFrom, setStatementFrom] = useState(() => periodDates().from);
   const [statementTo, setStatementTo] = useState(() => periodDates().to);
-  const [itemStatementRows, setItemStatementRows] = useState<ItemMovementStatementRow[]>([]);
-  const [itemStatementLoading, setItemStatementLoading] = useState(false);
+  const { rows: itemStatementRows, loading: itemStatementLoading, load: loadCompleteStatement, reset: resetStatement } =
+    useCompleteStatement<ItemMovementStatementRow>();
 
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === selectedWarehouseId);
 
@@ -244,28 +245,20 @@ export default function ItemBalancesTab() {
     setItemStatementRow(row);
     setStatementFrom(periodDates().from);
     setStatementTo(periodDates().to);
-    setItemStatementRows([]);
+    resetStatement();
   }
 
   async function loadItemStatement(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!itemStatementRow) return;
-    setItemStatementLoading(true);
-
-    const { data, error: rpcError } = await supabase.rpc('get_item_movement_statement', {
-      p_item_id: itemStatementRow.item_id,
-      p_warehouse_id: itemStatementRow.warehouse_id,
-      p_from: statementFrom,
-      p_to: statementTo,
-    });
-
-    setItemStatementLoading(false);
-    if (rpcError) {
-      toast.error(translateDbError(rpcError.message));
-      setItemStatementRows([]);
-    } else {
-      setItemStatementRows((data ?? []) as ItemMovementStatementRow[]);
-    }
+    await loadCompleteStatement((from, to, signal) =>
+      supabase.rpc('get_item_movement_statement', {
+        p_item_id: itemStatementRow.item_id,
+        p_warehouse_id: itemStatementRow.warehouse_id,
+        p_from: statementFrom,
+        p_to: statementTo,
+      }, { count: 'exact' }).range(from, to).abortSignal(signal),
+    );
   }
 
   return (
@@ -487,7 +480,7 @@ export default function ItemBalancesTab() {
           title="كشف حركة صنف"
           className="account-statement-modal"
           backdropClassName="statement-modal-backdrop"
-          onClose={() => setItemStatementRow(null)}
+          onClose={() => { resetStatement(); setItemStatementRow(null); }}
         >
           <div className="account-statement-print">
             <div className="account-statement-heading">
@@ -501,7 +494,7 @@ export default function ItemBalancesTab() {
               </div>
               <div className="account-statement-period">
                 <PeriodFilter from={statementFrom} to={statementTo} required disabled={itemStatementLoading}
-                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); setItemStatementRows([]); }} />
+                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); resetStatement(); }} />
               </div>
             </div>
 

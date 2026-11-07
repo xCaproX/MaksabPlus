@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { translateDbError } from '../lib/errors';
+import { errorMessage } from '../lib/errors';
+import { collectAllRows } from '../lib/exportRows';
+import { loadAllWarehouses } from '../lib/masterDataQueries';
 import type {
   AccountRow,
   CashBoxRow,
@@ -11,6 +13,10 @@ import type {
 
 export type MasterDataResource = 'accounts' | 'items' | 'warehouses' | 'cashBoxes' | 'stock';
 
+type ResourceStatus = { loading: boolean; error: string | null; hasLoaded: boolean };
+
+const pending: ResourceStatus = { loading: true, error: null, hasLoaded: false };
+
 export interface MasterDataContextType {
   accounts: AccountRow[];
   items: ItemRow[];
@@ -18,7 +24,7 @@ export interface MasterDataContextType {
   cashBoxes: CashBoxRow[];
   stockRows: StockOpeningRow[];
   loading: boolean;
-  error: string | null;
+  resourceStatus: Record<MasterDataResource, ResourceStatus>;
   refresh: (keys?: MasterDataResource[]) => Promise<void>;
 }
 
@@ -30,83 +36,60 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
   const [cashBoxes, setCashBoxes] = useState<CashBoxRow[]>([]);
   const [stockRows, setStockRows] = useState<StockOpeningRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [resourceStatus, setResourceStatus] = useState({
+    accounts: pending, items: pending, warehouses: pending, cashBoxes: pending, stock: pending,
+  });
+  const requests = useRef<Partial<Record<MasterDataResource, symbol>>>({});
 
   const fetchResources = useCallback(async (keys?: MasterDataResource[]) => {
-    const shouldFetch = (key: MasterDataResource) => !keys || keys.includes(key);
+    const selected = keys ?? ['accounts', 'items', 'warehouses', 'cashBoxes', 'stock'];
 
-    const promises: Promise<void>[] = [];
-    let fetchError: string | null = null;
-
-    if (shouldFetch('accounts')) {
-      promises.push(
-        (async () => {
-          const { data, error: err } = await supabase
-            .from('v_account_balances')
-            .select('*')
-            .order('name');
-          if (err) fetchError = translateDbError(err.message);
-          else if (data) setAccounts(data as AccountRow[]);
-        })(),
-      );
+    async function load<Row>(
+      key: MasterDataResource,
+      fetchRows: () => Promise<Row[]>,
+      publish: (rows: Row[]) => void,
+    ) {
+      const request = Symbol(key);
+      requests.current[key] = request;
+      setResourceStatus((status) => ({
+        ...status, [key]: { ...status[key], loading: true, error: null },
+      }));
+      let error: string | null = null;
+      try {
+        const rows = await fetchRows();
+        if (requests.current[key] === request) publish(rows);
+      } catch (cause) {
+        error = errorMessage(cause);
+      } finally {
+        if (requests.current[key] === request) {
+          setResourceStatus((status) => ({
+            ...status, [key]: { loading: false, error, hasLoaded: !error || status[key].hasLoaded },
+          }));
+        }
+      }
     }
 
-    if (shouldFetch('items')) {
-      promises.push(
-        (async () => {
-          const { data, error: err } = await supabase
-            .from('v_item_stock')
-            .select('*')
-            .order('name');
-          if (err) fetchError = translateDbError(err.message);
-          else if (data) setItems(data as ItemRow[]);
-        })(),
-      );
-    }
-
-    if (shouldFetch('warehouses')) {
-      promises.push(
-        (async () => {
-          const { data, error: err } = await supabase
-            .from('warehouses')
-            .select('*')
-            .order('name');
-          if (err) fetchError = translateDbError(err.message);
-          else if (data) setWarehouses(data as WarehouseOption[]);
-        })(),
-      );
-    }
-
-    if (shouldFetch('cashBoxes')) {
-      promises.push(
-        (async () => {
-          const { data, error: err } = await supabase
-            .from('v_cash_box_balances')
-            .select('*')
-            .order('name');
-          if (err) fetchError = translateDbError(err.message);
-          else if (data) setCashBoxes(data as CashBoxRow[]);
-        })(),
-      );
-    }
-
-    if (shouldFetch('stock')) {
-      promises.push(
-        (async () => {
-          const { data, error: err } = await supabase
-            .from('v_stock_opening_balances')
-            .select('*')
-            .order('warehouse_name')
-            .order('item_name');
-          if (err) fetchError = translateDbError(err.message);
-          else if (data) setStockRows(data as StockOpeningRow[]);
-        })(),
-      );
-    }
-
-    await Promise.all(promises);
-    setError(fetchError);
+    const loaders: Record<MasterDataResource, () => Promise<void>> = {
+      accounts: () => load<AccountRow>('accounts', () => collectAllRows((from, to) =>
+        supabase.from('v_account_balances').select('*', { count: 'exact' })
+          .order('name').order('id').range(from, to),
+      ), setAccounts),
+      items: () => load<ItemRow>('items', () => collectAllRows((from, to) =>
+        supabase.from('v_item_stock').select('*', { count: 'exact' })
+          .order('name').order('id').range(from, to),
+      ), setItems),
+      warehouses: () => load('warehouses', loadAllWarehouses, setWarehouses),
+      cashBoxes: () => load<CashBoxRow>('cashBoxes', () => collectAllRows((from, to) =>
+        supabase.from('v_cash_box_balances').select('*', { count: 'exact' })
+          .order('name').order('id').range(from, to),
+      ), setCashBoxes),
+      stock: () => load<StockOpeningRow>('stock', () => collectAllRows((from, to) =>
+        supabase.from('v_stock_opening_balances').select('*', { count: 'exact' })
+          .order('warehouse_name').order('item_name')
+          .order('warehouse_id').order('item_id').range(from, to),
+      ), setStockRows),
+    };
+    await Promise.all(selected.map((key) => loaders[key]()));
   }, []);
 
   const refresh = useCallback(
@@ -118,12 +101,11 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
 
     async function bootstrap() {
       // تحميل البيانات الإعدادية الخفيفة أولاً لفتح الواجهة فورياً
       await fetchResources(['warehouses', 'cashBoxes']);
-      if (alive) setLoading(false);
+      if (!alive) return;
 
       // استكمال تحميل الحسابات والأصناف في الخلفية دون حظر واجهة المستخدم
       await fetchResources(['accounts', 'items', 'stock']);
@@ -144,8 +126,8 @@ export function MasterDataProvider({ children }: { children: ReactNode }) {
         warehouses,
         cashBoxes,
         stockRows,
-        loading,
-        error,
+        loading: resourceStatus.cashBoxes.loading || resourceStatus.warehouses.loading,
+        resourceStatus,
         refresh,
       }}
     >

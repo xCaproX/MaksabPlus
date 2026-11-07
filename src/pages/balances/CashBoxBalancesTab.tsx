@@ -1,3 +1,4 @@
+import { useCompleteStatement } from '../../lib/useCompleteStatement';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import { matchesColumnFilters } from '../../lib/columnFilters';
@@ -13,12 +14,10 @@ import {
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, formatDate, money } from '../../lib/format';
-import { translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import PeriodFilter from '../../components/PeriodFilter';
 import { periodDates } from '../../lib/period';
 import SortableHeader from '../../components/SortableHeader';
-import { toast } from '../../components/Toast';
 import { matchesSearchQuery } from '../../lib/search';
 import { useMasterData } from '../../context/MasterDataContext';
 import type { CashBoxRow, CashBoxStatementRow } from '../../lib/types';
@@ -34,7 +33,8 @@ type BalanceSort =
 const PAGE_SIZE = 20;
 
 export default function CashBoxBalancesTab() {
-  const { cashBoxes, loading } = useMasterData();
+  const { cashBoxes, resourceStatus } = useMasterData();
+  const { loading, error } = resourceStatus.cashBoxes;
 
   // الفلاتر
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,8 +51,8 @@ export default function CashBoxBalancesTab() {
   const [cashStatementBox, setCashStatementBox] = useState<CashBoxRow | null>(null);
   const [statementFrom, setStatementFrom] = useState(() => periodDates().from);
   const [statementTo, setStatementTo] = useState(() => periodDates().to);
-  const [cashStatementRows, setCashStatementRows] = useState<CashBoxStatementRow[]>([]);
-  const [cashStatementLoading, setCashStatementLoading] = useState(false);
+  const { rows: cashStatementRows, loading: cashStatementLoading, load: loadCompleteStatement, reset: resetStatement } =
+    useCompleteStatement<CashBoxStatementRow>();
 
   // تصفية وترتيب الخزن
   const filteredCashBoxes = useMemo(() => {
@@ -117,31 +117,28 @@ export default function CashBoxBalancesTab() {
     setCashStatementBox(box);
     setStatementFrom(periodDates().from);
     setStatementTo(periodDates().to);
-    setCashStatementRows([]);
+    resetStatement();
   }
 
   async function loadCashBoxStatement(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!cashStatementBox) return;
-    setCashStatementLoading(true);
-
-    const { data, error: rpcError } = await supabase.rpc('get_cash_box_statement', {
-      p_cash_box_id: cashStatementBox.id,
-      p_from: statementFrom,
-      p_to: statementTo,
-    });
-
-    setCashStatementLoading(false);
-    if (rpcError) {
-      toast.error(translateDbError(rpcError.message));
-      setCashStatementRows([]);
-    } else {
-      setCashStatementRows((data ?? []) as CashBoxStatementRow[]);
-    }
+    await loadCompleteStatement((from, to, signal) =>
+      supabase.rpc('get_cash_box_statement', {
+        p_cash_box_id: cashStatementBox.id,
+        p_from: statementFrom,
+        p_to: statementTo,
+      }, { count: 'exact' }).range(from, to).abortSignal(signal),
+    );
   }
 
   return (
     <>
+      {error && (
+        <p className="empty-state" role="alert">
+          تعذّر تحديث أرصدة الخزن كاملة. حدّث الصفحة وحاول مرة أخرى.
+        </p>
+      )}
       <KpiBar items={kpiItems} ariaLabel="مؤشرات أرصدة الخزن" />
 
       <div className={selectedBox ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
@@ -201,7 +198,7 @@ export default function CashBoxBalancesTab() {
                     </td>
                   </tr>
                 )}
-                {!loading && pagedBoxes.length === 0 && (
+                {!loading && !error && pagedBoxes.length === 0 && (
                   <tr>
                     <td colSpan={5} className="empty">
                       لا توجد خزن تطابق البحث.
@@ -330,7 +327,7 @@ export default function CashBoxBalancesTab() {
           title="كشف حركة خزنة"
           className="account-statement-modal"
           backdropClassName="statement-modal-backdrop"
-          onClose={() => setCashStatementBox(null)}
+          onClose={() => { resetStatement(); setCashStatementBox(null); }}
         >
           <div className="account-statement-print">
             <div className="account-statement-heading">
@@ -340,7 +337,7 @@ export default function CashBoxBalancesTab() {
               </div>
               <div className="account-statement-period">
                 <PeriodFilter from={statementFrom} to={statementTo} required disabled={cashStatementLoading}
-                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); setCashStatementRows([]); }} />
+                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); resetStatement(); }} />
               </div>
             </div>
 

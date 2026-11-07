@@ -5,12 +5,13 @@ import Pagination from '../components/Pagination';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { translateDbError } from '../lib/errors';
+import { errorMessage, translateDbError } from '../lib/errors';
 import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import DocumentListToolbar from '../components/DocumentListToolbar';
+import { collectAllRows } from '../lib/exportRows';
 import { documentListQuery } from '../lib/documentListQuery';
 import { periodDates } from '../lib/period';
 import KpiBar from '../components/KpiBar';
@@ -37,6 +38,25 @@ import WarehouseTransferTable from './invoices/WarehouseTransferTable';
 interface EditingInvoice {
   invoice: InvoiceRow;
   lines: LineDraft[];
+}
+
+function loadInvoiceLines(invoiceId: string) {
+  return collectAllRows<{ item_id: string; qty: number; unit_price: number }>((from, to) =>
+    supabase.from('invoice_items').select('item_id, qty, unit_price', { count: 'exact' })
+      .eq('invoice_id', invoiceId).order('created_at').order('id').range(from, to),
+  ).then((rows) => rows.map((line) => ({
+    key: crypto.randomUUID(),
+    item_id: line.item_id,
+    qty: String(Number(line.qty)),
+    unit_price: String(Number(line.unit_price)),
+  })));
+}
+
+function loadTransferLines(transferId: string) {
+  return collectAllRows<WarehouseTransferLine>((from, to) =>
+    supabase.from('v_warehouse_transfer_items').select('item_id, qty, unit_cost', { count: 'exact' })
+      .eq('transfer_id', transferId).order('item_id').order('id').range(from, to),
+  );
 }
 
 const PAGE_SIZE = 20;
@@ -375,45 +395,28 @@ export default function Invoices() {
 
   async function openTransferModal(transfer: WarehouseTransferRow, mode: 'view' | 'edit' = 'view') {
     openedTransferFromViewRef.current = mode === 'view';
-    const { data, error: linesError } = await supabase
-      .from('v_warehouse_transfer_items')
-      .select('item_id, qty, unit_cost')
-      .eq('transfer_id', transfer.id)
-      .order('item_id');
-    if (linesError) {
-      toast.error(translateDbError(linesError.message));
+    try {
+      const lines = await loadTransferLines(transfer.id);
+      setEditingTransfer({ ...transfer, lines });
+      setEditing(null);
+    } catch (error) {
+      toast.error(errorMessage(error));
       return;
     }
-    setEditingTransfer({ ...transfer, lines: (data ?? []) as WarehouseTransferLine[] });
-    setEditing(null);
     setModalMode(mode);
     setFormOpen(true);
   }
 
   async function openInvoiceModal(invoice: InvoiceRow, mode: 'view' | 'edit' = 'view') {
     openedFromViewRef.current = mode === 'view';
-    const { data, error: linesError } = await supabase
-      .from('invoice_items')
-      .select('item_id, qty, unit_price')
-      .eq('invoice_id', invoice.id)
-      .order('created_at');
-
-    if (linesError) {
-      toast.error(translateDbError(linesError.message));
+    try {
+      const lines = await loadInvoiceLines(invoice.id);
+      setEditing({ invoice, lines });
+      setEditingTransfer(null);
+    } catch (error) {
+      toast.error(errorMessage(error));
       return;
     }
-
-    const lines = ((data ?? []) as { item_id: string; qty: number; unit_price: number }[]).map(
-      (line) => ({
-        key: crypto.randomUUID(),
-        item_id: line.item_id,
-        qty: String(Number(line.qty)),
-        unit_price: String(Number(line.unit_price)),
-      }),
-    );
-
-    setEditing({ invoice, lines });
-    setEditingTransfer(null);
     setModalMode(mode);
     setFormOpen(true);
   }
@@ -525,51 +528,34 @@ export default function Invoices() {
     setVersion((current) => current + 1);
     void refresh();
 
-    if (modalMode === 'edit' && openedFromViewRef.current && editing) {
-      const invoiceId = editing.invoice.id;
-      const [invRes, linesRes] = await Promise.all([
-        supabase.from('v_invoice_list').select('*').eq('id', invoiceId).maybeSingle(),
-        supabase
-          .from('invoice_items')
-          .select('item_id, qty, unit_price')
-          .eq('invoice_id', invoiceId)
-          .order('created_at'),
-      ]);
-
-      if (invRes.data && !invRes.error && linesRes.data && !linesRes.error) {
-        const lines = ((linesRes.data ?? []) as { item_id: string; qty: number; unit_price: number }[]).map(
-          (line) => ({
-            key: crypto.randomUUID(),
-            item_id: line.item_id,
-            qty: String(Number(line.qty)),
-            unit_price: String(Number(line.unit_price)),
-          }),
-        );
-        setEditing({ invoice: invRes.data as InvoiceRow, lines });
-        setModalMode('view');
-        return;
+    try {
+      if (modalMode === 'edit' && openedFromViewRef.current && editing) {
+        const invoiceId = editing.invoice.id;
+        const [invoice, lines] = await Promise.all([
+          supabase.from('v_invoice_list').select('*').eq('id', invoiceId).maybeSingle(),
+          loadInvoiceLines(invoiceId),
+        ]);
+        if (invoice.data && !invoice.error) {
+          setEditing({ invoice: invoice.data as InvoiceRow, lines });
+          setModalMode('view');
+          return;
+        }
       }
-    }
 
-    if (modalMode === 'edit' && openedTransferFromViewRef.current && editingTransfer) {
-      const transferId = editingTransfer.id;
-      const [trRes, linesRes] = await Promise.all([
-        supabase.from('v_warehouse_transfer_list').select('*').eq('id', transferId).maybeSingle(),
-        supabase
-          .from('v_warehouse_transfer_items')
-          .select('item_id, qty, unit_cost')
-          .eq('transfer_id', transferId)
-          .order('item_id'),
-      ]);
-
-      if (trRes.data && !trRes.error && linesRes.data && !linesRes.error) {
-        setEditingTransfer({
-          ...(trRes.data as WarehouseTransferRow),
-          lines: (linesRes.data ?? []) as WarehouseTransferLine[],
-        });
-        setModalMode('view');
-        return;
+      if (modalMode === 'edit' && openedTransferFromViewRef.current && editingTransfer) {
+        const transferId = editingTransfer.id;
+        const [transfer, lines] = await Promise.all([
+          supabase.from('v_warehouse_transfer_list').select('*').eq('id', transferId).maybeSingle(),
+          loadTransferLines(transferId),
+        ]);
+        if (transfer.data && !transfer.error) {
+          setEditingTransfer({ ...(transfer.data as WarehouseTransferRow), lines });
+          setModalMode('view');
+          return;
+        }
       }
+    } catch (error) {
+      toast.error(errorMessage(error));
     }
 
     setFormOpen(false);

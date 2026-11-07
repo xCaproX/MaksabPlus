@@ -1,3 +1,4 @@
+import { loadAllWarehouses } from '../../lib/masterDataQueries';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import { matchesColumnFilters } from '../../lib/columnFilters';
@@ -75,15 +76,9 @@ export default function WarehousesTab({ addTrigger }: WarehousesTabProps) {
     async function load() {
       setLoading(true);
       try {
-        const { data, error } = await supabase.from('warehouses').select('*').order('name');
+        const rows = await loadAllWarehouses<WarehouseRecord>();
         if (!alive) return;
-        if (error) {
-          toast.error(translateDbError(error.message));
-          setLoading(false);
-          return;
-        }
-
-        setWarehouses((data ?? []) as WarehouseRecord[]);
+        setWarehouses(rows);
         setLoading(false);
       } catch (err: unknown) {
         if (!alive) return;

@@ -42,7 +42,13 @@ export default function Management() {
     tab === 'users' || tab === 'reconciliations' ? access?.role === 'owner' : can(`management.${tab}.view`);
   const canEditOpening = can(`management.${tab}.edit`);
 
-  const { accounts: rawAccounts, cashBoxes, stockRows, warehouses: rawWarehouses, loading, refresh } = useMasterData();
+  const { accounts: rawAccounts, cashBoxes, stockRows, warehouses: rawWarehouses, resourceStatus, refresh } = useMasterData();
+  const resources = tab === 'customers' || tab === 'suppliers' ? [resourceStatus.accounts]
+    : tab === 'items' ? [resourceStatus.stock, resourceStatus.warehouses]
+      : tab === 'cashBoxes' ? [resourceStatus.cashBoxes] : [];
+  const loading = resources.some((resource) => resource.loading);
+  const hasLoaded = resources.every((resource) => resource.hasLoaded);
+  const loadError = resources.find((resource) => resource.error)?.error;
   const accounts = useMemo(() => rawAccounts.filter((account) => account.system_key === null), [rawAccounts]);
   const warehouses = useMemo(() => rawWarehouses.filter((w) => w.is_active !== false), [rawWarehouses]);
   const [saving, setSaving] = useState(false);
@@ -115,7 +121,7 @@ export default function Management() {
             <button
               type="button"
               className="btn primary"
-              disabled={saving}
+              disabled={saving || loading || Boolean(loadError)}
               onClick={() => setSaveTrigger((count) => count + 1)}
             >
               {saving ? 'جارٍ الحفظ…' : saveBtnLabel}
@@ -137,11 +143,17 @@ export default function Management() {
         ))}
       </div>
 
+      {canViewCurrentTab && loadError && (
+        <div className="empty-state" role="alert">
+          <p>تعذّر تحميل البيانات كاملة. حدّث الصفحة وحاول مرة أخرى.</p>
+        </div>
+      )}
+
       {!canViewCurrentTab ? (
         <div className="empty-state">
           <p>ليس لديك صلاحية لعرض هذا القسم.</p>
         </div>
-      ) : loading ? (
+      ) : !hasLoaded && loadError ? null : !hasLoaded ? (
         <div className="loading-state">
           <p>جاري تحميل البيانات...</p>
         </div>

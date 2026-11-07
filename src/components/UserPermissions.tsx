@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
+import { collectAllRows } from '../lib/exportRows';
 import Modal from './Modal';
 import SearchableSelect from './SearchableSelect';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -85,14 +86,9 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
     setLoading(true);
     setError('');
     try {
-      const { data, error: rpcError } = await supabase.rpc('list_company_users');
-      let loaded: CompanyUser[] = [];
-      if (!rpcError && data) {
-        loaded = data as CompanyUser[];
-      } else {
-        const edgeData = await request('list');
-        loaded = (edgeData.users ?? []) as CompanyUser[];
-      }
+      const loaded = await collectAllRows<CompanyUser>((from, to) =>
+        supabase.rpc('list_company_users', undefined, { count: 'exact' }).range(from, to),
+      );
       setUsers(loaded);
       setDrafts(Object.fromEntries(loaded.map((user) => [user.user_id, user.permission_keys ?? []])));
       setSelectedUserId((current) => {

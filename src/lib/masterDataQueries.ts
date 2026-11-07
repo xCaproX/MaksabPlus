@@ -1,7 +1,8 @@
+import { collectAllRows } from './exportRows';
 import { supabase } from './supabase';
 import { qty as formatQty } from './format';
 import { buildPostgrestOrFilter } from './search';
-import type { AccountKind } from './types';
+import type { AccountKind, WarehouseOption } from './types';
 import type { SearchOption } from '../components/SearchableSelect';
 
 interface AccountQueryResult {
@@ -166,4 +167,10 @@ export async function lookupBarcodeItem(
   }
 
   return null;
+}
+
+export function loadAllWarehouses<Row extends WarehouseOption = WarehouseOption>() {
+  return collectAllRows<Row>((from, to) =>
+    supabase.from('warehouses').select('*', { count: 'exact' }).order('name').order('id').range(from, to),
+  );
 }

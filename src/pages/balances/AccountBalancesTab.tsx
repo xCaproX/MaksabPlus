@@ -1,3 +1,4 @@
+import { useCompleteStatement } from '../../lib/useCompleteStatement';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
@@ -14,7 +15,7 @@ import {
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, formatDate, getBalanceStatus, money } from '../../lib/format';
-import { errorMessage, translateDbError } from '../../lib/errors';
+import { errorMessage } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import PeriodFilter from '../../components/PeriodFilter';
 import { periodDates } from '../../lib/period';
@@ -86,8 +87,8 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
   const [statementAccount, setStatementAccount] = useState<AccountRow | null>(null);
   const [statementFrom, setStatementFrom] = useState(() => periodDates().from);
   const [statementTo, setStatementTo] = useState(() => periodDates().to);
-  const [statementRows, setStatementRows] = useState<AccountStatementRow[]>([]);
-  const [statementLoading, setStatementLoading] = useState(false);
+  const { rows: statementRows, loading: statementLoading, load: loadCompleteStatement, reset: resetStatement } =
+    useCompleteStatement<AccountStatementRow>();
 
   // جلب الحسابات بالصفحات مع المؤشرات من السيرفر مباشرة
   useEffect(() => {
@@ -298,7 +299,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
 
   function openStatement(account: AccountRow) {
     setStatementAccount(account);
-    setStatementRows([]);
+    resetStatement();
     setStatementFrom(periodDates().from);
     setStatementTo(periodDates().to);
   }
@@ -307,20 +308,13 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
     if (event) event.preventDefault();
     if (!statementAccount || !statementFrom || !statementTo) return;
 
-    setStatementLoading(true);
-    const { data, error: rpcError } = await supabase.rpc('get_account_statement', {
-      p_account_id: statementAccount.id,
-      p_from: statementFrom,
-      p_to: statementTo,
-    });
-
-    setStatementLoading(false);
-    if (rpcError) {
-      toast.error(translateDbError(rpcError.message));
-      setStatementRows([]);
-    } else {
-      setStatementRows((data ?? []) as AccountStatementRow[]);
-    }
+    await loadCompleteStatement((from, to, signal) =>
+      supabase.rpc('get_account_statement', {
+        p_account_id: statementAccount.id,
+        p_from: statementFrom,
+        p_to: statementTo,
+      }, { count: 'exact' }).range(from, to).abortSignal(signal),
+    );
   }
 
   return (
@@ -548,7 +542,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
           title="كشف حساب"
           className="account-statement-modal"
           backdropClassName="statement-modal-backdrop"
-          onClose={() => setStatementAccount(null)}
+          onClose={() => { resetStatement(); setStatementAccount(null); }}
         >
           <div className="account-statement-print">
             <div className="account-statement-heading">
@@ -559,7 +553,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
               </div>
               <div className="account-statement-period">
                 <PeriodFilter from={statementFrom} to={statementTo} required disabled={statementLoading}
-                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); setStatementRows([]); }} />
+                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); resetStatement(); }} />
               </div>
             </div>
 

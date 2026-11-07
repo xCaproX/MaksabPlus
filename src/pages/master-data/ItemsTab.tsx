@@ -1,3 +1,4 @@
+import { loadAllWarehouses } from '../../lib/masterDataQueries';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
@@ -129,8 +130,12 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
   useEffect(() => {
     let alive = true;
     async function loadWarehouses() {
-      const { data } = await supabase.from('warehouses').select('*').order('name');
-      if (alive && data) setWarehouses(data as WarehouseOption[]);
+      try {
+        const rows = await loadAllWarehouses<WarehouseOption>();
+        if (alive) setWarehouses(rows);
+      } catch (error) {
+        if (alive) toast.error(errorMessage(error));
+      }
     }
     void loadWarehouses();
     return () => {

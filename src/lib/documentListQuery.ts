@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import type { ColumnValues } from './columnFilters';
-import type { ExportPage } from './exportRows';
+import type { CountedPage } from './exportRows';
 
 export type DocumentScope = 'invoice' | 'warehouse_transfer' | 'receipt' | 'cash_transfer';
 export interface DocumentListOptions {
@@ -16,7 +16,7 @@ export interface DocumentListOptions {
 export function documentListQuery<Row = unknown>(options: DocumentListOptions) {
   const { scope, kind, filters, dateFrom, dateTo, showDeleted, sortOrder } = options;
   return {
-    async range(from: number, to: number, signal?: AbortSignal): Promise<ExportPage<Row>> {
+    async range(from: number, to: number, signal?: AbortSignal): Promise<CountedPage<Row>> {
       const query = supabase.rpc('get_document_page', {
         p_scope: scope, p_columns: filters, p_kind: kind, p_search: null,
         p_date_from: dateFrom || null, p_date_to: dateTo || null,

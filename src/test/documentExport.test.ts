@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CellObject } from 'write-excel-file/browser';
-import { collectExportRows } from '../lib/exportRows';
+import { collectAllRows } from '../lib/exportRows';
 import { documentExcelData, type DocumentExportOptions } from '../lib/documentExcel';
 import { documentListQuery } from '../lib/documentListQuery';
 import { supabase } from '../lib/supabase';
@@ -16,19 +16,19 @@ describe('complete filtered document export',()=>{
   it('gets every row past server caps and page size, without duplicates',async()=>{
     const data=Array.from({length:1003},(_,id)=>({id}));
     const request=vi.fn(async(from:number,to:number)=>({data:data.slice(from,Math.min(to+1,from+173)),count:data.length,error:null}));
-    expect(await collectExportRows(request)).toEqual(data);
+    expect(await collectAllRows(request)).toEqual(data);
     expect(request.mock.calls.map(args=>args[0])).toEqual([0,173,346,519,692,865]);
   });
   it('exports an empty result and refuses partial data or a failed later page',async()=>{
-    expect(await collectExportRows(async()=>({data:[],count:0,error:null}))).toEqual([]);
-    await expect(collectExportRows(async()=>({data:[],count:1,error:null}))).rejects.toThrow('لم يكتمل');
+    expect(await collectAllRows(async()=>({data:[],count:0,error:null}))).toEqual([]);
+    await expect(collectAllRows(async()=>({data:[],count:1,error:null}))).rejects.toThrow('لم يكتمل');
     let count=0;
-    await expect(collectExportRows(async()=>++count===1?{data:[1],count:2,error:null}:{data:null,count:null,error:{message:'denied'}})).rejects.toThrow('denied');
+    await expect(collectAllRows(async()=>++count===1?{data:[1],count:2,error:null}:{data:null,count:null,error:{message:'denied'}})).rejects.toThrow('denied');
   });
   it('refuses a changed or unknown total instead of silently saving a partial workbook',async()=>{
     let call=0;
-    await expect(collectExportRows(async()=>({data:[1],count:++call===1?2:3,error:null}))).rejects.toThrow('اتغيرت');
-    await expect(collectExportRows(async()=>({data:[],count:null,error:null}))).rejects.toThrow('عدد');
+    await expect(collectAllRows(async()=>({data:[1],count:++call===1?2:3,error:null}))).rejects.toThrow('اتغيرت');
+    await expect(collectAllRows(async()=>({data:[],count:null,error:null}))).rejects.toThrow('عدد');
   });
   it('exports Arabic labels, real numeric/date cells, safe text, and only visible columns',()=>{
     const {data}=documentExcelData([row],options);
@@ -102,7 +102,7 @@ describe('one query for visible rows and exports',()=>{
       const parameters=args as {p_offset:number;p_limit:number};
       return Promise.resolve({data:{rows:rows.slice(parameters.p_offset,parameters.p_offset+parameters.p_limit),total_count:1003},error:null}) as never;
     });
-    expect(await collectExportRows((from,to)=>documentListQuery(options).range(from,to))).toEqual(rows);
+    expect(await collectAllRows((from,to)=>documentListQuery(options).range(from,to))).toEqual(rows);
     expect(vi.mocked(supabase.rpc).mock.calls.slice(-3).map(call=>call[1]?.p_offset)).toEqual([0,500,1000]);
   });
   it('sends null dates for an unbounded period', async () => {

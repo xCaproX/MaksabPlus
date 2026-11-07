@@ -1,3 +1,4 @@
+import { collectAllRows } from '../../lib/exportRows';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import { matchesColumnFilters } from '../../lib/columnFilters';
@@ -79,15 +80,11 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
     async function load() {
       setLoading(true);
       try {
-        const { data, error } = await supabase.from('cash_boxes').select('*').order('name');
+        const rows = await collectAllRows<CashBoxRecord>((from, to) =>
+          supabase.from('cash_boxes').select('*', { count: 'exact' }).order('name').order('id').range(from, to),
+        );
         if (!alive) return;
-        if (error) {
-          toast.error(translateDbError(error.message));
-          setLoading(false);
-          return;
-        }
-
-        setCashBoxes((data ?? []) as CashBoxRecord[]);
+        setCashBoxes(rows);
         setLoading(false);
       } catch (err: unknown) {
         if (!alive) return;
