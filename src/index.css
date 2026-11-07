@@ -24,6 +24,7 @@
 @import './styles/components/modals.css';
 @import './styles/components/alerts.css';
 @import './styles/components/toast.css';
+@import './styles/components/empty-state.css';
 
 /* Pages & Complex Views */
 @import './styles/pages/auth.css';

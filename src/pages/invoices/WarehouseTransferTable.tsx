@@ -4,6 +4,7 @@ import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
+import EmptyState from '../../components/EmptyState';
 import type { WarehouseTransferRow } from '../../lib/types';
 import type { SaleSort } from './InvoiceTable';
 
@@ -84,11 +85,11 @@ export default function WarehouseTransferTable({
           </tr>
         )}
         {!loading && pageTransfers.length === 0 && (
-          <tr>
-            <td colSpan={canViewProfit ? 11 : 10} className="empty">
-              لا توجد تحويلات تطابق البحث أو الفلاتر.
-            </td>
-          </tr>
+          <EmptyState
+            colSpan={canViewProfit ? 11 : 10}
+            title="لا توجد تحويلات مخزنية تطابق البحث أو الفلاتر"
+            description="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+          />
         )}
         {!loading &&
           pageTransfers.map((transfer) => (

@@ -13,6 +13,7 @@ import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SearchableSelect from '../../components/SearchableSelect';
+import EmptyState from '../../components/EmptyState';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
 import StatusBadge from '../../components/StatusBadge';
@@ -303,11 +304,12 @@ export default function WarehousesTab() {
                   </tr>
                 )}
                 {!loading && pagedWarehouses.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="empty">
-                      لا توجد مخازن تطابق البحث.
-                    </td>
-                  </tr>
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    title="لا توجد مخازن تطابق البحث أو الفلاتر"
+                    description="جرّب تعديل كلمات البحث."
+                  />
                 )}
                 {!loading &&
                   pagedWarehouses.map((warehouse) => {
@@ -434,10 +436,12 @@ export default function WarehousesTab() {
               </div>
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر مخزنًا</strong>
-              <span>ستظهر تفاصيل المخزن هنا مع خيارات التعديل السريع.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={Warehouse}
+              title="اختر مخزنًا"
+              description="ستظهر تفاصيل المخزن هنا مع خيارات التعديل السريع."
+            />
           )}
         </aside>
       </div>

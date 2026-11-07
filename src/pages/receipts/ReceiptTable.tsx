@@ -5,6 +5,7 @@ import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import StatusBadge from '../../components/StatusBadge';
 import RowActions from '../../components/RowActions';
+import EmptyState from '../../components/EmptyState';
 import type { ReceiptRow } from '../../lib/types';
 
 export type ReceiptSort =
@@ -98,11 +99,11 @@ export default function ReceiptTable({
           </tr>
         )}
         {!loading && pageReceipts.length === 0 && (
-          <tr>
-            <td colSpan={12} className="empty">
-              لا توجد إيصالات تطابق البحث أو الفلاتر.
-            </td>
-          </tr>
+          <EmptyState
+            colSpan={12}
+            title="لا توجد إيصالات تطابق البحث أو الفلاتر"
+            description="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+          />
         )}
         {!loading &&
           pageReceipts.map((receipt) => (

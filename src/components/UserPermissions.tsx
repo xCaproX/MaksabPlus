@@ -2,7 +2,7 @@ import ColumnFilterRow from './ColumnFilterRow';
 import { useColumnFilters } from '../lib/useColumnFilters';
 import { matchesColumnFilters } from '../lib/columnFilters';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, UserCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import {
   sections,
@@ -22,6 +22,7 @@ import { collectAllRows } from '../lib/exportRows';
 import Modal from './Modal';
 import SearchableSelect from './SearchableSelect';
 import ChangePasswordModal from './ChangePasswordModal';
+import EmptyState from './EmptyState';
 import { toast } from './Toast';
 
 type CompanyUser = {
@@ -496,12 +497,13 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
                   </>
                 )}
               </>
-            ) : (
-              <div className="erp-detail-empty" style={{ minHeight: '350px' }}>
-                <strong>اختر موظفًا من القائمة</strong>
-                <span>اضغط على أي موظف من القائمة الجانبية لإدارة وتعديل صلاحياته بكل سهولة.</span>
-              </div>
-            )}
+          ) : (
+            <EmptyState
+              icon={UserCheck}
+              title="اختر موظفًا من القائمة"
+              description="اضغط على أي موظف من القائمة الجانبية لإدارة وتعديل صلاحياته بكل سهولة."
+            />
+          )}
           </main>
         </div>
       )}

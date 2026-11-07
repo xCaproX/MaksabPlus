@@ -18,6 +18,7 @@ import { supabase } from '../../lib/supabase';
 import { entityNumber } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
+import EmptyState from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SearchableSelect from '../../components/SearchableSelect';
 import SortableHeader from '../../components/SortableHeader';
@@ -477,11 +478,12 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                   </tr>
                 )}
                 {!loading && pagedAccounts.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="empty">
-                      لا يوجد {entityPlural} يطابقون البحث أو الفلاتر.
-                    </td>
-                  </tr>
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    title={`لا يوجد ${entityPlural} يطابقون البحث أو الفلاتر`}
+                    description="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+                  />
                 )}
                 {!loading &&
                   pagedAccounts.map((account) => {
@@ -601,10 +603,12 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
               </div>
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر حسابًا</strong>
-              <span>ستظهر التفاصيل والإجراءات الخاصة بـ{entityTitle} هنا.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={UserCheck}
+              title="اختر حسابًا"
+              description={`ستظهر التفاصيل والإجراءات الخاصة بـ${entityTitle} هنا.`}
+            />
           )}
         </aside>
       </div>

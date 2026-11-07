@@ -5,6 +5,7 @@ import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import StatusBadge from '../../components/StatusBadge';
 import RowActions from '../../components/RowActions';
+import EmptyState from '../../components/EmptyState';
 import type { InvoiceRow } from '../../lib/types';
 import type { InvoiceTab } from './invoiceKpis';
 
@@ -115,11 +116,11 @@ export default function InvoiceTable({
           </tr>
         )}
         {!loading && pageInvoices.length === 0 && (
-          <tr>
-            <td colSpan={kind === 'waste' ? 10 : 13} className="empty">
-              لا توجد فواتير تطابق البحث أو الفلاتر.
-            </td>
-          </tr>
+          <EmptyState
+            colSpan={kind === 'waste' ? 10 : 13}
+            title="لا توجد فواتير تطابق البحث أو الفلاتر"
+            description="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+          />
         )}
         {!loading &&
           pageInvoices.map((invoice) => {

@@ -18,6 +18,7 @@ import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SearchableSelect from '../../components/SearchableSelect';
+import EmptyState from '../../components/EmptyState';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
 import StatusBadge from '../../components/StatusBadge';
@@ -441,11 +442,12 @@ export default function ItemsTab() {
                   </tr>
                 )}
                 {!loading && items.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="empty">
-                      لا توجد أصناف تطابق البحث.
-                    </td>
-                  </tr>
+                  <EmptyState
+                    colSpan={8}
+                    compact
+                    title="لا توجد أصناف تطابق البحث أو الفلاتر"
+                    description="جرّب تعديل كلمات البحث."
+                  />
                 )}
                 {!loading &&
                   items.map((item) => {
@@ -563,10 +565,12 @@ export default function ItemsTab() {
               </div>
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر صنفًا</strong>
-              <span>ستظهر تفاصيل الصنف هنا مع خيارات التعديل السريع.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={Boxes}
+              title="اختر صنفًا"
+              description="ستظهر تفاصيل الصنف هنا مع خيارات التعديل السريع."
+            />
           )}
         </aside>
       </div>

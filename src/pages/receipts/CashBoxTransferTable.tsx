@@ -4,6 +4,7 @@ import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
+import EmptyState from '../../components/EmptyState';
 import type { CashBoxTransferRow } from '../../lib/types';
 import type { ReceiptSort } from './ReceiptTable';
 
@@ -80,11 +81,11 @@ export default function CashBoxTransferTable({
           </tr>
         )}
         {!loading && pageTransfers.length === 0 && (
-          <tr>
-            <td colSpan={9} className="empty">
-              لا توجد تحويلات تطابق البحث أو الفلاتر.
-            </td>
-          </tr>
+          <EmptyState
+            colSpan={9}
+            title="لا توجد تحويلات تطابق البحث أو الفلاتر"
+            description="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+          />
         )}
         {!loading &&
           pageTransfers.map((transfer) => (

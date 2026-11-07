@@ -13,6 +13,7 @@ import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SearchableSelect from '../../components/SearchableSelect';
+import EmptyState from '../../components/EmptyState';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
 import StatusBadge from '../../components/StatusBadge';
@@ -330,11 +331,12 @@ export default function CashBoxesTab() {
                   </tr>
                 )}
                 {!loading && pagedBoxes.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="empty">
-                      لا توجد خزن تطابق البحث.
-                    </td>
-                  </tr>
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    title="لا توجد خزن تطابق البحث أو الفلاتر"
+                    description="جرّب تعديل كلمات البحث."
+                  />
                 )}
                 {!loading &&
                   pagedBoxes.map((box) => {
@@ -454,10 +456,12 @@ export default function CashBoxesTab() {
               </div>
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر خزنة</strong>
-              <span>ستظهر تفاصيل الخزنة هنا مع خيارات التعديل السريع.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={Wallet}
+              title="اختر خزنة"
+              description="ستظهر تفاصيل الخزنة هنا مع خيارات التعديل السريع."
+            />
           )}
         </aside>
       </div>
