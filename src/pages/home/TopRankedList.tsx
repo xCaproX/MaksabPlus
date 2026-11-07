@@ -31,7 +31,6 @@ export default function TopRankedList({
   linkText = 'عرض الكل',
 }: TopRankedListProps) {
   const maxValue = Math.max(...items.map((i) => i.value), 1);
-  const showBars = barVariant === 'items';
 
   return (
     <div className={`dashboard-card ranked-card ranked-card-${barVariant}`}>
@@ -75,11 +74,9 @@ export default function TopRankedList({
                   </div>
                 </div>
 
-                {showBars && (
-                  <div className="ranked-bar-track" aria-hidden="true">
-                    <div className="ranked-bar-fill" style={{ inlineSize: `${percentage}%` }} />
-                  </div>
-                )}
+                <div className="ranked-bar-track" aria-hidden="true">
+                  <div className="ranked-bar-fill" style={{ inlineSize: `${percentage}%` }} />
+                </div>
               </div>
             );
           })}

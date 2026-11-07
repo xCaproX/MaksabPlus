@@ -1,3 +1,4 @@
+import { ShoppingCart } from 'lucide-react';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import { qty } from '../../lib/format';
 
@@ -25,7 +26,10 @@ export default function SalesMetricCards({ sales }: { sales: DashboardSales | nu
         {periods.map(({ key, label, amount, count }) => (
           <div key={key} className={`sales-kpi-card${key === 'today' ? ' sales-kpi-today' : ''}`}>
             <div className="sales-kpi-main">
-              <h2 className="sales-kpi-label">{label}</h2>
+              <h2 className="sales-kpi-label">
+                {key === 'today' && <ShoppingCart size={16} aria-hidden="true" />}
+                <span>{label}</span>
+              </h2>
               <MoneyDisplay value={amount} currency className="sales-kpi-amount" />
             </div>
             {count !== undefined && (

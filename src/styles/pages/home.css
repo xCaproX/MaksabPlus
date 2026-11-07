@@ -58,7 +58,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2) clamp(var(--space-2), 5%, var(--space-8));
-  padding: var(--space-3);
+  padding: var(--space-4) var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--card);
@@ -78,6 +78,16 @@
   font-size: var(--font-sm);
   font-weight: 650;
   color: var(--ink-secondary);
+}
+
+.sales-kpi-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sales-kpi-label svg {
+  flex-shrink: 0;
 }
 
 .sales-kpi-amount,
@@ -232,14 +242,14 @@
   border-radius: var(--radius-sm);
 }
 
-.dashboard-card-action:hover,
-.financial-pulse-card:hover {
+.dashboard-card-action:hover {
   background: var(--primary-light);
   text-decoration: none;
 }
 
-.financial-pulse-card:hover .fin-label {
-  text-decoration: underline;
+.financial-pulse-card:hover {
+  background: color-mix(in srgb, var(--accent-light), var(--card));
+  text-decoration: none;
 }
 
 .dashboard-card-action:focus-visible,
@@ -265,10 +275,6 @@
 .ranked-item,
 .low-stock-row {
   min-block-size: var(--follow-up-row-size);
-}
-
-.ranked-card-customers .ranked-item + .ranked-item {
-  border-block-start: 1px solid var(--line);
 }
 
 .ranked-item-info,
@@ -337,6 +343,10 @@
   background: var(--accent);
 }
 
+.ranked-card-customers .ranked-bar-fill {
+  background: var(--primary);
+}
+
 .low-stock-card {
   display: flex;
   flex-direction: column;
@@ -395,9 +405,12 @@
     gap: var(--space-5);
   }
 
-  .sales-kpi-card,
   .dashboard-card {
     padding: var(--space-4);
+  }
+
+  .sales-kpi-card {
+    padding: var(--space-5) var(--space-4);
   }
 
   .financial-pulse-card {
