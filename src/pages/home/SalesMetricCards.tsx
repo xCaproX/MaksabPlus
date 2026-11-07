@@ -64,7 +64,7 @@ export default function SalesMetricCards({ sales }: SalesMetricCardsProps) {
           </div>
           <div className="sales-kpi-footer">
             <span>مبيعات الأسبوع</span>
-            <span style={{ fontSize: '11px', color: 'var(--muted)' }}>صافي البيع</span>
+            <span className="sales-kpi-subtext-muted">صافي البيع</span>
           </div>
         </div>
 
@@ -85,7 +85,7 @@ export default function SalesMetricCards({ sales }: SalesMetricCardsProps) {
           </div>
           <div className="sales-kpi-footer">
             <span>مبيعات الشهر</span>
-            <span style={{ fontSize: '11px', color: 'var(--muted)' }}>صافي البيع</span>
+            <span className="sales-kpi-subtext-muted">صافي البيع</span>
           </div>
         </div>
       </div>

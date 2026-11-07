@@ -113,17 +113,27 @@
   gap: 16px;
 }
 
-/* Calm Sales KPI Cards - matching erp-kpi-card structure */
+/*
+ * Architecture Note on KPI Hierarchy (Item 18):
+ * - Workspace / Document pages use .erp-kpi-bar (.erp-kpi-card): compact tier (min-height: 84px, font: 19px) to preserve vertical space above document tables.
+ * - Home Dashboard uses .sales-kpi-card and .financial-pulse-card: Hero-scale tier (min-block-size: 120px, font: 21px / 17px) with direct navigation portals, interactive arrow buttons, and operational counters.
+ * - Both tiers share identical color tokens (--primary, --success, --erp-border, --card), radii (--radius-sm), shadows, and tabular typography.
+ */
+
+/* Calm Sales KPI Cards - Hero-scale matching erp-kpi-card color & typography tokens */
 .sales-kpi-card {
   display: flex;
   flex-direction: column;
   background: var(--card, #ffffff);
-  border: 1px solid var(--line, #e2e8f0);
+  border: 1px solid var(--erp-border, #e2e8f0);
   border-radius: var(--radius-sm, 8px);
   padding: 18px 20px;
   min-block-size: 120px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-  transition: all var(--transition-fast, 0.15s ease);
+  transition:
+    border-color var(--transition-fast, 0.15s ease),
+    box-shadow var(--transition-fast, 0.15s ease),
+    transform var(--transition-fast, 0.15s ease);
 }
 
 .sales-kpi-card:hover {
@@ -146,8 +156,8 @@
 
 .sales-kpi-card.sales-month {
   background: #f8fafc;
-  border-color: #e2e8f0;
-  border-inline-start: 4px solid #64748b;
+  border-color: var(--erp-border, #e2e8f0);
+  border-inline-start: 4px solid var(--erp-border-strong, #64748b);
 }
 
 .sales-kpi-head {
@@ -160,7 +170,7 @@
 .sales-kpi-label {
   font-size: 12px;
   font-weight: 650;
-  color: var(--muted, #64748b);
+  color: var(--erp-muted, #64748b);
 }
 
 .sales-kpi-tag {
@@ -196,14 +206,14 @@
   font-size: 21px;
   font-weight: 750;
   line-height: 1.2;
-  color: var(--ink, #0f172a);
+  color: var(--erp-text, #0f172a);
   font-variant-numeric: tabular-nums;
 }
 
 .sales-kpi-unit {
   font-size: 12px;
   font-weight: 600;
-  color: var(--muted, #64748b);
+  color: var(--erp-muted, #64748b);
 }
 
 .sales-kpi-footer {
@@ -212,9 +222,14 @@
   justify-content: space-between;
   margin-block-start: auto;
   padding-block-start: 10px;
-  border-top: 1px dashed var(--line, #e2e8f0);
+  border-top: 1px dashed var(--erp-border, #e2e8f0);
   font-size: 11.5px;
-  color: var(--muted, #64748b);
+  color: var(--erp-muted, #64748b);
+}
+
+.sales-kpi-subtext-muted {
+  font-size: 11px;
+  color: var(--erp-muted, #64748b);
 }
 
 .sales-kpi-count-badge {
@@ -223,7 +238,7 @@
   gap: 4px;
   font-size: 11.5px;
   font-weight: 700;
-  color: var(--ink, #0f172a);
+  color: var(--erp-text, #0f172a);
 }
 
 /* 3. Financial Pulse Grid */
@@ -235,19 +250,22 @@
 
 .financial-pulse-card {
   background: var(--card, #ffffff);
-  border: 1px solid var(--line, #e2e8f0);
+  border: 1px solid var(--erp-border, #e2e8f0);
   border-radius: var(--radius-sm, 8px);
   padding: 18px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-  transition: all var(--transition-fast, 0.15s ease);
+  transition:
+    border-color var(--transition-fast, 0.15s ease),
+    box-shadow var(--transition-fast, 0.15s ease),
+    transform var(--transition-fast, 0.15s ease);
 }
 
 .financial-pulse-card:hover {
   border-color: var(--line-strong, #cbd5e1);
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 3px 6px rgba(15, 23, 42, 0.06);
 }
 
 .fin-icon-box {
@@ -262,21 +280,21 @@
 }
 
 .fin-icon-box.fin-cash {
-  background: #f0fdf4;
-  color: #16a34a;
-  border-color: #dcfce7;
+  background: rgba(22, 163, 74, 0.08);
+  color: #15803d;
+  border-color: rgba(22, 163, 74, 0.15);
 }
 
 .fin-icon-box.fin-receivables {
-  background: #f4f7fb;
+  background: rgba(46, 66, 92, 0.08);
   color: var(--primary, #2e425c);
-  border-color: #d2deec;
+  border-color: rgba(46, 66, 92, 0.15);
 }
 
 .fin-icon-box.fin-payables {
-  background: #fffbeb;
-  color: #d97706;
-  border-color: #fde68a;
+  background: rgba(217, 119, 6, 0.08);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.15);
 }
 
 .fin-content {
@@ -290,7 +308,7 @@
 .fin-label {
   font-size: 11.5px;
   font-weight: 650;
-  color: var(--muted, #64748b);
+  color: var(--erp-muted, #64748b);
 }
 
 .fin-value-group {
@@ -303,13 +321,36 @@
   font-size: 17px;
   font-weight: 750;
   line-height: 1.2;
-  color: var(--ink, #0f172a);
+  color: var(--erp-text, #0f172a);
+  font-variant-numeric: tabular-nums;
 }
 
 .fin-unit {
   font-size: 11px;
   font-weight: 600;
-  color: var(--muted, #64748b);
+  color: var(--erp-muted, #64748b);
+}
+
+.financial-pulse-card .dashboard-card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--erp-muted, #64748b);
+  background: var(--bg-subtle, #f8fafc);
+  border: 1px solid var(--erp-border, #e2e8f0);
+  flex-shrink: 0;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.financial-pulse-card .dashboard-card-action:hover {
+  background: var(--hover, #eef3f8);
+  color: var(--primary, #2e425c);
+  border-color: var(--line-strong, #cbd5e1);
+  transform: translateX(-2px);
+  text-decoration: none;
 }
 
 /* 4. Insights Grid (Charts & Low Stock) */

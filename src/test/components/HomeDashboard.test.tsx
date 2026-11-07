@@ -50,6 +50,7 @@ describe('Home Dashboard Components', () => {
 
     render(<SalesMetricCards sales={mockSales} />);
 
+    expect(screen.getByRole('region', { name: 'إجمالي المبيعات' })).toBeInTheDocument();
     expect(screen.getByText('اليوم')).toBeInTheDocument();
     expect(screen.getByText('120.00')).toBeInTheDocument();
     expect(screen.getByText('52,349.00')).toBeInTheDocument();
@@ -57,7 +58,7 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
-  it('FinancialPulseCards renders cash, receivables, and payables cards', () => {
+  it('FinancialPulseCards renders cash, receivables, and payables cards with direct links', () => {
     render(
       <BrowserRouter>
         <FinancialPulseCards
@@ -68,12 +69,18 @@ describe('Home Dashboard Components', () => {
       </BrowserRouter>
     );
 
+    expect(screen.getByRole('region', { name: 'النبض المالي والأرصدة' })).toBeInTheDocument();
     expect(screen.getByText('الفلوس في الخزن')).toBeInTheDocument();
     expect(screen.getByText('15,000.00')).toBeInTheDocument();
+    expect(screen.getByTitle('عرض كشف الخزن')).toHaveAttribute('href', '/balances?tab=cashBoxes');
+
     expect(screen.getByText('فلوسنا في السوق (العملاء)')).toBeInTheDocument();
     expect(screen.getByText('48,200.00')).toBeInTheDocument();
+    expect(screen.getByTitle('عرض أرصدة العملاء')).toHaveAttribute('href', '/balances?tab=customers');
+
     expect(screen.getByText('ديون الموردين (التزامات)')).toBeInTheDocument();
     expect(screen.getByText('18,500.00')).toBeInTheDocument();
+    expect(screen.getByTitle('عرض حسابات الموردين')).toHaveAttribute('href', '/balances?tab=suppliers');
   });
 
   it('TopRankedList renders ranked bars and formatted values', () => {
