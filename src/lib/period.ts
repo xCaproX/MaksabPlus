@@ -1,9 +1,9 @@
 export const PERIODS = [
   { value: 'today', label: 'النهاردة', days: 1 },
+  { value: 'yesterday', label: 'امس', days: 1 },
   { value: '2days', label: 'آخر يومين', days: 2 },
-  { value: '3days', label: 'آخر ثلاثة أيام', days: 3 },
-  { value: 'week', label: 'آخر أسبوع', days: 7 },
-  { value: 'month', label: 'آخر شهر', days: 30 },
+  { value: '7days', label: 'آخر 7 ايام', days: 7 },
+  { value: '30days', label: 'آخر 30 يوم', days: 30 },
 ] as const;
 export type Period = typeof PERIODS[number]['value'];
 
@@ -18,9 +18,15 @@ export function periodDates(period: Period = 'today', now = new Date()) {
     timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit',
   }).formatToParts(now);
   const part = (type: string) => parts.find((p) => p.type === type)!.value;
-  const to = `${part('year')}-${part('month')}-${part('day')}`;
-  const days = PERIODS.find((p) => p.value === period)!.days;
-  return { from: shiftCalendarDate(to, 1 - days), to };
+  const today = `${part('year')}-${part('month')}-${part('day')}`;
+
+  if (period === 'yesterday') {
+    const yesterday = shiftCalendarDate(today, -1);
+    return { from: yesterday, to: yesterday };
+  }
+
+  const days = PERIODS.find((p) => p.value === period)?.days ?? 1;
+  return { from: shiftCalendarDate(today, 1 - days), to: today };
 }
 
 export function matchingPeriod(from: string, to: string, now = new Date()) {
