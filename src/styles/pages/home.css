@@ -21,7 +21,7 @@
   flex-wrap: wrap;
   gap: 14px;
   padding: 16px 20px;
-  background: var(--ink);
+  background: var(--primary);
   border: 1px solid var(--primary-dark);
   border-radius: var(--radius);
   box-shadow: var(--shadow-xs);
@@ -76,6 +76,10 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.home-welcome-bar .btn.primary {
+  border-color: var(--muted-light);
 }
 
 /* 2. Sales Pulse Section */
