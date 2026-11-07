@@ -47,7 +47,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canSale && (
           <Link
             to="/invoices?tab=sale&action=new"
-            className="btn primary"
+            className="btn secondary"
             title="إنشاء فاتورة بيع جديدة فوراً"
           >
             <ShoppingCart size={16} />
@@ -58,7 +58,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canReceiptIn && (
           <Link
             to="/receipts?tab=in&action=new"
-            className="btn secondary"
+            className="btn primary"
             title="تسجيل إيصال استلام فلوس"
           >
             <ArrowDownLeft size={15} className="text-success" />
@@ -69,7 +69,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canReceiptOut && (
           <Link
             to="/receipts?tab=out&action=new"
-            className="btn secondary"
+            className="btn primary"
             title="تسجيل إيصال صرف فلوس"
           >
             <ArrowUpRight size={15} className="text-danger" />
@@ -80,7 +80,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
         {canPurchase && (
           <Link
             to="/invoices?tab=purchase&action=new"
-            className="btn secondary"
+            className="btn primary"
             title="إنشاء فاتورة شراء جديدة"
           >
             <ShoppingBag size={15} />
