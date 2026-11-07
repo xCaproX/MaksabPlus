@@ -56,39 +56,6 @@
   flex-wrap: wrap;
 }
 
-/* Standardized Buttons for Home Actions */
-.home-actions-group .btn {
-  min-height: 40px;
-  padding: 8px 16px;
-  font-size: var(--font-sm);
-  text-decoration: none;
-}
-
-.home-actions-group .btn.primary {
-  background: var(--primary);
-  border-color: var(--primary-dark);
-  color: var(--card) !important;
-  font-weight: 650;
-  box-shadow: var(--shadow-xs);
-}
-
-.home-actions-group .btn.primary:hover {
-  background: var(--primary-hover);
-}
-
-.home-actions-group .btn.secondary {
-  background: var(--card);
-  border-color: var(--line);
-  color: var(--ink-secondary) !important;
-  font-weight: 600;
-}
-
-.home-actions-group .btn.secondary:hover {
-  background: var(--bg);
-  border-color: var(--line-strong);
-  color: var(--ink) !important;
-}
-
 /* 2. Sales Pulse Section */
 .home-sales-grid {
   display: grid;

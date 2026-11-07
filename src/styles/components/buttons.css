@@ -25,6 +25,11 @@
     color var(--transition-fast);
 }
 
+.btn:where(.primary, .secondary, .outline) {
+  font-size: var(--font-sm);
+  text-decoration: none;
+}
+
 .btn:hover {
   background: #f8fafc;
   border-color: var(--line-strong);
@@ -52,20 +57,13 @@
 .btn.primary {
   background: var(--primary);
   border-color: var(--primary-dark);
-  color: #ffffff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: var(--card);
+  font-weight: 650;
+  box-shadow: var(--shadow-xs);
 }
 
 .btn.primary:hover {
   background: var(--primary-hover);
-  border-color: var(--primary-dark);
-  color: #ffffff;
-  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.18);
-}
-
-.btn.primary:active {
-  background: var(--primary-dark);
-  transform: scale(0.98);
 }
 
 .btn.primary:focus-visible {
@@ -99,24 +97,16 @@
 /* Secondary / Outline Button */
 .btn.secondary,
 .btn.outline {
-  background: #ffffff;
-  border-color: var(--line-strong);
+  background: var(--card);
+  border-color: var(--line);
   color: var(--ink-secondary);
-  box-shadow: var(--shadow-xs);
 }
 
 .btn.secondary:hover,
 .btn.outline:hover {
-  background: #f8fafc;
-  border-color: var(--primary);
-  color: var(--primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn.secondary:active,
-.btn.outline:active {
-  background: #f1f5f9;
-  transform: scale(0.98);
+  background: var(--bg);
+  border-color: var(--line-strong);
+  color: var(--ink);
 }
 
 /* Ghost Button */
