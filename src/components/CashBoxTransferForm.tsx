@@ -8,6 +8,7 @@ import { toast } from './Toast';
 import SearchableSelect from './SearchableSelect';
 import DateInput from './DateInput';
 import MoneyDisplay from './MoneyDisplay';
+import { resolveDefaultCashBox } from '../lib/defaults';
 import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
 
 interface Props {
@@ -38,7 +39,7 @@ export default function CashBoxTransferForm({
     (box) => box.is_active || box.id === editing?.source_cash_box_id || box.id === editing?.destination_cash_box_id,
   );
   const [sourceId, setSourceId] = useState(
-    editing?.source_cash_box_id ?? activeBoxes.find((box) => box.is_primary)?.id ?? activeBoxes[0]?.id ?? '',
+    editing?.source_cash_box_id ?? resolveDefaultCashBox(activeBoxes)?.id ?? '',
   );
   const [destinationId, setDestinationId] = useState(
     editing?.destination_cash_box_id ?? activeBoxes.find((box) => box.id !== sourceId)?.id ?? '',

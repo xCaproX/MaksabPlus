@@ -8,6 +8,7 @@ import { tafqeet } from '../lib/tafqeet';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
 import { searchAccountsAsync } from '../lib/masterDataQueries';
+import { resolveDefaultCashBox, sortCashBoxesWithPrimaryFirst } from '../lib/defaults';
 import DateInput from './DateInput';
 import MoneyDisplay from './MoneyDisplay';
 import { toast } from './Toast';
@@ -61,30 +62,16 @@ export default function ReceiptForm({
   const [accountId, setAccountId] = useState(editing?.account_id ?? '');
 
   const activeCashBoxes = cashBoxes.filter((box) => box.is_active || box.id === editing?.cash_box_id);
-  const defaultCashBox =
-    activeCashBoxes.find((b) => b.is_primary) ??
-    activeCashBoxes.find((b) => b.name?.trim().includes('الرئيسية')) ??
-    activeCashBoxes[0];
+  const defaultCashBox = resolveDefaultCashBox(activeCashBoxes);
   const [cashBoxId, setCashBoxId] = useState(editing?.cash_box_id ?? defaultCashBox?.id ?? '');
 
   // ترتيب الخزائن بحيث تتصدر الخزنة الرئيسية القائمة
-  const sortedCashBoxes = [...activeCashBoxes].sort((a, b) => {
-    if (a.is_primary && !b.is_primary) return -1;
-    if (!a.is_primary && b.is_primary) return 1;
-    const aMain = a.name?.includes('الرئيسية');
-    const bMain = b.name?.includes('الرئيسية');
-    if (aMain && !bMain) return -1;
-    if (!aMain && bMain) return 1;
-    return a.name.localeCompare(b.name, 'ar');
-  });
+  const sortedCashBoxes = sortCashBoxesWithPrimaryFirst(activeCashBoxes);
 
   // تعيين الخزنة الرئيسية تلقائياً عند تحميل الخزائن إذا لم تكن محددة
   useEffect(() => {
     if (!cashBoxId && !editing && activeCashBoxes.length > 0) {
-      const primaryBox =
-        activeCashBoxes.find((b) => b.is_primary) ??
-        activeCashBoxes.find((b) => b.name?.trim().includes('الرئيسية')) ??
-        activeCashBoxes[0];
+      const primaryBox = resolveDefaultCashBox(activeCashBoxes);
       if (primaryBox) {
         setCashBoxId(primaryBox.id);
       }
@@ -167,10 +154,7 @@ export default function ReceiptForm({
     setNotes('');
     if (!editing) {
       setAccountId('');
-      const primaryBox =
-        activeCashBoxes.find((b) => b.is_primary) ??
-        activeCashBoxes.find((b) => b.name?.trim().includes('الرئيسية')) ??
-        activeCashBoxes[0];
+      const primaryBox = resolveDefaultCashBox(activeCashBoxes);
       setCashBoxId(primaryBox?.id ?? '');
     }
     toast.info('تم تفريغ الحقول للبدء من جديد');

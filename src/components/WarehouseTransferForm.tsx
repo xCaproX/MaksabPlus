@@ -7,6 +7,7 @@ import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
 import SearchableSelect from './SearchableSelect';
 import { searchWarehouseItemsAsync, lookupBarcodeItem } from '../lib/masterDataQueries';
+import { resolveDefaultWarehouse } from '../lib/defaults';
 import { toast } from './Toast';
 import type { ItemRow, StockOpeningRow, WarehouseOption, WarehouseTransferLine, WarehouseTransferRow } from '../lib/types';
 
@@ -45,7 +46,7 @@ export default function WarehouseTransferForm({
 }: Props) {
   const activeWarehouses = warehouses.filter((warehouse) => warehouse.is_active !== false);
   const [sourceId, setSourceId] = useState(
-    editing?.source_warehouse_id ?? activeWarehouses.find((warehouse) => warehouse.is_primary)?.id ?? activeWarehouses[0]?.id ?? '',
+    editing?.source_warehouse_id ?? resolveDefaultWarehouse(activeWarehouses)?.id ?? '',
   );
   const [destinationId, setDestinationId] = useState(
     editing?.destination_warehouse_id ?? activeWarehouses.find((warehouse) => warehouse.id !== sourceId)?.id ?? '',

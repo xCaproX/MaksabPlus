@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { FOCUS_SETTLE_DELAY_MS } from '../lib/ui';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
+import { resolveDefaultAccount, resolveDefaultWarehouse, resolveDefaultCashBox } from '../lib/defaults';
 import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
 import type { WarehouseItemOption } from '../lib/masterDataQueries';
@@ -75,14 +76,9 @@ export default function InvoiceForm({
     editing?.invoice.account_kind ??
     (isWaste ? 'waste' : kind === 'sale' || kind === 'sale_return' ? 'customer' : 'supplier');
   const defaultAccountId =
-    accounts.find((account) => account.system_key === defaultSystemKey)?.id ??
-    accounts.find((account) => account.name.includes('عميل نقدي'))?.id ??
-    accounts.find((account) => account.kind === defaultAccountKind)?.id ??
-    '';
-  const defaultWarehouse =
-    warehouses.find((w) => w.is_primary && w.is_active !== false) ??
-    warehouses.find((w) => w.name.includes('المخزن الرئيسي') && w.is_active !== false) ??
-    warehouses.find((w) => w.is_active !== false);
+    resolveDefaultAccount(accounts, defaultAccountKind, defaultSystemKey)?.id ?? '';
+  const defaultWarehouse = resolveDefaultWarehouse(warehouses);
+  const defaultCashBox = resolveDefaultCashBox(cashBoxes);
 
   const [date] = useState(editing?.invoice.invoice_date ?? today());
   const [accountKind, setAccountKind] = useState<AccountKind>(defaultAccountKind);
@@ -91,7 +87,7 @@ export default function InvoiceForm({
     editing?.invoice.warehouse_id ?? defaultWarehouse?.id ?? '',
   );
   const [cashBoxId, setCashBoxId] = useState(
-    editing?.invoice.cash_box_id ?? cashBoxes.find((box) => box.is_active)?.id ?? '',
+    editing?.invoice.cash_box_id ?? defaultCashBox?.id ?? '',
   );
   const [paid, setPaid] = useState(editing ? Number(editing.invoice.paid).toFixed(2) : '0.00');
   const [notes, setNotes] = useState(editing?.invoice.notes ?? '');
