@@ -1,8 +1,6 @@
 import MoneyDisplay from '../../components/MoneyDisplay';
 import { qty } from '../../lib/format';
 
-const invoicePluralRules = new Intl.PluralRules('ar');
-
 export interface DashboardSales {
   today: number;
   today_count: number;
@@ -25,16 +23,16 @@ export default function SalesMetricCards({ sales }: { sales: DashboardSales | nu
     <section aria-label="مبيعات الفترات">
       <div className="home-sales-grid">
         {periods.map(({ key, label, amount, count }) => (
-          <div key={key} className="sales-kpi-card">
+          <div key={key} className={count === undefined ? 'sales-kpi-card' : 'sales-kpi-card sales-kpi-card-with-count'}>
             <div className="sales-kpi-main">
               <h2 className="sales-kpi-label">{label}</h2>
               <MoneyDisplay value={amount} currency className="sales-kpi-amount" />
             </div>
             {count !== undefined && (
-              <span className="sales-kpi-count">
+              <div className="sales-kpi-count">
                 <bdi dir="ltr" className="num tabular-nums">{qty(count)}</bdi>
-                {' '}{invoicePluralRules.select(count) === 'few' ? 'فواتير' : 'فاتورة'}
-              </span>
+                <span>الفواتير</span>
+              </div>
             )}
           </div>
         ))}

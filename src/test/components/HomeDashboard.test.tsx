@@ -62,9 +62,9 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('1,944')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
-    expect(screen.getByText('3').parentElement).toHaveTextContent('3 فواتير');
-    expect(screen.getByText('1,944').parentElement).toHaveTextContent('1,944 فاتورة');
-    expect(screen.getByText('0').parentElement).toHaveTextContent('0 فاتورة');
+    for (const count of ['3', '1,944', '0']) {
+      expect(screen.getByText(count).nextElementSibling).toHaveTextContent('الفواتير');
+    }
   });
 
   it('FinancialPulseCards renders cash, receivables, and payables cards with direct links', () => {
