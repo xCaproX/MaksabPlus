@@ -35,9 +35,6 @@ export default function MasterData() {
   }, [tabParam, tab]);
   const canViewCurrentTab = can(`data.${tab}.view`);
 
-  // مشغل فتح نافذة الإضافة في التبويب النشط
-  const [addTrigger, setAddTrigger] = useState(0);
-
   function switchTab(next: LocationsTab) {
     setTab(next);
     setSearchParams({ tab: next });
@@ -81,7 +78,11 @@ export default function MasterData() {
             <button
               type="button"
               className="btn primary"
-              onClick={() => setAddTrigger((count) => count + 1)}
+              onClick={() => {
+                const nextParams = new URLSearchParams(searchParams);
+                nextParams.set('action', 'new');
+                setSearchParams(nextParams);
+              }}
             >
               {newBtnLabel}
             </button>
@@ -102,11 +103,11 @@ export default function MasterData() {
         ))}
       </div>
 
-      {tab === 'customers' && <AccountsTab key="customers" kind="customer" addTrigger={addTrigger} />}
-      {tab === 'suppliers' && <AccountsTab key="suppliers" kind="supplier" addTrigger={addTrigger} />}
-      {tab === 'items' && <ItemsTab key="items" addTrigger={addTrigger} />}
-      {tab === 'warehouses' && <WarehousesTab key="warehouses" addTrigger={addTrigger} />}
-      {tab === 'cashBoxes' && <CashBoxesTab key="cashBoxes" addTrigger={addTrigger} />}
+      {tab === 'customers' && <AccountsTab key="customers" kind="customer" />}
+      {tab === 'suppliers' && <AccountsTab key="suppliers" kind="supplier" />}
+      {tab === 'items' && <ItemsTab key="items" />}
+      {tab === 'warehouses' && <WarehousesTab key="warehouses" />}
+      {tab === 'cashBoxes' && <CashBoxesTab key="cashBoxes" />}
     </div>
   );
 }

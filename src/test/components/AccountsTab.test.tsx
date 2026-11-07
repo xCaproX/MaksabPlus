@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AccountsTab from '../../pages/master-data/AccountsTab';
 
@@ -34,7 +35,11 @@ function deferredSave() {
 }
 function saveCalls() { return api.rpc.mock.calls.filter(([name]) => name === 'save_account_with_notes'); }
 async function addForm(kind: 'customer' | 'supplier') {
-  render(<AccountsTab kind={kind} addTrigger={1} />);
+  render(
+    <MemoryRouter initialEntries={[`/data?tab=${kind === 'customer' ? 'customers' : 'suppliers'}&action=new`]}>
+      <AccountsTab kind={kind} />
+    </MemoryRouter>,
+  );
   const dialog = await screen.findByRole('dialog');
   fireEvent.change(within(dialog).getByPlaceholderText(`اسم ${kind === 'customer' ? 'العميل' : 'المورد'}`), {
     target: { value: 'حساب الاختبار' },
@@ -121,7 +126,11 @@ describe('customer and supplier account form', () => {
       phone: '', notes: '', is_active: true, system_key: null }];
     const pending = deferredSave();
     api.update.mockReturnValue(pending.promise);
-    render(<AccountsTab kind="customer" addTrigger={0} />);
+    render(
+      <MemoryRouter initialEntries={['/data?tab=customers']}>
+        <AccountsTab kind="customer" />
+      </MemoryRouter>,
+    );
     fireEvent.click(await screen.findByText('حساب موجود'));
     fireEvent.click(screen.getByRole('button', { name: 'تعديل البيانات' }));
     const dialog = await screen.findByRole('dialog');
@@ -133,5 +142,15 @@ describe('customer and supplier account form', () => {
     expect(api.update).toHaveBeenCalledWith({ name: 'اسم معدل', phone: null, notes: null, is_active: true });
     await act(async () => pending.resolve({ error: null }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('opens create modal via ?action=new URL deep link', async () => {
+    render(
+      <MemoryRouter initialEntries={['/data?tab=customers&action=new']}>
+        <AccountsTab kind="customer" />
+      </MemoryRouter>,
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('button', { name: 'إضافة العميل' })).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2,
   Clock,
@@ -24,12 +25,10 @@ const PAGE_SIZE = 20;
 
 interface ReconciliationLogTabProps {
   onRefreshMasterData?: () => Promise<void>;
-  startRunTrigger?: number;
 }
 
 export default function ReconciliationLogTab({
   onRefreshMasterData,
-  startRunTrigger,
 }: ReconciliationLogTabProps) {
   const [logs, setLogs] = useState<ReconciliationLogRow[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -42,16 +41,19 @@ export default function ReconciliationLogTab({
   const [selectedLog, setSelectedLog] = useState<ReconciliationLogRow | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [summary, setSummary] = useState<{ total_discrepancies: number; latest_created_at: string | null; latest_status: string | null }>({ total_discrepancies: 0, latest_created_at: null, latest_status: null });
+  const [searchParams, setSearchParams] = useSearchParams();
   const columns = useColumnFilters('reconciliations', () => { setDateFrom(periodDates().from); setDateTo(periodDates().to); setPage(1);
   });
   useEffect(() => { setPage(1); }, [columns.filters]);
 
-
   useEffect(() => {
-    if (startRunTrigger && startRunTrigger > 0) {
+    if (searchParams.get('action') === 'new') {
       setIsModalOpen(true);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('action');
+      setSearchParams(nextParams, { replace: true });
     }
-  }, [startRunTrigger]);
+  }, [searchParams, setSearchParams]);
 
   const requestVersion = useRef(0);
   const loadLogs = useCallback(async () => {

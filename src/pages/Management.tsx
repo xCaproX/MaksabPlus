@@ -56,7 +56,6 @@ export default function Management() {
   const warehouses = useMemo(() => rawWarehouses.filter((w) => w.is_active !== false), [rawWarehouses]);
   const [saving, setSaving] = useState(false);
   const [saveTrigger, setSaveTrigger] = useState(0);
-  const [startRunTrigger, setStartRunTrigger] = useState(0);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   useEffect(() => {
@@ -114,7 +113,11 @@ export default function Management() {
             <button
               type="button"
               className="btn primary"
-              onClick={() => setStartRunTrigger((count) => count + 1)}
+              onClick={() => {
+                const nextParams = new URLSearchParams(searchParams);
+                nextParams.set('action', 'new');
+                setSearchParams(nextParams);
+              }}
             >
               <Play size={16} />
               <span>بدء فحص جديد</span>
@@ -207,7 +210,6 @@ export default function Management() {
           )}
           {tab === 'reconciliations' && (
             <ReconciliationLogTab
-              startRunTrigger={startRunTrigger}
               onRefreshMasterData={() => refresh(['accounts', 'cashBoxes', 'stock', 'items'])}
             />
           )}

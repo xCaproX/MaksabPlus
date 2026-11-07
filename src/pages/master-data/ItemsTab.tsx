@@ -3,6 +3,7 @@ import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   X,
   Boxes,
@@ -47,11 +48,7 @@ type ItemSort =
 type StatusFilter = 'all' | 'active' | 'inactive';
 const PAGE_SIZE = 20;
 
-interface ItemsTabProps {
-  addTrigger: number;
-}
-
-export default function ItemsTab({ addTrigger }: ItemsTabProps) {
+export default function ItemsTab() {
   const { can } = useAccess();
   const { refresh } = useMasterData();
   const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
@@ -119,12 +116,17 @@ export default function ItemsTab({ addTrigger }: ItemsTabProps) {
     setIsModalOpen(true);
   }, [warehouses]);
 
-  // استجابة لزر الإضافة من الرأس
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // استجابة لفتح نموذج الإضافة عبر الرابط ?action=new
   useEffect(() => {
-    if (addTrigger > 0) {
+    if (searchParams.get('action') === 'new') {
       startAdd();
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('action');
+      setSearchParams(nextParams, { replace: true });
     }
-  }, [addTrigger, startAdd]);
+  }, [searchParams, setSearchParams, startAdd]);
 
   // جلب المخازن لمرة واحدة (لمودال إضافة الصنف الجديد برصيد أول المدة)
   useEffect(() => {

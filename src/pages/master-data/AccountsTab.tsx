@@ -2,6 +2,7 @@ import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   X,
   Users,
@@ -35,7 +36,6 @@ const PAGE_SIZE = 20;
 
 interface AccountsTabProps {
   kind: 'customer' | 'supplier';
-  addTrigger: number;
 }
 
 interface MasterAccountsSummary {
@@ -45,7 +45,7 @@ interface MasterAccountsSummary {
   withOpeningCount: number;
 }
 
-export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
+export default function AccountsTab({ kind }: AccountsTabProps) {
   const isCustomer = kind === 'customer';
   const permissionPrefix = isCustomer ? 'data.customers' : 'data.suppliers';
   const entityPrefix = isCustomer ? 'CUS' : 'SUP';
@@ -100,10 +100,11 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
   const [accountActive, setAccountActive] = useState(true);
   const [savingAccount, setSavingAccount] = useState(false);
   const saveInProgress = useRef(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // استجابة لزر الإضافة من الرأس
+  // استجابة لفتح نموذج الإضافة عبر الرابط ?action=new
   useEffect(() => {
-    if (addTrigger > 0) {
+    if (searchParams.get('action') === 'new') {
       setEditingAccount(null);
       setAccountName('');
       setAccountOpeningBalance('0');
@@ -112,8 +113,11 @@ export default function AccountsTab({ kind, addTrigger }: AccountsTabProps) {
       setAccountNotes('');
       setAccountActive(true);
       setIsModalOpen(true);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('action');
+      setSearchParams(nextParams, { replace: true });
     }
-  }, [addTrigger, kind]);
+  }, [searchParams, setSearchParams, kind]);
 
   // جلب الحسابات بالصفحات مع المؤشرات من السيرفر مباشرة
   useEffect(() => {

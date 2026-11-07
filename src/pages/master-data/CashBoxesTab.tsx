@@ -4,6 +4,7 @@ import { useColumnFilters } from '../../lib/useColumnFilters';
 import { matchesColumnFilters } from '../../lib/columnFilters';
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { X, Landmark, CheckCircle2, Wallet } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
@@ -34,11 +35,7 @@ type CashBoxSort = 'name-asc' | 'name-desc' | 'serial-desc' | 'serial-asc';
 type StatusFilter = 'all' | 'active' | 'inactive';
 const PAGE_SIZE = 20;
 
-interface CashBoxesTabProps {
-  addTrigger: number;
-}
-
-export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
+export default function CashBoxesTab() {
   const { can } = useAccess();
   const { refresh } = useMasterData();
   const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
@@ -66,12 +63,17 @@ export default function CashBoxesTab({ addTrigger }: CashBoxesTabProps) {
   const [cashBoxNotes, setCashBoxNotes] = useState('');
   const [cashBoxOpeningBalance, setCashBoxOpeningBalance] = useState('0');
 
-  // استجابة لزر الإضافة من الرأس
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // استجابة لفتح نموذج الإضافة عبر الرابط ?action=new
   useEffect(() => {
-    if (addTrigger > 0) {
+    if (searchParams.get('action') === 'new') {
       startAdd();
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('action');
+      setSearchParams(nextParams, { replace: true });
     }
-  }, [addTrigger]);
+  }, [searchParams, setSearchParams]);
 
   // جلب الخزن
   useEffect(() => {
