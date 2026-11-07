@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
+import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { supabase } from './supabase';
 import { hasPermission, type AccessState } from './accessCheck';
 
@@ -37,7 +38,7 @@ export function useAccess() {
 
 export function AccessRoute({ permissions, children }: { permissions: string[]; children: ReactNode }) {
   const { loading, can } = useAccess();
-  if (loading) return <div className="card empty">جارٍ تحميل الصلاحيات…</div>;
+  if (loading) return <LoadingSkeleton label="جارٍ تحميل الصلاحيات…" />;
   if (!can(...permissions)) return <Navigate to="/access-denied" replace />;
   return children;
 }
