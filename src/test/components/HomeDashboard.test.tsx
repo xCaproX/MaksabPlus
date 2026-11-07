@@ -63,7 +63,7 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText('1,944')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
     for (const count of ['3', '1,944', '0']) {
-      expect(screen.getByText(count).nextElementSibling).toHaveTextContent('الفواتير');
+      expect(screen.getByText(count).previousElementSibling).toHaveTextContent('الفواتير');
     }
   });
 

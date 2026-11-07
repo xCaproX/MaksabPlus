@@ -30,8 +30,8 @@ export default function SalesMetricCards({ sales }: { sales: DashboardSales | nu
             </div>
             {count !== undefined && (
               <div className="sales-kpi-count">
-                <bdi dir="ltr" className="num tabular-nums">{qty(count)}</bdi>
                 <span>الفواتير</span>
+                <bdi dir="ltr" className="num tabular-nums">{qty(count)}</bdi>
               </div>
             )}
           </div>
