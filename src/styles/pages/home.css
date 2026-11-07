@@ -1,7 +1,7 @@
 /* Home layout uses the same surfaces, controls and type scale as the workspace. */
 .home-dashboard {
   display: grid;
-  gap: clamp(24px, 2.2vw, 32px);
+  gap: var(--space-5);
   inline-size: 100%;
   max-inline-size: 1400px;
   margin-inline: auto;
@@ -11,10 +11,10 @@
 
 .home-welcome-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(max-content, 0.6fr);
   align-items: center;
-  gap: clamp(12px, 2vw, 28px);
-  padding: var(--space-4) var(--space-5);
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--card);
@@ -38,6 +38,7 @@
 .home-welcome-clock {
   display: grid;
   gap: var(--space-1);
+  justify-self: end;
   justify-items: end;
   padding-inline-start: var(--space-4);
   border-inline-start: 1px solid var(--line);
@@ -65,11 +66,30 @@
   white-space: nowrap;
 }
 
-.home-sales-grid,
+.home-actions-group:empty {
+  display: none;
+}
+
+.home-welcome-bar:has(.home-actions-group:empty) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.home-sales-section,
 .dashboard-card {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
+}
+
+.home-sales-section {
+  padding: var(--space-3);
+}
+
+.home-sales-heading {
+  margin: 0 0 var(--space-2);
+  padding-inline-start: var(--space-1);
+  font-size: var(--font-md);
+  color: var(--primary);
 }
 
 .home-sales-grid {
@@ -78,18 +98,15 @@
   grid-template-areas:
     'today week'
     'today month';
-  gap: var(--space-3);
-  padding: var(--space-3);
-  background: var(--card);
+  gap: var(--space-2);
 }
 
 .sales-kpi-card {
   display: flex;
-  flex-direction: column;
-  align-items: start;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-4) var(--space-5);
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--card);
@@ -98,24 +115,30 @@
 .sales-kpi-main {
   display: grid;
   justify-items: start;
-  gap: var(--space-1);
 }
 
 .sales-kpi-today {
   grid-area: today;
+  align-items: center;
+  justify-content: center;
   background: var(--primary);
   border-color: var(--primary);
-  padding: clamp(20px, 2.4vw, 38px);
+  padding: var(--space-4);
 }
 
 .sales-kpi-week {
   grid-area: week;
-  background: var(--primary-light);
+  background: var(--success-light);
+  border-color: var(--success-border);
 }
 
 .sales-kpi-month {
   grid-area: month;
-  background: var(--bg);
+  border-inline-start: 3px solid var(--success);
+}
+
+.sales-kpi-card:not(.sales-kpi-today) .sales-kpi-label {
+  color: var(--success-hover);
 }
 
 .sales-kpi-label,
@@ -129,6 +152,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin: 0;
 }
 
 .sales-kpi-label svg {
@@ -163,6 +187,7 @@
   gap: var(--space-2);
   font-size: var(--font-xs);
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .sales-kpi-count bdi {
@@ -172,13 +197,17 @@
 }
 
 .sales-kpi-today .sales-kpi-amount {
-  font-size: clamp(28px, 3.4vw, 52px);
+  font-size: clamp(25px, 2.6vw, 42px);
 }
 
 .sales-kpi-today .sales-kpi-count {
   background: var(--primary-dark);
   border-radius: var(--radius-sm);
   padding: var(--space-1) var(--space-2);
+}
+
+.sales-kpi-today .sales-kpi-label svg {
+  color: var(--success-border);
 }
 
 .sales-kpi-today :is(.sales-kpi-label, .sales-kpi-amount, .currency-suffix, .sales-kpi-count, .sales-kpi-count bdi) {
@@ -188,7 +217,7 @@
 .home-financial-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .financial-pulse-card {
@@ -196,24 +225,28 @@
   align-items: center;
   gap: var(--space-3);
   min-inline-size: 0;
-  padding: var(--space-5);
+  padding: var(--space-3) var(--space-4);
   color: var(--primary);
   text-decoration: none;
   border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: var(--balance-surface, var(--card));
+  border: 1px solid var(--balance-edge, var(--line));
+  background: var(--card);
 }
 
 .financial-pulse-card-cashBoxes {
-  --balance-surface: color-mix(in srgb, var(--accent-light) 45%, var(--card));
+  --balance-tint: var(--success-light);
+  --balance-edge: var(--success-border);
+  --balance-ink: var(--success-hover);
 }
 
 .financial-pulse-card-customers {
-  --balance-surface: color-mix(in srgb, var(--primary-light) 65%, var(--card));
+  --balance-tint: var(--accent-light);
 }
 
 .financial-pulse-card-suppliers {
-  --balance-surface: var(--card);
+  --balance-tint: var(--danger-light);
+  --balance-edge: var(--danger-border);
+  --balance-ink: var(--danger-hover);
 }
 
 .fin-icon-box {
@@ -222,8 +255,8 @@
   flex: 0 0 38px;
   block-size: 38px;
   border-radius: var(--radius-sm);
-  background: var(--accent-light);
-  color: var(--primary);
+  background: var(--balance-tint, var(--primary-light));
+  color: var(--balance-ink, var(--primary));
 }
 
 .fin-content {
@@ -295,11 +328,11 @@
 }
 
 .ranked-card-items {
-  background: color-mix(in srgb, var(--accent-light) 24%, var(--card));
+  border-block-start: 2px solid var(--accent);
 }
 
 .ranked-card-customers {
-  background: color-mix(in srgb, var(--primary-light) 50%, var(--card));
+  border-block-start: 2px solid var(--primary);
 }
 
 .dashboard-card-action {
@@ -320,7 +353,7 @@
 }
 
 .financial-pulse-card:hover {
-  background: color-mix(in srgb, var(--accent-light), var(--card));
+  background: color-mix(in srgb, var(--balance-tint, var(--primary-light)), var(--card));
   text-decoration: none;
 }
 

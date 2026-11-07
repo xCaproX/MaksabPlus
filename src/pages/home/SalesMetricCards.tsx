@@ -21,15 +21,16 @@ export default function SalesMetricCards({ sales }: { sales: DashboardSales | nu
   ];
 
   return (
-    <section aria-label="مبيعات الفترات">
+    <section className="home-sales-section" aria-label="مبيعات الفترات">
+      <h2 className="home-sales-heading">المبيعات</h2>
       <div className="home-sales-grid">
         {periods.map(({ key, label, amount, count }) => (
           <div key={key} className={`sales-kpi-card sales-kpi-${key}`}>
             <div className="sales-kpi-main">
-              <h2 className="sales-kpi-label">
+              <h3 className="sales-kpi-label">
                 {key === 'today' && <ShoppingCart size={16} aria-hidden="true" />}
                 <span>{label}</span>
-              </h2>
+              </h3>
               <MoneyDisplay value={amount} currency className="sales-kpi-amount" />
             </div>
             {count !== undefined && (
