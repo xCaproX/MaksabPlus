@@ -205,16 +205,13 @@ export default function DocumentListPage<TTab extends string = string>({
         </section>
       </div>
 
-      {/* نافذة التأكيد الموحدة */}
-      {confirmation && <ConfirmDialog {...confirmation} />}
-
       {/* نافذة إنشاء وعرض وتعديل المستند الموحدة */}
       {modalOpen && (
         <Modal
           title={modalTitle ?? ''}
           className={modalClassName}
           backdropClassName={modalBackdropClassName}
-          dismissible={modalDismissible}
+          dismissible={!confirmation && modalDismissible}
           onClose={modalOnClose}
         >
           {modalResources && modalResources.length > 0 && modalResourceStatus ? (
@@ -231,6 +228,9 @@ export default function DocumentListPage<TTab extends string = string>({
           )}
         </Modal>
       )}
+
+      {/* نافذة التأكيد تُعرض فوق نافذة المستند */}
+      {confirmation && <ConfirmDialog {...confirmation} />}
     </div>
   );
 }

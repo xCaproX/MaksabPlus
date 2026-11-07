@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import DocumentListPage from '../../components/DocumentListPage';
 
 describe('DocumentListPage - الهيكل الموحد لصفحات المستندات', () => {
@@ -101,5 +101,37 @@ describe('DocumentListPage - الهيكل الموحد لصفحات المستن
     expect(screen.getByText('تأكيد الحذف')).toBeInTheDocument();
     expect(screen.getByText('هل أنت متأكد من الحذف؟')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'حذف' })).toHaveClass('danger');
+  });
+
+  it('places confirmation above the open document and lets Escape cancel only confirmation', () => {
+    const onCancel = vi.fn();
+    const modalOnClose = vi.fn();
+    render(
+      <DocumentListPage
+        {...defaultProps}
+        modalOpen
+        modalTitle="فاتورة مبيعات"
+        modalOnClose={modalOnClose}
+        confirmation={{
+          title: 'تأكيد الحذف',
+          message: 'حذف الفاتورة؟',
+          confirmLabel: 'حذف',
+          onConfirm: vi.fn(),
+          onCancel,
+        }}
+      >
+        <div>الجدول</div>
+      </DocumentListPage>
+    );
+
+    const dialogs = screen.getAllByRole('dialog');
+    expect(dialogs.map((dialog) => dialog.getAttribute('aria-label'))).toEqual([
+      'فاتورة مبيعات', 'تأكيد الحذف',
+    ]);
+    expect(within(dialogs[0]).getByRole('button', { name: 'إغلاق' })).toBeDisabled();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(modalOnClose).not.toHaveBeenCalled();
   });
 });
