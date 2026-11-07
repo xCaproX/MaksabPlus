@@ -54,7 +54,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-5);
+  justify-content: center;
+  gap: var(--space-2) clamp(var(--space-2), 5%, var(--space-8));
   padding: var(--space-3) var(--space-4);
 }
 
@@ -97,9 +98,14 @@
   color: var(--muted);
 }
 
+.sales-kpi-amount {
+  font-size: var(--font-xl);
+}
+
 .sales-kpi-count {
   display: grid;
-  padding-inline-start: var(--space-3);
+  justify-items: center;
+  padding-inline-start: clamp(var(--space-2), 4%, var(--space-6));
   border-inline-start: 1px solid var(--line-strong);
   font-size: var(--font-xs);
   color: var(--muted);
@@ -107,7 +113,7 @@
 
 .sales-kpi-count bdi {
   color: var(--ink);
-  font-size: var(--font-md);
+  font-size: var(--font-lg);
   font-weight: 750;
 }
 
