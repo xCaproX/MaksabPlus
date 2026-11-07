@@ -1,10 +1,9 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { creationTime, formatDate } from '../../lib/format';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
-import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
-import EmptyState from '../../components/EmptyState';
+import DocumentTable, { type DocumentTableColumn } from '../../components/DocumentTable';
 import type { CashBoxTransferRow } from '../../lib/types';
 import type { ReceiptSort } from './ReceiptTable';
 
@@ -37,95 +36,106 @@ export default function CashBoxTransferTable({
   canEdit,
   canDelete,
 }: CashBoxTransferTableProps) {
+  const columns = useMemo<DocumentTableColumn<CashBoxTransferRow>[]>(() => [
+    {
+      key: 'number',
+      header: 'الرقم',
+      sortField: 'number',
+      headerClassName: 'col-number',
+      cellClassName: 'col-number strong',
+      render: (transfer) => (
+        <bdi dir="ltr" className="tabular-nums">
+          {transfer.number}
+        </bdi>
+      ),
+    },
+    {
+      key: 'date',
+      header: 'التاريخ',
+      sortField: 'date',
+      headerClassName: 'col-date',
+      cellClassName: 'col-date',
+      render: (transfer) => (
+        <bdi dir="ltr" className="tabular-nums">
+          {formatDate(transfer.transfer_date)}
+        </bdi>
+      ),
+    },
+    {
+      key: 'time',
+      header: 'الوقت',
+      headerClassName: 'col-time',
+      cellClassName: 'col-time',
+      render: (transfer) => (
+        <bdi dir="ltr" className="tabular-nums">
+          {creationTime(transfer.created_at)}
+        </bdi>
+      ),
+    },
+    {
+      key: 'source_cash_box',
+      header: 'من خزنة',
+      render: (transfer) => transfer.source_cash_box_name,
+    },
+    {
+      key: 'destination_cash_box',
+      header: 'إلى خزنة',
+      render: (transfer) => transfer.destination_cash_box_name,
+    },
+    {
+      key: 'amount',
+      header: 'المبلغ',
+      sortField: 'amount',
+      headerClassName: 'num',
+      align: 'end',
+      render: (transfer) => (
+        <MoneyDisplay value={transfer.amount} strong />
+      ),
+    },
+    {
+      key: 'notes',
+      header: 'ملاحظات',
+      headerClassName: 'col-notes',
+      cellClassName: 'col-notes',
+      render: (transfer) => transfer.notes || '—',
+    },
+    {
+      key: 'creator',
+      header: 'بواسطة',
+      headerClassName: 'col-creator',
+      renderCell: (transfer) => (
+        <DocumentCreatorCell key="creator" name={transfer.created_by_name} />
+      ),
+    },
+  ], []);
+
   return (
-    <table className="table erp-table document-table">
-      <thead>
-        <tr>
-          <SortableHeader
-            label="الرقم"
-            className="col-number"
-            field="number"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as ReceiptSort)}
+    <DocumentTable
+      className="table erp-table document-table"
+      columns={columns}
+      rows={pageTransfers}
+      loading={loading}
+      columnFilter={columnFilter}
+      sortOrder={sortOrder}
+      onSort={(s) => onSort(s as ReceiptSort)}
+      onView={onView}
+      renderRowActions={(transfer) =>
+        showDeleted ? (
+          canDelete && (
+            <RowActions
+              onRestore={() => onRestore(transfer)}
+              restoreLabel="استعادة التحويل"
+            />
+          )
+        ) : (
+          <RowActions
+            onEdit={canEdit ? () => onEdit(transfer) : undefined}
+            onDelete={canDelete ? () => onDelete(transfer) : undefined}
           />
-          <SortableHeader
-            label="التاريخ"
-            className="col-date"
-            field="date"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as ReceiptSort)}
-          />
-          <th className="col-time">الوقت</th>
-          <th>من خزنة</th>
-          <th>إلى خزنة</th>
-          <SortableHeader
-            label="المبلغ"
-            field="amount"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as ReceiptSort)}
-            align="end"
-            className="num"
-          />
-          <th className="col-notes">ملاحظات</th>
-          <th className="col-creator">بواسطة</th>
-          <th aria-label="الإجراءات" />
-        </tr>
-        {columnFilter}
-      </thead>
-      <tbody>
-        {loading && (
-          <tr>
-            <td colSpan={9} className="empty">
-              جارٍ التحميل…
-            </td>
-          </tr>
-        )}
-        {!loading && pageTransfers.length === 0 && (
-          <EmptyState
-            colSpan={9}
-            title="لا توجد تحويلات تطابق البحث أو الفلاتر"
-            description="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
-          />
-        )}
-        {!loading &&
-          pageTransfers.map((transfer) => (
-            <tr
-              key={transfer.id}
-              tabIndex={0}
-              onClick={() => onView(transfer)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  onView(transfer);
-                }
-              }}
-            >
-              <td className="col-number strong"><bdi dir="ltr" className="tabular-nums">{transfer.number}</bdi></td>
-              <td className="col-date"><bdi dir="ltr" className="tabular-nums">{formatDate(transfer.transfer_date)}</bdi></td>
-              <td className="col-time"><bdi dir="ltr" className="tabular-nums">{creationTime(transfer.created_at)}</bdi></td>
-              <td>{transfer.source_cash_box_name}</td>
-              <td>{transfer.destination_cash_box_name}</td>
-              <td><MoneyDisplay value={transfer.amount} strong /></td>
-              <td className="col-notes">{transfer.notes || '—'}</td>
-              <DocumentCreatorCell name={transfer.created_by_name} />
-              <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
-                {showDeleted ? (
-                  canDelete && (
-                    <RowActions
-                      onRestore={() => onRestore(transfer)}
-                      restoreLabel="استعادة التحويل"
-                    />
-                  )
-                ) : (
-                  <RowActions
-                    onEdit={canEdit ? () => onEdit(transfer) : undefined}
-                    onDelete={canDelete ? () => onDelete(transfer) : undefined}
-                  />
-                )}
-              </td>
-            </tr>
-          ))}
-      </tbody>
-    </table>
+        )
+      }
+      emptyTitle="لا توجد تحويلات تطابق البحث أو الفلاتر"
+      emptyDescription="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+    />
   );
 }

@@ -1,11 +1,10 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { accountKindLabel, creationTime, formatDate, receiptTypeLabel } from '../../lib/format';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
-import SortableHeader from '../../components/SortableHeader';
 import StatusBadge from '../../components/StatusBadge';
 import RowActions from '../../components/RowActions';
-import EmptyState from '../../components/EmptyState';
+import DocumentTable, { type DocumentTableColumn } from '../../components/DocumentTable';
 import type { ReceiptRow } from '../../lib/types';
 
 export type ReceiptSort =
@@ -51,118 +50,147 @@ export default function ReceiptTable({
   canEdit,
   canDelete,
 }: ReceiptTableProps) {
+  const columns = useMemo<DocumentTableColumn<ReceiptRow>[]>(() => [
+    {
+      key: 'number',
+      header: 'الرقم',
+      sortField: 'number',
+      headerClassName: 'col-number',
+      cellClassName: 'col-number strong',
+      render: (receipt) => (
+        <bdi dir="ltr" className="tabular-nums">
+          {receipt.number}
+        </bdi>
+      ),
+    },
+    {
+      key: 'date',
+      header: 'التاريخ',
+      sortField: 'date',
+      headerClassName: 'col-date',
+      cellClassName: 'col-date',
+      render: (receipt) => (
+        <bdi dir="ltr" className="tabular-nums">
+          {formatDate(receipt.receipt_date)}
+        </bdi>
+      ),
+    },
+    {
+      key: 'time',
+      header: 'الوقت',
+      headerClassName: 'col-time',
+      cellClassName: 'col-time',
+      render: (receipt) => (
+        <bdi dir="ltr" className="tabular-nums">
+          {creationTime(receipt.created_at)}
+        </bdi>
+      ),
+    },
+    {
+      key: 'cash_box',
+      header: 'الخزنة',
+      headerClassName: 'col-location',
+      cellClassName: 'col-location',
+      render: (receipt) => receipt.cash_box_name,
+    },
+    {
+      key: 'account_kind',
+      header: 'نوع الحساب',
+      headerClassName: 'col-kind',
+      cellClassName: 'col-kind',
+      render: (receipt) => accountKindLabel(receipt.account_kind),
+    },
+    {
+      key: 'account',
+      header: 'الحساب',
+      sortField: 'account',
+      headerClassName: 'col-account',
+      cellClassName: 'col-account',
+      render: (receipt) => receipt.account_name,
+    },
+    {
+      key: 'amount',
+      header: 'المبلغ',
+      sortField: 'amount',
+      headerClassName: 'num',
+      align: 'end',
+      render: (receipt) => <MoneyDisplay value={receipt.amount} strong />,
+    },
+    {
+      key: 'receipt_type',
+      header: 'نوع الإيصال',
+      headerClassName: 'col-receipt-type',
+      cellClassName: 'col-receipt-type',
+      render: (receipt) => (
+        <StatusBadge variant={receipt.is_free ? 'free' : 'linked'}>
+          {receiptTypeLabel(receipt.is_free)}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'statement',
+      header: 'البيان',
+      headerClassName: 'col-notes',
+      cellClassName: 'col-notes',
+      render: (receipt) => receipt.statement || '—',
+    },
+    {
+      key: 'notes',
+      header: 'ملاحظات',
+      headerClassName: 'col-notes',
+      cellClassName: 'col-notes',
+      render: (receipt) => receipt.notes || '—',
+    },
+    {
+      key: 'creator',
+      header: 'بواسطة',
+      headerClassName: 'col-creator',
+      renderCell: (receipt) => (
+        <DocumentCreatorCell key="creator" name={receipt.created_by_name} />
+      ),
+    },
+  ], []);
+
   return (
-    <table className="table erp-table document-table document-table--receipts">
-      <thead>
-        <tr>
-          <SortableHeader
-            label="الرقم"
-            className="col-number"
-            field="number"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as ReceiptSort)}
+    <DocumentTable
+      className="table erp-table document-table document-table--receipts"
+      columns={columns}
+      rows={pageReceipts}
+      loading={loading}
+      columnFilter={columnFilter}
+      sortOrder={sortOrder}
+      onSort={(s) => onSort(s as ReceiptSort)}
+      onView={onView}
+      renderRowActions={(receipt) =>
+        showDeleted ? (
+          canDelete ? (
+            receipt.is_free ? (
+              <RowActions
+                onRestore={() => onRestore(receipt)}
+                restoreLabel="استعادة الإيصال"
+              />
+            ) : (
+              <span className="muted" title="يُستعاد مع الفاتورة">
+                مرتبط
+              </span>
+            )
+          ) : null
+        ) : receipt.is_free ? (
+          <RowActions
+            onEdit={canEdit ? () => onEdit(receipt) : undefined}
+            onDelete={canDelete ? () => onDelete(receipt) : undefined}
           />
-          <SortableHeader
-            label="التاريخ"
-            className="col-date"
-            field="date"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as ReceiptSort)}
-          />
-          <th className="col-time">الوقت</th>
-          <th className="col-location">الخزنة</th>
-          <th className="col-kind">نوع الحساب</th>
-          <SortableHeader label="الحساب" field="account" currentSort={sortOrder}
-            className="col-account" onSort={(s) => onSort(s as ReceiptSort)} />
-          <SortableHeader
-            label="المبلغ"
-            field="amount"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as ReceiptSort)}
-            align="end"
-            className="num"
-          />
-          <th className="col-receipt-type">نوع الإيصال</th>
-          <th className="col-notes">البيان</th>
-          <th className="col-notes">ملاحظات</th>
-          <th className="col-creator">بواسطة</th>
-          <th aria-label="الإجراءات" />
-        </tr>
-        {columnFilter}
-      </thead>
-      <tbody>
-        {loading && (
-          <tr>
-            <td colSpan={12} className="empty">
-              جارٍ التحميل…
-            </td>
-          </tr>
-        )}
-        {!loading && pageReceipts.length === 0 && (
-          <EmptyState
-            colSpan={12}
-            title="لا توجد إيصالات تطابق البحث أو الفلاتر"
-            description="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
-          />
-        )}
-        {!loading &&
-          pageReceipts.map((receipt) => (
-            <tr
-              key={receipt.id}
-              tabIndex={0}
-              onClick={() => onView(receipt)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  onView(receipt);
-                }
-              }}
-            >
-              <td className="col-number strong"><bdi dir="ltr" className="tabular-nums">{receipt.number}</bdi></td>
-              <td className="col-date"><bdi dir="ltr" className="tabular-nums">{formatDate(receipt.receipt_date)}</bdi></td>
-              <td className="col-time"><bdi dir="ltr" className="tabular-nums">{creationTime(receipt.created_at)}</bdi></td>
-              <td className="col-location">{receipt.cash_box_name}</td>
-              <td className="col-kind">{accountKindLabel(receipt.account_kind)}</td>
-              <td className="col-account">{receipt.account_name}</td>
-              <td><MoneyDisplay value={receipt.amount} strong /></td>
-              <td className="col-receipt-type">
-                {receipt.is_free ? (
-                  <StatusBadge variant="free">{receiptTypeLabel(true)}</StatusBadge>
-                ) : (
-                  <StatusBadge variant="linked">{receiptTypeLabel(false)}</StatusBadge>
-                )}
-              </td>
-              <td className="col-notes">{receipt.statement || '—'}</td>
-              <td className="col-notes">{receipt.notes || '—'}</td>
-              <DocumentCreatorCell name={receipt.created_by_name} />
-              <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
-                {showDeleted ? (
-                  canDelete ? (
-                    receipt.is_free ? (
-                      <RowActions
-                        onRestore={() => onRestore(receipt)}
-                        restoreLabel="استعادة الإيصال"
-                      />
-                    ) : (
-                      <span className="muted" title="يُستعاد مع الفاتورة">
-                        مرتبط
-                      </span>
-                    )
-                  ) : null
-                ) : receipt.is_free ? (
-                  <RowActions
-                    onEdit={canEdit ? () => onEdit(receipt) : undefined}
-                    onDelete={canDelete ? () => onDelete(receipt) : undefined}
-                  />
-                ) : (
-                  <span className="muted" title={`يُعدَّل من داخل ${linkKind(receipt.invoice_kind)}`}>
-                    مرتبط
-                  </span>
-                )}
-              </td>
-            </tr>
-          ))}
-      </tbody>
-    </table>
+        ) : (
+          <span
+            className="muted"
+            title={`يُعدَّل من داخل ${linkKind(receipt.invoice_kind)}`}
+          >
+            مرتبط
+          </span>
+        )
+      }
+      emptyTitle="لا توجد إيصالات تطابق البحث أو الفلاتر"
+      emptyDescription="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+    />
   );
 }

@@ -1,10 +1,9 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { creationTime, formatDate, qty as formatQty } from '../../lib/format';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
-import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
-import EmptyState from '../../components/EmptyState';
+import DocumentTable, { type DocumentTableColumn } from '../../components/DocumentTable';
 import type { WarehouseTransferRow } from '../../lib/types';
 import type { SaleSort } from './InvoiceTable';
 
@@ -39,99 +38,138 @@ export default function WarehouseTransferTable({
   canDelete,
   canViewProfit,
 }: WarehouseTransferTableProps) {
+  const columns = useMemo<DocumentTableColumn<WarehouseTransferRow>[]>(() => {
+    const cols: DocumentTableColumn<WarehouseTransferRow>[] = [
+      {
+        key: 'number',
+        header: 'الرقم',
+        sortField: 'number',
+        headerClassName: 'col-number',
+        cellClassName: 'col-number strong',
+        render: (transfer) => (
+          <bdi dir="ltr" className="tabular-nums">
+            {transfer.number}
+          </bdi>
+        ),
+      },
+      {
+        key: 'date',
+        header: 'التاريخ',
+        sortField: 'date',
+        headerClassName: 'col-date',
+        cellClassName: 'col-date',
+        render: (transfer) => (
+          <bdi dir="ltr" className="tabular-nums">
+            {formatDate(transfer.transfer_date)}
+          </bdi>
+        ),
+      },
+      {
+        key: 'time',
+        header: 'الوقت',
+        headerClassName: 'col-time',
+        cellClassName: 'col-time',
+        render: (transfer) => (
+          <bdi dir="ltr" className="tabular-nums">
+            {creationTime(transfer.created_at)}
+          </bdi>
+        ),
+      },
+      {
+        key: 'source_warehouse',
+        header: 'من مخزن',
+        render: (transfer) => transfer.source_warehouse_name,
+      },
+      {
+        key: 'destination_warehouse',
+        header: 'إلى مخزن',
+        render: (transfer) => transfer.destination_warehouse_name,
+      },
+      {
+        key: 'line_count',
+        header: 'عدد الأصناف',
+        headerClassName: 'num',
+        cellClassName: 'num',
+        render: (transfer) => (
+          <bdi dir="ltr" className="tabular-nums">
+            {transfer.line_count}
+          </bdi>
+        ),
+      },
+      {
+        key: 'total_qty',
+        header: 'إجمالي الكميات',
+        headerClassName: 'num',
+        cellClassName: 'num',
+        render: (transfer) => (
+          <bdi dir="ltr" className="tabular-nums">
+            {formatQty(transfer.total_qty)}
+          </bdi>
+        ),
+      },
+    ];
+
+    if (canViewProfit) {
+      cols.push({
+        key: 'total_value',
+        header: 'قيمة التكلفة',
+        sortField: 'total',
+        headerClassName: 'num',
+        align: 'end',
+        render: (transfer) => (
+          <MoneyDisplay value={transfer.total_value} strong />
+        ),
+      });
+    }
+
+    cols.push(
+      {
+        key: 'notes',
+        header: 'ملاحظات',
+        headerClassName: 'col-notes',
+        cellClassName: 'col-notes',
+        render: (transfer) => transfer.notes || '—',
+      },
+      {
+        key: 'creator',
+        header: 'بواسطة',
+        headerClassName: 'col-creator',
+        renderCell: (transfer) => (
+          <DocumentCreatorCell key="creator" name={transfer.created_by_name} />
+        ),
+      },
+    );
+
+    return cols;
+  }, [canViewProfit]);
+
   return (
-    <table className="table erp-table document-table">
-      <thead>
-        <tr>
-          <SortableHeader
-            label="الرقم"
-            className="col-number"
-            field="number"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as SaleSort)}
+    <DocumentTable
+      className="table erp-table document-table"
+      columns={columns}
+      rows={pageTransfers}
+      loading={loading}
+      columnFilter={columnFilter}
+      sortOrder={sortOrder}
+      onSort={(s) => onSort(s as SaleSort)}
+      onView={onView}
+      renderRowActions={(transfer) =>
+        showDeleted ? (
+          canDelete && (
+            <RowActions
+              onRestore={() => onRestore(transfer)}
+              restoreLabel="استعادة التحويل"
+            />
+          )
+        ) : (
+          <RowActions
+            onEdit={canEdit ? () => onEdit(transfer) : undefined}
+            onDelete={canDelete ? () => onDelete(transfer) : undefined}
           />
-          <SortableHeader
-            label="التاريخ"
-            className="col-date"
-            field="date"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as SaleSort)}
-          />
-          <th className="col-time">الوقت</th>
-          <th>من مخزن</th>
-          <th>إلى مخزن</th>
-          <th className="num">عدد الأصناف</th>
-          <th className="num">إجمالي الكميات</th>
-          {canViewProfit && <SortableHeader
-            label="قيمة التكلفة"
-            field="total"
-            align="end"
-            className="num"
-            currentSort={sortOrder}
-            onSort={(s) => onSort(s as SaleSort)}
-          />}
-          <th className="col-notes">ملاحظات</th>
-          <th className="col-creator">بواسطة</th>
-          <th aria-label="الإجراءات" />
-        </tr>
-        {columnFilter}
-      </thead>
-      <tbody>
-        {loading && (
-          <tr>
-            <td colSpan={canViewProfit ? 11 : 10} className="empty">
-              جارٍ التحميل…
-            </td>
-          </tr>
-        )}
-        {!loading && pageTransfers.length === 0 && (
-          <EmptyState
-            colSpan={canViewProfit ? 11 : 10}
-            title="لا توجد تحويلات مخزنية تطابق البحث أو الفلاتر"
-            description="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
-          />
-        )}
-        {!loading &&
-          pageTransfers.map((transfer) => (
-            <tr
-              key={transfer.id}
-              tabIndex={0}
-              onClick={() => onView(transfer)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  onView(transfer);
-                }
-              }}
-            >
-              <td className="col-number strong"><bdi dir="ltr" className="tabular-nums">{transfer.number}</bdi></td>
-              <td className="col-date"><bdi dir="ltr" className="tabular-nums">{formatDate(transfer.transfer_date)}</bdi></td>
-              <td className="col-time"><bdi dir="ltr" className="tabular-nums">{creationTime(transfer.created_at)}</bdi></td>
-              <td>{transfer.source_warehouse_name}</td>
-              <td>{transfer.destination_warehouse_name}</td>
-              <td className="num"><bdi dir="ltr" className="tabular-nums">{transfer.line_count}</bdi></td>
-              <td className="num"><bdi dir="ltr" className="tabular-nums">{formatQty(transfer.total_qty)}</bdi></td>
-              {canViewProfit && <td><MoneyDisplay value={transfer.total_value} strong /></td>}
-              <td className="col-notes">{transfer.notes || '—'}</td>
-              <DocumentCreatorCell name={transfer.created_by_name} />
-              <td className="row-actions erp-row-actions" onClick={(event) => event.stopPropagation()}>
-                {showDeleted ? (
-                  canDelete && (
-                    <RowActions
-                      onRestore={() => onRestore(transfer)}
-                      restoreLabel="استعادة التحويل"
-                    />
-                  )
-                ) : (
-                  <RowActions
-                    onEdit={canEdit ? () => onEdit(transfer) : undefined}
-                    onDelete={canDelete ? () => onDelete(transfer) : undefined}
-                  />
-                )}
-              </td>
-            </tr>
-          ))}
-      </tbody>
-    </table>
+        )
+      }
+      emptyTitle="لا توجد تحويلات مخزنية تطابق البحث أو الفلاتر"
+      emptyDescription="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+    />
   );
 }
