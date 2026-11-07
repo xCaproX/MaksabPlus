@@ -41,36 +41,36 @@ export default function KpiBar({
 
           return (
             <div key={item.id} className={`erp-kpi-card metric-card${variant ? ` metric-card-${variant}` : ''}`}>
-              <div className="kpi-card-head">
+              {Icon && (
+                <span className="metric-card-icon" aria-hidden="true">
+                  <Icon size={24} />
+                </span>
+              )}
+              <div className="kpi-card-content">
                 <span className="kpi-card-label" title={item.label}>
                   {item.label}
                 </span>
-                {Icon && (
-                  <span className="metric-card-icon" aria-hidden="true">
-                    <Icon size={16} />
-                  </span>
-                )}
-              </div>
-              <div className="kpi-card-body">
-                {loading ? <Skeleton width="5rem" /> : (
-                  <div className="kpi-value-group">
-                    <bdi dir="ltr" className="kpi-value num tabular-nums">
-                      {item.value}
-                    </bdi>
-                    {item.unit && <span className="kpi-unit">{item.unit}</span>}
+                <div className="kpi-card-body">
+                  {loading ? <Skeleton width="5rem" /> : (
+                    <div className="kpi-value-group">
+                      <bdi dir="ltr" className="kpi-value num tabular-nums">
+                        {item.value}
+                      </bdi>
+                      {item.unit && <span className="kpi-unit">{item.unit}</span>}
+                    </div>
+                  )}
+                </div>
+                {!loading && (item.subtext || item.badge) && (
+                  <div className="kpi-card-footer">
+                    {item.badge && (
+                      <span className={`badge ${item.badge.variant ?? 'neutral'}`}>
+                        {item.badge.text}
+                      </span>
+                    )}
+                    {item.subtext && <span className="kpi-subtext">{item.subtext}</span>}
                   </div>
                 )}
               </div>
-              {!loading && (item.subtext || item.badge) && (
-                <div className="kpi-card-footer">
-                  {item.badge && (
-                    <span className={`badge ${item.badge.variant ?? 'neutral'}`}>
-                      {item.badge.text}
-                    </span>
-                  )}
-                  {item.subtext && <span className="kpi-subtext">{item.subtext}</span>}
-                </div>
-              )}
             </div>
           );
         })}
