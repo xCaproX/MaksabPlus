@@ -6,10 +6,7 @@
   position: relative;
   flex: 1;
   min-block-size: 0;
-  border: 1px solid var(--erp-border);
   background: var(--erp-surface);
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(25, 45, 68, .08);
 }
 
 .erp-list-panel { width: 100%; min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
@@ -572,14 +569,20 @@
   .erp-detail-lines { max-height: none; }
 }
 
+.erp-sales-workspace,
+.document-list-toolbar {
+  border: 1px solid var(--erp-border);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(25, 45, 68, .08);
+}
+
 /* The standalone document toolbar has equal stack spacing above and below. */
 .erp-kpi-bar:has(+ .document-list-toolbar) { margin-block-end: 0; }
 .document-list-toolbar {
   margin-block: 12px;
   flex-wrap: wrap;
   background: var(--surface-highlight);
-  border: 1px solid var(--erp-border);
-  border-radius: 8px;
 }
 .document-list-toolbar .erp-filters { flex: 1 1 auto; inline-size: auto; min-inline-size: 0; }
+.document-list-toolbar .period-filter .filter-label { color: var(--primary-dark); }
 .document-export-btn { margin-inline-start: auto; flex-shrink: 0; white-space: nowrap; gap: 8px; font-size: 12px; }
