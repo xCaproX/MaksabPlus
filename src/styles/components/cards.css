@@ -158,16 +158,17 @@
   display: flex;
 }
 
-.account-notes-input {
-  background: #f8fafc !important;
-  color: #475569 !important;
-  font-size: 12.5px !important;
-  height: 34px !important;
-  min-height: 34px !important;
-  padding: 0 10px !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 6px !important;
-  box-sizing: border-box !important;
+.account-header-row2 input.account-notes-input,
+input.account-notes-input {
+  background: var(--bg-subtle, #f8fafc);
+  color: var(--ink-secondary, #475569);
+  font-size: var(--font-sm, 12.5px);
+  height: 34px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--erp-border, #e2e8f0);
+  border-radius: var(--radius-xs, 6px);
+  box-sizing: border-box;
   width: 100%;
 }
 
@@ -270,17 +271,18 @@
   box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
 }
 
-.receipt-amount-input {
+.amount-input-with-action input.receipt-amount-input,
+input.receipt-amount-input {
   flex: 1;
-  border: none !important;
-  outline: none !important;
-  height: 38px !important;
-  min-height: 38px !important;
-  font-size: 15px !important;
-  font-weight: 800 !important;
-  color: #1e293b;
-  padding: 0 10px !important;
-  background: transparent !important;
+  border: none;
+  outline: none;
+  height: 38px;
+  min-height: 38px;
+  font-size: var(--font-md, 15px);
+  font-weight: 800;
+  color: var(--erp-text, #1e293b);
+  padding: 0 10px;
+  background: transparent;
   min-width: 0;
 }
 

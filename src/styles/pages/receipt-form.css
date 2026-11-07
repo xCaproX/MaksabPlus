@@ -147,19 +147,7 @@
   padding-top: 6px;
 }
 
-.btn-receipt-save-full {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 44px;
-  min-height: 44px;
-  font-size: 14.5px;
-  font-weight: 800;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
-}
+/* Inherits from buttons.css .btn.action-save / .btn-receipt-save-full (Item 15) */
 
 .btn-receipt-clear-full {
   display: inline-flex;

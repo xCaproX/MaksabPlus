@@ -152,6 +152,22 @@
 .btn.block {
   width: 100%;
 }
+/* Document Save / Primary Action Buttons (Item 15) */
+.btn.lg,
+.btn.action-save,
+.btn-invoice-save,
+.btn-receipt-save-full {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 18px;
+  font-size: var(--font-md, 14.5px);
+  font-weight: 750;
+  border-radius: var(--radius-sm, 8px);
+}
+
 
 /* Icon Buttons */
 .icon-btn {
