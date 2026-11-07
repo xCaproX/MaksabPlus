@@ -4,7 +4,8 @@
 
   /* Z-index scale: ترتيب الطبقات الموثق (الإشعارات فوق كل النوافذ) */
   --z-toast: 300;
-  /* Brand Core Palette */
+
+  /* Brand Core Palette (Single Source of Truth) */
   --bg: #f4f6f8;
   --card: #ffffff;
   --ink: #0f172a;
@@ -61,20 +62,43 @@
   --transition-normal: 0.2s var(--ease-out);
   --transition-bounce: 0.28s var(--ease-spring);
 
-  /* ERP workspace tokens */
-  --erp-navy: #2e425c;
-  --erp-navy-strong: #1e3348;
-  --erp-surface: #ffffff;
-  --erp-surface-muted: #f8fafc;
-  --erp-border: #e2e8f0;
-  --erp-text: #0f172a;
-  --erp-muted: #64748b;
+  /* Standard Typography Scale (Item 12: eliminate unreadable sub-11px text) */
+  --font-xs: 11.5px;
+  --font-sm: 13px;
+  --font-base: 14px;
+  --font-md: 15px;
+  --font-lg: 18px;
+  --font-xl: 21px;
+  --font-2xl: 24px;
+
+  /* Standard Spacing Scale */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ERP workspace token aliases (Item 11: Single Source of Truth, no duplication) */
+  --erp-navy: var(--primary);
+  --erp-navy-strong: var(--primary-dark);
+  --erp-surface: var(--card);
+  --erp-surface-muted: var(--bg);
+  --erp-border: var(--line);
+  --erp-border-strong: var(--line-strong);
+  --erp-text: var(--ink);
+  --erp-text-secondary: var(--ink-secondary);
+  --erp-muted: var(--muted);
+  --erp-muted-light: var(--muted-light);
   --erp-row-height: 40px;
   --erp-control-height: 36px;
-  --erp-space-1: 6px;
-  --erp-space-2: 10px;
-  --erp-space-3: 14px;
-  --erp-space-4: 18px;
+  --erp-space-1: var(--space-1);
+  --erp-space-2: var(--space-2);
+  --erp-space-3: var(--space-3);
+  --erp-space-4: var(--space-4);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

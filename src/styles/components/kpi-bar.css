@@ -103,7 +103,7 @@
 }
 
 .kpi-subtext {
-  font-size: 10.5px;
+  font-size: var(--font-xs, 11.5px);
   color: var(--muted, #64748b);
   overflow: hidden;
   text-overflow: ellipsis;

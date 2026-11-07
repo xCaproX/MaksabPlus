@@ -237,7 +237,7 @@
 }
 
 .form-account-balance-card .balance-val-group .badge {
-  font-size: 10.5px;
+  font-size: var(--font-xs, 11.5px);
   padding: 1px 6px;
 }
 
@@ -1158,7 +1158,7 @@
 }
 
 .stat-pill-tag {
-  font-size: 10.5px;
+  font-size: var(--font-xs, 11.5px);
   font-weight: 750;
   padding: 1px 7px;
   border-radius: 4px;
@@ -1457,7 +1457,7 @@
 
 /* شارة الحالة داخل شريط المتبقي: أصغر من الشارة القياسية لإتاحة المساحة */
 .left-remaining-strip .status-badge {
-  font-size: 10.5px;
+  font-size: var(--font-xs, 11.5px);
 }
 
 .linked-receipt-title {
