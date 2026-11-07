@@ -16,6 +16,48 @@
   cursor: pointer;
 }
 
+.metric-card {
+  --metric-accent: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-block-start: 3px solid var(--metric-accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  transition:
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.metric-card-primary { --metric-accent: var(--primary); }
+.metric-card-success { --metric-accent: var(--success); }
+.metric-card-warning { --metric-accent: var(--warning); }
+.metric-card-danger { --metric-accent: var(--danger); }
+.metric-card-info { --metric-accent: var(--accent); }
+
+.metric-card-icon {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  inline-size: 26px;
+  block-size: 26px;
+  border-radius: var(--radius-xs);
+  color: var(--metric-accent);
+  background: color-mix(in srgb, var(--metric-accent) 7%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--metric-accent) 20%, var(--card));
+}
+
+@media (hover: hover) {
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metric-card { transition: none; }
+  .metric-card:hover { transform: none; }
+}
+
 .card-head {
   display: flex;
   align-items: center;

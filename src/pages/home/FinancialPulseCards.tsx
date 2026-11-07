@@ -21,8 +21,8 @@ export default function FinancialPulseCards({
       <div className="home-financial-grid">
         {/* الفلوس في الخزن */}
         {cashBalance !== null && (
-          <div className="financial-pulse-card">
-            <div className="fin-icon-box fin-cash">
+          <div className="financial-pulse-card metric-card metric-card-success">
+            <div className="metric-card-icon fin-icon-box" aria-hidden="true">
               <Wallet size={17} />
             </div>
             <div className="fin-content">
@@ -40,8 +40,8 @@ export default function FinancialPulseCards({
 
         {/* مستحقات العملاء */}
         {receivablesBalance !== null && (
-          <div className="financial-pulse-card">
-            <div className="fin-icon-box fin-receivables">
+          <div className="financial-pulse-card metric-card metric-card-info">
+            <div className="metric-card-icon fin-icon-box" aria-hidden="true">
               <Users size={17} />
             </div>
             <div className="fin-content">
@@ -59,8 +59,8 @@ export default function FinancialPulseCards({
 
         {/* ديون الموردين */}
         {payablesBalance !== null && (
-          <div className="financial-pulse-card">
-            <div className="fin-icon-box fin-payables">
+          <div className="financial-pulse-card metric-card metric-card-warning">
+            <div className="metric-card-icon fin-icon-box" aria-hidden="true">
               <Truck size={17} />
             </div>
             <div className="fin-content">

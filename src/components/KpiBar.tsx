@@ -37,16 +37,16 @@ export default function KpiBar({
       <div className="erp-kpi-grid">
         {items.map((item) => {
           const Icon = item.icon;
-          const variant = item.variant ?? 'neutral';
+          const variant = item.variant;
 
           return (
-            <div key={item.id} className={`erp-kpi-card kpi-card-${variant}`}>
+            <div key={item.id} className={`erp-kpi-card metric-card${variant ? ` metric-card-${variant}` : ''}`}>
               <div className="kpi-card-head">
                 <span className="kpi-card-label" title={item.label}>
                   {item.label}
                 </span>
                 {Icon && (
-                  <span className="kpi-card-icon" aria-hidden="true">
+                  <span className="metric-card-icon" aria-hidden="true">
                     <Icon size={16} />
                   </span>
                 )}

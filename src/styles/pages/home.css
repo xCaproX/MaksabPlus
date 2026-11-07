@@ -68,10 +68,6 @@
   align-items: center;
   padding: 20px;
   min-block-size: 112px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-xs);
 }
 
 .sales-kpi-card-with-count {
@@ -80,6 +76,8 @@
 
 .sales-kpi-main {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 2px;
   min-inline-size: 0;
 }
@@ -92,6 +90,7 @@
 }
 
 .sales-kpi-amount {
+  grid-column: 1 / -1;
   display: inline-flex;
   flex-direction: row-reverse;
   align-items: baseline;
@@ -140,55 +139,17 @@
 }
 
 .financial-pulse-card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
   padding: 20px;
   min-block-size: 96px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: var(--shadow-xs);
-  transition:
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.financial-pulse-card:hover {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-sm);
 }
 
 .fin-icon-box {
-  width: 40px;
-  height: 40px;
   inline-size: 40px;
   block-size: 40px;
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border: 1px solid transparent;
-}
-
-.fin-icon-box.fin-cash {
-  background: var(--tone-in-bg);
-  color: var(--tone-in);
-  border-color: color-mix(in srgb, var(--tone-in) 20%, transparent);
-}
-
-.fin-icon-box.fin-receivables {
-  background: var(--tone-info-bg);
-  color: var(--tone-info);
-  border-color: color-mix(in srgb, var(--tone-info) 20%, transparent);
-}
-
-.fin-icon-box.fin-payables {
-  background: var(--tone-out-bg);
-  color: var(--tone-out);
-  border-color: color-mix(in srgb, var(--tone-out) 20%, transparent);
 }
 
 .fin-content {
