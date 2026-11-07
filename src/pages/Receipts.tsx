@@ -474,11 +474,6 @@ export default function Receipts() {
   return (
     <DocumentListPage
       title={tabTitle}
-      subtitle={
-        isCashBoxTransfer
-          ? 'أوامر تحويل النقدية بين الخزن وتتبع أرصدتها بدون تأثير على الحسابات.'
-          : 'تسجيل ومتابعة سندات القبض والصرف وحركات الخزينة.'
-      }
       deletedWarning={
         isCashBoxTransfer
           ? 'التحويلات المحذوفة لا تؤثر على أرصدة الخزن.'

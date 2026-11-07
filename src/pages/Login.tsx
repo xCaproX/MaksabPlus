@@ -28,7 +28,6 @@ export default function Login() {
         <img className="login-logo" src="/maksab-logo.png" alt="مكسب بلس" />
         <div className="login-intro">
           <h1>مرحبًا بعودتك</h1>
-          <p className="muted">سجّل دخولك لمتابعة أعمالك</p>
         </div>
 
         <label>

@@ -23,7 +23,6 @@ export interface DocumentListConfirmState {
 
 export interface DocumentListPageProps<TTab extends string = string> {
   title: string;
-  subtitle?: string;
   deletedWarning?: string;
 
   tabs: readonly DocumentListTabItem<TTab>[];
@@ -77,7 +76,6 @@ export interface DocumentListPageProps<TTab extends string = string> {
 
 export default function DocumentListPage<TTab extends string = string>({
   title,
-  subtitle,
   deletedWarning,
   tabs,
   activeTab,
@@ -129,7 +127,6 @@ export default function DocumentListPage<TTab extends string = string>({
       <div className="page-head">
         <div>
           <h1>{showDeleted ? `المحذوفات — ${title}` : title}</h1>
-          {subtitle && <p className="page-subtitle">{subtitle}</p>}
         </div>
         <div className="actions">
           {canDelete && onDeletedToggle && (

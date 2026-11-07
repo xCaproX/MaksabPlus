@@ -83,11 +83,6 @@
   flex-wrap: wrap;
 }
 
-.page-head p {
-  margin-top: 4px;
-  font-size: 14px;
-}
-
 /* ---------- Responsive Header & Content Base ---------- */
 @media (max-width: 760px) {
   .topbar {

@@ -10,7 +10,6 @@ describe('DocumentListPage - الهيكل الموحد لصفحات المستن
 
   const defaultProps = {
     title: 'فواتير المبيعات',
-    subtitle: 'متابعة الفواتير والمدفوعات',
     tabs,
     activeTab: 'tab1',
     onTabChange: vi.fn(),
@@ -33,7 +32,7 @@ describe('DocumentListPage - الهيكل الموحد لصفحات المستن
     confirmation: null,
   };
 
-  it('يعرض العنوان والوصف والتبويبات المتاحة', () => {
+  it('يعرض العنوان والتبويبات المتاحة', () => {
     const handleTabChange = vi.fn();
     render(
       <DocumentListPage {...defaultProps} onTabChange={handleTabChange}>
@@ -42,7 +41,7 @@ describe('DocumentListPage - الهيكل الموحد لصفحات المستن
     );
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('فواتير المبيعات');
-    expect(screen.getByText('متابعة الفواتير والمدفوعات')).toBeInTheDocument();
+
     expect(screen.getByText('التبويب الأول')).toHaveClass('active');
     expect(screen.getByText('التبويب الثاني')).not.toHaveClass('active');
     expect(screen.getByTestId('table-content')).toBeInTheDocument();
