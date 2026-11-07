@@ -581,10 +581,10 @@
 .document-list-toolbar {
   margin-block: 12px;
   flex-wrap: wrap;
-  background: var(--surface-highlight);
+  background: var(--primary);
 }
 .document-list-toolbar .erp-filters { flex: 1 1 auto; inline-size: auto; min-inline-size: 0; }
-.document-list-toolbar .period-filter .filter-label { color: var(--primary-dark); }
+.document-list-toolbar .period-filter .filter-label { color: var(--card); }
 .content:has(> .document-list--deleted) {
   background: color-mix(in srgb, var(--danger-light) 65%, var(--bg));
 }
