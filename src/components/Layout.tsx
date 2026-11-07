@@ -1,7 +1,7 @@
 import { getCurrentUserIdentity } from '../lib/company';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound, UserRound } from 'lucide-react';
+import { LayoutDashboard, Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound, UserRound, type LucideIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -9,13 +9,31 @@ import RowActions from './RowActions';
 
 type NavSection = 'goods' | 'money' | 'balances' | 'data' | 'management';
 
+interface NavTab {
+  id: string;
+  label: string;
+}
+
+interface NavGroupDef {
+  section: NavSection;
+  basePath: string;
+  label: string;
+  icon: LucideIcon;
+  /** الاسم المعرب المذكور في aria-label (مثلاً: الإدارة) — عن default بيُستخدم label */
+  sectionName?: string;
+}
+
+/** أقسام التنقل بمساراتها وأيقوناتها — المصدر الواحد لبنية الشريط العلوي. */
+const NAV_GROUPS: NavGroupDef[] = [
+  { section: 'goods', basePath: '/invoices', label: 'البضاعة', icon: Package },
+  { section: 'money', basePath: '/receipts', label: 'الفلوس', icon: Wallet },
+  { section: 'balances', basePath: '/balances', label: 'الأرصدة', icon: Scale },
+  { section: 'data', basePath: '/data', label: 'البيانات', icon: Database },
+  { section: 'management', basePath: '/management', label: 'إدارة', icon: ShieldCheck, sectionName: 'الإدارة' },
+];
+
 function getInitialSection(pathname: string): NavSection | null {
-  if (pathname.startsWith('/invoices')) return 'goods';
-  if (pathname.startsWith('/receipts')) return 'money';
-  if (pathname.startsWith('/balances')) return 'balances';
-  if (pathname.startsWith('/data')) return 'data';
-  if (pathname.startsWith('/management')) return 'management';
-  return null;
+  return NAV_GROUPS.find((group) => pathname.startsWith(group.basePath))?.section ?? null;
 }
 
 const DEFAULT_SECTIONS: Record<NavSection, boolean> = {
@@ -46,6 +64,74 @@ function saveOpenSection(uid: string | null, section: NavSection | null) {
     const sections = { ...DEFAULT_SECTIONS, ...(section ? { [section]: true } : {}) };
     localStorage.setItem(`maksab_nav_sections_${uid}`, JSON.stringify(sections));
   } catch {}
+}
+
+interface NavGroupSectionProps {
+  group: NavGroupDef;
+  tabs: NavTab[];
+  open: boolean;
+  currentTab: string | null;
+  pathname: string;
+  onOpen: (section: NavSection) => void;
+  onToggle: (section: NavSection) => void;
+}
+
+/** مجموعة قسم واحد في الشريط: رابط القسم + سهم الطي + قائمة التبويبات الفرعية. */
+function NavGroupSection({ group, tabs, open, currentTab, pathname, onOpen, onToggle }: NavGroupSectionProps) {
+  if (tabs.length === 0) return null;
+  const Icon = group.icon;
+
+  return (
+    <div className="nav-group">
+      <NavLink
+        to={`${group.basePath}?tab=${tabs[0].id}`}
+        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+        onClick={() => onOpen(group.section)}
+      >
+        <span className="nav-link-main">
+          <Icon size={17} className="nav-icon" />
+          <span>{group.label}</span>
+        </span>
+        <span
+          className="nav-chevron"
+          role="button"
+          tabIndex={0}
+          aria-label={`طي أو فتح قسم ${group.sectionName ?? group.label}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggle(group.section);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggle(group.section);
+            }
+          }}
+        >
+          {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        </span>
+      </NavLink>
+      {open && (
+        <div className="subnav">
+          {tabs.map((item) => {
+            const isActive = pathname.startsWith(group.basePath) && (currentTab === item.id || (!currentTab && item.id === tabs[0].id));
+            return (
+              <Link
+                key={item.id}
+                to={`${group.basePath}?tab=${item.id}`}
+                className={`subnav-link ${isActive ? 'active' : ''}`}
+              >
+                <span className="subnav-dot" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Layout() {
@@ -181,265 +267,27 @@ export default function Layout() {
               </span>
             </NavLink>
           </div>
-          {visibleGoodsTabs.length > 0 && (
-            <div className="nav-group">
-              <NavLink
-                to={`/invoices?tab=${visibleGoodsTabs[0].id}`}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                onClick={() => ensureSectionOpen('goods')}
-              >
-                <span className="nav-link-main">
-                  <Package size={17} className="nav-icon" />
-                  <span>البضاعة</span>
-                </span>
-                <span
-                  className="nav-chevron"
-                  role="button"
-                  tabIndex={0}
-                  aria-label="طي أو فتح قسم البضاعة"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleSection('goods');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleSection('goods');
-                    }
-                  }}
-                >
-                  {(openSection === 'goods') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                </span>
-              </NavLink>
-              {(openSection === 'goods') && (
-                <div className="subnav">
-                  {visibleGoodsTabs.map((item) => {
-                    const isActive = location.pathname.startsWith('/invoices') && (currentTab === item.id || (!currentTab && item.id === visibleGoodsTabs[0].id));
-                    return (
-                      <Link
-                        key={item.id}
-                        to={`/invoices?tab=${item.id}`}
-                        className={`subnav-link ${isActive ? 'active' : ''}`}
-                      >
-                        <span className="subnav-dot" />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {visibleMoneyTabs.length > 0 && (
-            <div className="nav-group">
-              <NavLink
-                to={`/receipts?tab=${visibleMoneyTabs[0].id}`}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                onClick={() => ensureSectionOpen('money')}
-              >
-                <span className="nav-link-main">
-                  <Wallet size={17} className="nav-icon" />
-                  <span>الفلوس</span>
-                </span>
-                <span
-                  className="nav-chevron"
-                  role="button"
-                  tabIndex={0}
-                  aria-label="طي أو فتح قسم الفلوس"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleSection('money');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleSection('money');
-                    }
-                  }}
-                >
-                  {(openSection === 'money') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                </span>
-              </NavLink>
-              {(openSection === 'money') && (
-                <div className="subnav">
-                  {visibleMoneyTabs.map((item) => {
-                    const isActive = location.pathname.startsWith('/receipts') && (currentTab === item.id || (!currentTab && item.id === visibleMoneyTabs[0].id));
-                    return (
-                      <Link
-                        key={item.id}
-                        to={`/receipts?tab=${item.id}`}
-                        className={`subnav-link ${isActive ? 'active' : ''}`}
-                      >
-                        <span className="subnav-dot" />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {visibleBalanceTabs.length > 0 && (
-            <div className="nav-group">
-              <NavLink
-                to={`/balances?tab=${visibleBalanceTabs[0].id}`}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                onClick={() => ensureSectionOpen('balances')}
-              >
-                <span className="nav-link-main">
-                  <Scale size={17} className="nav-icon" />
-                  <span>الأرصدة</span>
-                </span>
-                <span
-                  className="nav-chevron"
-                  role="button"
-                  tabIndex={0}
-                  aria-label="طي أو فتح قسم الأرصدة"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleSection('balances');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleSection('balances');
-                    }
-                  }}
-                >
-                  {(openSection === 'balances') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                </span>
-              </NavLink>
-              {(openSection === 'balances') && (
-                <div className="subnav">
-                  {visibleBalanceTabs.map((item) => {
-                    const isActive = location.pathname.startsWith('/balances') && (currentTab === item.id || (!currentTab && item.id === visibleBalanceTabs[0].id));
-                    return (
-                      <Link
-                        key={item.id}
-                        to={`/balances?tab=${item.id}`}
-                        className={`subnav-link ${isActive ? 'active' : ''}`}
-                      >
-                        <span className="subnav-dot" />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {visibleDataTabs.length > 0 && (
-            <div className="nav-group">
-              <NavLink
-                to={`/data?tab=${visibleDataTabs[0].id}`}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                onClick={() => ensureSectionOpen('data')}
-              >
-                <span className="nav-link-main">
-                  <Database size={17} className="nav-icon" />
-                  <span>البيانات</span>
-                </span>
-                <span
-                  className="nav-chevron"
-                  role="button"
-                  tabIndex={0}
-                  aria-label="طي أو فتح قسم البيانات"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleSection('data');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleSection('data');
-                    }
-                  }}
-                >
-                  {(openSection === 'data') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                </span>
-              </NavLink>
-              {(openSection === 'data') && (
-                <div className="subnav">
-                  {visibleDataTabs.map((item) => {
-                    const isActive = location.pathname.startsWith('/data') && (currentTab === item.id || (!currentTab && item.id === visibleDataTabs[0].id));
-                    return (
-                      <Link
-                        key={item.id}
-                        to={`/data?tab=${item.id}`}
-                        className={`subnav-link ${isActive ? 'active' : ''}`}
-                      >
-                        <span className="subnav-dot" />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {visibleManagementTabs.length > 0 && (
-            <div className="nav-group">
-              <NavLink
-                to={`/management?tab=${visibleManagementTabs[0].id}`}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                onClick={() => ensureSectionOpen('management')}
-              >
-                <span className="nav-link-main">
-                  <ShieldCheck size={17} className="nav-icon" />
-                  <span>إدارة</span>
-                </span>
-                <span
-                  className="nav-chevron"
-                  role="button"
-                  tabIndex={0}
-                  aria-label="طي أو فتح قسم الإدارة"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleSection('management');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleSection('management');
-                    }
-                  }}
-                >
-                  {(openSection === 'management') ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                </span>
-              </NavLink>
-              {(openSection === 'management') && (
-                <div className="subnav">
-                  {visibleManagementTabs.map((item) => {
-                    const isActive = location.pathname.startsWith('/management') && (currentTab === item.id || (!currentTab && item.id === visibleManagementTabs[0].id));
-                    return (
-                      <Link
-                        key={item.id}
-                        to={`/management?tab=${item.id}`}
-                        className={`subnav-link ${isActive ? 'active' : ''}`}
-                      >
-                        <span className="subnav-dot" />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+          {NAV_GROUPS.map((group) => {
+            const visibleTabsBySection: Record<NavSection, NavTab[]> = {
+              goods: visibleGoodsTabs,
+              money: visibleMoneyTabs,
+              balances: visibleBalanceTabs,
+              data: visibleDataTabs,
+              management: visibleManagementTabs,
+            };
+            return (
+              <NavGroupSection
+                key={group.section}
+                group={group}
+                tabs={visibleTabsBySection[group.section]}
+                open={openSection === group.section}
+                currentTab={currentTab}
+                pathname={location.pathname}
+                onOpen={ensureSectionOpen}
+                onToggle={toggleSection}
+              />
+            );
+          })}
         </nav>
 
         <RowActions
