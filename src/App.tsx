@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import Layout from './components/Layout';
@@ -9,20 +9,12 @@ import { ToastContainer } from './components/Toast';
 
 const Login = lazy(() => import('./pages/Login'));
 const Home = lazy(() => import('./pages/Home'));
-const DashboardPreview = lazy(() => import('./pages/DashboardPreview'));
 const Invoices = lazy(() => import('./pages/Invoices'));
 const Receipts = lazy(() => import('./pages/Receipts'));
 const MasterData = lazy(() => import('./pages/MasterData'));
 const Balances = lazy(() => import('./pages/Balances'));
 const Management = lazy(() => import('./pages/Management'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
-const dashboardPreviewPath = '/dashboard-preview';
-
-function SignedInLanding() {
-  const { search } = useLocation();
-  const previewRequested = new URLSearchParams(search).get('preview') === 'dashboard';
-  return <Navigate to={previewRequested ? dashboardPreviewPath : '/'} replace />;
-}
 
 function PageSuspense({ children, fullScreen = false }: { children: ReactNode; fullScreen?: boolean }) {
   return (
@@ -79,13 +71,11 @@ export default function App() {
       <Routes>
         <Route
           path="/login"
-          element={session ? <SignedInLanding /> : <PageSuspense fullScreen><Login /></PageSuspense>}
+          element={session ? <Navigate to="/" replace /> : <PageSuspense fullScreen><Login /></PageSuspense>}
         />
-        {!session && <Route path={dashboardPreviewPath} element={<Navigate to="/login?preview=dashboard" replace />} />}
         <Route path="/set-password" element={session ? <PageSuspense fullScreen><SetPassword /></PageSuspense> : <Navigate to="/login" replace />} />
         <Route element={session ? <AccessProvider key={session.user.id}><MasterDataProvider><Layout /></MasterDataProvider></AccessProvider> : <Navigate to="/login" replace />}>
           <Route path="/" element={<PageSuspense><Home /></PageSuspense>} />
-          <Route path={dashboardPreviewPath} element={<PageSuspense><DashboardPreview /></PageSuspense>} />
           <Route path="/invoices" element={<AccessRoute permissions={['goods.view','goods.sale.view','goods.purchase.view','goods.sale_return.view','goods.purchase_return.view','goods.waste.view','goods.warehouse_transfer.view']}><PageSuspense><Invoices /></PageSuspense></AccessRoute>} />
           <Route path="/receipts" element={<AccessRoute permissions={['money.view','money.in.view','money.out.view','money.cash_box_transfer.view']}><PageSuspense><Receipts /></PageSuspense></AccessRoute>} />
           <Route path="/data" element={<AccessRoute permissions={['data.view','data.customers.view','data.suppliers.view','data.items.view','data.warehouses.view','data.cashBoxes.view','data.create','data.edit','data.delete']}><PageSuspense><MasterData /></PageSuspense></AccessRoute>} />
