@@ -5,7 +5,8 @@ import QuickActions from '../../pages/home/QuickActions';
 import SalesMetricCards from '../../pages/home/SalesMetricCards';
 import FinancialPulseCards from '../../pages/home/FinancialPulseCards';
 import TopRankedList from '../../pages/home/TopRankedList';
-import LowStockCard from '../../pages/home/LowStockCard';
+import Home from '../../pages/Home';
+import { supabase } from '../../lib/supabase';
 import { Package } from 'lucide-react';
 
 // Mock useAccess
@@ -16,6 +17,9 @@ vi.mock('../../lib/access', () => ({
     can: () => true,
   }),
 }));
+
+vi.mock('../../lib/supabase', () => ({ supabase: { rpc: vi.fn() } }));
+vi.mock('../../lib/company', () => ({ getCurrentUserIdentity: vi.fn().mockResolvedValue(null) }));
 
 describe('Home Dashboard Components', () => {
   it('QuickActions renders user greeting and primary action buttons', () => {
@@ -58,8 +62,8 @@ describe('Home Dashboard Components', () => {
 
     expect(screen.queryByText('إجمالي المبيعات')).not.toBeInTheDocument();
     expect(screen.getByText('مبيعات اليوم')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'مبيعات الفترات' })).toHaveTextContent('مبيعات آخر 7 أيام');
-    expect(screen.getByRole('region', { name: 'مبيعات الفترات' })).toHaveTextContent('مبيعات آخر 30 يوم');
+    expect(screen.getByRole('region', { name: 'المبيعات' })).toHaveTextContent('مبيعات آخر 7 أيام');
+    expect(screen.getByRole('region', { name: 'المبيعات' })).toHaveTextContent('مبيعات آخر 30 يوم');
     expect(screen.getByText('120.00')).toBeInTheDocument();
     expect(screen.getByText('52,349.00')).toBeInTheDocument();
     expect(screen.getByText('221,804.00')).toBeInTheDocument();
@@ -82,7 +86,7 @@ describe('Home Dashboard Components', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByRole('region', { name: 'النبض المالي والأرصدة' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'الأرصدة' })).toBeInTheDocument();
     expect(screen.getByText('الفلوس في الخزن')).toBeInTheDocument();
     expect(screen.getByText('15,000.00')).toBeInTheDocument();
     expect(screen.getByTitle('عرض كشف الخزن')).toHaveAttribute('href', '/balances?tab=cashBoxes');
@@ -125,29 +129,25 @@ describe('Home Dashboard Components', () => {
     expect(screen.queryByText('عرض فواتير المبيعات')).not.toBeInTheDocument();
   });
 
-  it('LowStockCard renders items with warning badges and empty state when empty', () => {
-    const items = [
-      { item_id: '1', item_name: 'جبنة دومتي', unit: 'علبة', code: 'ITM-001', current_qty: 2 },
-    ];
+  it('shows the three dashboard sections without rendering low-stock data', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: {
+        sales: { today: 0, today_count: 0, week: 0, month: 0 },
+        cash_balance: 0,
+        receivables_balance: null,
+        payables_balance: null,
+        permissions: { can_view_sales: true, can_view_items: true },
+        low_stock_items: [{ item_id: '1', item_name: 'صنف على وشك النفاد', unit: 'قطعة', current_qty: 1 }],
+      },
+      error: null,
+    } as never);
 
-    const { rerender } = render(
-      <BrowserRouter>
-        <LowStockCard items={items} />
-      </BrowserRouter>
-    );
+    render(<BrowserRouter><Home /></BrowserRouter>);
 
-    expect(screen.getByText('جبنة دومتي')).toBeInTheDocument();
-    expect(screen.getByText(/ITM-001/)).toBeInTheDocument();
-    expect(screen.getByText(/المتبقي:/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'عرض أرصدة الأصناف' })).toHaveAttribute('href', '/balances?tab=items');
-    expect(screen.queryByText('عرض أرصدة الأصناف')).not.toBeInTheDocument();
-
-    rerender(
-      <BrowserRouter>
-        <LowStockCard items={[]} />
-      </BrowserRouter>
-    );
-
-    expect(screen.getByText(/المخزون مستقر ولا توجد نواقص حرجة حالياً/)).toBeInTheDocument();
+    expect(await screen.findAllByRole('heading', { level: 2 })).toHaveLength(3);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
+      'المبيعات', 'الأرصدة', 'الإحصائيات',
+    ]);
+    expect(screen.queryByText(/نواقص المخزن|صنف على وشك النفاد/)).not.toBeInTheDocument();
   });
 });

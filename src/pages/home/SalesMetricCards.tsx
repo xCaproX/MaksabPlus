@@ -1,5 +1,6 @@
 import { ShoppingCart } from 'lucide-react';
 import MoneyDisplay from '../../components/MoneyDisplay';
+import HomeSection from './HomeSection';
 import { qty } from '../../lib/format';
 
 export interface DashboardSales {
@@ -21,12 +22,12 @@ export default function SalesMetricCards({ sales }: { sales: DashboardSales | nu
   ];
 
   return (
-    <section aria-label="مبيعات الفترات">
+    <HomeSection title="المبيعات">
       <div className="home-sales-grid">
         {periods.map(({ key, label, amount, count }) => (
           <div key={key} className={`sales-kpi-card metric-card metric-card-primary${count === undefined ? '' : ' sales-kpi-card-with-count'}`}>
             <div className="sales-kpi-main">
-              <h2 className="sales-kpi-label">{label}</h2>
+              <h3 className="sales-kpi-label">{label}</h3>
               <span className="metric-card-icon" aria-hidden="true">
                 <ShoppingCart size={16} />
               </span>
@@ -41,6 +42,6 @@ export default function SalesMetricCards({ sales }: { sales: DashboardSales | nu
           </div>
         ))}
       </div>
-    </section>
+    </HomeSection>
   );
 }

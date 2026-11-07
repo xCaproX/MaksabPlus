@@ -236,10 +236,22 @@
   text-decoration: none;
 }
 
-/* 4. Insights Grid (Charts & Low Stock) */
+/* Home sections */
+.home-section {
+  display: grid;
+  gap: 10px;
+}
+
+.home-section-title {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--ink);
+}
+
 .home-insights-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -277,40 +289,6 @@
 .dashboard-card-title svg {
   flex-shrink: 0;
   align-self: center;
-}
-
-/* Low Stock Card States (Step 4) */
-.dashboard-card--alert {
-  order: -1;
-}
-
-.home-insights-grid:has(.dashboard-card--ok) {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.dashboard-card--ok {
-  grid-column: 1 / -1;
-  flex-direction: row;
-  align-items: center;
-  min-block-size: 56px;
-  padding: 12px 20px;
-  gap: 16px;
-}
-
-.dashboard-card--ok .dashboard-card-head {
-  border-block-end: 0;
-  padding-block-end: 0;
-  flex: 1;
-}
-
-.dashboard-card--ok .empty-state-card {
-  flex: none;
-  flex-direction: row;
-  padding: 0;
-}
-
-.dashboard-card--ok .dashboard-card-action {
-  display: none;
 }
 
 /* Ranked List / Pure CSS Bar Chart - Calm & Elegant */
@@ -418,69 +396,6 @@
   background: var(--tone-in);
 }
 
-/* Low Stock Alert List */
-.low-stock-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.low-stock-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  background: var(--bg);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  gap: 10px;
-}
-
-.low-stock-item-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  overflow: hidden;
-}
-
-.low-stock-name {
-  font-size: var(--font-sm);
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.low-stock-code {
-  font-size: var(--font-xs);
-  color: var(--muted);
-}
-
-.low-stock-qty-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
-  border-radius: var(--radius-xs);
-  font-size: var(--font-xs);
-  font-weight: 700;
-  background: var(--tone-alert-bg);
-  color: var(--tone-alert);
-  border: 1px solid color-mix(in srgb, var(--tone-alert) 25%, transparent);
-  white-space: nowrap;
-}
-
-.empty-state-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  padding: 24px 12px;
-  color: var(--muted);
-  font-size: var(--font-sm);
-  text-align: center;
-  gap: 6px;
-}
-
 /* 5. Responsive Adjustments */
 
 /* Sales grid KPI amount: between 820px and 1099px */
@@ -504,23 +419,9 @@
   }
 }
 
-/* Insights grid: 760px to 1099px */
-@media (min-width: 760px) and (max-width: 1099px) {
-  .home-insights-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .home-insights-grid:has(.dashboard-card--ok) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 /* Insights grid: below 760px -> 1 column */
 @media (max-width: 759px) {
-  .home-insights-grid,
-  .home-insights-grid:has(.dashboard-card--ok) {
-    grid-template-columns: 1fr;
-  }
+  .home-insights-grid { grid-template-columns: 1fr; }
 }
 
 /* Mobile: below 640px */
@@ -533,13 +434,6 @@
     flex-direction: column;
     align-items: stretch;
     padding: 16px;
-  }
-
-  .home-sales-grid,
-  .home-financial-grid,
-  .home-insights-grid,
-  .home-insights-grid:has(.dashboard-card--ok) {
-    grid-template-columns: 1fr;
   }
 
   .home-actions-group {
@@ -566,8 +460,4 @@
     min-block-size: auto;
   }
 
-  .dashboard-card--ok {
-    min-block-size: 56px;
-    padding: 12px 16px;
-  }
 }

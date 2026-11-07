@@ -28,7 +28,7 @@ export function LoadingSkeleton({
   layout?: 'page' | 'dashboard' | 'form';
   label: string;
 }) {
-  const sections = layout === 'dashboard' ? [1, 3, 3, 3] : layout === 'form' ? [3, 4, 1] : [1, 1];
+  const sections = layout === 'dashboard' ? [1, 3, 3, 2] : layout === 'form' ? [3, 4, 1] : [1, 1];
 
   return (
     <div className={`loading-layout loading-layout-${layout}`}>

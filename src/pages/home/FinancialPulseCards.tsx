@@ -1,5 +1,6 @@
 import { Wallet, Users, Truck } from 'lucide-react';
 import DashboardCardAction from './DashboardCardAction';
+import HomeSection from './HomeSection';
 import { money } from '../../lib/format';
 
 interface FinancialPulseCardsProps {
@@ -17,7 +18,7 @@ export default function FinancialPulseCards({
   if (!hasAny) return null;
 
   return (
-    <section className="home-sales-section" aria-label="النبض المالي والأرصدة">
+    <HomeSection title="الأرصدة">
       <div className="home-financial-grid">
         {/* الفلوس في الخزن */}
         {cashBalance !== null && (
@@ -76,6 +77,6 @@ export default function FinancialPulseCards({
           </div>
         )}
       </div>
-    </section>
+    </HomeSection>
   );
 }

@@ -11,7 +11,7 @@ import QuickActions from './home/QuickActions';
 import SalesMetricCards, { type DashboardSales } from './home/SalesMetricCards';
 import FinancialPulseCards from './home/FinancialPulseCards';
 import TopRankedList, { type RankedItem } from './home/TopRankedList';
-import LowStockCard, { type LowStockItem } from './home/LowStockCard';
+import HomeSection from './home/HomeSection';
 
 interface DashboardSummaryData {
   sales: DashboardSales | null;
@@ -31,13 +31,11 @@ interface DashboardSummaryData {
     total_amount: number;
     invoice_count: number;
   }> | null;
-  low_stock_items: LowStockItem[] | null;
   permissions: {
     can_view_sales: boolean;
     can_view_cash: boolean;
     can_view_customers: boolean;
     can_view_suppliers: boolean;
-    can_view_items: boolean;
   };
 }
 
@@ -132,36 +130,30 @@ export default function Home() {
         payablesBalance={data?.payables_balance ?? null}
       />
 
-      {/* 4. التحليلات وقوائم الأكثر حركة ونواقص المخزن */}
-      <div className="home-insights-grid">
-        {data?.permissions.can_view_sales && (
-          <TopRankedList
-            title="أكثر الأصناف مبيعاً (آخر 30 يوماً)"
-            icon={Package}
-            items={topItems}
-            barVariant="items"
-            emptyText="لا توجد مبيعات مسجلة خلال آخر 30 يوماً"
-            linkTo="/invoices?tab=sale"
-            linkText="عرض فواتير المبيعات"
-          />
-        )}
-
-        {data?.permissions.can_view_sales && (
-          <TopRankedList
-            title="أكثر العملاء شراءً (آخر 30 يوماً)"
-            icon={Users}
-            items={topCustomers}
-            barVariant="customers"
-            emptyText="لا توجد مشتريات عملاء مسجلة خلال آخر 30 يوماً"
-            linkTo="/balances?tab=customers"
-            linkText="عرض كشوف العملاء"
-          />
-        )}
-
-        {data?.permissions.can_view_items && (
-          <LowStockCard items={data?.low_stock_items ?? null} />
-        )}
-      </div>
+      {data?.permissions.can_view_sales && (
+        <HomeSection title="الإحصائيات">
+          <div className="home-insights-grid">
+            <TopRankedList
+              title="أكثر الأصناف مبيعاً (آخر 30 يوماً)"
+              icon={Package}
+              items={topItems}
+              barVariant="items"
+              emptyText="لا توجد مبيعات مسجلة خلال آخر 30 يوماً"
+              linkTo="/invoices?tab=sale"
+              linkText="عرض فواتير المبيعات"
+            />
+            <TopRankedList
+              title="أكثر العملاء شراءً (آخر 30 يوماً)"
+              icon={Users}
+              items={topCustomers}
+              barVariant="customers"
+              emptyText="لا توجد مشتريات عملاء مسجلة خلال آخر 30 يوماً"
+              linkTo="/balances?tab=customers"
+              linkText="عرض كشوف العملاء"
+            />
+          </div>
+        </HomeSection>
+      )}
     </div>
   );
 }
