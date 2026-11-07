@@ -120,11 +120,29 @@ begin
     raise exception 'Expected 1 low stock item, got %', jsonb_array_length(v_summary->'low_stock_items');
   end if;
 
+  insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, subtotal, total, paid, cost_total, profit_total, deleted_at)
+  values
+    (v_comp_a, 'sale', 'SAL-DASH-7', current_date - 6, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
+    (v_comp_a, 'sale', 'SAL-DASH-8', current_date - 7, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
+    (v_comp_a, 'sale', 'SAL-DASH-30', current_date - 29, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
+    (v_comp_a, 'sale', 'SAL-DASH-31', current_date - 30, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
+    (v_comp_a, 'sale', 'SAL-DASH-DELETED', current_date, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, now()),
+    (v_comp_a, 'sale_return', 'RET-DASH-1', current_date, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null);
+
+  v_summary := public.get_home_dashboard_summary();
+  if (v_summary->'sales'->>'today_count')::int is distinct from 1
+     or (v_summary->'sales'->>'week_count')::int is distinct from 2
+     or (v_summary->'sales'->>'month_count')::int is distinct from 4 then
+    raise exception 'Expected 1, 2 and 4 live sales invoices across the periods, got %', v_summary->'sales';
+  end if;
+
   -- 4) عزل الشركات (Tenant Isolation): مالك شركة ب يجب ألا يرى أي بيانات لشركة أ
   perform set_config('request.jwt.claim.sub', v_owner_b::text, true);
   v_summary := public.get_home_dashboard_summary();
 
   if (v_summary->'sales'->>'today')::numeric <> 0.0000
+     or (v_summary->'sales'->>'week_count')::int is distinct from 0
+     or (v_summary->'sales'->>'month_count')::int is distinct from 0
      or (v_summary->>'cash_balance')::numeric <> 0.0000
      or jsonb_array_length(v_summary->'top_items') <> 0 then
     raise exception 'Tenant leak: Company B saw data from Company A: %', v_summary;
@@ -141,5 +159,15 @@ begin
   end if;
 
 end $$;
+
+set local role anon;
+do $$
+begin
+  perform public.get_home_dashboard_summary();
+  raise exception 'anon was able to call the dashboard summary';
+exception when insufficient_privilege then
+  null;
+end $$;
+reset role;
 
 rollback;

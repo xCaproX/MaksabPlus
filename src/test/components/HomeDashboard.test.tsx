@@ -45,17 +45,24 @@ describe('Home Dashboard Components', () => {
       today: 120,
       today_count: 3,
       week: 52349,
+      week_count: 12,
       month: 221804,
+      month_count: 0,
     };
 
     render(<SalesMetricCards sales={mockSales} />);
 
-    expect(screen.getByRole('region', { name: 'إجمالي المبيعات' })).toBeInTheDocument();
-    expect(screen.getByText('اليوم')).toBeInTheDocument();
+    expect(screen.queryByText('إجمالي المبيعات')).not.toBeInTheDocument();
+    expect(screen.getByText('مبيعات اليوم')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'مبيعات الفترات' })).toHaveTextContent('مبيعات آخر 7 أيام');
+    expect(screen.getByRole('region', { name: 'مبيعات الفترات' })).toHaveTextContent('مبيعات آخر 30 يوم');
     expect(screen.getByText('120.00')).toBeInTheDocument();
     expect(screen.getByText('52,349.00')).toBeInTheDocument();
     expect(screen.getByText('221,804.00')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.getAllByText('عدد الفواتير')).toHaveLength(3);
   });
 
   it('FinancialPulseCards renders cash, receivables, and payables cards with direct links', () => {
@@ -97,6 +104,8 @@ describe('Home Dashboard Components', () => {
           items={items}
           barVariant="items"
           emptyText="لا توجد بيانات"
+          linkTo="/invoices?tab=sale"
+          linkText="عرض فواتير المبيعات"
         />
       </BrowserRouter>
     );
@@ -106,6 +115,8 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText('شيبسي')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.getByText('50')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'عرض فواتير المبيعات' })).toHaveAttribute('href', '/invoices?tab=sale');
+    expect(screen.queryByText('عرض فواتير المبيعات')).not.toBeInTheDocument();
   });
 
   it('LowStockCard renders items with warning badges and empty state when empty', () => {
@@ -122,6 +133,8 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText('جبنة دومتي')).toBeInTheDocument();
     expect(screen.getByText(/ITM-001/)).toBeInTheDocument();
     expect(screen.getByText(/المتبقي:/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'عرض أرصدة الأصناف' })).toHaveAttribute('href', '/balances?tab=items');
+    expect(screen.queryByText('عرض أرصدة الأصناف')).not.toBeInTheDocument();
 
     rerender(
       <BrowserRouter>

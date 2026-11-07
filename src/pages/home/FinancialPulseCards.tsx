@@ -1,5 +1,5 @@
-import { Wallet, Users, Truck, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Wallet, Users, Truck } from 'lucide-react';
+import DashboardCardAction from './DashboardCardAction';
 import { money } from '../../lib/format';
 
 interface FinancialPulseCardsProps {
@@ -34,13 +34,7 @@ export default function FinancialPulseCards({
                 <span className="fin-unit">ج.م</span>
               </div>
             </div>
-            <Link
-              to="/balances?tab=cashBoxes"
-              className="dashboard-card-action"
-              title="عرض كشف الخزن"
-            >
-              <ArrowLeft size={16} />
-            </Link>
+            <DashboardCardAction to="/balances?tab=cashBoxes" label="عرض كشف الخزن" />
           </div>
         )}
 
@@ -59,13 +53,7 @@ export default function FinancialPulseCards({
                 <span className="fin-unit">ج.م</span>
               </div>
             </div>
-            <Link
-              to="/balances?tab=customers"
-              className="dashboard-card-action"
-              title="عرض أرصدة العملاء"
-            >
-              <ArrowLeft size={16} />
-            </Link>
+            <DashboardCardAction to="/balances?tab=customers" label="عرض أرصدة العملاء" />
           </div>
         )}
 
@@ -84,13 +72,7 @@ export default function FinancialPulseCards({
                 <span className="fin-unit">ج.م</span>
               </div>
             </div>
-            <Link
-              to="/balances?tab=suppliers"
-              className="dashboard-card-action"
-              title="عرض حسابات الموردين"
-            >
-              <ArrowLeft size={16} />
-            </Link>
+            <DashboardCardAction to="/balances?tab=suppliers" label="عرض حسابات الموردين" />
           </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import DashboardCardAction from './DashboardCardAction';
 
 export interface RankedItem {
   id: string;
@@ -39,9 +39,7 @@ export default function TopRankedList({
           <span>{title}</span>
         </h3>
         {linkTo && (
-          <Link to={linkTo} className="dashboard-card-action">
-            {linkText}
-          </Link>
+          <DashboardCardAction to={linkTo} label={linkText} />
         )}
       </div>
 

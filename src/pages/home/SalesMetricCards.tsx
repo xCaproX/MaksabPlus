@@ -1,93 +1,45 @@
-import { TrendingUp, Calendar, Clock, Receipt } from 'lucide-react';
+import { Receipt } from 'lucide-react';
 import { money } from '../../lib/format';
 
-interface SalesMetricCardsProps {
-  sales: {
-    today: number;
-    today_count: number;
-    week: number;
-    month: number;
-  } | null;
+export interface DashboardSales {
+  today: number;
+  today_count: number;
+  week: number;
+  week_count?: number;
+  month: number;
+  month_count?: number;
 }
 
-export default function SalesMetricCards({ sales }: SalesMetricCardsProps) {
+export default function SalesMetricCards({ sales }: { sales: DashboardSales | null }) {
   if (!sales) return null;
 
+  const periods = [
+    { key: 'today', label: 'مبيعات اليوم', amount: sales.today, count: sales.today_count },
+    { key: 'week', label: <>مبيعات آخر <bdi className="num tabular-nums">7</bdi> أيام</>, amount: sales.week, count: sales.week_count },
+    { key: 'month', label: <>مبيعات آخر <bdi className="num tabular-nums">30</bdi> يوم</>, amount: sales.month, count: sales.month_count },
+  ];
+
   return (
-    <section className="home-sales-section" aria-label="إجمالي المبيعات">
-      <div className="home-section-head">
-        <h2 className="home-section-title">
-          <TrendingUp size={16} className="text-primary" />
-          <span>إجمالي المبيعات</span>
-        </h2>
-      </div>
-
+    <section aria-label="مبيعات الفترات">
       <div className="home-sales-grid">
-        {/* اليوم */}
-        <div className="sales-kpi-card sales-today">
-          <div className="sales-kpi-head">
-            <span className="sales-kpi-label">اليوم</span>
-            <span className="sales-kpi-tag">
-              <Clock size={11} style={{ display: 'inline', marginInlineEnd: 3 }} />
-              لحظي
-            </span>
+        {periods.map(({ key, label, amount, count }) => (
+          <div key={key} className={`sales-kpi-card sales-${key}`}>
+            <div className="sales-kpi-head">
+              <span className="sales-kpi-label">{label}</span>
+              {count !== undefined && (
+                <span className="sales-kpi-tag">
+                  <Receipt size={12} aria-hidden="true" />
+                  <span>عدد الفواتير</span>
+                  <bdi dir="ltr" className="num tabular-nums">{count}</bdi>
+                </span>
+              )}
+            </div>
+            <div className="sales-kpi-value-row">
+              <bdi dir="ltr" className="sales-kpi-amount num tabular-nums">{money(amount)}</bdi>
+              <span className="sales-kpi-unit">ج.م</span>
+            </div>
           </div>
-          <div className="sales-kpi-value-row">
-            <bdi dir="ltr" className="sales-kpi-amount num tabular-nums">
-              {money(sales.today)}
-            </bdi>
-            <span className="sales-kpi-unit">ج.م</span>
-          </div>
-          <div className="sales-kpi-footer">
-            <span>عدد الفواتير</span>
-            <span className="sales-kpi-count-badge">
-              <Receipt size={12} className="text-muted" />
-              <bdi dir="ltr" className="num tabular-nums">{sales.today_count}</bdi>
-            </span>
-          </div>
-        </div>
-
-        {/* آخر 7 أيام */}
-        <div className="sales-kpi-card sales-week">
-          <div className="sales-kpi-head">
-            <span className="sales-kpi-label">آخر 7 أيام</span>
-            <span className="sales-kpi-tag">
-              <Calendar size={11} style={{ display: 'inline', marginInlineEnd: 3 }} />
-              أسبوعي
-            </span>
-          </div>
-          <div className="sales-kpi-value-row">
-            <bdi dir="ltr" className="sales-kpi-amount num tabular-nums">
-              {money(sales.week)}
-            </bdi>
-            <span className="sales-kpi-unit">ج.م</span>
-          </div>
-          <div className="sales-kpi-footer">
-            <span>مبيعات الأسبوع</span>
-            <span className="sales-kpi-subtext-muted">صافي البيع</span>
-          </div>
-        </div>
-
-        {/* آخر 30 يوماً */}
-        <div className="sales-kpi-card sales-month">
-          <div className="sales-kpi-head">
-            <span className="sales-kpi-label">آخر 30 يوماً</span>
-            <span className="sales-kpi-tag">
-              <Calendar size={11} style={{ display: 'inline', marginInlineEnd: 3 }} />
-              شهري
-            </span>
-          </div>
-          <div className="sales-kpi-value-row">
-            <bdi dir="ltr" className="sales-kpi-amount num tabular-nums">
-              {money(sales.month)}
-            </bdi>
-            <span className="sales-kpi-unit">ج.م</span>
-          </div>
-          <div className="sales-kpi-footer">
-            <span>مبيعات الشهر</span>
-            <span className="sales-kpi-subtext-muted">صافي البيع</span>
-          </div>
-        </div>
+        ))}
       </div>
     </section>
   );

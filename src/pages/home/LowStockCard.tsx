@@ -1,6 +1,6 @@
-import { AlertTriangle, CheckCircle2, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { qty } from '../../lib/format';
+import DashboardCardAction from './DashboardCardAction';
 
 export interface LowStockItem {
   item_id: string;
@@ -24,9 +24,7 @@ export default function LowStockCard({ items }: LowStockCardProps) {
           <AlertTriangle size={15} className="text-warning" />
           <span>نواقص المخزن (أوشكت على النفاد)</span>
         </h3>
-        <Link to="/balances?tab=items" className="dashboard-card-action">
-          عرض أرصدة الأصناف
-        </Link>
+        <DashboardCardAction to="/balances?tab=items" label="عرض أرصدة الأصناف" />
       </div>
 
       {items.length === 0 ? (
@@ -52,13 +50,10 @@ export default function LowStockCard({ items }: LowStockCardProps) {
                   المتبقي: <bdi dir="ltr" className="num tabular-nums">{qty(item.current_qty)}</bdi> {item.unit}
                 </span>
 
-                <Link
+                <DashboardCardAction
                   to="/invoices?tab=purchase&action=new"
-                  className="dashboard-card-action"
-                  title="إنشاء فاتورة شراء لطلب الصنف"
-                >
-                  <ArrowLeft size={16} />
-                </Link>
+                  label="إنشاء فاتورة شراء لطلب الصنف"
+                />
               </div>
             </div>
           ))}

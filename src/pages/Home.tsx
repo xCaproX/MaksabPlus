@@ -7,18 +7,13 @@ import { useAccess } from '../lib/access';
 import { money, qty } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import QuickActions from './home/QuickActions';
-import SalesMetricCards from './home/SalesMetricCards';
+import SalesMetricCards, { type DashboardSales } from './home/SalesMetricCards';
 import FinancialPulseCards from './home/FinancialPulseCards';
 import TopRankedList, { type RankedItem } from './home/TopRankedList';
 import LowStockCard, { type LowStockItem } from './home/LowStockCard';
 
 interface DashboardSummaryData {
-  sales: {
-    today: number;
-    today_count: number;
-    week: number;
-    month: number;
-  } | null;
+  sales: DashboardSales | null;
   cash_balance: number | null;
   receivables_balance: number | null;
   payables_balance: number | null;
