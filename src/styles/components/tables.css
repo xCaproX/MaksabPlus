@@ -161,6 +161,10 @@ td.row-actions > * + * {
 .document-table--invoices .col-notes { min-inline-size: 160px; max-inline-size: 260px; }
 .document-table--invoices:has(th.col-status) .col-notes { min-inline-size: 155px; max-inline-size: 255px; }
 .document-table--invoices .col-status { padding-inline-end: 14px; }
+@container (inline-size < 1350px) {
+  .document-table--invoices :is(th, td) { padding-inline: 8px; }
+  .document-table--invoices .col-status { padding-inline-end: 13px; }
+}
 .document-table .col-creator { min-inline-size: 110px; max-inline-size: 180px; white-space: normal; overflow-wrap: anywhere; }
 .document-table td { padding-block: 10px; }
 .document-table .erp-row-actions { min-inline-size: 44px; }
