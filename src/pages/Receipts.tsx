@@ -1,5 +1,6 @@
 import ColumnFilterRow from '../components/ColumnFilterRow';
 import { useColumnFilters } from '../lib/useColumnFilters';
+import { useDocumentPageNumber } from '../lib/useDocumentPageNumber';
 import Pagination from '../components/Pagination';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
@@ -65,7 +66,6 @@ export default function Receipts() {
   const [dateFrom, setDateFrom] = useState(() => periodDates().from);
   const [dateTo, setDateTo] = useState(() => periodDates().to);
   const [sortOrder, setSortOrder] = useState<ReceiptSort>('date-desc');
-  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const targetTab = tabParam && VALID_RECEIPT_TABS.includes(tabParam) ? tabParam : 'in';
@@ -81,7 +81,6 @@ export default function Receipts() {
       setEditingTransfer(null);
       setDateFrom(periodDates().from);
       setDateTo(periodDates().to);
-      setPage(1);
 
       if (action === 'new') {
         const canCreate = can(`money.${targetTab}.create`);
@@ -128,6 +127,7 @@ export default function Receipts() {
   const columns = useColumnFilters(tab, () => {
     setDateFrom(periodDates().from); setDateTo(periodDates().to); setShowDeleted(false); setPage(1);
   });
+  const { page, setPage } = useDocumentPageNumber([columns.filters, dateFrom, dateTo, sortOrder, tab, showDeleted]);
   const columnFilter = <ColumnFilterRow scope={isCashBoxTransfer ? 'cash_transfer' : 'receipt'} kind={direction}
      values={columns.values} onChange={columns.setField} onReset={columns.reset}
     options={{ cashBoxes: cashBoxes.map((b) => ({ value: b.id, label: b.name })) }} />;
@@ -160,7 +160,8 @@ export default function Receipts() {
   );
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
+    const { signal } = controller;
     async function fetchReceipts() {
       setLoading(true);
       const from = (page - 1) * PAGE_SIZE;
@@ -169,7 +170,7 @@ export default function Receipts() {
       try {
         if (!isCashBoxTransfer) {
           const query = documentListQuery({ scope: 'receipt', kind: direction, filters: columns.filters,
-            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to);
+            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
 
           const [dataRes, kpiRes] = await Promise.all([
             query,
@@ -181,10 +182,10 @@ export default function Receipts() {
               p_date_from: dateFrom || null,
               p_date_to: dateTo || null,
               p_show_deleted: showDeleted,
-            }),
+            }).abortSignal(signal),
           ]);
 
-          if (cancelled) return;
+          if (signal.aborted) return;
           if (dataRes.error) throw dataRes.error;
 
           setRows((dataRes.data || []) as ReceiptRow[]);
@@ -204,7 +205,7 @@ export default function Receipts() {
           }
         } else {
           const query = documentListQuery({ scope: 'cash_transfer', kind: direction, filters: columns.filters,
-            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to);
+            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
 
           const [dataRes, kpiRes] = await Promise.all([
             query,
@@ -215,10 +216,10 @@ export default function Receipts() {
               p_date_from: dateFrom || null,
               p_date_to: dateTo || null,
               p_show_deleted: showDeleted,
-            }),
+            }).abortSignal(signal),
           ]);
 
-          if (cancelled) return;
+          if (signal.aborted) return;
           if (dataRes.error) throw dataRes.error;
 
           setTransferRows((dataRes.data || []) as CashBoxTransferRow[]);
@@ -237,9 +238,9 @@ export default function Receipts() {
         }
       } catch (err: unknown) {
         const errorObj = err as { message?: string };
-        if (!cancelled) toast.error(translateDbError(errorObj?.message || 'فشل تحميل البيانات'));
+        if (!signal.aborted) toast.error(translateDbError(errorObj?.message || 'فشل تحميل البيانات'));
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!signal.aborted) setLoading(false);
       }
     }
 
@@ -247,7 +248,7 @@ export default function Receipts() {
       void fetchReceipts();
     }
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [
     tab,
@@ -264,14 +265,10 @@ export default function Receipts() {
   ]);
 
   useEffect(() => {
-    setPage(1);
-  }, [columns.filters, dateFrom, dateTo, sortOrder, tab, showDeleted]);
-
-  useEffect(() => {
     if (page > pageCount && pageCount > 0) {
       setPage(pageCount);
     }
-  }, [page, pageCount]);
+  }, [page, pageCount, setPage]);
 
   function resetForm() {
     setEditing(null);

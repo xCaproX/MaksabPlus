@@ -1,5 +1,6 @@
 import ColumnFilterRow from '../components/ColumnFilterRow';
 import { useColumnFilters } from '../lib/useColumnFilters';
+import { useDocumentPageNumber } from '../lib/useDocumentPageNumber';
 import Pagination from '../components/Pagination';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
@@ -95,7 +96,6 @@ export default function Invoices() {
   const [dateFrom, setDateFrom] = useState(() => periodDates().from);
   const [dateTo, setDateTo] = useState(() => periodDates().to);
   const [sortOrder, setSortOrder] = useState<SaleSort>('date-desc');
-  const [page, setPage] = useState(1);
 
   const isWarehouseTransfer = kind === 'warehouse_transfer';
   const invoiceKind = isWarehouseTransfer ? null : kind;
@@ -113,7 +113,6 @@ export default function Invoices() {
       setEditingTransfer(null);
       setDateFrom(periodDates().from);
       setDateTo(periodDates().to);
-      setPage(1);
 
       if (action === 'new') {
         const canCreate =
@@ -199,6 +198,7 @@ export default function Invoices() {
   const columns = useColumnFilters(kind + String(canViewProfit), () => {
     setDateFrom(periodDates().from); setDateTo(periodDates().to); setShowDeleted(false); setPage(1);
   });
+  const { page, setPage } = useDocumentPageNumber([columns.filters, dateFrom, dateTo, sortOrder, kind, showDeleted]);
   const columnFilter = <ColumnFilterRow scope={isWarehouseTransfer ? 'warehouse_transfer' : 'invoice'} kind={kind}
     owner={canViewProfit} values={columns.values} onChange={columns.setField} onReset={columns.reset}
     options={{ warehouses: warehouses.map((w) => ({ value: w.id, label: w.name })), }} />;
@@ -235,7 +235,8 @@ export default function Invoices() {
   );
 
   useEffect(() => {
-    let alive = true;
+    const controller = new AbortController();
+    const { signal } = controller;
 
     async function load() {
       setLoading(true);
@@ -246,7 +247,7 @@ export default function Invoices() {
       try {
         if (invoiceKind) {
           const query = documentListQuery({ scope: 'invoice', kind: invoiceKind, filters: columns.filters,
-            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to);
+            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
 
           const [docRes, kpiRes] = await Promise.all([
             query,
@@ -258,10 +259,10 @@ export default function Invoices() {
               p_date_from: dateFrom || null,
               p_date_to: dateTo || null,
               p_show_deleted: showDeleted,
-            }),
+            }).abortSignal(signal),
           ]);
 
-          if (!alive) return;
+          if (signal.aborted) return;
 
           if (docRes.error) {
             toast.error(translateDbError(docRes.error.message));
@@ -282,7 +283,7 @@ export default function Invoices() {
           }
         } else if (isWarehouseTransfer) {
           const transferQuery = documentListQuery({ scope: 'warehouse_transfer', kind: kind, filters: columns.filters,
-            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to);
+            dateFrom, dateTo, showDeleted, sortOrder }).range(from, to, signal);
 
           const [transRes, kpiRes] = await Promise.all([
             transferQuery,
@@ -292,10 +293,10 @@ export default function Invoices() {
               p_date_from: dateFrom || null,
               p_date_to: dateTo || null,
               p_show_deleted: showDeleted,
-            }),
+            }).abortSignal(signal),
           ]);
 
-          if (!alive) return;
+          if (signal.aborted) return;
 
           if (transRes.error) {
             toast.error(translateDbError(transRes.error.message));
@@ -314,11 +315,11 @@ export default function Invoices() {
           }
         }
       } catch (err: any) {
-        if (alive) {
+        if (!signal.aborted) {
           toast.error(translateDbError(err?.message || 'فشل تحميل البيانات'));
         }
       } finally {
-        if (alive) {
+        if (!signal.aborted) {
           setLoading(false);
         }
       }
@@ -326,7 +327,7 @@ export default function Invoices() {
 
     void load();
     return () => {
-      alive = false;
+      controller.abort();
     };
   }, [
     kind,
@@ -342,14 +343,10 @@ export default function Invoices() {
   ]);
 
   useEffect(() => {
-    setPage(1);
-  }, [columns.filters, dateFrom, dateTo, sortOrder, kind, showDeleted]);
-
-  useEffect(() => {
     if (page > pageCount && pageCount > 0) {
       setPage(pageCount);
     }
-  }, [page, pageCount]);
+  }, [page, pageCount, setPage]);
 
   function switchKind(next: InvoiceTab) {
     if (next === kind) return;
