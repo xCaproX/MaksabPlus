@@ -580,11 +580,6 @@ export default function Invoices() {
   return (
     <DocumentListPage
       title={tabTitle}
-      deletedWarning={
-        isWarehouseTransfer
-          ? 'التحويلات المحذوفة لا تؤثر على المخزون، ويمكن استعادتها ما لم توجد حركات لاحقة.'
-          : 'هذه المستندات محذوفة: لا تؤثر على الأرصدة أو المخزون، ويمكن استعادتها في أي وقت.'
-      }
       tabs={visibleTabs}
       activeTab={kind}
       onTabChange={switchKind}

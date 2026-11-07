@@ -23,7 +23,6 @@ export interface DocumentListConfirmState {
 
 export interface DocumentListPageProps<TTab extends string = string> {
   title: string;
-  deletedWarning?: string;
 
   tabs: readonly DocumentListTabItem<TTab>[];
   activeTab: TTab;
@@ -76,7 +75,6 @@ export interface DocumentListPageProps<TTab extends string = string> {
 
 export default function DocumentListPage<TTab extends string = string>({
   title,
-  deletedWarning,
   tabs,
   activeTab,
   onTabChange,
@@ -123,10 +121,13 @@ export default function DocumentListPage<TTab extends string = string>({
   const pageCount = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
-    <div className="stack">
+    <div className={showDeleted ? 'stack document-list--deleted' : 'stack'}>
       <div className="page-head">
         <div>
-          <h1>{showDeleted ? `المحذوفات — ${title}` : title}</h1>
+          <h1 className="document-list-title">
+            {title}
+            {showDeleted && <span className="document-list-deleted-label">المحذوفات</span>}
+          </h1>
         </div>
         <div className="actions">
           {canDelete && onDeletedToggle && (
@@ -154,10 +155,6 @@ export default function DocumentListPage<TTab extends string = string>({
           </button>
         ))}
       </div>
-
-      {showDeleted && deletedWarning && (
-        <p className="hint warning">{deletedWarning}</p>
-      )}
 
       {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
       {summaryError ? (

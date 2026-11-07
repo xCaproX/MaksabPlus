@@ -474,11 +474,6 @@ export default function Receipts() {
   return (
     <DocumentListPage
       title={tabTitle}
-      deletedWarning={
-        isCashBoxTransfer
-          ? 'التحويلات المحذوفة لا تؤثر على أرصدة الخزن.'
-          : 'هذه الإيصالات محذوفة: لا تؤثر على الأرصدة أو الخزنة. إيصال الفاتورة يُستعاد من صفحة البضاعة مع فاتورته.'
-      }
       tabs={visibleTabs}
       activeTab={tab}
       onTabChange={(tabValue) =>

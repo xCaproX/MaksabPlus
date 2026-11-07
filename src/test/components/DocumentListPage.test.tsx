@@ -50,19 +50,20 @@ describe('DocumentListPage - الهيكل الموحد لصفحات المستن
     expect(handleTabChange).toHaveBeenCalledWith('tab2');
   });
 
-  it('يعرض شارة تحذير المحذوفات عند تفعيل showDeleted', () => {
+  it('يعرض المحذوفات بجوار عنوان الصفحة ويميّز مساحة المحتوى', () => {
     render(
       <DocumentListPage
         {...defaultProps}
         showDeleted={true}
-        deletedWarning="تنبيه: الفواتير المحذوفة لا تؤثر على الأرصدة."
       >
         <div>جدول المحذوفات</div>
       </DocumentListPage>
     );
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('المحذوفات — فواتير المبيعات');
-    expect(screen.getByText('تنبيه: الفواتير المحذوفة لا تؤثر على الأرصدة.')).toBeInTheDocument();
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toHaveTextContent('فواتير المبيعات');
+    expect(within(heading).getByText('المحذوفات')).toHaveClass('document-list-deleted-label');
+    expect(heading.closest('.stack')).toHaveClass('document-list--deleted');
   });
 
   it('يفتح المودال ويعرض المحتوى الممرر', () => {

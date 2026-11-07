@@ -585,4 +585,22 @@
 }
 .document-list-toolbar .erp-filters { flex: 1 1 auto; inline-size: auto; min-inline-size: 0; }
 .document-list-toolbar .period-filter .filter-label { color: var(--primary-dark); }
+.content:has(> .document-list--deleted) {
+  background: color-mix(in srgb, var(--danger-light) 65%, var(--bg));
+}
+
+.document-list-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.document-list-deleted-label {
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--danger-strong);
+  color: var(--card);
+  font-size: var(--font-xs);
+}
 .document-export-btn { margin-inline-start: auto; flex-shrink: 0; white-space: nowrap; gap: 8px; font-size: 12px; }
