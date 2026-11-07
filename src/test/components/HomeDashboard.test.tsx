@@ -150,6 +150,9 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText(/المتبقي:/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'عرض أرصدة الأصناف' })).toHaveAttribute('href', '/balances?tab=items');
     expect(screen.queryByText('عرض أرصدة الأصناف')).not.toBeInTheDocument();
+    const stockCard = screen.getByRole('region', { name: 'حالة المخزون' });
+    const stockHeading = screen.getByRole('heading', { name: 'نواقص المخزون' });
+    const stockLink = screen.getByRole('link', { name: 'عرض أرصدة الأصناف' });
 
     rerender(
       <BrowserRouter>
@@ -157,6 +160,10 @@ describe('Home Dashboard Components', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText(/المخزون مستقر ولا توجد نواقص حرجة حالياً/)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'حالة المخزون' })).toBe(stockCard);
+    expect(screen.getByRole('heading', { name: 'نواقص المخزون' })).toBe(stockHeading);
+    expect(screen.getByRole('link', { name: 'عرض أرصدة الأصناف' })).toBe(stockLink);
+    expect(stockCard).toHaveTextContent('مفيش نواقص حاليًا');
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
 });

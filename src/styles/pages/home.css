@@ -48,14 +48,14 @@
   grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));
   align-items: stretch;
   padding: var(--space-1);
+  background: var(--bg);
 }
 
 .sales-kpi-card {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--space-2) var(--space-5);
   padding: var(--space-3) var(--space-4);
 }
 
@@ -100,6 +100,8 @@
 
 .sales-kpi-count {
   display: grid;
+  padding-inline-start: var(--space-3);
+  border-inline-start: 1px solid var(--line-strong);
   font-size: var(--font-xs);
   color: var(--muted);
 }
@@ -112,6 +114,10 @@
 
 .sales-kpi-today .sales-kpi-amount {
   font-size: clamp(24px, 2vw, 32px);
+}
+
+.sales-kpi-today .sales-kpi-count {
+  border-inline-start-color: var(--muted-light);
 }
 
 .sales-kpi-today :is(.sales-kpi-label, .sales-kpi-amount, .currency-suffix, .sales-kpi-count, .sales-kpi-count bdi) {
@@ -127,6 +133,7 @@
 .home-financial-grid {
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
+  background: color-mix(in srgb, var(--accent-light) 65%, var(--card));
 }
 
 .financial-pulse-card {
@@ -143,8 +150,8 @@
 .fin-icon-box {
   display: grid;
   place-items: center;
-  flex: 0 0 34px;
-  block-size: 34px;
+  flex: 0 0 38px;
+  block-size: 38px;
   border-radius: var(--radius-sm);
   background: var(--primary-light);
 }
@@ -164,12 +171,9 @@
 }
 
 .home-insights-grid {
+  --follow-up-row-size: 52px;
   gap: var(--space-3);
   grid-template-columns: repeat(auto-fit, minmax(min(100%, max(255px, (100% - 2 * var(--space-3)) / 3)), 1fr));
-}
-
-.home-insights-grid:has(.low-stock-stable) {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(255px, (100% - var(--space-3)) / 2)), 1fr));
 }
 
 .home-insights-grid:empty {
@@ -178,11 +182,10 @@
 
 .dashboard-card {
   min-inline-size: 0;
-  padding: var(--space-3);
+  padding: var(--space-4);
 }
 
-.dashboard-card-head,
-.low-stock-stable {
+.dashboard-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -195,18 +198,21 @@
   margin-block-end: var(--space-2);
 }
 
-.dashboard-card-title,
-.low-stock-stable p {
+.dashboard-card-title {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-sm);
+  font-size: var(--font-md);
   font-weight: 700;
 }
 
 .dashboard-card-title svg {
   flex-shrink: 0;
   color: var(--primary);
+}
+
+.ranked-card-items .dashboard-card-title svg {
+  color: var(--accent);
 }
 
 .dashboard-card-action {
@@ -247,7 +253,17 @@
 .ranked-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-content: center;
   gap: var(--space-1);
+}
+
+.ranked-item,
+.low-stock-row {
+  min-block-size: var(--follow-up-row-size);
+}
+
+.ranked-card-customers .ranked-item + .ranked-item {
+  border-block-start: 1px solid var(--line);
 }
 
 .ranked-item-info,
@@ -276,7 +292,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--font-sm);
+  font-size: var(--font-base);
   font-weight: 600;
 }
 
@@ -300,12 +316,12 @@
 
 .ranked-item-val {
   flex-shrink: 0;
-  font-size: var(--font-sm);
+  font-size: var(--font-base);
   font-weight: 700;
 }
 
 .ranked-bar-track {
-  block-size: 4px;
+  block-size: 6px;
   background: var(--bg);
   border-radius: var(--radius-full);
 }
@@ -313,21 +329,31 @@
 .ranked-bar-fill {
   block-size: 100%;
   border-radius: inherit;
+  background: var(--accent);
 }
 
-.bar-fill-items { background: var(--accent); }
-.bar-fill-customers { background: var(--primary); }
+.low-stock-card {
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--primary-light), var(--bg));
+}
 
 .low-stock-stable {
-  grid-column: 1 / -1;
-  padding: var(--space-1) var(--space-3);
+  display: grid;
+  flex: 1;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
   background: var(--success-light);
-  border: 1px solid var(--success-border);
   border-radius: var(--radius-sm);
   color: var(--success-hover);
+  font-size: var(--font-md);
+  font-weight: 700;
+  text-align: center;
 }
 
-.low-stock-card .dashboard-card-title svg {
+.dashboard-card-title .low-stock-warning {
   color: var(--warning);
 }
 
@@ -379,6 +405,10 @@
     gap: var(--space-3);
   }
 
+  .home-insights-grid {
+    --follow-up-row-size: 58px;
+  }
+
   .ranked-item {
     gap: var(--space-2);
   }
@@ -397,8 +427,7 @@
 @media (max-width: 640px) {
   .home-sales-grid,
   .home-financial-grid,
-  .home-insights-grid,
-  .home-insights-grid:has(.low-stock-stable) {
+  .home-insights-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
