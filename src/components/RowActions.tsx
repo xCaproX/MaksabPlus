@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { MoreVertical, Pencil, Trash2, RotateCcw } from 'lucide-react';
 
 export interface RowActionItem {
@@ -21,6 +22,7 @@ interface RowActionsProps {
   triggerClassName?: string;
   className?: string;
   placement?: 'top' | 'bottom';
+  portal?: boolean;
 }
 
 export default function RowActions({
@@ -36,22 +38,52 @@ export default function RowActions({
   triggerClassName = 'row-actions-trigger-btn',
   className = '',
   placement = 'bottom',
+  portal = true,
 }: RowActionsProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const initialFocus = useRef(0);
   const menuId = useId();
 
+  useLayoutEffect(() => {
+    const trigger = triggerRef.current;
+    const popup = popupRef.current;
+    if (!portal || !open || !trigger || !popup) return;
+
+    function positionMenu() {
+      if (!trigger || !popup) return;
+      const rect = trigger.getBoundingClientRect();
+      const width = popup.offsetWidth;
+      const height = popup.offsetHeight;
+      const above = rect.top - 8;
+      const below = window.innerHeight - rect.bottom - 8;
+      const showAbove = placement === 'top' ? above >= height || above > below : below < height && above > below;
+      const top = showAbove ? rect.top - height - 5 : rect.bottom + 5;
+      const start = document.documentElement.dir === 'rtl' ? window.innerWidth - rect.left - width : rect.right - width;
+      popup.style.insetInlineStart = `${Math.max(8, Math.min(start, window.innerWidth - width - 8))}px`;
+      popup.style.insetBlockStart = `${Math.max(8, Math.min(top, window.innerHeight - height - 8))}px`;
+    }
+
+    positionMenu();
+    window.addEventListener('resize', positionMenu);
+    window.addEventListener('scroll', positionMenu, true);
+    return () => {
+      window.removeEventListener('resize', positionMenu);
+      window.removeEventListener('scroll', positionMenu, true);
+    };
+  }, [open, placement, portal]);
+
   useEffect(() => {
     if (!open) return;
-    const items = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
-    items?.[initialFocus.current === -1 ? items.length - 1 : 0]?.focus();
+    const items = popupRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+    items?.[initialFocus.current === -1 ? items.length - 1 : 0]?.focus({ preventScroll: true });
   }, [open]);
 
   useEffect(() => {
     function handleClickOutside(event: PointerEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) {
+      if (!menuRef.current?.contains(event.target as Node) && !popupRef.current?.contains(event.target as Node)) {
         setOpen(false);
       }
     }
@@ -91,21 +123,83 @@ export default function RowActions({
       setOpen(true);
       return;
     }
-    const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+    const items = Array.from(popupRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
     if (!items.length) return;
     const current = items.findIndex((item) => item === document.activeElement);
     const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
       : (current + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
-    items[next].focus();
+    items[next].focus({ preventScroll: true });
   }
 
   const hasAnyAction = onEdit || onDelete || onRestore || customActions.length > 0;
   if (!hasAnyAction) return null;
 
+  const menu = open && (
+    <div ref={popupRef} id={menuId} className={`row-actions-dropdown${portal ? ' row-actions-dropdown-portal' : ''}`} data-placement={placement} role="menu" aria-label={triggerLabel}>
+      {onEdit && (
+        <button
+          type="button"
+          className="row-actions-item"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={(e) => handleAction(e, onEdit)}
+        >
+          <Pencil size={14} className="action-item-icon" />
+          <span>{editLabel}</span>
+        </button>
+      )}
+
+      {onRestore && (
+        <button
+          type="button"
+          className="row-actions-item"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={(e) => handleAction(e, onRestore)}
+        >
+          <RotateCcw size={14} className="action-item-icon" />
+          <span>{restoreLabel}</span>
+        </button>
+      )}
+
+      {customActions.map((item, index) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={index}
+            type="button"
+            className={`row-actions-item ${item.danger ? 'danger' : ''}`}
+            role="menuitem"
+            tabIndex={-1}
+            onClick={(e) => handleAction(e, item.onClick)}
+          >
+            {Icon && <Icon size={14} className="action-item-icon" />}
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+
+      {onDelete && (
+        <button
+          type="button"
+          className="row-actions-item danger"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={(e) => handleAction(e, onDelete)}
+        >
+          <Trash2 size={14} className="action-item-icon" />
+          <span>{deleteLabel}</span>
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className={`row-actions-menu-wrap ${className}`.trim()} ref={menuRef}
       onClick={(e) => e.stopPropagation()} onKeyDown={handleKeyDown}
-      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}>
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget) && !popupRef.current?.contains(e.relatedTarget)) setOpen(false);
+      }}>
       <button
         type="button"
         ref={triggerRef}
@@ -118,66 +212,7 @@ export default function RowActions({
       >
         {trigger ?? <MoreVertical size={16} aria-hidden="true" />}
       </button>
-
-      {open && (
-        <div id={menuId} className="row-actions-dropdown" data-placement={placement} role="menu" aria-label={triggerLabel}>
-          {onEdit && (
-            <button
-              type="button"
-              className="row-actions-item"
-              role="menuitem"
-              tabIndex={-1}
-              onClick={(e) => handleAction(e, onEdit)}
-            >
-              <Pencil size={14} className="action-item-icon" />
-              <span>{editLabel}</span>
-            </button>
-          )}
-
-          {onRestore && (
-            <button
-              type="button"
-              className="row-actions-item"
-              role="menuitem"
-              tabIndex={-1}
-              onClick={(e) => handleAction(e, onRestore)}
-            >
-              <RotateCcw size={14} className="action-item-icon" />
-              <span>{restoreLabel}</span>
-            </button>
-          )}
-
-          {customActions.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={index}
-                type="button"
-                className={`row-actions-item ${item.danger ? 'danger' : ''}`}
-                role="menuitem"
-                tabIndex={-1}
-                onClick={(e) => handleAction(e, item.onClick)}
-              >
-                {Icon && <Icon size={14} className="action-item-icon" />}
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-
-          {onDelete && (
-            <button
-              type="button"
-              className="row-actions-item danger"
-              role="menuitem"
-              tabIndex={-1}
-              onClick={(e) => handleAction(e, onDelete)}
-            >
-              <Trash2 size={14} className="action-item-icon" />
-              <span>{deleteLabel}</span>
-            </button>
-          )}
-        </div>
-      )}
+      {portal && menu ? createPortal(menu, document.body) : menu}
     </div>
   );
 }

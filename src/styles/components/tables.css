@@ -205,6 +205,7 @@ td.row-actions > * + * {
 .erp-row-actions { opacity: 0; min-inline-size: 88px; }
 .erp-table tr:hover .erp-row-actions,
 .erp-table tr.selected .erp-row-actions,
+.erp-table .erp-row-actions:has([aria-expanded="true"]),
 .erp-table tr:focus-within .erp-row-actions { opacity: 1; }
 .erp-row-actions .link { font-size: 12px; }
 
@@ -256,6 +257,14 @@ td.row-actions > * + * {
 .row-actions-dropdown[data-placement="top"] {
   inset-block-start: auto;
   inset-block-end: calc(100% + 8px);
+}
+
+.row-actions-dropdown.row-actions-dropdown-portal {
+  position: fixed;
+  inset: auto;
+  z-index: 60;
+  max-block-size: calc(100dvh - 16px);
+  overflow-y: auto;
 }
 
 .row-actions-item {

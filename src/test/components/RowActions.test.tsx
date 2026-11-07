@@ -18,7 +18,7 @@ describe('shared action menu', () => {
   });
 
   it('supports a named custom trigger and an upward menu without showing actions initially', () => {
-    render(<RowActions trigger={<span>حسابي</span>} triggerLabel="خيارات حسابي" placement="top"
+    render(<RowActions portal={false} trigger={<span>حسابي</span>} triggerLabel="خيارات حسابي" placement="top"
       customActions={[{ label: 'خروج', onClick: vi.fn() }]} />);
     const trigger = screen.getByRole('button', { name: 'خيارات حسابي' });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
@@ -27,6 +27,18 @@ describe('shared action menu', () => {
     const menu = screen.getByRole('menu', { name: 'خيارات حسابي' });
     expect(menu).toHaveAttribute('data-placement', 'top');
     expect(trigger).toHaveAttribute('aria-controls', menu.id);
+    fireEvent.click(trigger);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('renders row options outside the scroll container and keeps the trigger usable', () => {
+    render(<div data-testid="table-scroll"><RowActions onRestore={vi.fn()} /></div>);
+    const trigger = screen.getByRole('button', { name: 'قائمة الإجراءات' });
+    fireEvent.click(trigger);
+    const menu = screen.getByRole('menu');
+    expect(screen.getByTestId('table-scroll')).not.toContainElement(menu);
+    expect(menu.parentElement).toBe(document.body);
+    fireEvent.pointerDown(trigger);
     fireEvent.click(trigger);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });

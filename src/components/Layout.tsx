@@ -291,6 +291,7 @@ export default function Layout() {
         </nav>
 
         <RowActions
+          portal={false}
           className="sidebar-footer"
           triggerClassName="sidebar-user-block"
           triggerLabel={`خيارات حساب ${userName || 'المستخدم'}`}
