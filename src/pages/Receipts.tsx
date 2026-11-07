@@ -1,20 +1,14 @@
 import ColumnFilterRow from '../components/ColumnFilterRow';
 import { useColumnFilters } from '../lib/useColumnFilters';
 import { useDocumentPageNumber } from '../lib/useDocumentPageNumber';
-import Pagination from '../components/Pagination';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateDbError } from '../lib/errors';
-import Modal from '../components/Modal';
-import MasterDataGate from '../components/MasterDataGate';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import ReceiptForm from '../components/ReceiptForm';
-import ConfirmDialog from '../components/ConfirmDialog';
-import DocumentListToolbar from '../components/DocumentListToolbar';
 import { documentListQuery } from '../lib/documentListQuery';
 import { periodDates } from '../lib/period';
-import KpiBar from '../components/KpiBar';
 import { toast } from '../components/Toast';
 import type {
   ReceiptDirection,
@@ -26,6 +20,7 @@ import { useConfirmDialog } from '../lib/useConfirmDialog';
 import { useMasterData } from '../context/MasterDataContext';
 import ReceiptTable, { type ReceiptSort } from './receipts/ReceiptTable';
 import CashBoxTransferTable from './receipts/CashBoxTransferTable';
+import DocumentListPage from '../components/DocumentListPage';
 import {
   calculateReceiptKpis,
   RECEIPT_TABS,
@@ -40,7 +35,7 @@ const CASH_BOX_RESOURCES = ['cashBoxes'] as const;
 const RECEIPT_RESOURCES = ['cashBoxes', 'accounts'] as const;
 
 export default function Receipts() {
-  const { can } = useAccess();
+  const { can, canViewProfit } = useAccess();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as ReceiptTab | null;
   const initialTab: ReceiptTab = tabParam && VALID_RECEIPT_TABS.includes(tabParam) ? tabParam : 'in';
@@ -474,208 +469,176 @@ export default function Receipts() {
   const newLabel = isCashBoxTransfer ? 'تحويل جديد بين الخزن' : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`;
 
   return (
-    <div className="stack">
-      <div className="page-head">
-        <div>
-          <h1>{showDeleted ? `المحذوفات — ${tabTitle}` : tabTitle}</h1>
-        </div>
-        <div className="actions">
-          {can(`money.${tab}.delete`) && (
-            <button
-              type="button"
-              className="btn outline"
-              onClick={toggleDeleted}
-            >
-              {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
-            </button>
-          )}
-          {!showDeleted && can(`money.${tab}.create`) && (
-            <button
-              type="button"
-              className="btn primary"
-              onClick={openNew}
-            >
-              + {newLabel}
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="tabs">
-        {visibleTabs.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            className={tab === item.value ? 'tab active' : 'tab'}
-            onClick={() => (item.value === 'cash_box_transfer' ? switchToCashTransfer() : switchDirection(item.value))}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {showDeleted && (
-        <p className="hint">
-          {isCashBoxTransfer
-            ? 'التحويلات المحذوفة لا تؤثر على أرصدة الخزن.'
-            : 'هذه الإيصالات محذوفة: لا تؤثر على الأرصدة أو الخزنة. إيصال الفاتورة يُستعاد من صفحة البضاعة مع فاتورته.'}
-        </p>
-      )}
-
-      {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
-      <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${tabTitle}`} />
-
-      <DocumentListToolbar options={{ scope: isCashBoxTransfer ? 'cash_transfer' : 'receipt',
-        kind: direction, filters: columns.filters, dateFrom, dateTo, showDeleted, sortOrder,
-        title: showDeleted ? 'المحذوفات — '+tabTitle : tabTitle, canViewProfit: false }}
-        disabled={loading || columns.values !== columns.filters} onDatesChange={(from,to)=>{setDateFrom(from);setDateTo(to);}} />
-
-      {/* جدول المعاملات ممتد بكامل العرض 100% بتوافق تام مع فواتير المبيعات */}
-      <div className="erp-sales-workspace">
-        <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
-          <div className="erp-table-wrap">
-            {isCashBoxTransfer ? (
-              <CashBoxTransferTable
-                columnFilter={columnFilter}
-                loading={loading}
-                pageTransfers={pageTransfers}
-                sortOrder={sortOrder}
-                onSort={setSortOrder}
-                showDeleted={showDeleted}
-                onView={(transfer) => openTransferModal(transfer, 'view')}
-                onEdit={(transfer) => openTransferModal(transfer, 'edit')}
-                onDelete={(transfer) => void removeTransfer(transfer)}
-                onRestore={(transfer) => void restoreTransfer(transfer)}
-                canEdit={Boolean(can(`money.${tab}.edit`))}
-                canDelete={Boolean(can(`money.${tab}.delete`))}
-              />
-            ) : (
-              <ReceiptTable
-                columnFilter={columnFilter}
-                loading={loading}
-                pageReceipts={pageReceipts}
-                sortOrder={sortOrder}
-                onSort={setSortOrder}
-                showDeleted={showDeleted}
-                onView={(receipt) => openReceiptModal(receipt, 'view')}
-                onEdit={(receipt) => openReceiptModal(receipt, 'edit')}
-                onDelete={(receipt) => void remove(receipt)}
-                onRestore={(receipt) => void restore(receipt)}
-                canEdit={Boolean(can(`money.${tab}.edit`))}
-                canDelete={Boolean(can(`money.${tab}.delete`))}
-              />
-            )}
-          </div>
-
-          <Pagination
-            page={page}
-            pageCount={pageCount}
-            totalCount={activeTotalCount}
-            pageSize={PAGE_SIZE}
-            onPageChange={setPage}
-            loading={loading}
+    <DocumentListPage
+      title={tabTitle}
+      subtitle={
+        isCashBoxTransfer
+          ? 'أوامر تحويل النقدية بين الخزن وتتبع أرصدتها بدون تأثير على الحسابات.'
+          : 'تسجيل ومتابعة سندات القبض والصرف وحركات الخزينة.'
+      }
+      deletedWarning={
+        isCashBoxTransfer
+          ? 'التحويلات المحذوفة لا تؤثر على أرصدة الخزن.'
+          : 'هذه الإيصالات محذوفة: لا تؤثر على الأرصدة أو الخزنة. إيصال الفاتورة يُستعاد من صفحة البضاعة مع فاتورته.'
+      }
+      tabs={visibleTabs}
+      activeTab={tab}
+      onTabChange={(tabValue) =>
+        tabValue === 'cash_box_transfer'
+          ? switchToCashTransfer()
+          : switchDirection(tabValue as ReceiptDirection)
+      }
+      kpiItems={kpiItems}
+      kpiAriaLabel={`مؤشرات ${tabTitle}`}
+      toolbarScope={isCashBoxTransfer ? 'cash_transfer' : 'receipt'}
+      toolbarKind={direction}
+      toolbarFilters={columns.filters}
+      canViewProfit={Boolean(canViewProfit)}
+      dateFrom={dateFrom}
+      dateTo={dateTo}
+      onDatesChange={(from, to) => {
+        setDateFrom(from);
+        setDateTo(to);
+      }}
+      showDeleted={showDeleted}
+      onDeletedToggle={toggleDeleted}
+      canDelete={Boolean(can(`money.${tab}.delete`))}
+      canCreate={Boolean(can(`money.${tab}.create`))}
+      sortOrder={sortOrder}
+      newLabel={`+ ${newLabel}`}
+      onNew={openNew}
+      toolbarDisabled={loading || columns.values !== columns.filters}
+      page={page}
+      totalCount={activeTotalCount}
+      pageSize={PAGE_SIZE}
+      onPageChange={setPage}
+      modalOpen={formOpen}
+      modalTitle={
+        isCashBoxTransfer
+          ? modalMode === 'view'
+            ? `${showDeleted ? 'محذوف — ' : ''}تحويل بين الخزن ${editingTransfer?.number ?? ''}`
+            : editingTransfer
+              ? `تعديل التحويل ${editingTransfer.number}`
+              : 'تحويل جديد بين الخزن'
+          : modalMode === 'view'
+            ? `${showDeleted ? 'محذوف — ' : ''}إيصال ${(editing?.direction ?? direction) === 'in' ? 'استلام' : 'صرف'} ${editing?.number ?? ''}`
+            : editing
+              ? `تعديل الإيصال ${editing.number}`
+              : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`
+      }
+      modalOnClose={closeForm}
+      modalResources={formResources}
+      modalResourceStatus={resourceStatus}
+      modalGateKey={
+        isCashBoxTransfer
+          ? (editingTransfer?.id ?? 'new-transfer') + modalMode
+          : (editing?.id ?? 'new-receipt') + modalMode
+      }
+      modalClassName={isCashBoxTransfer ? 'transaction-entry-modal' : 'receipt-entry-modal'}
+      modalBackdropClassName={isCashBoxTransfer ? 'transaction-entry-backdrop' : 'receipt-entry-backdrop'}
+      renderModalContent={() =>
+        isCashBoxTransfer ? (
+          <CashBoxTransferForm
+            key={`${editingTransfer?.id ?? 'new-transfer'}-${modalMode}`}
+            cashBoxes={cashBoxes}
+            editing={editingTransfer}
+            readOnly={modalMode === 'view'}
+            onEdit={!showDeleted && can(`money.${tab}.edit`) ? () => setModalMode('edit') : undefined}
+            onDelete={
+              !showDeleted && can(`money.${tab}.delete`) && editingTransfer
+                ? () => void removeTransfer(editingTransfer)
+                : undefined
+            }
+            onRestore={
+              showDeleted && can(`money.${tab}.delete`) && editingTransfer
+                ? async () => {
+                    await restoreTransfer(editingTransfer);
+                    closeForm();
+                  }
+                : undefined
+            }
+            onPrint={() => window.print()}
+            onSaved={handleSaved}
+            onCancel={handleCancel}
           />
-        </section>
-      </div>
-
-      {/* نموذج الإضافة والتعديل والعرض الموحد بالكامل داخل النافذة المنبثقة */}
-      {formOpen &&
-        (isCashBoxTransfer ? (
-          <Modal
-            className="transaction-entry-modal"
-            backdropClassName="transaction-entry-backdrop"
-            title={
-              modalMode === 'view'
-                ? `${showDeleted ? 'محذوف — ' : ''}تحويل بين الخزن ${editingTransfer?.number ?? ''}`
-                : editingTransfer
-                  ? `تعديل التحويل ${editingTransfer.number}`
-                  : 'تحويل جديد بين الخزن'
-            }
-            onClose={closeForm}
-          >
-            <MasterDataGate key={(editingTransfer?.id ?? 'new-transfer') + modalMode} resources={formResources} status={resourceStatus}>
-              <CashBoxTransferForm
-                key={`${editingTransfer?.id ?? 'new-transfer'}-${modalMode}`}
-                cashBoxes={cashBoxes}
-                editing={editingTransfer}
-                readOnly={modalMode === 'view'}
-                onEdit={!showDeleted && can(`money.${tab}.edit`) ? () => setModalMode('edit') : undefined}
-                onDelete={
-                  !showDeleted && can(`money.${tab}.delete`) && editingTransfer
-                    ? () => void removeTransfer(editingTransfer)
-                    : undefined
-                }
-                onRestore={
-                  showDeleted && can(`money.${tab}.delete`) && editingTransfer
-                    ? async () => {
-                        await restoreTransfer(editingTransfer);
-                        closeForm();
-                      }
-                    : undefined
-                }
-                onPrint={() => window.print()}
-                onSaved={handleSaved}
-                onCancel={handleCancel}
-              />
-            </MasterDataGate>
-          </Modal>
         ) : (
-          <Modal
-            className="receipt-entry-modal"
-            backdropClassName="receipt-entry-backdrop"
-            title={
-              modalMode === 'view'
-                ? `${showDeleted ? 'محذوف — ' : ''}إيصال ${(editing?.direction ?? direction) === 'in' ? 'استلام' : 'صرف'} ${editing?.number ?? ''}`
-                : editing
-                  ? `تعديل الإيصال ${editing.number}`
-                  : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`
+          <ReceiptForm
+            key={`${editing?.id ?? 'new-receipt'}-${modalMode}`}
+            direction={editing?.direction ?? direction}
+            accounts={accounts}
+            cashBoxes={cashBoxes}
+            editing={editing}
+            readOnly={modalMode === 'view'}
+            onEdit={
+              !showDeleted && can(`money.${tab}.edit`) && editing?.is_free
+                ? () => setModalMode('edit')
+                : undefined
             }
-            onClose={closeForm}
-          >
-            <MasterDataGate key={(editing?.id ?? 'new-receipt') + modalMode} resources={formResources} status={resourceStatus}>
-              <ReceiptForm
-                key={`${editing?.id ?? 'new-receipt'}-${modalMode}`}
-                direction={editing?.direction ?? direction}
-                accounts={accounts}
-                cashBoxes={cashBoxes}
-                editing={editing}
-                readOnly={modalMode === 'view'}
-                onEdit={
-                  !showDeleted && can(`money.${tab}.edit`) && editing?.is_free
-                    ? () => setModalMode('edit')
-                    : undefined
-                }
-                onDelete={
-                  !showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
-                    ? () => void remove(editing)
-                    : undefined
-                }
-                onRestore={
-                  showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
-                    ? async () => {
-                        await restore(editing);
-                        closeForm();
-                      }
-                    : undefined
-                }
-                onPrint={() => window.print()}
-                onSaved={handleSaved}
-                onCancel={handleCancel}
-              />
-            </MasterDataGate>
-          </Modal>
-        ))}
-
-      {confirmation && (
-        <ConfirmDialog
-          title={confirmation.title}
-          message={confirmation.message}
-          confirmLabel={confirmation.confirmLabel}
-          danger={confirmation.confirmLabel === 'حذف'}
-          onConfirm={() => finishConfirmation(true)}
-          onCancel={() => finishConfirmation(false)}
-        />
-      )}
-    </div>
+            onDelete={
+              !showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
+                ? () => void remove(editing)
+                : undefined
+            }
+            onRestore={
+              showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
+                ? async () => {
+                    await restore(editing);
+                    closeForm();
+                  }
+                : undefined
+            }
+            onPrint={() => window.print()}
+            onSaved={handleSaved}
+            onCancel={handleCancel}
+          />
+        )
+      }
+      confirmation={
+        confirmation
+          ? {
+              title: confirmation.title,
+              message: confirmation.message,
+              confirmLabel: confirmation.confirmLabel,
+              danger: confirmation.danger === true || confirmation.confirmLabel === 'حذف',
+              onConfirm: () => finishConfirmation(true),
+              onCancel: () => finishConfirmation(false),
+            }
+          : null
+      }
+    >
+      <div className="erp-table-wrap">
+        {isCashBoxTransfer ? (
+          <CashBoxTransferTable
+            columnFilter={columnFilter}
+            loading={loading}
+            pageTransfers={pageTransfers}
+            sortOrder={sortOrder}
+            onSort={setSortOrder}
+            showDeleted={showDeleted}
+            onView={(transfer) => openTransferModal(transfer, 'view')}
+            onEdit={(transfer) => openTransferModal(transfer, 'edit')}
+            onDelete={(transfer) => void removeTransfer(transfer)}
+            onRestore={(transfer) => void restoreTransfer(transfer)}
+            canEdit={Boolean(can(`money.${tab}.edit`))}
+            canDelete={Boolean(can(`money.${tab}.delete`))}
+          />
+        ) : (
+          <ReceiptTable
+            columnFilter={columnFilter}
+            loading={loading}
+            pageReceipts={pageReceipts}
+            sortOrder={sortOrder}
+            onSort={setSortOrder}
+            showDeleted={showDeleted}
+            onView={(receipt) => openReceiptModal(receipt, 'view')}
+            onEdit={(receipt) => openReceiptModal(receipt, 'edit')}
+            onDelete={(receipt) => void remove(receipt)}
+            onRestore={(receipt) => void restore(receipt)}
+            canEdit={Boolean(can(`money.${tab}.edit`))}
+            canDelete={Boolean(can(`money.${tab}.delete`))}
+          />
+        )}
+      </div>
+    </DocumentListPage>
   );
 }

@@ -1,21 +1,16 @@
 import ColumnFilterRow from '../components/ColumnFilterRow';
 import { useColumnFilters } from '../lib/useColumnFilters';
 import { useDocumentPageNumber } from '../lib/useDocumentPageNumber';
-import Pagination from '../components/Pagination';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage, translateDbError } from '../lib/errors';
 import InvoiceForm from '../components/InvoiceForm';
 import WarehouseTransferForm from '../components/WarehouseTransferForm';
-import Modal from '../components/Modal';
-import MasterDataGate from '../components/MasterDataGate';
-import ConfirmDialog from '../components/ConfirmDialog';
-import DocumentListToolbar from '../components/DocumentListToolbar';
+import DocumentListPage from '../components/DocumentListPage';
 import { collectAllRows } from '../lib/exportRows';
 import { documentListQuery } from '../lib/documentListQuery';
 import { periodDates } from '../lib/period';
-import KpiBar from '../components/KpiBar';
 import { toast } from '../components/Toast';
 import type {
   InvoiceKind,
@@ -589,215 +584,191 @@ export default function Invoices() {
   }
 
   return (
-    <div className="stack">
-      <div className="page-head">
-        <div>
-          <h1>{showDeleted ? `المحذوفات — ${tabTitle}` : tabTitle}</h1>
-        </div>
-        <div className="actions">
-          {can(`goods.${kind}.delete`) && (
-            <button type="button" className="btn outline" onClick={toggleDeleted}>
-              {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
-            </button>
-          )}
-          {!showDeleted && can(`goods.${kind}.create`) && (
-            <button type="button" className="btn primary" onClick={openNew}>
-              + {newLabel}
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="tabs">
-        {visibleTabs.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            className={kind === tab.value ? 'tab active' : 'tab'}
-            onClick={() => switchKind(tab.value)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {showDeleted && (
-        <p className="hint">
-          {isWarehouseTransfer
-            ? 'التحويلات المحذوفة لا تؤثر على المخزون، ويمكن استعادتها ما لم توجد حركات لاحقة.'
-            : 'هذه المستندات محذوفة: لا تؤثر على الأرصدة أو المخزون، ويمكن استعادتها في أي وقت.'}
-        </p>
-      )}
-
-      {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
-      <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${tabTitle}`} />
-
-      <DocumentListToolbar options={{ scope: isWarehouseTransfer ? 'warehouse_transfer' : 'invoice',
-        kind: kind, filters: columns.filters, dateFrom, dateTo, showDeleted, sortOrder,
-        title: showDeleted ? 'المحذوفات — '+tabTitle : tabTitle, canViewProfit: canViewProfit }}
-        disabled={loading || columns.values !== columns.filters} onDatesChange={(from,to)=>{setDateFrom(from);setDateTo(to);}} />
-
-      {/* جدول البيانات */}
-      <div className="erp-sales-workspace">
-        <section className="erp-list-panel" aria-label={`قائمة ${tabTitle}`}>
-          <div className="erp-table-wrap">
-            {isWarehouseTransfer ? (
-              <WarehouseTransferTable
-                columnFilter={columnFilter}
-                loading={loading}
-                pageTransfers={pageTransfers}
-                sortOrder={sortOrder}
-                onSort={setSortOrder}
-                showDeleted={showDeleted}
-                onView={(transfer) => void openTransferModal(transfer, 'view')}
-                onEdit={(transfer) => void openTransferModal(transfer, 'edit')}
-                onDelete={(transfer) => void removeTransfer(transfer)}
-                onRestore={(transfer) => void restoreTransfer(transfer)}
-                canEdit={can(`goods.${kind}.edit`)}
-                canDelete={can(`goods.${kind}.delete`)}
-                canViewProfit={canViewProfit}
-              />
-            ) : (
-              <InvoiceTable
-                columnFilter={columnFilter}
-                loading={loading}
-                pageInvoices={pageInvoices}
-                kind={kind}
-                partyHeader={partyHeader}
-                sortOrder={sortOrder}
-                onSort={setSortOrder}
-                canViewProfit={Boolean(canViewProfit)}
-                showDeleted={showDeleted}
-                newLabel={newLabel}
-                isReturn={isReturn}
-                onView={(invoice) => void openInvoiceModal(invoice, 'view')}
-                onEdit={(invoice) => void openInvoiceModal(invoice, 'edit')}
-                onDelete={(invoice) => void remove(invoice)}
-                onRestore={(invoice) => void restore(invoice)}
-                canEdit={can(`goods.${kind}.edit`)}
-                canDelete={can(`goods.${kind}.delete`)}
-              />
-            )}
-          </div>
-
-          <Pagination
-            page={page}
-            pageCount={pageCount}
-            totalCount={activeTotalCount}
-            pageSize={PAGE_SIZE}
-            onPageChange={setPage}
-            loading={loading}
-          />
-        </section>
-      </div>
-
-      {/* نافذة الفاتورة والتحويل المنبثقة الموحدة */}
-      {formOpen && (
-        <Modal
-          className={
-            isWarehouseTransfer
-              ? 'transaction-entry-modal'
-              : 'transaction-entry-modal invoice-entry-modal'
-          }
-          backdropClassName="transaction-entry-backdrop"
-          title={formTitle}
-          onClose={() => {
-            setFormOpen(false);
-            setEditing(null);
-            setEditingTransfer(null);
-          }}
-        >
-          <MasterDataGate
-            key={isWarehouseTransfer ? (editingTransfer?.id ?? 'new-transfer') + modalMode : (editing?.invoice.id ?? 'new-invoice') + modalMode}
-            resources={formResources}
-            status={resourceStatus}
-          >
-            {isWarehouseTransfer ? (
-              <WarehouseTransferForm
-                key={`${editingTransfer?.id ?? 'new-transfer'}-${modalMode}`}
-                warehouses={warehouses}
-                items={items}
-                stockRows={stockRows}
-                editing={editingTransfer}
-                readOnly={modalMode === 'view'}
-                onSaved={handleSaved}
-                onCancel={() => {
-                  if (modalMode === 'edit' && openedTransferFromViewRef.current) {
-                    setModalMode('view');
-                  } else {
+    <DocumentListPage
+      title={tabTitle}
+      subtitle={
+        isWarehouseTransfer
+          ? 'أوامر نقل البضاعة بين المخازن وتتبع أرصدتها بدون تأثير محاسبي على العملاء أو الموردين.'
+          : kind === 'waste'
+            ? 'إثبات البضاعة التالفة أو المنتهية الصلاحية وخصمها من رصيد المخزن وتحميلها على حساب الهالك.'
+            : 'تسجيل ومتابعة الفواتير والمدفوعات والأرصدة المتبقية.'
+      }
+      deletedWarning={
+        isWarehouseTransfer
+          ? 'التحويلات المحذوفة لا تؤثر على المخزون، ويمكن استعادتها ما لم توجد حركات لاحقة.'
+          : 'هذه المستندات محذوفة: لا تؤثر على الأرصدة أو المخزون، ويمكن استعادتها في أي وقت.'
+      }
+      tabs={visibleTabs}
+      activeTab={kind}
+      onTabChange={switchKind}
+      kpiItems={kpiItems}
+      kpiAriaLabel={`مؤشرات ${tabTitle}`}
+      toolbarScope={isWarehouseTransfer ? 'warehouse_transfer' : 'invoice'}
+      toolbarKind={kind}
+      toolbarFilters={columns.filters}
+      canViewProfit={canViewProfit}
+      dateFrom={dateFrom}
+      dateTo={dateTo}
+      onDatesChange={(from, to) => {
+        setDateFrom(from);
+        setDateTo(to);
+      }}
+      showDeleted={showDeleted}
+      onDeletedToggle={toggleDeleted}
+      sortOrder={sortOrder}
+      newLabel={`+ ${newLabel}`}
+      onNew={!showDeleted && can(`goods.${kind}.create`) ? openNew : undefined}
+      toolbarDisabled={loading || columns.values !== columns.filters}
+      page={page}
+      totalCount={activeTotalCount}
+      pageSize={PAGE_SIZE}
+      onPageChange={setPage}
+      modalOpen={formOpen}
+      modalTitle={formTitle}
+      modalOnClose={() => {
+        setFormOpen(false);
+        setEditing(null);
+        setEditingTransfer(null);
+      }}
+      modalResources={formResources}
+      modalResourceStatus={resourceStatus}
+      modalGateKey={
+        isWarehouseTransfer
+          ? (editingTransfer?.id ?? 'new-transfer') + modalMode
+          : (editing?.invoice.id ?? 'new-invoice') + modalMode
+      }
+      modalClassName={
+        isWarehouseTransfer
+          ? 'transaction-entry-modal'
+          : 'transaction-entry-modal invoice-entry-modal'
+      }
+      modalBackdropClassName="transaction-entry-backdrop"
+      renderModalContent={() =>
+        isWarehouseTransfer ? (
+          <WarehouseTransferForm
+            key={`${editingTransfer?.id ?? 'new-transfer'}-${modalMode}`}
+            warehouses={warehouses}
+            items={items}
+            stockRows={stockRows}
+            editing={editingTransfer}
+            readOnly={modalMode === 'view'}
+            onSaved={handleSaved}
+            onCancel={() => {
+              if (modalMode === 'edit' && openedTransferFromViewRef.current) {
+                setModalMode('view');
+              } else {
+                setFormOpen(false);
+                setEditingTransfer(null);
+              }
+            }}
+            onEdit={!showDeleted && can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
+            onDelete={
+              !showDeleted && can(`goods.${kind}.delete`) && editingTransfer
+                ? () => void removeTransfer(editingTransfer)
+                : undefined
+            }
+            onRestore={
+              showDeleted && can(`goods.${kind}.delete`) && editingTransfer
+                ? async () => {
+                    await restoreTransfer(editingTransfer);
                     setFormOpen(false);
                     setEditingTransfer(null);
                   }
-                }}
-                onEdit={!showDeleted && can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
-                onDelete={
-                  !showDeleted && can(`goods.${kind}.delete`) && editingTransfer
-                    ? () => void removeTransfer(editingTransfer)
-                    : undefined
-                }
-                onRestore={
-                  showDeleted && can(`goods.${kind}.delete`) && editingTransfer
-                    ? async () => {
-                        await restoreTransfer(editingTransfer);
-                        setFormOpen(false);
-                        setEditingTransfer(null);
-                      }
-                    : undefined
-                }
-                onPrint={() => window.print()}
-              />
-            ) : (
-              <InvoiceForm
-                key={`${editing?.invoice.id ?? 'new-invoice'}-${modalMode}`}
-                kind={kind as InvoiceKind}
-                accounts={accounts}
-                warehouses={warehouses}
-                cashBoxes={cashBoxes}
-                items={items}
-                stockRows={stockRows}
-                editing={editing}
-                readOnly={modalMode === 'view'}
-                onSaved={handleSaved}
-                onCancel={() => {
-                  if (modalMode === 'edit' && openedFromViewRef.current) {
-                    setModalMode('view');
-                  } else {
+                : undefined
+            }
+            onPrint={() => window.print()}
+          />
+        ) : (
+          <InvoiceForm
+            key={`${editing?.invoice.id ?? 'new-invoice'}-${modalMode}`}
+            kind={kind as InvoiceKind}
+            accounts={accounts}
+            warehouses={warehouses}
+            cashBoxes={cashBoxes}
+            items={items}
+            stockRows={stockRows}
+            editing={editing}
+            readOnly={modalMode === 'view'}
+            onSaved={handleSaved}
+            onCancel={() => {
+              if (modalMode === 'edit' && openedFromViewRef.current) {
+                setModalMode('view');
+              } else {
+                setFormOpen(false);
+                setEditing(null);
+              }
+            }}
+            onEdit={!showDeleted && can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
+            onDelete={
+              !showDeleted && can(`goods.${kind}.delete`) && editing
+                ? () => void remove(editing.invoice)
+                : undefined
+            }
+            onRestore={
+              showDeleted && can(`goods.${kind}.delete`) && editing
+                ? async () => {
+                    await restore(editing.invoice);
                     setFormOpen(false);
                     setEditing(null);
                   }
-                }}
-                onEdit={!showDeleted && can(`goods.${kind}.edit`) ? () => setModalMode('edit') : undefined}
-                onDelete={
-                  !showDeleted && can(`goods.${kind}.delete`) && editing
-                    ? () => void remove(editing.invoice)
-                    : undefined
-                }
-                onRestore={
-                  showDeleted && can(`goods.${kind}.delete`) && editing
-                    ? async () => {
-                        await restore(editing.invoice);
-                        setFormOpen(false);
-                        setEditing(null);
-                      }
-                    : undefined
-                }
-                onPrint={() => window.print()}
-              />
-            )}
-          </MasterDataGate>
-        </Modal>
-      )}
-
-      {confirmation && (
-        <ConfirmDialog
-          title={confirmation.title}
-          message={confirmation.message}
-          confirmLabel={confirmation.confirmLabel}
-          danger={confirmation.danger === true}
-          onConfirm={() => finishConfirmation(true)}
-          onCancel={() => finishConfirmation(false)}
-        />
-      )}
-    </div>
+                : undefined
+            }
+            onPrint={() => window.print()}
+          />
+        )
+      }
+      confirmation={
+        confirmation
+          ? {
+              title: confirmation.title,
+              message: confirmation.message,
+              confirmLabel: confirmation.confirmLabel,
+              danger: confirmation.danger === true,
+              onConfirm: () => finishConfirmation(true),
+              onCancel: () => finishConfirmation(false),
+            }
+          : null
+      }
+    >
+      <div className="erp-table-wrap">
+        {isWarehouseTransfer ? (
+          <WarehouseTransferTable
+            columnFilter={columnFilter}
+            loading={loading}
+            pageTransfers={pageTransfers}
+            sortOrder={sortOrder}
+            onSort={setSortOrder}
+            showDeleted={showDeleted}
+            onView={(transfer) => void openTransferModal(transfer, 'view')}
+            onEdit={(transfer) => void openTransferModal(transfer, 'edit')}
+            onDelete={(transfer) => void removeTransfer(transfer)}
+            onRestore={(transfer) => void restoreTransfer(transfer)}
+            canEdit={can(`goods.${kind}.edit`)}
+            canDelete={can(`goods.${kind}.delete`)}
+            canViewProfit={canViewProfit}
+          />
+        ) : (
+          <InvoiceTable
+            columnFilter={columnFilter}
+            loading={loading}
+            pageInvoices={pageInvoices}
+            kind={kind}
+            partyHeader={partyHeader}
+            sortOrder={sortOrder}
+            onSort={setSortOrder}
+            canViewProfit={Boolean(canViewProfit)}
+            showDeleted={showDeleted}
+            newLabel={newLabel}
+            isReturn={isReturn}
+            onView={(invoice) => void openInvoiceModal(invoice, 'view')}
+            onEdit={(invoice) => void openInvoiceModal(invoice, 'edit')}
+            onDelete={(invoice) => void remove(invoice)}
+            onRestore={(invoice) => void restore(invoice)}
+            canEdit={can(`goods.${kind}.edit`)}
+            canDelete={can(`goods.${kind}.delete`)}
+          />
+        )}
+      </div>
+    </DocumentListPage>
   );
 }
