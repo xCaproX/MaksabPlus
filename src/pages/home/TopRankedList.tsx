@@ -75,7 +75,7 @@ export default function TopRankedList({
 
                 <div className="ranked-bar-track">
                   <div
-                    className={`ranked-bar-fill bar-fill-${barVariant}`}
+                    className={`ranked-bar-fill bar-fill-${barVariant}${rank === 1 ? ' is-top' : ''}`}
                     style={{ width: `${percentage}%` }}
                     aria-hidden="true"
                   />

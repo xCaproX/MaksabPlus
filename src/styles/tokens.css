@@ -100,6 +100,14 @@
   --erp-space-3: var(--space-3);
   --erp-space-4: var(--space-4);
 
+  --tone-in: var(--success);   --tone-in-bg: var(--success-light);
+  --tone-out: var(--warning);  --tone-out-bg: var(--warning-light);
+  --tone-info: var(--accent);  --tone-info-bg: var(--accent-light);
+  --tone-alert: var(--danger); --tone-alert-bg: var(--danger-light);
+  --track: var(--line);
+  --font-kpi: 28px;
+  --font-kpi-sm: 22px;
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

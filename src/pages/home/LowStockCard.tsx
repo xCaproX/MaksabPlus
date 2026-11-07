@@ -18,7 +18,7 @@ export default function LowStockCard({ items }: LowStockCardProps) {
   if (!items) return null;
 
   return (
-    <div className="dashboard-card">
+    <div className={`dashboard-card ${items.length === 0 ? 'dashboard-card--ok' : 'dashboard-card--alert'}`}>
       <div className="dashboard-card-head">
         <h3 className="dashboard-card-title">
           <AlertTriangle size={15} className="text-warning" />
