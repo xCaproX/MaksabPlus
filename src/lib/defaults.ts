@@ -11,7 +11,7 @@ export function resolveDefaultAccount(
   kind: AccountKind,
   systemKey: 'cash_customer' | 'cash_supplier' | 'waste' | null = null,
 ): AccountRow | undefined {
-  const active = accounts.filter((a) => a.is_active !== false);
+  const active = accounts.filter((a) => a.is_active !== false && a.kind === kind);
   if (systemKey) {
     const byKey = active.find((a) => a.system_key === systemKey);
     if (byKey) return byKey;
@@ -19,7 +19,7 @@ export function resolveDefaultAccount(
   const fallbackText = kind === 'customer' ? 'عميل نقدي' : kind === 'supplier' ? 'مورد نقدي' : 'هالك';
   const byName = active.find((a) => a.name.includes(fallbackText));
   if (byName) return byName;
-  return active.find((a) => a.kind === kind);
+  return active[0];
 }
 
 /**

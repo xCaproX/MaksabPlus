@@ -28,6 +28,20 @@ describe('defaults resolver - استخراج الافتراضيات بشكل م�
     expect(result?.id).toBe('acc-2');
   });
 
+  it('يستبعد النوع الخاطئ حتى لو طابق المفتاح أو الاسم الافتراضي', () => {
+    const customer: AccountRow = {
+      id: 'customer', name: 'عميل عادي', kind: 'customer', balance: 0,
+      is_active: true, notes: '', phone: '', serial_number: 1, opening_balance: 0,
+      invoiced: 0, paid: 0, has_documents: false, system_key: null,
+    };
+    const supplier: AccountRow = { ...customer, id: 'supplier', name: 'عميل نقدي', kind: 'supplier' };
+    const keyedSupplier: AccountRow = { ...supplier, id: 'keyed', system_key: 'cash_customer' };
+
+    expect(resolveDefaultAccount([supplier, customer], 'customer', 'cash_customer')).toBe(customer);
+    expect(resolveDefaultAccount([keyedSupplier, customer], 'customer', 'cash_customer')).toBe(customer);
+    expect(resolveDefaultAccount([supplier], 'customer', 'cash_customer')).toBeUndefined();
+  });
+
   it('يعتمد على is_primary للمخازن حتى لو تغير الاسم', () => {
     const warehouses: WarehouseOption[] = [
       { id: 'wh-1', name: 'مخزن فرعي', is_primary: false, is_active: true, serial_number: 1 },
