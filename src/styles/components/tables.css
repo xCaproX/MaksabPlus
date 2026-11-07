@@ -159,6 +159,8 @@ td.row-actions > * + * {
 .document-table .col-account { min-inline-size: 140px; max-inline-size: 200px; white-space: normal; }
 .erp-table .col-notes { min-inline-size: 180px; max-inline-size: 280px; white-space: normal; overflow-wrap: anywhere; }
 .document-table--invoices .col-notes { min-inline-size: 160px; max-inline-size: 260px; }
+.document-table--invoices:has(th.col-status) .col-notes { min-inline-size: 155px; max-inline-size: 255px; }
+.document-table--invoices .col-status { padding-inline-end: 14px; }
 .document-table .col-creator { min-inline-size: 110px; max-inline-size: 180px; white-space: normal; overflow-wrap: anywhere; }
 .document-table td { padding-block: 10px; }
 .document-table .erp-row-actions { min-inline-size: 44px; }
