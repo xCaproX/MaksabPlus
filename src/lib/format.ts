@@ -69,6 +69,17 @@ export function formatDate(value: string | null | undefined): string {
   return value;
 }
 
+export function formatShortDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  const raw = value.slice(0, 10);
+  const parts = raw.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const [, m, d] = parts;
+    return `${d}/${m}`;
+  }
+  return value;
+}
+
 export function today(): string {
   const d = new Date();
   const month = String(d.getMonth() + 1).padStart(2, '0');
