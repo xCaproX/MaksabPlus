@@ -90,12 +90,19 @@ export default function SalesMetricCards({ sales }: SalesMetricCardsProps) {
 
           <div className="sales-kpi-card-body">
             <MoneyDisplay value={todayAmount} currency className="sales-kpi-amount" />
-            <div className="sales-kpi-meta">
-              <span className="sales-kpi-count-badge">
-                <span className="sales-kpi-count-label">الفواتير</span>
-                <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(todayCount)}</bdi>
+          </div>
+
+          <div className="sales-kpi-footer">
+            <span className="sales-kpi-count-badge">
+              <span className="sales-kpi-count-label">الفواتير</span>
+              <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(todayCount)}</bdi>
+            </span>
+            {todayCount > 0 && (
+              <span className="sales-kpi-avg">
+                <span className="sales-kpi-avg-label">متوسط الفاتورة</span>
+                <MoneyDisplay value={todayAmount / todayCount} className="sales-kpi-avg-val" />
               </span>
-            </div>
+            )}
           </div>
         </div>
 
@@ -115,12 +122,19 @@ export default function SalesMetricCards({ sales }: SalesMetricCardsProps) {
 
           <div className="sales-kpi-card-body">
             <MoneyDisplay value={yesterdayAmount} currency className="sales-kpi-amount sales-kpi-amount-secondary" />
-            <div className="sales-kpi-meta">
-              <span className="sales-kpi-count-badge">
-                <span className="sales-kpi-count-label">الفواتير</span>
-                <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(yesterdayCount)}</bdi>
+          </div>
+
+          <div className="sales-kpi-footer">
+            <span className="sales-kpi-count-badge">
+              <span className="sales-kpi-count-label">الفواتير</span>
+              <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(yesterdayCount)}</bdi>
+            </span>
+            {yesterdayCount > 0 && (
+              <span className="sales-kpi-avg">
+                <span className="sales-kpi-avg-label">متوسط الفاتورة</span>
+                <MoneyDisplay value={yesterdayAmount / yesterdayCount} className="sales-kpi-avg-val" />
               </span>
-            </div>
+            )}
           </div>
         </div>
       </div>
