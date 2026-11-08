@@ -8,7 +8,7 @@ import { useAccess } from '../lib/access';
 import { money, qty } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import QuickActions from './home/QuickActions';
-import SalesMetricCards, { type DashboardSales } from './home/SalesMetricCards';
+import SalesMetricCards, { type DashboardSales, type DashboardCollections } from './home/SalesMetricCards';
 import FinancialPulseCards from './home/FinancialPulseCards';
 import TopRankedList, { type RankedItem } from './home/TopRankedList';
 import HomeSection from './home/HomeSection';
@@ -18,6 +18,7 @@ const DashboardChartsSection = lazy(() => import('../components/charts/Dashboard
 
 interface DashboardSummaryData {
   sales: DashboardSales | null;
+  collections: DashboardCollections | null;
   cash_balance: number | null;
   receivables_balance: number | null;
   payables_balance: number | null;
@@ -36,6 +37,7 @@ interface DashboardSummaryData {
   }> | null;
   permissions: {
     can_view_sales: boolean;
+    can_view_collections?: boolean;
     can_view_cash: boolean;
     can_view_customers: boolean;
     can_view_suppliers: boolean;
@@ -123,8 +125,8 @@ export default function Home() {
       {/* 1. ترحيب وإجراءات سريعة */}
       <QuickActions userName={userName} companyName={companyName} />
 
-      {/* 2. بطاقات إجمالي المبيعات (اليوم وأمس) */}
-      <SalesMetricCards sales={data?.sales ?? null} />
+      {/* 2. بطاقات إجمالي المبيعات والتحصيلات (اليوم وأمس) */}
+      <SalesMetricCards sales={data?.sales ?? null} collections={data?.collections ?? null} />
 
       {/* 3. النبض المالي والأرصدة */}
       <FinancialPulseCards

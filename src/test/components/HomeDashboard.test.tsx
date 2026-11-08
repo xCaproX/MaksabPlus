@@ -51,7 +51,7 @@ describe('Home Dashboard Components', () => {
     expect(purchaseBtn).toHaveAttribute('href', '/invoices?tab=purchase&action=new');
   });
 
-  it('SalesMetricCards renders today and yesterday sales metrics with performance indicator', () => {
+  it('SalesMetricCards renders today and yesterday sales and collections metrics with performance indicators', () => {
     const mockSales = {
       today: 1500,
       today_count: 5,
@@ -59,7 +59,14 @@ describe('Home Dashboard Components', () => {
       yesterday_count: 4,
     };
 
-    render(<SalesMetricCards sales={mockSales} />);
+    const mockCollections = {
+      today: 5000,
+      today_count: 2,
+      yesterday: 2000,
+      yesterday_count: 2,
+    };
+
+    render(<SalesMetricCards sales={mockSales} collections={mockCollections} />);
 
     expect(screen.queryByText('إجمالي المبيعات')).not.toBeInTheDocument();
     expect(screen.queryByText('مبيعات آخر 7 أيام')).not.toBeInTheDocument();
@@ -67,18 +74,17 @@ describe('Home Dashboard Components', () => {
 
     expect(screen.getByText('مبيعات اليوم')).toBeInTheDocument();
     expect(screen.getByText('مبيعات أمس')).toBeInTheDocument();
+    expect(screen.getByText('تحصيلات اليوم')).toBeInTheDocument();
+    expect(screen.getByText('تحصيلات أمس')).toBeInTheDocument();
 
     expect(screen.getByText('1,500.00')).toBeInTheDocument();
     expect(screen.getByText('1,200.00')).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('5,000.00')).toBeInTheDocument();
+    expect(screen.getByText('2,000.00')).toBeInTheDocument();
 
-    for (const count of ['5', '4']) {
-      expect(screen.getByText(count).previousElementSibling).toHaveTextContent('الفواتير');
-    }
-
-    // Performance indicator: (1500 - 1200) / 1200 = +25.0%
-    expect(screen.getByTitle('مؤشر الأداء مقارنة بأمس')).toHaveTextContent('+25.0% عن أمس');
+    // Performance indicators
+    expect(screen.getByTitle('مؤشر مبيعات اليوم مقارنة بأمس')).toHaveTextContent('+25.0% عن أمس');
+    expect(screen.getByTitle('مؤشر تحصيلات اليوم مقارنة بأمس')).toHaveTextContent('+150.0% عن أمس');
   });
 
   it('FinancialPulseCards renders cash, receivables, and payables cards with direct links', () => {
@@ -152,7 +158,7 @@ describe('Home Dashboard Components', () => {
 
     expect(await screen.findAllByRole('heading', { level: 2 })).toHaveLength(3);
     expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
-      'المبيعات', 'الأرصدة', 'الإحصائيات',
+      'المبيعات والتحصيلات', 'الأرصدة', 'الإحصائيات',
     ]);
     expect(screen.queryByText(/نواقص المخزن|صنف على وشك النفاد/)).not.toBeInTheDocument();
   });

@@ -83,35 +83,50 @@
   border-color: var(--muted-light);
 }
 
-/* 2. Sales Pulse Section (Today & Yesterday) */
+/* 2. Sales & Collections Pulse Section (Today & Yesterday) */
 .home-sales-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   align-items: stretch;
   gap: 16px;
   width: 100%;
   min-width: 0;
 }
 
+.home-pulse-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  align-items: stretch;
+}
+
 .sales-kpi-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px 22px;
-  min-block-size: 168px;
+  gap: 14px;
+  padding: 18px 20px;
+  min-block-size: 164px;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
 }
 
-/* كارت اليوم: هو البطل، خلفية بتدرّج خفيف جداً بلون الهوية */
+/* كارت مبيعات اليوم: هو البطل، خلفية بتدرّج خفيف جداً بلون الهوية */
 .sales-kpi-card-today {
   background:
     linear-gradient(180deg, var(--primary-light) 0%, rgba(46, 66, 92, 0) 70%),
     var(--card);
 }
 
-/* كارت أمس: هادي ومرجعي */
+/* كارت تحصيلات اليوم: لمسة خضراء مالية ناعمة تعبر عن دخول كاش */
+.sales-kpi-card-collections-today {
+  background:
+    linear-gradient(180deg, rgba(22, 163, 74, 0.08) 0%, rgba(22, 163, 74, 0) 70%),
+    var(--card);
+}
+
+/* كروت أمس: هادية ومرجعية */
 .sales-kpi-card-yesterday {
   background: var(--card);
   --metric-accent: var(--line-strong);
@@ -145,9 +160,23 @@
   box-shadow: 0 2px 6px var(--primary-glow);
 }
 
+.sales-kpi-icon-collections {
+  background: rgba(22, 163, 74, 0.12);
+  color: var(--tone-in, #16a34a);
+  border: 1px solid rgba(22, 163, 74, 0.25);
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.15);
+}
+
 .sales-kpi-icon-yesterday {
   background: var(--bg);
   color: var(--muted);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+.sales-kpi-icon-collections-yesterday {
+  background: var(--bg);
+  color: var(--tone-in, #16a34a);
   border: 1px solid var(--line);
   box-shadow: none;
 }
@@ -724,6 +753,13 @@
 
 /* 5. Responsive Adjustments */
 
+/* Sales grid below 1380px: stack Today & Yesterday pulse groups */
+@media (max-width: 1379px) {
+  .home-sales-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Sales grid KPI amount: between 820px and 1099px */
 @media (min-width: 820px) and (max-width: 1099px) {
   .sales-kpi-amount {
@@ -734,10 +770,9 @@
   }
 }
 
-/* Financial & Sales grids: below 980px -> 1 column */
+/* Financial grid: below 980px -> 1 column */
 @media (max-width: 979px) {
-  .home-financial-grid,
-  .home-sales-grid {
+  .home-financial-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -753,6 +788,10 @@
 @media (max-width: 639px) {
   .home-dashboard {
     gap: 16px;
+  }
+
+  .home-pulse-group {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .home-welcome-bar {

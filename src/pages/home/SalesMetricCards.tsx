@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ShoppingCart, Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ShoppingCart, Calendar, TrendingUp, TrendingDown, Minus, ArrowDownLeft } from 'lucide-react';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import HomeSection from './HomeSection';
 import { qty, formatFullArabicDate } from '../../lib/format';
@@ -15,15 +15,46 @@ export interface DashboardSales {
   month_count?: number;
 }
 
+export interface DashboardCollections {
+  today: number;
+  today_count: number;
+  yesterday?: number;
+  yesterday_count?: number;
+}
+
 interface SalesMetricCardsProps {
   sales: DashboardSales | null;
+  collections?: DashboardCollections | null;
   sparklines?: {
     week?: number[];
     month?: number[];
   };
 }
 
-export default function SalesMetricCards({ sales }: SalesMetricCardsProps) {
+function computePerf(today: number, yesterday: number) {
+  let diffPercent: number | null = null;
+  let type: 'up' | 'down' | 'neutral' | 'initial';
+
+  if (yesterday > 0) {
+    const diff = ((today - yesterday) / yesterday) * 100;
+    diffPercent = Math.abs(diff);
+    if (diff > 0.05) {
+      type = 'up';
+    } else if (diff < -0.05) {
+      type = 'down';
+    } else {
+      type = 'neutral';
+    }
+  } else if (today > 0) {
+    type = 'initial';
+  } else {
+    type = 'neutral';
+  }
+
+  return { diffPercent, type };
+}
+
+export default function SalesMetricCards({ sales, collections }: SalesMetricCardsProps) {
   const todayDate = useMemo(() => formatFullArabicDate(new Date()), []);
   const yesterdayDate = useMemo(() => {
     const d = new Date();
@@ -31,117 +62,202 @@ export default function SalesMetricCards({ sales }: SalesMetricCardsProps) {
     return formatFullArabicDate(d);
   }, []);
 
-  if (!sales) return null;
+  if (!sales && !collections) return null;
 
-  const todayAmount = Number(sales.today ?? 0);
-  const yesterdayAmount = Number(sales.yesterday ?? 0);
-  const todayCount = Number(sales.today_count ?? 0);
-  const yesterdayCount = Number(sales.yesterday_count ?? 0);
+  // Sales metrics
+  const todaySalesAmount = Number(sales?.today ?? 0);
+  const yesterdaySalesAmount = Number(sales?.yesterday ?? 0);
+  const todaySalesCount = Number(sales?.today_count ?? 0);
+  const yesterdaySalesCount = Number(sales?.yesterday_count ?? 0);
+  const salesPerf = computePerf(todaySalesAmount, yesterdaySalesAmount);
 
-  // حساب مؤشر الأداء النسبي مقارنة بأمس
-  let perfDiffPercent: number | null = null;
-  let perfType: 'up' | 'down' | 'neutral' | 'initial';
+  // Collections metrics
+  const todayCollAmount = Number(collections?.today ?? 0);
+  const yesterdayCollAmount = Number(collections?.yesterday ?? 0);
+  const todayCollCount = Number(collections?.today_count ?? 0);
+  const yesterdayCollCount = Number(collections?.yesterday_count ?? 0);
+  const collPerf = computePerf(todayCollAmount, yesterdayCollAmount);
 
-  if (yesterdayAmount > 0) {
-    const diff = ((todayAmount - yesterdayAmount) / yesterdayAmount) * 100;
-    perfDiffPercent = Math.abs(diff);
-    if (diff > 0.05) {
-      perfType = 'up';
-    } else if (diff < -0.05) {
-      perfType = 'down';
-    } else {
-      perfType = 'neutral';
-    }
-  } else if (todayAmount > 0) {
-    perfType = 'initial';
-  } else {
-    perfType = 'neutral';
-  }
+  const hasSales = Boolean(sales);
+  const hasCollections = Boolean(collections);
 
   return (
-    <HomeSection title="المبيعات" icon={ShoppingCart}>
+    <HomeSection title="المبيعات والتحصيلات" icon={ShoppingCart}>
       <div className="home-sales-grid">
-        {/* 1. كارت اليوم (القسم الأكبر - Hero Card) */}
-        <div className="sales-kpi-card sales-kpi-card-today metric-card metric-card-primary">
-          <div className="sales-kpi-card-header">
-            <div className="sales-kpi-title-group">
-              <span className="sales-kpi-icon-wrap" aria-hidden="true">
-                <ShoppingCart size={15} />
-              </span>
-              <div className="sales-kpi-heading-text">
-                <h3 className="sales-kpi-title">مبيعات اليوم</h3>
-                <span className="sales-kpi-date">({todayDate})</span>
+        {/* 1. مجموعة اليوم (Hero Group: كارتان توأم لمبيعات وتحصيلات اليوم) */}
+        <div className="home-pulse-group home-pulse-group-today">
+          {hasSales && (
+            <div className="sales-kpi-card sales-kpi-card-today metric-card metric-card-primary">
+              <div className="sales-kpi-card-header">
+                <div className="sales-kpi-title-group">
+                  <span className="sales-kpi-icon-wrap" aria-hidden="true">
+                    <ShoppingCart size={15} />
+                  </span>
+                  <div className="sales-kpi-heading-text">
+                    <h3 className="sales-kpi-title">مبيعات اليوم</h3>
+                    <span className="sales-kpi-date">({todayDate})</span>
+                  </div>
+                </div>
+
+                <div className={`sales-perf-badge sales-perf-${salesPerf.type}`} title="مؤشر مبيعات اليوم مقارنة بأمس">
+                  {salesPerf.type === 'up' && <TrendingUp size={13} aria-hidden="true" />}
+                  {salesPerf.type === 'down' && <TrendingDown size={13} aria-hidden="true" />}
+                  {salesPerf.type === 'initial' && <TrendingUp size={13} aria-hidden="true" />}
+                  {salesPerf.type === 'neutral' && <Minus size={13} aria-hidden="true" />}
+                  <span className="sales-perf-text">
+                    {salesPerf.type === 'up' && (
+                      <><bdi dir="ltr">{`+${salesPerf.diffPercent?.toFixed(1)}%`}</bdi> عن أمس</>
+                    )}
+                    {salesPerf.type === 'down' && (
+                      <><bdi dir="ltr">{`-${salesPerf.diffPercent?.toFixed(1)}%`}</bdi> عن أمس</>
+                    )}
+                    {salesPerf.type === 'initial' && 'بداية مبيعات اليوم'}
+                    {salesPerf.type === 'neutral' && (
+                      <><bdi dir="ltr">0.0%</bdi> عن أمس</>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div className="sales-kpi-card-body">
+                <MoneyDisplay value={todaySalesAmount} currency className="sales-kpi-amount" />
+              </div>
+
+              <div className="sales-kpi-footer">
+                <span className="sales-kpi-count-badge">
+                  <span className="sales-kpi-count-label">الفواتير</span>
+                  <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(todaySalesCount)}</bdi>
+                </span>
+                {todaySalesCount > 0 && (
+                  <span className="sales-kpi-avg">
+                    <span className="sales-kpi-avg-label">متوسط الفاتورة</span>
+                    <MoneyDisplay value={todaySalesAmount / todaySalesCount} className="sales-kpi-avg-val" />
+                  </span>
+                )}
               </div>
             </div>
+          )}
 
-            <div className={`sales-perf-badge sales-perf-${perfType}`} title="مؤشر الأداء مقارنة بأمس">
-              {perfType === 'up' && <TrendingUp size={13} aria-hidden="true" />}
-              {perfType === 'down' && <TrendingDown size={13} aria-hidden="true" />}
-              {perfType === 'initial' && <TrendingUp size={13} aria-hidden="true" />}
-              {perfType === 'neutral' && <Minus size={13} aria-hidden="true" />}
-              <span className="sales-perf-text">
-                {perfType === 'up' && (
-                  <><bdi dir="ltr">{`+${perfDiffPercent?.toFixed(1)}%`}</bdi> عن أمس</>
+          {hasCollections && (
+            <div className="sales-kpi-card sales-kpi-card-collections-today metric-card">
+              <div className="sales-kpi-card-header">
+                <div className="sales-kpi-title-group">
+                  <span className="sales-kpi-icon-wrap sales-kpi-icon-collections" aria-hidden="true">
+                    <ArrowDownLeft size={16} />
+                  </span>
+                  <div className="sales-kpi-heading-text">
+                    <h3 className="sales-kpi-title">تحصيلات اليوم</h3>
+                    <span className="sales-kpi-date">({todayDate})</span>
+                  </div>
+                </div>
+
+                <div className={`sales-perf-badge sales-perf-${collPerf.type}`} title="مؤشر تحصيلات اليوم مقارنة بأمس">
+                  {collPerf.type === 'up' && <TrendingUp size={13} aria-hidden="true" />}
+                  {collPerf.type === 'down' && <TrendingDown size={13} aria-hidden="true" />}
+                  {collPerf.type === 'initial' && <TrendingUp size={13} aria-hidden="true" />}
+                  {collPerf.type === 'neutral' && <Minus size={13} aria-hidden="true" />}
+                  <span className="sales-perf-text">
+                    {collPerf.type === 'up' && (
+                      <><bdi dir="ltr">{`+${collPerf.diffPercent?.toFixed(1)}%`}</bdi> عن أمس</>
+                    )}
+                    {collPerf.type === 'down' && (
+                      <><bdi dir="ltr">{`-${collPerf.diffPercent?.toFixed(1)}%`}</bdi> عن أمس</>
+                    )}
+                    {collPerf.type === 'initial' && 'بداية تحصيلات اليوم'}
+                    {collPerf.type === 'neutral' && (
+                      <><bdi dir="ltr">0.0%</bdi> عن أمس</>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div className="sales-kpi-card-body">
+                <MoneyDisplay value={todayCollAmount} currency className="sales-kpi-amount sales-kpi-amount-collections" />
+              </div>
+
+              <div className="sales-kpi-footer">
+                <span className="sales-kpi-count-badge">
+                  <span className="sales-kpi-count-label">المقبوضات</span>
+                  <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(todayCollCount)}</bdi>
+                </span>
+                {todayCollCount > 0 && (
+                  <span className="sales-kpi-avg">
+                    <span className="sales-kpi-avg-label">متوسط التحصيل</span>
+                    <MoneyDisplay value={todayCollAmount / todayCollCount} className="sales-kpi-avg-val" />
+                  </span>
                 )}
-                {perfType === 'down' && (
-                  <><bdi dir="ltr">{`-${perfDiffPercent?.toFixed(1)}%`}</bdi> عن أمس</>
-                )}
-                {perfType === 'initial' && 'بداية مبيعات اليوم'}
-                {perfType === 'neutral' && (
-                  <><bdi dir="ltr">0.0%</bdi> عن أمس</>
-                )}
-              </span>
+              </div>
             </div>
-          </div>
-
-          <div className="sales-kpi-card-body">
-            <MoneyDisplay value={todayAmount} currency className="sales-kpi-amount" />
-          </div>
-
-          <div className="sales-kpi-footer">
-            <span className="sales-kpi-count-badge">
-              <span className="sales-kpi-count-label">الفواتير</span>
-              <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(todayCount)}</bdi>
-            </span>
-            {todayCount > 0 && (
-              <span className="sales-kpi-avg">
-                <span className="sales-kpi-avg-label">متوسط الفاتورة</span>
-                <MoneyDisplay value={todayAmount / todayCount} className="sales-kpi-avg-val" />
-              </span>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* 2. كارت أمس (القسم الأصغر - Reference Card) */}
-        <div className="sales-kpi-card sales-kpi-card-yesterday metric-card">
-          <div className="sales-kpi-card-header">
-            <div className="sales-kpi-title-group">
-              <span className="sales-kpi-icon-wrap sales-kpi-icon-yesterday" aria-hidden="true">
-                <Calendar size={15} />
-              </span>
-              <div className="sales-kpi-heading-text">
-                <h3 className="sales-kpi-title">مبيعات أمس</h3>
-                <span className="sales-kpi-date">({yesterdayDate})</span>
+        {/* 2. مجموعة أمس (Reference Group: كارتان مرجعيان لمبيعات وتحصيلات أمس) */}
+        <div className="home-pulse-group home-pulse-group-yesterday">
+          {hasSales && (
+            <div className="sales-kpi-card sales-kpi-card-yesterday metric-card">
+              <div className="sales-kpi-card-header">
+                <div className="sales-kpi-title-group">
+                  <span className="sales-kpi-icon-wrap sales-kpi-icon-yesterday" aria-hidden="true">
+                    <Calendar size={15} />
+                  </span>
+                  <div className="sales-kpi-heading-text">
+                    <h3 className="sales-kpi-title">مبيعات أمس</h3>
+                    <span className="sales-kpi-date">({yesterdayDate})</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="sales-kpi-card-body">
+                <MoneyDisplay value={yesterdaySalesAmount} currency className="sales-kpi-amount sales-kpi-amount-secondary" />
+              </div>
+
+              <div className="sales-kpi-footer">
+                <span className="sales-kpi-count-badge">
+                  <span className="sales-kpi-count-label">الفواتير</span>
+                  <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(yesterdaySalesCount)}</bdi>
+                </span>
+                {yesterdaySalesCount > 0 && (
+                  <span className="sales-kpi-avg">
+                    <span className="sales-kpi-avg-label">متوسط الفاتورة</span>
+                    <MoneyDisplay value={yesterdaySalesAmount / yesterdaySalesCount} className="sales-kpi-avg-val" />
+                  </span>
+                )}
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="sales-kpi-card-body">
-            <MoneyDisplay value={yesterdayAmount} currency className="sales-kpi-amount sales-kpi-amount-secondary" />
-          </div>
+          {hasCollections && (
+            <div className="sales-kpi-card sales-kpi-card-yesterday metric-card">
+              <div className="sales-kpi-card-header">
+                <div className="sales-kpi-title-group">
+                  <span className="sales-kpi-icon-wrap sales-kpi-icon-collections-yesterday" aria-hidden="true">
+                    <ArrowDownLeft size={16} />
+                  </span>
+                  <div className="sales-kpi-heading-text">
+                    <h3 className="sales-kpi-title">تحصيلات أمس</h3>
+                    <span className="sales-kpi-date">({yesterdayDate})</span>
+                  </div>
+                </div>
+              </div>
 
-          <div className="sales-kpi-footer">
-            <span className="sales-kpi-count-badge">
-              <span className="sales-kpi-count-label">الفواتير</span>
-              <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(yesterdayCount)}</bdi>
-            </span>
-            {yesterdayCount > 0 && (
-              <span className="sales-kpi-avg">
-                <span className="sales-kpi-avg-label">متوسط الفاتورة</span>
-                <MoneyDisplay value={yesterdayAmount / yesterdayCount} className="sales-kpi-avg-val" />
-              </span>
-            )}
-          </div>
+              <div className="sales-kpi-card-body">
+                <MoneyDisplay value={yesterdayCollAmount} currency className="sales-kpi-amount sales-kpi-amount-secondary" />
+              </div>
+
+              <div className="sales-kpi-footer">
+                <span className="sales-kpi-count-badge">
+                  <span className="sales-kpi-count-label">المقبوضات</span>
+                  <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(yesterdayCollCount)}</bdi>
+                </span>
+                {yesterdayCollCount > 0 && (
+                  <span className="sales-kpi-avg">
+                    <span className="sales-kpi-avg-label">متوسط التحصيل</span>
+                    <MoneyDisplay value={yesterdayCollAmount / yesterdayCollCount} className="sales-kpi-avg-val" />
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </HomeSection>
