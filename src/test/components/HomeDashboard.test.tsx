@@ -77,9 +77,8 @@ describe('Home Dashboard Components', () => {
       expect(screen.getByText(count).previousElementSibling).toHaveTextContent('الفواتير');
     }
 
-    // Performance indicator: (1500 - 1200) / 1200 = +25.0% with separate label "عن أمس"
-    expect(screen.getByText('+25.0%')).toBeInTheDocument();
-    expect(screen.getByText('عن أمس')).toBeInTheDocument();
+    // Performance indicator: (1500 - 1200) / 1200 = +25.0%
+    expect(screen.getByTitle('مؤشر الأداء مقارنة بأمس')).toHaveTextContent('+25.0% عن أمس');
   });
 
   it('FinancialPulseCards renders cash, receivables, and payables cards with direct links', () => {

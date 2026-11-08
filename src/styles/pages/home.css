@@ -87,6 +87,7 @@
 .home-sales-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: stretch;
   gap: 16px;
   width: 100%;
   min-width: 0;
@@ -95,98 +96,130 @@
 .sales-kpi-card {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 16px 20px;
-  min-block-size: 110px;
+  gap: 16px;
+  padding: 20px 22px;
+  min-block-size: 168px;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
 }
 
+/* كارت اليوم: هو البطل، خلفية بتدرّج خفيف جداً بلون الهوية */
 .sales-kpi-card-today {
-  background: var(--card);
+  background:
+    linear-gradient(180deg, var(--primary-light) 0%, rgba(46, 66, 92, 0) 70%),
+    var(--card);
 }
 
+/* كارت أمس: هادي ومرجعي */
 .sales-kpi-card-yesterday {
   background: var(--card);
+  --metric-accent: var(--line-strong);
 }
 
-/* Today Card: 3 Horizontal Columns */
-.sales-kpi-layout-today {
+.sales-kpi-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  width: 100%;
+  flex-wrap: wrap;
+  gap: 10px;
   min-width: 0;
 }
 
-/* Yesterday Card: 2 Horizontal Columns */
-.sales-kpi-layout-yesterday {
+.sales-kpi-title-group {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-  min-width: 0;
-}
-
-/* 1. Identity Column (Right): Icon + Title + Date */
-.sales-kpi-col-identity {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-  flex-shrink: 0;
-}
-
-.sales-kpi-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 
 .sales-kpi-icon-wrap {
   display: grid;
   place-items: center;
-  inline-size: 28px;
-  block-size: 28px;
-  border-radius: var(--radius-xs);
-  background: var(--primary-light);
-  color: var(--primary);
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: #fff;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px var(--primary-glow);
 }
 
 .sales-kpi-icon-yesterday {
   background: var(--bg);
   color: var(--muted);
   border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+/* العنوان فوق والتاريخ تحته بدل ما يبقوا جنب بعض */
+.sales-kpi-heading-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
 }
 
 .sales-kpi-title {
   margin: 0;
-  font-size: var(--font-sm);
-  font-weight: 750;
+  font-size: var(--font-base);
+  font-weight: 700;
+  line-height: 1.3;
   color: var(--ink);
   white-space: nowrap;
 }
 
 .sales-kpi-date {
   font-size: var(--font-xs);
+  line-height: 1.3;
   color: var(--muted);
   font-weight: 500;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  padding-inline-start: 2px;
 }
 
-/* 2. Metric Column (Center/Main): Amount + Invoices Count */
-.sales-kpi-col-metric {
+.sales-perf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-perf-up {
+  background: var(--success-light);
+  color: var(--success-hover);
+  border: 1px solid var(--success-border);
+}
+
+.sales-perf-down {
+  background: var(--danger-light);
+  color: var(--danger-hover);
+  border: 1px solid var(--danger-border);
+}
+
+.sales-perf-initial {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--line);
+}
+
+.sales-perf-neutral {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+/* الرقم هو أهم حاجة في الكارت: ياخد المساحة الفاضية ويتوسّط فيها */
+.sales-kpi-card-body {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  align-items: center;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -194,40 +227,50 @@
   display: inline-flex;
   flex-direction: row-reverse;
   align-items: baseline;
-  gap: 4px;
-  font-size: var(--font-kpi);
-  font-weight: 750;
-  line-height: 1.2;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   color: var(--ink);
   overflow-wrap: anywhere;
 }
 
 .sales-kpi-amount-secondary {
-  font-size: 24px;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--ink-secondary);
 }
 
 .sales-kpi-amount .currency-suffix {
-  font-size: var(--font-xs);
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--muted);
   white-space: nowrap;
 }
 
-.sales-kpi-meta {
+/* الفوتر: خط فاصل + عدد الفواتير + متوسط الفاتورة */
+.sales-kpi-footer {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding-block-start: 14px;
+  border-block-start: 1px dashed var(--line);
+  min-width: 0;
 }
 
 .sales-kpi-count-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  border-radius: var(--radius-xs);
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   border: 1px solid var(--line);
-  font-size: var(--font-xs);
+  font-size: var(--font-sm);
   color: var(--ink-secondary);
   font-weight: 600;
   white-space: nowrap;
@@ -235,100 +278,31 @@
 
 .sales-kpi-count-label {
   color: var(--muted);
-  font-size: 11px;
+  font-weight: 500;
 }
 
 .sales-kpi-count-val {
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 800;
 }
 
-/* 3. Performance Indicator (Left Dedicated Section): Arrow + Number, then "عن أمس" underneath */
-.sales-kpi-col-perf {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  border-inline-start: 1px solid var(--line);
-  min-width: 82px;
-  flex-shrink: 0;
-  gap: 2px;
-  font-variant-numeric: tabular-nums;
-}
-
-.sales-perf-stat {
+.sales-kpi-avg {
   display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--font-xs);
+  white-space: nowrap;
+}
+
+.sales-kpi-avg-label {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.sales-kpi-avg-val {
+  color: var(--ink-secondary);
+  font-weight: 700;
   font-size: var(--font-sm);
-  font-weight: 750;
-  line-height: 1.2;
-  white-space: nowrap;
-  direction: ltr;
-}
-
-.sales-perf-sublabel {
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.sales-perf-up {
-  background: rgba(22, 163, 74, 0.07);
-  border: 1px solid rgba(22, 163, 74, 0.2);
-}
-
-.sales-perf-up .sales-perf-stat {
-  color: var(--tone-in, #16a34a);
-}
-
-.sales-perf-up .sales-perf-sublabel {
-  color: var(--tone-in, #16a34a);
-  opacity: 0.85;
-}
-
-.sales-perf-down {
-  background: rgba(220, 38, 38, 0.06);
-  border: 1px solid rgba(220, 38, 38, 0.2);
-}
-
-.sales-perf-down .sales-perf-stat {
-  color: var(--danger, #dc2626);
-}
-
-.sales-perf-down .sales-perf-sublabel {
-  color: var(--danger, #dc2626);
-  opacity: 0.85;
-}
-
-.sales-perf-initial {
-  background: var(--primary-light);
-  border: 1px solid var(--line);
-}
-
-.sales-perf-initial .sales-perf-stat {
-  color: var(--primary);
-}
-
-.sales-perf-initial .sales-perf-sublabel {
-  color: var(--primary);
-  opacity: 0.85;
-}
-
-.sales-perf-neutral {
-  background: var(--bg);
-  border: 1px solid var(--line);
-}
-
-.sales-perf-neutral .sales-perf-stat {
-  color: var(--muted);
-}
-
-.sales-perf-neutral .sales-perf-sublabel {
-  color: var(--muted);
 }
 
 /* 3. Financial Pulse Grid */
@@ -753,7 +727,10 @@
 /* Sales grid KPI amount: between 820px and 1099px */
 @media (min-width: 820px) and (max-width: 1099px) {
   .sales-kpi-amount {
-    font-size: 24px;
+    font-size: 30px;
+  }
+  .sales-kpi-amount-secondary {
+    font-size: 26px;
   }
 }
 
@@ -808,19 +785,4 @@
     min-block-size: auto;
   }
 
-  .sales-kpi-layout-today,
-  .sales-kpi-layout-yesterday {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .sales-kpi-col-perf {
-    width: 100%;
-    border-inline-start: none;
-    border-block-start: 1px solid var(--line);
-    padding-inline-start: 0;
-    padding-block-start: 8px;
-    flex-direction: row;
-    justify-content: space-between;
-  }
 }
