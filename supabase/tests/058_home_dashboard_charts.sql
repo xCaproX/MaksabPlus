@@ -87,6 +87,11 @@ begin
   insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, subtotal, total, paid)
   values (v_comp_a, 'purchase', 'INV-PUR-001', current_date, v_supp_a, v_wh_a, 400, 400, 400);
 
+  -- بنود الفاتورة لاختبار top_items
+  insert into public.invoice_items (company_id, invoice_id, item_id, qty, unit_price)
+  select v_comp_a, id, v_item_a, 5, 100
+  from public.invoices where number = 'INV-SALE-001';
+
   -- استدعاء الدالة للمالك أ لـ 7 أيام
   v_res_a := public.get_home_dashboard_charts(7);
 
@@ -134,6 +139,21 @@ begin
     raise exception 'Expected 2 days in daily_trend for all-time (0), got %', jsonb_array_length((public.get_home_dashboard_charts(0))->'daily_trend');
   end if;
 
+  -- فحص top_items و top_customers
+  if jsonb_array_length(v_res_a->'top_items') <> 1 then
+    raise exception 'Expected 1 top item, got %', jsonb_array_length(v_res_a->'top_items');
+  end if;
+  if (v_res_a->'top_items'->0->>'total_qty')::numeric <> 5 then
+    raise exception 'Expected top item total_qty to be 5, got %', (v_res_a->'top_items'->0->>'total_qty');
+  end if;
+
+  if jsonb_array_length(v_res_a->'top_customers') <> 1 then
+    raise exception 'Expected 1 top customer, got %', jsonb_array_length(v_res_a->'top_customers');
+  end if;
+  if (v_res_a->'top_customers'->0->>'total_amount')::numeric <> 800 then
+    raise exception 'Expected top customer total_amount to be 800, got %', (v_res_a->'top_customers'->0->>'total_amount');
+  end if;
+
   -- 3) فحص العزل للشركة ب (Tenant Isolation): يجب أن تكون نتائج شركة ب فارغة أو أصفار
   perform set_config('request.jwt.claim.sub', v_owner_b::text, true);
   v_res_b := public.get_home_dashboard_charts(7);
@@ -146,6 +166,9 @@ begin
   v_res_emp := public.get_home_dashboard_charts(7);
   if v_res_emp->>'sales_distribution' is not null then
     raise exception 'Expected sales_distribution to be null for employee without sales permission, got %', v_res_emp->>'sales_distribution';
+  end if;
+  if v_res_emp->>'top_items' is not null or v_res_emp->>'top_customers' is not null then
+    raise exception 'Expected top_items and top_customers to be null for employee without sales permission';
   end if;
   if (v_res_emp->'permissions'->>'can_view_sales')::boolean <> false then
     raise exception 'Expected can_view_sales to be false for employee';

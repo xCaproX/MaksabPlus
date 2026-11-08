@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { BrowserRouter } from 'react-router-dom';
 import DashboardChartsSection from '../../components/charts/DashboardChartsSection';
 import { supabase } from '../../lib/supabase';
 
@@ -31,6 +32,14 @@ describe('DashboardChartsSection Component', () => {
       credit_sales: 500,
       returns_total: 0,
     },
+    top_items: [
+      { item_id: 'item-1', item_name: 'بيبسي كانز', unit: 'علبة', total_qty: 120, total_amount: 1200 },
+      { item_id: 'item-2', item_name: 'شيبسي عائلي', unit: 'كيس', total_qty: 85, total_amount: 850 },
+    ],
+    top_customers: [
+      { account_id: 'cust-1', account_name: 'عميل مميز 1', total_amount: 5000, invoice_count: 4 },
+      { account_id: 'cust-2', account_name: 'شركة الأمل', total_amount: 3200, invoice_count: 2 },
+    ],
     permissions: {
       can_view_sales: true,
       can_view_purchases: true,
@@ -43,7 +52,11 @@ describe('DashboardChartsSection Component', () => {
   });
 
   it('renders all 6 range options with "آخر شهر" as the default active option', async () => {
-    render(<DashboardChartsSection />);
+    render(
+      <BrowserRouter>
+        <DashboardChartsSection />
+      </BrowserRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('آخر أسبوع')).toBeInTheDocument();
@@ -61,7 +74,11 @@ describe('DashboardChartsSection Component', () => {
   });
 
   it('changes active range and queries RPC with corresponding days when an option is clicked', async () => {
-    render(<DashboardChartsSection />);
+    render(
+      <BrowserRouter>
+        <DashboardChartsSection />
+      </BrowserRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('آخر سنة')).toBeInTheDocument();
@@ -81,6 +98,33 @@ describe('DashboardChartsSection Component', () => {
     await waitFor(() => {
       expect(allTimeBtn).toHaveClass('is-active');
       expect(supabase.rpc).toHaveBeenCalledWith('get_home_dashboard_charts', { p_days: 0 });
+    });
+  });
+
+  it('renders top items and top customers lists connected to the selected range', async () => {
+    render(
+      <BrowserRouter>
+        <DashboardChartsSection />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('أكثر الأصناف مبيعاً (آخر شهر)')).toBeInTheDocument();
+      expect(screen.getByText('أكثر العملاء شراءً (آخر شهر)')).toBeInTheDocument();
+      expect(screen.getByText('بيبسي كانز')).toBeInTheDocument();
+      expect(screen.getByText('شيبسي عائلي')).toBeInTheDocument();
+      expect(screen.getByText('عميل مميز 1')).toBeInTheDocument();
+      expect(screen.getByText('شركة الأمل')).toBeInTheDocument();
+    });
+
+    // Switch range to last week
+    const weekBtn = screen.getByRole('button', { name: 'آخر أسبوع' });
+    fireEvent.click(weekBtn);
+
+    await waitFor(() => {
+      expect(supabase.rpc).toHaveBeenCalledWith('get_home_dashboard_charts', { p_days: 7 });
+      expect(screen.getByText('أكثر الأصناف مبيعاً (آخر أسبوع)')).toBeInTheDocument();
+      expect(screen.getByText('أكثر العملاء شراءً (آخر أسبوع)')).toBeInTheDocument();
     });
   });
 });

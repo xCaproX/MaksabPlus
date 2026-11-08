@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import DashboardCardAction from './DashboardCardAction';
 
 export interface RankedItem {
@@ -18,6 +19,7 @@ interface TopRankedListProps {
   emptyText: string;
   linkTo?: string;
   linkText?: string;
+  loading?: boolean;
 }
 
 export default function TopRankedList({
@@ -28,6 +30,7 @@ export default function TopRankedList({
   emptyText,
   linkTo,
   linkText = 'عرض الكل',
+  loading = false,
 }: TopRankedListProps) {
   const maxValue = Math.max(...items.map((i) => i.value), 1);
 
@@ -43,7 +46,12 @@ export default function TopRankedList({
         )}
       </div>
 
-      {items.length === 0 ? (
+      {loading ? (
+        <div className="chart-loading-state" role="status" style={{ minHeight: 180 }}>
+          <RefreshCw className="spin" size={20} />
+          <span className="chart-empty-text">جارٍ التحميل…</span>
+        </div>
+      ) : items.length === 0 ? (
         <div className="empty-state-card">
           <p>{emptyText}</p>
         </div>

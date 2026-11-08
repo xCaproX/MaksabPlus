@@ -2,15 +2,13 @@ import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { getCurrentUserIdentity } from '../lib/company';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { Navigate } from 'react-router-dom';
-import { ChartNoAxesColumnIncreasing, Package, Users, RefreshCw } from 'lucide-react';
+import { ChartNoAxesColumnIncreasing, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
-import { money, qty } from '../lib/format';
 import { errorMessage } from '../lib/errors';
 import QuickActions from './home/QuickActions';
 import SalesMetricCards, { type DashboardSales, type DashboardCollections } from './home/SalesMetricCards';
 import FinancialPulseCards from './home/FinancialPulseCards';
-import TopRankedList, { type RankedItem } from './home/TopRankedList';
 import HomeSection from './home/HomeSection';
 import ChartErrorBoundary from '../components/charts/ChartErrorBoundary';
 
@@ -104,22 +102,6 @@ export default function Home() {
     );
   }
 
-  const topItems: RankedItem[] = (data?.top_items ?? []).map((it) => ({
-    id: it.item_id,
-    label: it.item_name,
-    value: Number(it.total_qty),
-    formattedValue: qty(it.total_qty),
-    unit: it.unit,
-  }));
-
-  const topCustomers: RankedItem[] = (data?.top_customers ?? []).map((c) => ({
-    id: c.account_id,
-    label: c.account_name,
-    value: Number(c.total_amount),
-    formattedValue: money(c.total_amount),
-    unit: 'ج.م',
-  }));
-
   return (
     <div className="home-dashboard" dir="rtl">
       {/* 1. ترحيب وإجراءات سريعة */}
@@ -137,7 +119,7 @@ export default function Home() {
 
       {data?.permissions.can_view_sales && (
         <HomeSection title="الإحصائيات" icon={ChartNoAxesColumnIncreasing}>
-          {/* الرسوم البيانية التفاعلية (تحميل كسول مع حماية من الأخطاء) */}
+          {/* الرسوم البيانية التفاعلية وقوائم الأكثر طلباً (تحميل كسول مع حماية من الأخطاء) */}
           <ChartErrorBoundary>
             <Suspense
               fallback={
@@ -155,28 +137,6 @@ export default function Home() {
               <DashboardChartsSection />
             </Suspense>
           </ChartErrorBoundary>
-
-          {/* قوائم الأكثر طلباً وكبار العملاء */}
-          <div className="home-insights-grid" style={{ marginTop: 16 }}>
-            <TopRankedList
-              title="أكثر الأصناف مبيعاً (آخر 30 يوماً)"
-              icon={Package}
-              items={topItems}
-              barVariant="items"
-              emptyText="لا توجد مبيعات مسجلة خلال آخر 30 يوماً"
-              linkTo="/invoices?tab=sale"
-              linkText="عرض فواتير المبيعات"
-            />
-            <TopRankedList
-              title="أكثر العملاء شراءً (آخر 30 يوماً)"
-              icon={Users}
-              items={topCustomers}
-              barVariant="customers"
-              emptyText="لا توجد مشتريات عملاء مسجلة خلال آخر 30 يوماً"
-              linkTo="/balances?tab=customers"
-              linkText="عرض كشوف العملاء"
-            />
-          </div>
         </HomeSection>
       )}
     </div>

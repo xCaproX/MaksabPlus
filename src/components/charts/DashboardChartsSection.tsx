@@ -1,15 +1,34 @@
 import { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, PieChart, BarChart2 } from 'lucide-react';
+import { TrendingUp, PieChart, BarChart2, Package, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { errorMessage } from '../../lib/errors';
+import { money, qty } from '../../lib/format';
 import ChartContainer from './ChartContainer';
 import SalesTrendChart, { type DailyTrendPoint } from './SalesTrendChart';
 import SalesVsPurchasesChart from './SalesVsPurchasesChart';
 import SalesDistributionChart, { type SalesDistributionData } from './SalesDistributionChart';
+import TopRankedList, { type RankedItem } from '../../pages/home/TopRankedList';
+
+export interface TopItemData {
+  item_id: string;
+  item_name: string;
+  unit: string;
+  total_qty: number;
+  total_amount: number;
+}
+
+export interface TopCustomerData {
+  account_id: string;
+  account_name: string;
+  total_amount: number;
+  invoice_count: number;
+}
 
 interface DashboardChartsData {
   daily_trend: DailyTrendPoint[];
   sales_distribution: SalesDistributionData | null;
+  top_items: TopItemData[] | null;
+  top_customers: TopCustomerData[] | null;
   permissions: {
     can_view_sales: boolean;
     can_view_purchases: boolean;
@@ -91,6 +110,22 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
 
   const rangeLabel = getRangeLabel(range);
 
+  const topItems: RankedItem[] = (data?.top_items ?? []).map((it) => ({
+    id: it.item_id,
+    label: it.item_name,
+    value: Number(it.total_qty),
+    formattedValue: qty(it.total_qty),
+    unit: it.unit,
+  }));
+
+  const topCustomers: RankedItem[] = (data?.top_customers ?? []).map((c) => ({
+    id: c.account_id,
+    label: c.account_name,
+    value: Number(c.total_amount),
+    formattedValue: money(c.total_amount),
+    unit: 'ج.م',
+  }));
+
   return (
     <div className="dashboard-charts-wrapper">
       <div className="dashboard-charts-header-toolbar">
@@ -165,6 +200,32 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
           </ChartContainer>
         )}
       </div>
+
+      {/* 4. كبار العملاء والأصناف الأكثر مبيعاً (مرتبطة بفترة الفلتر وتصل لـ 10 عناصر) */}
+      {data?.permissions.can_view_sales && (
+        <div className="home-insights-grid" style={{ marginTop: 16 }}>
+          <TopRankedList
+            title={`أكثر الأصناف مبيعاً (${rangeLabel})`}
+            icon={Package}
+            items={topItems}
+            barVariant="items"
+            emptyText={`لا توجد مبيعات أصناف مسجلة خلال ${rangeLabel}`}
+            linkTo="/invoices?tab=sale"
+            linkText="عرض فواتير المبيعات"
+            loading={loading && !data}
+          />
+          <TopRankedList
+            title={`أكثر العملاء شراءً (${rangeLabel})`}
+            icon={Users}
+            items={topCustomers}
+            barVariant="customers"
+            emptyText={`لا توجد مشتريات عملاء مسجلة خلال ${rangeLabel}`}
+            linkTo="/balances?tab=customers"
+            linkText="عرض كشوف العملاء"
+            loading={loading && !data}
+          />
+        </div>
+      )}
     </div>
   );
 }
