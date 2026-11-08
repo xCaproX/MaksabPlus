@@ -1,6 +1,6 @@
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { getCurrentUserIdentity } from '../lib/company';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { ChartNoAxesColumnIncreasing, Package, Users, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -12,6 +12,9 @@ import SalesMetricCards, { type DashboardSales } from './home/SalesMetricCards';
 import FinancialPulseCards from './home/FinancialPulseCards';
 import TopRankedList, { type RankedItem } from './home/TopRankedList';
 import HomeSection from './home/HomeSection';
+import type { DailyTrendPoint } from '../components/charts/SalesTrendChart';
+
+const DashboardChartsSection = lazy(() => import('../components/charts/DashboardChartsSection'));
 
 interface DashboardSummaryData {
   sales: DashboardSales | null;
@@ -47,6 +50,18 @@ export default function Home() {
 
   const [userName, setUserName] = useState('');
   const [companyName, setCompanyName] = useState('');
+
+  const [sparklines, setSparklines] = useState<{ week?: number[]; month?: number[] }>({});
+
+  const handleTrendLoaded = useCallback((trend: DailyTrendPoint[]) => {
+    if (!trend || trend.length === 0) return;
+    const monthSales = trend.map((t) => Number(t.sales || 0));
+    const weekSales = monthSales.slice(-7);
+    setSparklines({
+      week: weekSales,
+      month: monthSales,
+    });
+  }, []);
 
   async function loadDashboard() {
     setLoading(true);
@@ -120,8 +135,8 @@ export default function Home() {
       {/* 1. ترحيب وإجراءات سريعة */}
       <QuickActions userName={userName} companyName={companyName} />
 
-      {/* 2. بطاقات إجمالي المبيعات */}
-      <SalesMetricCards sales={data?.sales ?? null} />
+      {/* 2. بطاقات إجمالي المبيعات مع خطوط المسار (Sparklines) */}
+      <SalesMetricCards sales={data?.sales ?? null} sparklines={sparklines} />
 
       {/* 3. النبض المالي والأرصدة */}
       <FinancialPulseCards
@@ -132,7 +147,25 @@ export default function Home() {
 
       {data?.permissions.can_view_sales && (
         <HomeSection title="الإحصائيات" icon={ChartNoAxesColumnIncreasing}>
-          <div className="home-insights-grid">
+          {/* الرسوم البيانية التفاعلية (تحميل كسول) */}
+          <Suspense
+            fallback={
+              <div
+                className="skeleton"
+                style={{
+                  height: 280,
+                  width: '100%',
+                  borderRadius: 'var(--radius)',
+                  marginBottom: 16,
+                }}
+              />
+            }
+          >
+            <DashboardChartsSection onTrendLoaded={handleTrendLoaded} />
+          </Suspense>
+
+          {/* قوائم الأكثر طلباً وكبار العملاء */}
+          <div className="home-insights-grid" style={{ marginTop: 16 }}>
             <TopRankedList
               title="أكثر الأصناف مبيعاً (آخر 30 يوماً)"
               icon={Package}

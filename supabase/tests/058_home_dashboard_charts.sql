@@ -1,0 +1,142 @@
+begin;
+
+-- =====================================================================
+-- 058_home_dashboard_charts.sql
+-- اختبارات التحقق من أمان وصحة دالة get_home_dashboard_charts
+-- =====================================================================
+
+do $$
+declare
+  v_comp_a uuid := '77777777-7777-4777-8777-0000000000a1';
+  v_comp_b uuid := '77777777-7777-4777-8777-0000000000b1';
+  v_owner_a uuid := '77777777-7777-4777-8777-000000000001';
+  v_owner_b uuid := '77777777-7777-4777-8777-000000000002';
+  v_emp_no_sales uuid := '77777777-7777-4777-8777-000000000003';
+
+  v_wh_a uuid;
+  v_cust_a uuid;
+  v_supp_a uuid;
+  v_item_a uuid;
+
+  v_res_a jsonb;
+  v_res_b jsonb;
+  v_res_emp jsonb;
+  v_daily_trend jsonb;
+  v_distribution jsonb;
+begin
+  -- إعداد الشركات والمستخدمين
+  insert into auth.users (id, aud, role, email)
+  values
+    (v_owner_a, 'authenticated', 'authenticated', 'owner_charts_a@test.local'),
+    (v_owner_b, 'authenticated', 'authenticated', 'owner_charts_b@test.local'),
+    (v_emp_no_sales, 'authenticated', 'authenticated', 'emp_no_sales@test.local')
+  on conflict (id) do nothing;
+
+  insert into public.companies (id, name)
+  values
+    (v_comp_a, 'شركة أ للرسوم البيانية'),
+    (v_comp_b, 'شركة ب للرسوم البيانية')
+  on conflict (id) do nothing;
+
+  insert into public.profiles (id, company_id, full_name, access_role, is_active)
+  values
+    (v_owner_a, v_comp_a, 'مالك أ', 'owner', true),
+    (v_owner_b, v_comp_b, 'مالك ب', 'owner', true),
+    (v_emp_no_sales, v_comp_a, 'موظف بدون مبيعات', 'employee', true)
+  on conflict (id) do update set company_id = excluded.company_id, access_role = excluded.access_role;
+
+  -- 1) فحص أمان الصلاحيات: يجب سحب الصلاحيات من public و anon
+  if exists (
+    select 1
+    from information_schema.routine_privileges
+    where routine_schema = 'public'
+      and routine_name = 'get_home_dashboard_charts'
+      and grantee in ('PUBLIC', 'anon')
+  ) then
+    raise exception 'Security violation: get_home_dashboard_charts must revoke execute from public and anon';
+  end if;
+
+  -- 2) إعداد بيانات شركة أ
+  perform set_config('request.jwt.claim.sub', v_owner_a::text, true);
+
+  insert into public.warehouses (company_id, name)
+  values (v_comp_a, 'مخزن أ الرئيسي')
+  returning id into v_wh_a;
+
+  insert into public.accounts (company_id, name, kind)
+  values (v_comp_a, 'عميل أ1', 'customer')
+  returning id into v_cust_a;
+
+  insert into public.accounts (company_id, name, kind)
+  values (v_comp_a, 'مورد أ1', 'supplier')
+  returning id into v_supp_a;
+
+  insert into public.items (company_id, name, unit, sale_price, purchase_price)
+  values (v_comp_a, 'صنف تجريبي أ', 'قطعة', 100, 70)
+  returning id into v_item_a;
+
+  -- فاتورة بيع نقدية اليوم بقيمة 500
+  insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, subtotal, total, paid)
+  values (v_comp_a, 'sale', 'INV-SALE-001', current_date, v_cust_a, v_wh_a, 500, 500, 500);
+
+  -- فاتورة بيع آجل أمس بقيمة 300 (مدفوع 100، متبقي 200)
+  insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, subtotal, total, paid)
+  values (v_comp_a, 'sale', 'INV-SALE-002', current_date - 1, v_cust_a, v_wh_a, 300, 300, 100);
+
+  -- فاتورة شراء اليوم بقيمة 400
+  insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, subtotal, total, paid)
+  values (v_comp_a, 'purchase', 'INV-PUR-001', current_date, v_supp_a, v_wh_a, 400, 400, 400);
+
+  -- استدعاء الدالة للمالك أ لـ 7 أيام
+  v_res_a := public.get_home_dashboard_charts(7);
+
+  v_daily_trend := v_res_a->'daily_trend';
+  v_distribution := v_res_a->'sales_distribution';
+
+  if jsonb_array_length(v_daily_trend) <> 7 then
+    raise exception 'Expected daily_trend to have 7 days, got %', jsonb_array_length(v_daily_trend);
+  end if;
+
+  -- التحقق من مبيعات ومشتريات اليوم (آخر عنصر)
+  if (v_daily_trend->6->>'sales')::numeric <> 500 then
+    raise exception 'Expected today sales to be 500, got %', (v_daily_trend->6->>'sales');
+  end if;
+
+  if (v_daily_trend->6->>'purchases')::numeric <> 400 then
+    raise exception 'Expected today purchases to be 400, got %', (v_daily_trend->6->>'purchases');
+  end if;
+
+  -- التحقق من مبيعات أمس (العنصر قبل الأخير)
+  if (v_daily_trend->5->>'sales')::numeric <> 300 then
+    raise exception 'Expected yesterday sales to be 300, got %', (v_daily_trend->5->>'sales');
+  end if;
+
+  -- التحقق من توزيع المبيعات (نقدي = 500 + 100 = 600، آجل = 200)
+  if (v_distribution->>'cash_sales')::numeric <> 600 then
+    raise exception 'Expected cash_sales to be 600, got %', (v_distribution->>'cash_sales');
+  end if;
+
+  if (v_distribution->>'credit_sales')::numeric <> 200 then
+    raise exception 'Expected credit_sales to be 200, got %', (v_distribution->>'credit_sales');
+  end if;
+
+  -- 3) فحص العزل للشركة ب (Tenant Isolation): يجب أن تكون نتائج شركة ب فارغة أو أصفار
+  perform set_config('request.jwt.claim.sub', v_owner_b::text, true);
+  v_res_b := public.get_home_dashboard_charts(7);
+  if (v_res_b->'sales_distribution'->>'cash_sales')::numeric <> 0 then
+    raise exception 'Expected company B cash_sales to be 0, got %', (v_res_b->'sales_distribution'->>'cash_sales');
+  end if;
+
+  -- 4) فحص الموظف الذي لا يملك صلاحية المبيعات
+  perform set_config('request.jwt.claim.sub', v_emp_no_sales::text, true);
+  v_res_emp := public.get_home_dashboard_charts(7);
+  if v_res_emp->>'sales_distribution' is not null then
+    raise exception 'Expected sales_distribution to be null for employee without sales permission, got %', v_res_emp->>'sales_distribution';
+  end if;
+  if (v_res_emp->'permissions'->>'can_view_sales')::boolean <> false then
+    raise exception 'Expected can_view_sales to be false for employee';
+  end if;
+
+end $$;
+
+rollback;
