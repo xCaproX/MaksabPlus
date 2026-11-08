@@ -120,11 +120,11 @@
     var(--card);
 }
 
-/* كارت تحصيلات اليوم: لمسة خضراء وستروك علوي مطابق لأيقونة التحصيل الخضراء */
+/* كارت تحصيلات النهاردة: لمسة خضراء ناعمة مخففة وستروك علوي مطابق لأيقونة التحصيل الخضراء */
 .sales-kpi-card-collections-today {
   --metric-accent: var(--tone-in, #16a34a);
   background:
-    linear-gradient(180deg, rgba(22, 163, 74, 0.08) 0%, rgba(22, 163, 74, 0) 70%),
+    linear-gradient(180deg, rgba(22, 163, 74, 0.05) 0%, rgba(22, 163, 74, 0) 70%),
     var(--card);
 }
 
