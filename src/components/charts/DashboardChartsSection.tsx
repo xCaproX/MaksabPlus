@@ -201,11 +201,12 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
         )}
       </div>
 
-      {/* 4. كبار العملاء والأصناف الأكثر مبيعاً (مرتبطة بفترة الفلتر وتصل لـ 10 عناصر) */}
+      {/* 4. كبار العملاء والأصناف الأكثر طلباً (مرتبطة بفترة الفلتر وتصل لـ 10 عناصر) */}
       {data?.permissions.can_view_sales && (
         <div className="home-insights-grid" style={{ marginTop: 16 }}>
           <TopRankedList
-            title={`أكثر الأصناف مبيعاً (${rangeLabel})`}
+            title="أكثر الأصناف طلباً"
+            subtitle={`أعلى 10 أصناف حسب الكمية المباعة خلال ${rangeLabel}`}
             icon={Package}
             items={topItems}
             barVariant="items"
@@ -215,7 +216,8 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
             loading={loading && !data}
           />
           <TopRankedList
-            title={`أكثر العملاء شراءً (${rangeLabel})`}
+            title="كبار العملاء"
+            subtitle={`أعلى 10 عملاء حسب قيمة المشتريات خلال ${rangeLabel}`}
             icon={Users}
             items={topCustomers}
             barVariant="customers"

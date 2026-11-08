@@ -109,8 +109,10 @@ describe('DashboardChartsSection Component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('أكثر الأصناف مبيعاً (آخر شهر)')).toBeInTheDocument();
-      expect(screen.getByText('أكثر العملاء شراءً (آخر شهر)')).toBeInTheDocument();
+      expect(screen.getByText('أكثر الأصناف طلباً')).toBeInTheDocument();
+      expect(screen.getByText('كبار العملاء')).toBeInTheDocument();
+      expect(screen.getByText('أعلى 10 أصناف حسب الكمية المباعة خلال آخر شهر')).toBeInTheDocument();
+      expect(screen.getByText('أعلى 10 عملاء حسب قيمة المشتريات خلال آخر شهر')).toBeInTheDocument();
       expect(screen.getByText('بيبسي كانز')).toBeInTheDocument();
       expect(screen.getByText('شيبسي عائلي')).toBeInTheDocument();
       expect(screen.getByText('عميل مميز 1')).toBeInTheDocument();
@@ -123,8 +125,8 @@ describe('DashboardChartsSection Component', () => {
 
     await waitFor(() => {
       expect(supabase.rpc).toHaveBeenCalledWith('get_home_dashboard_charts', { p_days: 7 });
-      expect(screen.getByText('أكثر الأصناف مبيعاً (آخر أسبوع)')).toBeInTheDocument();
-      expect(screen.getByText('أكثر العملاء شراءً (آخر أسبوع)')).toBeInTheDocument();
+      expect(screen.getByText('أعلى 10 أصناف حسب الكمية المباعة خلال آخر أسبوع')).toBeInTheDocument();
+      expect(screen.getByText('أعلى 10 عملاء حسب قيمة المشتريات خلال آخر أسبوع')).toBeInTheDocument();
     });
   });
 });

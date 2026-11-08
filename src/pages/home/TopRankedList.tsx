@@ -13,6 +13,7 @@ export interface RankedItem {
 
 interface TopRankedListProps {
   title: string;
+  subtitle?: string;
   icon: LucideIcon;
   items: RankedItem[];
   barVariant: 'items' | 'customers';
@@ -24,6 +25,7 @@ interface TopRankedListProps {
 
 export default function TopRankedList({
   title,
+  subtitle,
   icon: Icon,
   items,
   barVariant,
@@ -35,14 +37,19 @@ export default function TopRankedList({
   const maxValue = Math.max(...items.map((i) => i.value), 1);
 
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card chart-container-card">
       <div className="dashboard-card-head">
-        <h3 className="dashboard-card-title">
-          <Icon size={15} className="text-primary" />
-          <span>{title}</span>
-        </h3>
+        <div className="chart-header-titles">
+          <h3 className="dashboard-card-title">
+            <Icon size={16} className="text-primary" aria-hidden="true" />
+            <span>{title}</span>
+          </h3>
+          {subtitle && <p className="chart-header-subtitle">{subtitle}</p>}
+        </div>
         {linkTo && (
-          <DashboardCardAction to={linkTo} label={linkText} />
+          <div className="chart-header-actions">
+            <DashboardCardAction to={linkTo} label={linkText} />
+          </div>
         )}
       </div>
 
