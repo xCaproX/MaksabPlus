@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Check, Pencil, Printer, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { money, round2, today, formatDate } from '../lib/format';
+import { money, round2, today } from '../lib/format';
+import DateDisplay from './DateDisplay';
 import { translateDbError } from '../lib/errors';
 import { tafqeet } from '../lib/tafqeet';
 import { toast } from './Toast';
@@ -124,8 +125,8 @@ export default function CashBoxTransferForm({
       <div className="account-header-card" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>تاريخ التحويل:</span>
         {isReadOnly ? (
-          <div className="readonly-val-box num" dir="ltr" style={{ minHeight: '34px', padding: '0 10px' }}>
-            {formatDate(date)}
+          <div className="readonly-val-box num" style={{ minHeight: '34px', padding: '0 10px' }}>
+            <DateDisplay value={date} />
           </div>
         ) : (
           <div style={{ width: '160px' }}>

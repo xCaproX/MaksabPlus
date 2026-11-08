@@ -82,7 +82,7 @@ await db.exec(bootstrapSql);
 
 console.log('\n-- Migrations --');
 for (const file of sqlFiles(migrationsDir)) {
-  const sql = readFileSync(join(migrationsDir, file), 'utf8');
+  const sql = readFileSync(join(migrationsDir, file), 'utf8').replace(/\r\n/g, '\n');
   try {
     await db.exec(sql);
     console.log(`  OK   ${file}`);
@@ -94,7 +94,7 @@ for (const file of sqlFiles(migrationsDir)) {
 
 console.log('\n-- Tests --');
 for (const file of sqlFiles(here)) {
-  const sql = readFileSync(join(here, file), 'utf8');
+  const sql = readFileSync(join(here, file), 'utf8').replace(/\r\n/g, '\n');
   const fixtureName = sql.match(/^-- @fixture ([a-z_]+)$/m)?.[1];
   const fixture = fixtureName
     ? readFileSync(join(here, 'fixtures', `${fixtureName}.sql`), 'utf8')

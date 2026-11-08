@@ -1,5 +1,5 @@
 import AccountBalancePills from '../AccountBalancePills';
-import { formatDate } from '../../lib/format';
+import DateDisplay from '../DateDisplay';
 import SearchableSelect from '../SearchableSelect';
 import { searchAccountsAsync } from '../../lib/masterDataQueries';
 import type { AccountKind, AccountRow, WarehouseOption } from '../../lib/types';
@@ -49,8 +49,8 @@ export default function InvoiceAccountHeader({
       <div className="account-header-row1">
         <label className="field-date">
           <span>التاريخ</span>
-          <div className="readonly-val-box num" dir="ltr">
-            {formatDate(date)}
+          <div className="readonly-val-box num">
+            <DateDisplay value={date} />
           </div>
         </label>
 

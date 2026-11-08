@@ -214,7 +214,7 @@ export default function ReceiptForm({
           <label className="field-receipt-date">
             <span>تاريخ الإيصال</span>
             {isReadOnly ? (
-              <div className="readonly-val-box num" dir="ltr">
+              <div className="readonly-val-box num">
                 <DateDisplay value={date} />
               </div>
             ) : (
