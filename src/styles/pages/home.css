@@ -112,11 +112,11 @@
   box-sizing: border-box;
 }
 
-/* كارت مبيعات اليوم: هو البطل، خلفية بتدرّج خفيف جداً بلون الهوية وستروك علوي مطابق للأيقونة */
+/* كارت مبيعات النهاردة: هو البطل، خلفية بتدرّج أزرق سماوي ناعم وستروك علوي مطابق للأيقونة */
 .sales-kpi-card-today {
   --metric-accent: var(--primary);
   background:
-    linear-gradient(180deg, var(--primary-light) 0%, rgba(46, 66, 92, 0) 70%),
+    linear-gradient(180deg, rgba(2, 132, 199, 0.06) 0%, rgba(2, 132, 199, 0) 70%),
     var(--card);
 }
 

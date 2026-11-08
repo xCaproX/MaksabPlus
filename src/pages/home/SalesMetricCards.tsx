@@ -84,7 +84,7 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
   return (
     <HomeSection title="المبيعات والتحصيلات" icon={ShoppingCart}>
       <div className="home-sales-grid">
-        {/* 1. مجموعة اليوم (Hero Group: كارتان توأم لمبيعات وتحصيلات اليوم) */}
+        {/* 1. مجموعة اليوم (Hero Group: كارتان توأم لمبيعات وتحصيلات النهاردة) */}
         <div className="home-pulse-group home-pulse-group-today">
           {hasSales && (
             <div className="sales-kpi-card sales-kpi-card-today metric-card metric-card-primary">
@@ -94,12 +94,12 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
                     <ShoppingCart size={15} />
                   </span>
                   <div className="sales-kpi-heading-text">
-                    <h3 className="sales-kpi-title">مبيعات اليوم</h3>
+                    <h3 className="sales-kpi-title">مبيعات النهاردة</h3>
                     <span className="sales-kpi-date">({todayDate})</span>
                   </div>
                 </div>
 
-                <div className={`sales-perf-badge sales-perf-${salesPerf.type}`} title="مؤشر مبيعات اليوم مقارنة بأمس">
+                <div className={`sales-perf-badge sales-perf-${salesPerf.type}`} title="مؤشر مبيعات النهاردة مقارنة بأمس">
                   {salesPerf.type === 'up' && <TrendingUp size={13} aria-hidden="true" />}
                   {salesPerf.type === 'down' && <TrendingDown size={13} aria-hidden="true" />}
                   {salesPerf.type === 'initial' && <TrendingUp size={13} aria-hidden="true" />}
@@ -111,7 +111,7 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
                     {salesPerf.type === 'down' && (
                       <><bdi dir="ltr">{`-${salesPerf.diffPercent?.toFixed(1)}%`}</bdi> عن أمس</>
                     )}
-                    {salesPerf.type === 'initial' && 'بداية مبيعات اليوم'}
+                    {salesPerf.type === 'initial' && 'بداية مبيعات النهاردة'}
                     {salesPerf.type === 'neutral' && (
                       <><bdi dir="ltr">0.0%</bdi> عن أمس</>
                     )}
@@ -140,12 +140,12 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
                     <ArrowDownLeft size={16} />
                   </span>
                   <div className="sales-kpi-heading-text">
-                    <h3 className="sales-kpi-title">تحصيلات اليوم</h3>
+                    <h3 className="sales-kpi-title">تحصيلات النهاردة</h3>
                     <span className="sales-kpi-date">({todayDate})</span>
                   </div>
                 </div>
 
-                <div className={`sales-perf-badge sales-perf-${collPerf.type}`} title="مؤشر تحصيلات اليوم مقارنة بأمس">
+                <div className={`sales-perf-badge sales-perf-${collPerf.type}`} title="مؤشر تحصيلات النهاردة مقارنة بأمس">
                   {collPerf.type === 'up' && <TrendingUp size={13} aria-hidden="true" />}
                   {collPerf.type === 'down' && <TrendingDown size={13} aria-hidden="true" />}
                   {collPerf.type === 'initial' && <TrendingUp size={13} aria-hidden="true" />}
@@ -157,7 +157,7 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
                     {collPerf.type === 'down' && (
                       <><bdi dir="ltr">{`-${collPerf.diffPercent?.toFixed(1)}%`}</bdi> عن أمس</>
                     )}
-                    {collPerf.type === 'initial' && 'بداية تحصيلات اليوم'}
+                    {collPerf.type === 'initial' && 'بداية تحصيلات النهاردة'}
                     {collPerf.type === 'neutral' && (
                       <><bdi dir="ltr">0.0%</bdi> عن أمس</>
                     )}

@@ -72,9 +72,9 @@ describe('Home Dashboard Components', () => {
     expect(screen.queryByText('مبيعات آخر 7 أيام')).not.toBeInTheDocument();
     expect(screen.queryByText('مبيعات آخر 30 يوم')).not.toBeInTheDocument();
 
-    expect(screen.getByText('مبيعات اليوم')).toBeInTheDocument();
+    expect(screen.getByText('مبيعات النهاردة')).toBeInTheDocument();
     expect(screen.getByText('مبيعات أمس')).toBeInTheDocument();
-    expect(screen.getByText('تحصيلات اليوم')).toBeInTheDocument();
+    expect(screen.getByText('تحصيلات النهاردة')).toBeInTheDocument();
     expect(screen.getByText('تحصيلات أمس')).toBeInTheDocument();
 
     expect(screen.getByText('1,500.00')).toBeInTheDocument();
@@ -83,8 +83,8 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByText('2,000.00')).toBeInTheDocument();
 
     // Performance indicators
-    expect(screen.getByTitle('مؤشر مبيعات اليوم مقارنة بأمس')).toHaveTextContent('+25.0% عن أمس');
-    expect(screen.getByTitle('مؤشر تحصيلات اليوم مقارنة بأمس')).toHaveTextContent('+150.0% عن أمس');
+    expect(screen.getByTitle('مؤشر مبيعات النهاردة مقارنة بأمس')).toHaveTextContent('+25.0% عن أمس');
+    expect(screen.getByTitle('مؤشر تحصيلات النهاردة مقارنة بأمس')).toHaveTextContent('+150.0% عن أمس');
 
     // Receipts count and absence of average labels
     expect(screen.getAllByText('الإيصالات')).toHaveLength(2);
