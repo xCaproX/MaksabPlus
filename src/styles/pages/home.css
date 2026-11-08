@@ -279,11 +279,11 @@
   white-space: nowrap;
 }
 
-/* الفوتر: خط فاصل + عدد الفواتير + متوسط الفاتورة */
+/* الفوتر: خط فاصل + شارة عدد الفواتير/الإيصالات (محاذاة لليسار) */
 .sales-kpi-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px 12px;
   padding-block-start: 14px;
@@ -303,6 +303,7 @@
   color: var(--ink-secondary);
   font-weight: 600;
   white-space: nowrap;
+  margin-inline-start: auto;
 }
 
 .sales-kpi-count-label {
@@ -313,25 +314,6 @@
 .sales-kpi-count-val {
   color: var(--ink);
   font-weight: 800;
-}
-
-.sales-kpi-avg {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: var(--font-xs);
-  white-space: nowrap;
-}
-
-.sales-kpi-avg-label {
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.sales-kpi-avg-val {
-  color: var(--ink-secondary);
-  font-weight: 700;
-  font-size: var(--font-sm);
 }
 
 /* 3. Financial Pulse Grid */
