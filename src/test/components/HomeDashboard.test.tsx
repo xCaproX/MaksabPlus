@@ -51,31 +51,34 @@ describe('Home Dashboard Components', () => {
     expect(purchaseBtn).toHaveAttribute('href', '/invoices?tab=purchase&action=new');
   });
 
-  it('SalesMetricCards renders today, week, and month sales metrics', () => {
+  it('SalesMetricCards renders today and yesterday sales metrics with performance indicator', () => {
     const mockSales = {
-      today: 120,
-      today_count: 3,
-      week: 52349,
-      week_count: 1944,
-      month: 221804,
-      month_count: 0,
+      today: 1500,
+      today_count: 5,
+      yesterday: 1200,
+      yesterday_count: 4,
     };
 
     render(<SalesMetricCards sales={mockSales} />);
 
     expect(screen.queryByText('إجمالي المبيعات')).not.toBeInTheDocument();
+    expect(screen.queryByText('مبيعات آخر 7 أيام')).not.toBeInTheDocument();
+    expect(screen.queryByText('مبيعات آخر 30 يوم')).not.toBeInTheDocument();
+
     expect(screen.getByText('مبيعات اليوم')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'المبيعات' })).toHaveTextContent('مبيعات آخر 7 أيام');
-    expect(screen.getByRole('region', { name: 'المبيعات' })).toHaveTextContent('مبيعات آخر 30 يوم');
-    expect(screen.getByText('120.00')).toBeInTheDocument();
-    expect(screen.getByText('52,349.00')).toBeInTheDocument();
-    expect(screen.getByText('221,804.00')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('1,944')).toBeInTheDocument();
-    expect(screen.getByText('0')).toBeInTheDocument();
-    for (const count of ['3', '1,944', '0']) {
+    expect(screen.getByText('مبيعات أمس')).toBeInTheDocument();
+
+    expect(screen.getByText('1,500.00')).toBeInTheDocument();
+    expect(screen.getByText('1,200.00')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('4')).toBeInTheDocument();
+
+    for (const count of ['5', '4']) {
       expect(screen.getByText(count).previousElementSibling).toHaveTextContent('الفواتير');
     }
+
+    // Performance indicator: (1500 - 1200) / 1200 = +25.0%
+    expect(screen.getByText('+25.0% عن أمس')).toBeInTheDocument();
   });
 
   it('FinancialPulseCards renders cash, receivables, and payables cards with direct links', () => {

@@ -1,6 +1,6 @@
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { getCurrentUserIdentity } from '../lib/company';
-import { useEffect, useState, lazy, Suspense, useCallback, useRef } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { Navigate } from 'react-router-dom';
 import { ChartNoAxesColumnIncreasing, Package, Users, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -12,7 +12,6 @@ import SalesMetricCards, { type DashboardSales } from './home/SalesMetricCards';
 import FinancialPulseCards from './home/FinancialPulseCards';
 import TopRankedList, { type RankedItem } from './home/TopRankedList';
 import HomeSection from './home/HomeSection';
-import type { DailyTrendPoint } from '../components/charts/SalesTrendChart';
 import ChartErrorBoundary from '../components/charts/ChartErrorBoundary';
 
 const DashboardChartsSection = lazy(() => import('../components/charts/DashboardChartsSection'));
@@ -51,21 +50,6 @@ export default function Home() {
 
   const [userName, setUserName] = useState('');
   const [companyName, setCompanyName] = useState('');
-
-  const [sparklines, setSparklines] = useState<{ week?: number[]; month?: number[] }>({});
-  const sparklinesInitialized = useRef(false);
-
-  const handleTrendLoaded = useCallback((trend: DailyTrendPoint[]) => {
-    if (!trend || trend.length === 0 || sparklinesInitialized.current) return;
-    if (trend.length >= 28) {
-      sparklinesInitialized.current = true;
-      const monthSales = trend.map((t) => Number(t.sales || 0));
-      setSparklines({
-        week: monthSales.slice(-7),
-        month: monthSales,
-      });
-    }
-  }, []);
 
   async function loadDashboard() {
     setLoading(true);
@@ -139,8 +123,8 @@ export default function Home() {
       {/* 1. ترحيب وإجراءات سريعة */}
       <QuickActions userName={userName} companyName={companyName} />
 
-      {/* 2. بطاقات إجمالي المبيعات مع خطوط المسار (Sparklines) */}
-      <SalesMetricCards sales={data?.sales ?? null} sparklines={sparklines} />
+      {/* 2. بطاقات إجمالي المبيعات (اليوم وأمس) */}
+      <SalesMetricCards sales={data?.sales ?? null} />
 
       {/* 3. النبض المالي والأرصدة */}
       <FinancialPulseCards
@@ -166,7 +150,7 @@ export default function Home() {
                 />
               }
             >
-              <DashboardChartsSection onTrendLoaded={handleTrendLoaded} />
+              <DashboardChartsSection />
             </Suspense>
           </ChartErrorBoundary>
 

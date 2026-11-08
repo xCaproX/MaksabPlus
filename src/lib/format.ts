@@ -86,6 +86,21 @@ export function formatTodayLongAr(): string {
   }).format(new Date());
 }
 
+/** تاريخ كامل بالعربية بأرقام لاتينية وبدون فواصل بصيغة: الأحد 8 نوفمبر 2026 */
+export function formatFullArabicDate(date: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('ar-EG-u-nu-latn', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'Africa/Cairo',
+    }).format(date).replace('،', '').trim();
+  } catch {
+    return date.toLocaleDateString('ar-EG');
+  }
+}
+
 export type BalanceStatusInfo = {
   text: 'خالص' | 'عليه' | 'له';
   type: 'settled' | 'debit' | 'credit';
