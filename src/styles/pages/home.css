@@ -112,24 +112,30 @@
   box-sizing: border-box;
 }
 
-/* كارت مبيعات اليوم: هو البطل، خلفية بتدرّج خفيف جداً بلون الهوية */
+/* كارت مبيعات اليوم: هو البطل، خلفية بتدرّج خفيف جداً بلون الهوية وستروك علوي مطابق للأيقونة */
 .sales-kpi-card-today {
+  --metric-accent: var(--primary);
   background:
     linear-gradient(180deg, var(--primary-light) 0%, rgba(46, 66, 92, 0) 70%),
     var(--card);
 }
 
-/* كارت تحصيلات اليوم: لمسة خضراء مالية ناعمة تعبر عن دخول كاش */
+/* كارت تحصيلات اليوم: لمسة خضراء وستروك علوي مطابق لأيقونة التحصيل الخضراء */
 .sales-kpi-card-collections-today {
+  --metric-accent: var(--tone-in, #16a34a);
   background:
     linear-gradient(180deg, rgba(22, 163, 74, 0.08) 0%, rgba(22, 163, 74, 0) 70%),
     var(--card);
 }
 
-/* كروت أمس: هادية ومرجعية */
+/* كروت أمس: مبيعات أمس ستروك مطابق لأيقونة التقويم الرمادية، وتحصيلات أمس ستروك مطابق لأيقونة التحصيل الخضراء */
 .sales-kpi-card-yesterday {
   background: var(--card);
-  --metric-accent: var(--line-strong);
+  --metric-accent: var(--muted);
+}
+
+.sales-kpi-card-collections-yesterday {
+  --metric-accent: var(--tone-in, #16a34a);
 }
 
 .sales-kpi-card-header {

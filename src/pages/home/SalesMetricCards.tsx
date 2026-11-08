@@ -133,7 +133,7 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
           )}
 
           {hasCollections && (
-            <div className="sales-kpi-card sales-kpi-card-collections-today metric-card">
+            <div className="sales-kpi-card sales-kpi-card-collections-today metric-card metric-card-success">
               <div className="sales-kpi-card-header">
                 <div className="sales-kpi-title-group">
                   <span className="sales-kpi-icon-wrap sales-kpi-icon-collections" aria-hidden="true">
@@ -209,7 +209,7 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
           )}
 
           {hasCollections && (
-            <div className="sales-kpi-card sales-kpi-card-yesterday metric-card">
+            <div className="sales-kpi-card sales-kpi-card-yesterday sales-kpi-card-collections-yesterday metric-card metric-card-success">
               <div className="sales-kpi-card-header">
                 <div className="sales-kpi-title-group">
                   <span className="sales-kpi-icon-wrap sales-kpi-icon-collections-yesterday" aria-hidden="true">
