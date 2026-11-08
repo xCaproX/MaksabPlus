@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { money, qty, round2, formatDate, entityNumber, getBalanceStatus } from '../lib/format';
+import { money, qty, round2, formatDate, formatChartDate, entityNumber, getBalanceStatus } from '../lib/format';
 
 describe('format - دوال التنسيق المحاسبي والتواريخ', () => {
   describe('money', () => {
@@ -46,6 +46,19 @@ describe('format - دوال التنسيق المحاسبي والتواريخ',
     it('يُرجع شرطة "—" عند عدم وجود تاريخ', () => {
       expect(formatDate(null)).toBe('—');
       expect(formatDate(undefined)).toBe('—');
+    });
+  });
+
+  describe('formatChartDate', () => {
+    it('يحول تاريخ ISO (YYYY-MM-DD) لعرض اليوم على اليمين والشهر على اليسار (MM/DD)', () => {
+      expect(formatChartDate('2026-10-25')).toBe('10/25');
+      expect(formatChartDate('2026-11-08')).toBe('11/08');
+      expect(formatChartDate('2026-01-05T12:00:00Z')).toBe('01/05');
+    });
+
+    it('يُرجع شرطة "—" عند عدم وجود تاريخ', () => {
+      expect(formatChartDate(null)).toBe('—');
+      expect(formatChartDate(undefined)).toBe('—');
     });
   });
 

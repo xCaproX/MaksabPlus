@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Chart as ChartJS, type ChartConfiguration } from 'chart.js';
 import { ensureChartRegistered, chartTokens, defaultTooltipConfig, defaultLegendConfig } from './chartDefaults';
-import { money } from '../../lib/format';
+import { money, formatChartDate } from '../../lib/format';
 
 export interface DailyTrendPoint {
   date: string;
@@ -13,18 +13,6 @@ export interface DailyTrendPoint {
 
 interface SalesTrendChartProps {
   data: DailyTrendPoint[];
-}
-
-function formatShortDate(dateStr: string): string {
-  try {
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      return `${parts[2]}/${parts[1]}`;
-    }
-  } catch {
-    // fallback
-  }
-  return dateStr;
 }
 
 export default function SalesTrendChart({ data }: SalesTrendChartProps) {
@@ -41,7 +29,7 @@ export default function SalesTrendChart({ data }: SalesTrendChartProps) {
       chartInstanceRef.current = null;
     }
 
-    const labels = data.map((d) => formatShortDate(d.date));
+    const labels = data.map((d) => formatChartDate(d.date));
     const salesValues = data.map((d) => (d.sales !== null ? Number(d.sales) : 0));
 
     const ctx = canvasRef.current.getContext('2d');
@@ -82,6 +70,7 @@ export default function SalesTrendChart({ data }: SalesTrendChartProps) {
         },
         scales: {
           x: {
+            reverse: true,
             grid: {
               display: false,
             },
@@ -125,7 +114,7 @@ export default function SalesTrendChart({ data }: SalesTrendChartProps) {
               title: (items) => {
                 const idx = items[0]?.dataIndex;
                 if (idx !== undefined && data[idx]) {
-                  return `التاريخ: ${data[idx].date}`;
+                  return `التاريخ: ${formatChartDate(data[idx].date)}`;
                 }
                 return items[0]?.label ?? '';
               },

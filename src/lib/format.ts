@@ -69,6 +69,19 @@ export function formatDate(value: string | null | undefined): string {
   return value;
 }
 
+export function formatChartDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  const raw = value.slice(0, 10);
+  const parts = raw.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const [, m, d] = parts;
+    // On Canvas and RTL tooltips, month on left and day on right
+    // visually displays the day on the right and month on the left: يوم/شهر
+    return `${m}/${d}`;
+  }
+  return value;
+}
+
 export function today(): string {
   const d = new Date();
   const month = String(d.getMonth() + 1).padStart(2, '0');
