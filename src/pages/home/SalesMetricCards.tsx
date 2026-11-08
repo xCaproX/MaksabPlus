@@ -128,12 +128,6 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
                   <span className="sales-kpi-count-label">الفواتير</span>
                   <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(todaySalesCount)}</bdi>
                 </span>
-                {todaySalesCount > 0 && (
-                  <span className="sales-kpi-avg">
-                    <span className="sales-kpi-avg-label">متوسط الفاتورة</span>
-                    <MoneyDisplay value={todaySalesAmount / todaySalesCount} className="sales-kpi-avg-val" />
-                  </span>
-                )}
               </div>
             </div>
           )}
@@ -180,12 +174,6 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
                   <span className="sales-kpi-count-label">الإيصالات</span>
                   <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(todayCollCount)}</bdi>
                 </span>
-                {todayCollCount > 0 && (
-                  <span className="sales-kpi-avg">
-                    <span className="sales-kpi-avg-label">متوسط الإيصال</span>
-                    <MoneyDisplay value={todayCollAmount / todayCollCount} className="sales-kpi-avg-val" />
-                  </span>
-                )}
               </div>
             </div>
           )}
@@ -216,12 +204,6 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
                   <span className="sales-kpi-count-label">الفواتير</span>
                   <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(yesterdaySalesCount)}</bdi>
                 </span>
-                {yesterdaySalesCount > 0 && (
-                  <span className="sales-kpi-avg">
-                    <span className="sales-kpi-avg-label">متوسط الفاتورة</span>
-                    <MoneyDisplay value={yesterdaySalesAmount / yesterdaySalesCount} className="sales-kpi-avg-val" />
-                  </span>
-                )}
               </div>
             </div>
           )}
@@ -249,12 +231,6 @@ export default function SalesMetricCards({ sales, collections }: SalesMetricCard
                   <span className="sales-kpi-count-label">الإيصالات</span>
                   <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(yesterdayCollCount)}</bdi>
                 </span>
-                {yesterdayCollCount > 0 && (
-                  <span className="sales-kpi-avg">
-                    <span className="sales-kpi-avg-label">متوسط الإيصال</span>
-                    <MoneyDisplay value={yesterdayCollAmount / yesterdayCollCount} className="sales-kpi-avg-val" />
-                  </span>
-                )}
               </div>
             </div>
           )}
