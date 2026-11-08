@@ -6,7 +6,7 @@
 .home-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 32px;
   padding-block: 4px;
   width: 100%;
   max-width: 100%;
@@ -787,7 +787,7 @@
 /* Mobile: below 640px */
 @media (max-width: 639px) {
   .home-dashboard {
-    gap: 16px;
+    gap: 20px;
   }
 
   .home-pulse-group {
