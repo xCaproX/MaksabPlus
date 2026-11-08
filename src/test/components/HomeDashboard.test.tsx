@@ -78,7 +78,7 @@ describe('Home Dashboard Components', () => {
     }
 
     // Performance indicator: (1500 - 1200) / 1200 = +25.0%
-    expect(screen.getByText('+25.0% عن أمس')).toBeInTheDocument();
+    expect(screen.getByTitle('مؤشر الأداء مقارنة بأمس')).toHaveTextContent('+25.0% عن أمس');
   });
 
   it('FinancialPulseCards renders cash, receivables, and payables cards with direct links', () => {

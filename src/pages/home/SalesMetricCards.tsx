@@ -80,10 +80,16 @@ export default function SalesMetricCards({ sales }: SalesMetricCardsProps) {
               {perfType === 'initial' && <TrendingUp size={13} aria-hidden="true" />}
               {perfType === 'neutral' && <Minus size={13} aria-hidden="true" />}
               <span className="sales-perf-text">
-                {perfType === 'up' && `+${perfDiffPercent?.toFixed(1)}% عن أمس`}
-                {perfType === 'down' && `-${perfDiffPercent?.toFixed(1)}% عن أمس`}
+                {perfType === 'up' && (
+                  <><bdi dir="ltr">{`+${perfDiffPercent?.toFixed(1)}%`}</bdi> عن أمس</>
+                )}
+                {perfType === 'down' && (
+                  <><bdi dir="ltr">{`-${perfDiffPercent?.toFixed(1)}%`}</bdi> عن أمس</>
+                )}
                 {perfType === 'initial' && 'بداية مبيعات اليوم'}
-                {perfType === 'neutral' && '0.0% عن أمس'}
+                {perfType === 'neutral' && (
+                  <><bdi dir="ltr">0.0%</bdi> عن أمس</>
+                )}
               </span>
             </div>
           </div>
