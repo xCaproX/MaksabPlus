@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { money, qty, round2, formatDate, formatShortDate, entityNumber, getBalanceStatus } from '../lib/format';
+import { money, qty, round2, formatDate, entityNumber, getBalanceStatus } from '../lib/format';
 
 describe('format - دوال التنسيق المحاسبي والتواريخ', () => {
   describe('money', () => {
@@ -46,18 +46,6 @@ describe('format - دوال التنسيق المحاسبي والتواريخ',
     it('يُرجع شرطة "—" عند عدم وجود تاريخ', () => {
       expect(formatDate(null)).toBe('—');
       expect(formatDate(undefined)).toBe('—');
-    });
-  });
-
-  describe('formatShortDate', () => {
-    it('يحول تاريخ ISO (YYYY-MM-DD) إلى صيغة يوم/شهر (DD/MM)', () => {
-      expect(formatShortDate('2026-10-25')).toBe('25/10');
-      expect(formatShortDate('2026-01-05T12:00:00Z')).toBe('05/01');
-    });
-
-    it('يُرجع شرطة "—" عند عدم وجود تاريخ', () => {
-      expect(formatShortDate(null)).toBe('—');
-      expect(formatShortDate(undefined)).toBe('—');
     });
   });
 

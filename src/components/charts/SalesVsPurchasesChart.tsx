@@ -1,11 +1,23 @@
 import { useEffect, useRef } from 'react';
 import { Chart as ChartJS, type ChartConfiguration } from 'chart.js';
 import { ensureChartRegistered, chartTokens, defaultTooltipConfig, defaultLegendConfig } from './chartDefaults';
-import { money, formatShortDate } from '../../lib/format';
+import { money } from '../../lib/format';
 import type { DailyTrendPoint } from './SalesTrendChart';
 
 interface SalesVsPurchasesChartProps {
   data: DailyTrendPoint[];
+}
+
+function formatShortDate(dateStr: string): string {
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}`;
+    }
+  } catch {
+    // fallback
+  }
+  return dateStr;
 }
 
 export default function SalesVsPurchasesChart({ data }: SalesVsPurchasesChartProps) {
@@ -60,7 +72,6 @@ export default function SalesVsPurchasesChart({ data }: SalesVsPurchasesChartPro
         },
         scales: {
           x: {
-            reverse: true,
             grid: {
               display: false,
             },
@@ -104,7 +115,7 @@ export default function SalesVsPurchasesChart({ data }: SalesVsPurchasesChartPro
               title: (items) => {
                 const idx = items[0]?.dataIndex;
                 if (idx !== undefined && data[idx]) {
-                  return `التاريخ: ${formatShortDate(data[idx].date)}`;
+                  return `التاريخ: ${data[idx].date}`;
                 }
                 return items[0]?.label ?? '';
               },

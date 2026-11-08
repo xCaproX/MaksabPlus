@@ -84,7 +84,7 @@ export const defaultTooltipConfig = {
 };
 
 export const defaultLegendConfig = {
-  position: 'bottom' as const,
+  position: 'top' as const,
   rtl: true,
   textDirection: 'rtl' as const,
   labels: {
