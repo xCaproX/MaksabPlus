@@ -46,7 +46,18 @@ export default function ChartContainer({
         {actions && <div className="chart-header-actions">{actions}</div>}
       </div>
 
-      <div className="chart-body" style={{ minHeight: chartHeight, height: chartHeight, position: 'relative' }}>
+      <div
+        className="chart-body"
+        style={{
+          minHeight: chartHeight,
+          height: chartHeight,
+          position: 'relative',
+          width: '100%',
+          minWidth: 0,
+          maxWidth: '100%',
+          overflow: 'hidden',
+        }}
+      >
         {loading ? (
           <div className="chart-loading-state" aria-busy="true" aria-label="جارٍ تحميل الرسم البياني">
             <div className="skeleton chart-skeleton" style={{ height: '100%', width: '100%', borderRadius: 'var(--radius-sm, 8px)' }} />

@@ -75,6 +75,7 @@ export default function SalesTrendChart({ data }: SalesTrendChartProps) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        resizeDelay: 20,
         interaction: {
           intersect: false,
           mode: 'index',
@@ -152,8 +153,8 @@ export default function SalesTrendChart({ data }: SalesTrendChartProps) {
   }, [data]);
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <canvas ref={canvasRef} aria-label="رسم بياني لمسار المبيعات عبر الأيام" role="img" />
+    <div style={{ width: '100%', height: '100%', position: 'relative', minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
+      <canvas ref={canvasRef} aria-label="رسم بياني لمسار المبيعات عبر الأيام" role="img" style={{ display: 'block', maxWidth: '100%' }} />
     </div>
   );
 }
