@@ -85,6 +85,12 @@ describe('Home Dashboard Components', () => {
     // Performance indicators
     expect(screen.getByTitle('مؤشر مبيعات اليوم مقارنة بأمس')).toHaveTextContent('+25.0% عن أمس');
     expect(screen.getByTitle('مؤشر تحصيلات اليوم مقارنة بأمس')).toHaveTextContent('+150.0% عن أمس');
+
+    // Receipts count and average labels
+    expect(screen.getAllByText('الإيصالات')).toHaveLength(2);
+    expect(screen.getAllByText('متوسط الإيصال')).toHaveLength(2);
+    expect(screen.queryByText('المقبوضات')).not.toBeInTheDocument();
+    expect(screen.queryByText('متوسط التحصيل')).not.toBeInTheDocument();
   });
 
   it('FinancialPulseCards renders cash, receivables, and payables cards with direct links', () => {
