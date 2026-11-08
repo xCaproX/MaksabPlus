@@ -61,65 +61,75 @@ export default function SalesMetricCards({ sales }: SalesMetricCardsProps) {
   return (
     <HomeSection title="المبيعات" icon={ShoppingCart}>
       <div className="home-sales-grid">
-        {/* 1. كارت اليوم (القسم الأكبر - Hero Card) */}
+        {/* 1. كارت اليوم (القسم الأكبر - Hero Card: توزيع ثلاثي متوازن) */}
         <div className="sales-kpi-card sales-kpi-card-today metric-card metric-card-primary">
-          <div className="sales-kpi-card-header">
-            <div className="sales-kpi-title-group">
-              <span className="sales-kpi-icon-wrap" aria-hidden="true">
-                <ShoppingCart size={15} />
-              </span>
-              <div className="sales-kpi-heading-text">
+          <div className="sales-kpi-layout-today">
+            {/* الكتلة الأولى (اليمين): الأيقونة والاسم والتاريخ */}
+            <div className="sales-kpi-col-identity">
+              <div className="sales-kpi-title-row">
+                <span className="sales-kpi-icon-wrap" aria-hidden="true">
+                  <ShoppingCart size={15} />
+                </span>
                 <h3 className="sales-kpi-title">مبيعات اليوم</h3>
-                <span className="sales-kpi-date">({todayDate})</span>
+              </div>
+              <span className="sales-kpi-date">({todayDate})</span>
+            </div>
+
+            {/* الكتلة الثانية (الوسط): المبلغ وعدد الفواتير */}
+            <div className="sales-kpi-col-metric">
+              <MoneyDisplay value={todayAmount} currency className="sales-kpi-amount" />
+              <div className="sales-kpi-meta">
+                <span className="sales-kpi-count-badge">
+                  <span className="sales-kpi-count-label">الفواتير</span>
+                  <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(todayCount)}</bdi>
+                </span>
               </div>
             </div>
 
-            <div className={`sales-perf-badge sales-perf-${perfType}`} title="مؤشر الأداء مقارنة بأمس">
-              {perfType === 'up' && <TrendingUp size={13} aria-hidden="true" />}
-              {perfType === 'down' && <TrendingDown size={13} aria-hidden="true" />}
-              {perfType === 'initial' && <TrendingUp size={13} aria-hidden="true" />}
-              {perfType === 'neutral' && <Minus size={13} aria-hidden="true" />}
-              <span className="sales-perf-text">
-                {perfType === 'up' && `+${perfDiffPercent?.toFixed(1)}% عن أمس`}
-                {perfType === 'down' && `-${perfDiffPercent?.toFixed(1)}% عن أمس`}
-                {perfType === 'initial' && 'بداية مبيعات اليوم'}
-                {perfType === 'neutral' && '0.0% عن أمس'}
-              </span>
-            </div>
-          </div>
-
-          <div className="sales-kpi-card-body">
-            <MoneyDisplay value={todayAmount} currency className="sales-kpi-amount" />
-            <div className="sales-kpi-meta">
-              <span className="sales-kpi-count-badge">
-                <span className="sales-kpi-count-label">الفواتير</span>
-                <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(todayCount)}</bdi>
+            {/* الكتلة الثالثة (اليسار): جزء مستقطع لمؤشر الأداء */}
+            <div className={`sales-kpi-col-perf sales-perf-${perfType}`} title="مؤشر الأداء مقارنة بأمس">
+              <div className="sales-perf-stat">
+                {perfType === 'up' && <TrendingUp size={14} aria-hidden="true" />}
+                {perfType === 'down' && <TrendingDown size={14} aria-hidden="true" />}
+                {perfType === 'initial' && <TrendingUp size={14} aria-hidden="true" />}
+                {perfType === 'neutral' && <Minus size={14} aria-hidden="true" />}
+                <span className="sales-perf-val" dir="ltr">
+                  {perfType === 'up' && `+${perfDiffPercent?.toFixed(1)}%`}
+                  {perfType === 'down' && `-${perfDiffPercent?.toFixed(1)}%`}
+                  {perfType === 'initial' && 'جديد'}
+                  {perfType === 'neutral' && '0.0%'}
+                </span>
+              </div>
+              <span className="sales-perf-sublabel">
+                {perfType === 'initial' ? 'بداية اليوم' : 'عن أمس'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* 2. كارت أمس (القسم الأصغر - Reference Card) */}
+        {/* 2. كارت أمس (القسم الأصغر - Reference Card: كتلتان بدون مؤشر الأداء) */}
         <div className="sales-kpi-card sales-kpi-card-yesterday metric-card">
-          <div className="sales-kpi-card-header">
-            <div className="sales-kpi-title-group">
-              <span className="sales-kpi-icon-wrap sales-kpi-icon-yesterday" aria-hidden="true">
-                <Calendar size={15} />
-              </span>
-              <div className="sales-kpi-heading-text">
+          <div className="sales-kpi-layout-yesterday">
+            {/* الكتلة الأولى (اليمين): الأيقونة والاسم والتاريخ */}
+            <div className="sales-kpi-col-identity">
+              <div className="sales-kpi-title-row">
+                <span className="sales-kpi-icon-wrap sales-kpi-icon-yesterday" aria-hidden="true">
+                  <Calendar size={15} />
+                </span>
                 <h3 className="sales-kpi-title">مبيعات أمس</h3>
-                <span className="sales-kpi-date">({yesterdayDate})</span>
               </div>
+              <span className="sales-kpi-date">({yesterdayDate})</span>
             </div>
-          </div>
 
-          <div className="sales-kpi-card-body">
-            <MoneyDisplay value={yesterdayAmount} currency className="sales-kpi-amount sales-kpi-amount-secondary" />
-            <div className="sales-kpi-meta">
-              <span className="sales-kpi-count-badge">
-                <span className="sales-kpi-count-label">الفواتير</span>
-                <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(yesterdayCount)}</bdi>
-              </span>
+            {/* الكتلة الثانية (اليسار): المبلغ وعدد الفواتير */}
+            <div className="sales-kpi-col-metric">
+              <MoneyDisplay value={yesterdayAmount} currency className="sales-kpi-amount sales-kpi-amount-secondary" />
+              <div className="sales-kpi-meta">
+                <span className="sales-kpi-count-badge">
+                  <span className="sales-kpi-count-label">الفواتير</span>
+                  <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(yesterdayCount)}</bdi>
+                </span>
+              </div>
             </div>
           </div>
         </div>

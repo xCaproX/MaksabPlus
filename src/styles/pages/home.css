@@ -95,10 +95,9 @@
 .sales-kpi-card {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 20px;
-  min-block-size: 130px;
+  justify-content: center;
+  padding: 16px 20px;
+  min-block-size: 110px;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
@@ -112,16 +111,36 @@
   background: var(--card);
 }
 
-.sales-kpi-card-header {
+/* Today Card: 3 Horizontal Columns */
+.sales-kpi-layout-today {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 16px;
+  width: 100%;
   min-width: 0;
 }
 
-.sales-kpi-title-group {
+/* Yesterday Card: 2 Horizontal Columns */
+.sales-kpi-layout-yesterday {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* 1. Identity Column (Right): Icon + Title + Date */
+.sales-kpi-col-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.sales-kpi-title-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -131,8 +150,8 @@
 .sales-kpi-icon-wrap {
   display: grid;
   place-items: center;
-  inline-size: 26px;
-  block-size: 26px;
+  inline-size: 28px;
+  block-size: 28px;
   border-radius: var(--radius-xs);
   background: var(--primary-light);
   color: var(--primary);
@@ -145,18 +164,10 @@
   border: 1px solid var(--line);
 }
 
-.sales-kpi-heading-text {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-width: 0;
-}
-
 .sales-kpi-title {
   margin: 0;
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 750;
   color: var(--ink);
   white-space: nowrap;
 }
@@ -167,50 +178,15 @@
   font-weight: 500;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  padding-inline-start: 2px;
 }
 
-.sales-perf-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: var(--radius-full);
-  font-size: var(--font-xs);
-  font-weight: 700;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.sales-perf-up {
-  background: rgba(22, 163, 74, 0.1);
-  color: var(--tone-in, #16a34a);
-  border: 1px solid rgba(22, 163, 74, 0.25);
-}
-
-.sales-perf-down {
-  background: rgba(220, 38, 38, 0.08);
-  color: var(--danger, #dc2626);
-  border: 1px solid rgba(220, 38, 38, 0.2);
-}
-
-.sales-perf-initial {
-  background: var(--primary-light);
-  color: var(--primary);
-  border: 1px solid var(--line);
-}
-
-.sales-perf-neutral {
-  background: var(--bg);
-  color: var(--muted);
-  border: 1px solid var(--line);
-}
-
-.sales-kpi-card-body {
+/* 2. Metric Column (Center/Main): Amount + Invoices Count */
+.sales-kpi-col-metric {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -219,16 +195,15 @@
   flex-direction: row-reverse;
   align-items: baseline;
   gap: 4px;
-  justify-self: start;
   font-size: var(--font-kpi);
   font-weight: 750;
-  line-height: 1.25;
+  line-height: 1.2;
   color: var(--ink);
   overflow-wrap: anywhere;
 }
 
 .sales-kpi-amount-secondary {
-  font-size: 26px;
+  font-size: 24px;
 }
 
 .sales-kpi-amount .currency-suffix {
@@ -248,7 +223,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 9px;
+  padding: 2px 8px;
   border-radius: var(--radius-xs);
   background: var(--bg);
   border: 1px solid var(--line);
@@ -260,11 +235,100 @@
 
 .sales-kpi-count-label {
   color: var(--muted);
+  font-size: 11px;
 }
 
 .sales-kpi-count-val {
   color: var(--ink);
   font-weight: 700;
+}
+
+/* 3. Performance Indicator (Left Dedicated Section): Arrow + Number, then "عن أمس" underneath */
+.sales-kpi-col-perf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border-inline-start: 1px solid var(--line);
+  min-width: 82px;
+  flex-shrink: 0;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sales-perf-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-sm);
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+  direction: ltr;
+}
+
+.sales-perf-sublabel {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sales-perf-up {
+  background: rgba(22, 163, 74, 0.07);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.sales-perf-up .sales-perf-stat {
+  color: var(--tone-in, #16a34a);
+}
+
+.sales-perf-up .sales-perf-sublabel {
+  color: var(--tone-in, #16a34a);
+  opacity: 0.85;
+}
+
+.sales-perf-down {
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.sales-perf-down .sales-perf-stat {
+  color: var(--danger, #dc2626);
+}
+
+.sales-perf-down .sales-perf-sublabel {
+  color: var(--danger, #dc2626);
+  opacity: 0.85;
+}
+
+.sales-perf-initial {
+  background: var(--primary-light);
+  border: 1px solid var(--line);
+}
+
+.sales-perf-initial .sales-perf-stat {
+  color: var(--primary);
+}
+
+.sales-perf-initial .sales-perf-sublabel {
+  color: var(--primary);
+  opacity: 0.85;
+}
+
+.sales-perf-neutral {
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.sales-perf-neutral .sales-perf-stat {
+  color: var(--muted);
+}
+
+.sales-perf-neutral .sales-perf-sublabel {
+  color: var(--muted);
 }
 
 /* 3. Financial Pulse Grid */
@@ -744,4 +808,19 @@
     min-block-size: auto;
   }
 
+  .sales-kpi-layout-today,
+  .sales-kpi-layout-yesterday {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .sales-kpi-col-perf {
+    width: 100%;
+    border-inline-start: none;
+    border-block-start: 1px solid var(--line);
+    padding-inline-start: 0;
+    padding-block-start: 8px;
+    flex-direction: row;
+    justify-content: space-between;
+  }
 }
