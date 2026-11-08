@@ -65,6 +65,8 @@ flowchart TD
 | `DocumentTable` | `src/components/DocumentTable.tsx` | جدول عرض الوثائق الموحد مع الفرز والتمرير الأفقي والترقيم. |
 | `ColumnFilterRow` | `src/components/ColumnFilterRow.tsx` | صف الفلاتر الديناميكية لكل عمود متصل بالباك إند. |
 | `DateInput` / `TimeInput` | `src/components/DateInput.tsx` | إدخال التواريخ والأوقات بصيغة `DD/MM/YYYY` المتوافقة مع RTL. |
+| `DateDisplay` | `src/components/DateDisplay.tsx` | عرض التواريخ بصيغة `DD/MM/YYYY` المتوافقة مع RTL ومعالجة فارق التوقيت. |
+| `DashboardChartsSection` | `src/components/charts/DashboardChartsSection.tsx` | رسوم بيانية تفاعلية (Chart.js) لمتابعة حركة المبيعات والمشتريات وتوزيعها. |
 | `MoneyDisplay` | `src/components/MoneyDisplay.tsx` | عرض المبالغ المالية مع `dir="ltr"` وتنسيق الأرقام القياسي. |
 | `SearchableSelect` | `src/components/SearchableSelect.tsx` | قائمة منسدلة سريعة تدعم البحث بلوحة المفاتيح والأسهم. |
 | `StatusBadge` | `src/components/StatusBadge.tsx` | شارات الحالة (مسددة، جزئية، غير مسددة، نشط، موقوف). |

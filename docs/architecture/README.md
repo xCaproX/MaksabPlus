@@ -9,7 +9,7 @@
 | الملف | المحتوى والنطاق |
 | :--- | :--- |
 | [`OVERVIEW.md`](file:///d:/Maksab%20Plus/docs/architecture/OVERVIEW.md) | المعمارية العامة، حزمة التقنيات، هيكل المجلدات، تدفق البيانات العام، ومبادئ التصميم. |
-| [`DATABASE.md`](file:///d:/Maksab%20Plus/docs/architecture/DATABASE.md) | المخطط الكامل لقاعدة البيانات، الـ 70 هجرة (Migrations)، الجداول، العلاقات، الفهارس، ودوال RLS. |
+| [`DATABASE.md`](file:///d:/Maksab%20Plus/docs/architecture/DATABASE.md) | المخطط الكامل لقاعدة البيانات، الـ 73 هجرة (Migrations)، الجداول، العلاقات، الفهارس، ودوال RLS. |
 | [`BUSINESS_LOGIC.md`](file:///d:/Maksab%20Plus/docs/architecture/BUSINESS_LOGIC.md) | محرك المحاسبة، دورة حياة المستندات، حساب تكلفة المخزون (المتوسط المرجح)، الأرصدة، والمطابقات. |
 | [`FRONTEND_UI.md`](file:///d:/Maksab%20Plus/docs/architecture/FRONTEND_UI.md) | معمارية الواجهة، التوجيه (Routing)، إدارة الحالة، المكونات المشتركة، وقواعد الـ RTL و UX. |
 | [`SECURITY.md`](file:///d:/Maksab%20Plus/docs/architecture/SECURITY.md) | العزل التام للشركات، مصفوفة الصلاحيات التفصيلية، تأمين RPCs، وحجب الأرباح والتكلفة الحساسة. |
