@@ -106,15 +106,15 @@ describe('Home Dashboard Components', () => {
     );
 
     expect(screen.getByRole('region', { name: 'الأرصدة' })).toBeInTheDocument();
-    expect(screen.getByText('الفلوس في الخزن')).toBeInTheDocument();
+    expect(screen.getByText('أرصدة الخزن')).toBeInTheDocument();
     expect(screen.getByText('15,000.00')).toBeInTheDocument();
     expect(screen.getByTitle('عرض كشف الخزن')).toHaveAttribute('href', '/balances?tab=cashBoxes');
 
-    expect(screen.getByText('فلوسنا في السوق (العملاء)')).toBeInTheDocument();
+    expect(screen.getByText('المستحق على العملاء')).toBeInTheDocument();
     expect(screen.getByText('48,200.00')).toBeInTheDocument();
     expect(screen.getByTitle('عرض أرصدة العملاء')).toHaveAttribute('href', '/balances?tab=customers');
 
-    expect(screen.getByText('ديون الموردين (التزامات)')).toBeInTheDocument();
+    expect(screen.getByText('المستحق للموردين')).toBeInTheDocument();
     expect(screen.getByText('18,500.00')).toBeInTheDocument();
     expect(screen.getByTitle('عرض حسابات الموردين')).toHaveAttribute('href', '/balances?tab=suppliers');
   });
