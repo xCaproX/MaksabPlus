@@ -13,6 +13,7 @@ import FinancialPulseCards from './home/FinancialPulseCards';
 import TopRankedList, { type RankedItem } from './home/TopRankedList';
 import HomeSection from './home/HomeSection';
 import type { DailyTrendPoint } from '../components/charts/SalesTrendChart';
+import ChartErrorBoundary from '../components/charts/ChartErrorBoundary';
 
 const DashboardChartsSection = lazy(() => import('../components/charts/DashboardChartsSection'));
 
@@ -147,22 +148,24 @@ export default function Home() {
 
       {data?.permissions.can_view_sales && (
         <HomeSection title="الإحصائيات" icon={ChartNoAxesColumnIncreasing}>
-          {/* الرسوم البيانية التفاعلية (تحميل كسول) */}
-          <Suspense
-            fallback={
-              <div
-                className="skeleton"
-                style={{
-                  height: 280,
-                  width: '100%',
-                  borderRadius: 'var(--radius)',
-                  marginBottom: 16,
-                }}
-              />
-            }
-          >
-            <DashboardChartsSection onTrendLoaded={handleTrendLoaded} />
-          </Suspense>
+          {/* الرسوم البيانية التفاعلية (تحميل كسول مع حماية من الأخطاء) */}
+          <ChartErrorBoundary>
+            <Suspense
+              fallback={
+                <div
+                  className="skeleton"
+                  style={{
+                    height: 280,
+                    width: '100%',
+                    borderRadius: 'var(--radius)',
+                    marginBottom: 16,
+                  }}
+                />
+              }
+            >
+              <DashboardChartsSection onTrendLoaded={handleTrendLoaded} />
+            </Suspense>
+          </ChartErrorBoundary>
 
           {/* قوائم الأكثر طلباً وكبار العملاء */}
           <div className="home-insights-grid" style={{ marginTop: 16 }}>

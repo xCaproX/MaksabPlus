@@ -1,5 +1,8 @@
 import {
   Chart as ChartJS,
+  LineController,
+  BarController,
+  DoughnutController,
   CategoryScale,
   LinearScale,
   PointElement,
@@ -17,6 +20,9 @@ let isRegistered = false;
 export function ensureChartRegistered(): void {
   if (isRegistered) return;
   ChartJS.register(
+    LineController,
+    BarController,
+    DoughnutController,
     CategoryScale,
     LinearScale,
     PointElement,
