@@ -52,7 +52,7 @@ export default function SalesTrendChart({ data }: SalesTrendChartProps) {
             fill: true,
             tension: 0.3,
             borderWidth: 2.2,
-            pointRadius: data.length > 14 ? 1.5 : 3.5,
+            pointRadius: data.length > 60 ? 0 : data.length > 14 ? 1.5 : 3.5,
             pointHoverRadius: 5.5,
             pointBackgroundColor: chartTokens.colors.primary,
             pointBorderColor: '#ffffff',

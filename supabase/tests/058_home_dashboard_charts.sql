@@ -120,6 +120,20 @@ begin
     raise exception 'Expected credit_sales to be 200, got %', (v_distribution->>'credit_sales');
   end if;
 
+  -- فحص الفترات الموسعة: 180 يوماً و 365 يوماً و طول الوقت (0)
+  if jsonb_array_length((public.get_home_dashboard_charts(180))->'daily_trend') <> 180 then
+    raise exception 'Expected 180 days in daily_trend';
+  end if;
+
+  if jsonb_array_length((public.get_home_dashboard_charts(365))->'daily_trend') <> 365 then
+    raise exception 'Expected 365 days in daily_trend';
+  end if;
+
+  -- طول الوقت (0): يبدأ من تاريخ أول فاتورة (أمس) حتى اليوم = يومين
+  if jsonb_array_length((public.get_home_dashboard_charts(0))->'daily_trend') <> 2 then
+    raise exception 'Expected 2 days in daily_trend for all-time (0), got %', jsonb_array_length((public.get_home_dashboard_charts(0))->'daily_trend');
+  end if;
+
   -- 3) فحص العزل للشركة ب (Tenant Isolation): يجب أن تكون نتائج شركة ب فارغة أو أصفار
   perform set_config('request.jwt.claim.sub', v_owner_b::text, true);
   v_res_b := public.get_home_dashboard_charts(7);

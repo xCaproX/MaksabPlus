@@ -683,14 +683,29 @@
   font-weight: 500;
 }
 
+.dashboard-charts-header-toolbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-block-end: 1rem;
+  width: 100%;
+}
+
 .chart-range-picker {
   display: inline-flex;
   align-items: center;
   background: var(--bg);
-  padding: 2px;
+  padding: 3px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  gap: 2px;
+  gap: 3px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chart-range-picker::-webkit-scrollbar {
+  display: none;
 }
 
 .btn-range {
