@@ -43,17 +43,17 @@ begin
   insert into public.accounts (company_id, name, kind) values (v_comp_a, 'عميل أمس', 'customer') returning id into v_customer_a;
   insert into public.items (company_id, name, unit) values (v_comp_a, 'صنف أمس', 'قطعة') returning id into v_item_a;
 
-  -- 2) Insert yesterday invoice (current_date - 1)
+  -- 2) Insert yesterday invoice (cairo_today - 1)
   insert into public.invoices (company_id, account_id, warehouse_id, number, invoice_date, kind, total, paid)
-  values (v_comp_a, v_customer_a, v_wh_a, 'INV-YEST-1', current_date - 1, 'sale', 1200, 1200)
+  values (v_comp_a, v_customer_a, v_wh_a, 'INV-YEST-1', public.cairo_today() - 1, 'sale', 1200, 1200)
   returning id into v_inv_yest;
 
   insert into public.invoice_items (company_id, invoice_id, item_id, qty, unit_price)
   values (v_comp_a, v_inv_yest, v_item_a, 2, 600);
 
-  -- 3) Insert today invoice (current_date)
+  -- 3) Insert today invoice (cairo_today)
   insert into public.invoices (company_id, account_id, warehouse_id, number, invoice_date, kind, total, paid)
-  values (v_comp_a, v_customer_a, v_wh_a, 'INV-TODAY-1', current_date, 'sale', 1500, 1500)
+  values (v_comp_a, v_customer_a, v_wh_a, 'INV-TODAY-1', public.cairo_today(), 'sale', 1500, 1500)
   returning id into v_inv_today;
 
   insert into public.invoice_items (company_id, invoice_id, item_id, qty, unit_price)

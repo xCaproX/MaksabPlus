@@ -83,10 +83,14 @@ export function formatChartDate(value: string | null | undefined): string {
 }
 
 export function today(): string {
-  const d = new Date();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${month}-${day}`;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 /** تاريخ اليوم السابقة بالعربية للترحيب (اليوم الكامل، مثلاً: السبت، 7 نوفمبر 2026) */
@@ -96,6 +100,7 @@ export function formatTodayLongAr(): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'Africa/Cairo',
   }).format(new Date());
 }
 
@@ -131,8 +136,6 @@ export function getBalanceStatus(
   return rounded > 0 ? { text: 'عليه', type: 'debit' } : { text: 'له', type: 'credit' };
 }
 
-
-
 export type SaleStatus = 'all' | 'paid' | 'partial' | 'unpaid';
 
 export function saleStatus(invoice: { remaining: unknown; paid: unknown }): Exclude<SaleStatus, 'all'> {
@@ -147,4 +150,3 @@ export function saleStatusLabel(status: Exclude<SaleStatus, 'all'>, isReturn = f
   }
   return status === 'paid' ? 'مسددة' : status === 'partial' ? 'جزئية' : 'غير مسددة';
 }
-

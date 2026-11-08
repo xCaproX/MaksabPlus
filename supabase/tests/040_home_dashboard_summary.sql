@@ -81,9 +81,9 @@ begin
   insert into public.item_stock (company_id, warehouse_id, item_id, qty)
   values (v_comp_a, v_wh_a, v_item_a, 3.0000); -- رصيد منخفض <= 5
 
-  -- فاتورة بيع لشركة أ اليوم
+  -- فاتورة بيع لشركة أ اليوم بتوقيت القاهرة
   insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, subtotal, total, paid, cost_total, profit_total)
-  values (v_comp_a, 'sale', 'SAL-DASH-1', current_date, v_cust_a, v_wh_a, 100.0000, 100.0000, 100.0000, 70.0000, 30.0000)
+  values (v_comp_a, 'sale', 'SAL-DASH-1', public.cairo_today(), v_cust_a, v_wh_a, 100.0000, 100.0000, 100.0000, 70.0000, 30.0000)
   returning id into v_inv_a;
 
   insert into public.invoice_items (company_id, invoice_id, item_id, qty, unit_price, unit_cost)
@@ -122,12 +122,12 @@ begin
 
   insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, subtotal, total, paid, cost_total, profit_total, deleted_at)
   values
-    (v_comp_a, 'sale', 'SAL-DASH-7', current_date - 6, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
-    (v_comp_a, 'sale', 'SAL-DASH-8', current_date - 7, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
-    (v_comp_a, 'sale', 'SAL-DASH-30', current_date - 29, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
-    (v_comp_a, 'sale', 'SAL-DASH-31', current_date - 30, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
-    (v_comp_a, 'sale', 'SAL-DASH-DELETED', current_date, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, now()),
-    (v_comp_a, 'sale_return', 'RET-DASH-1', current_date, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null);
+    (v_comp_a, 'sale', 'SAL-DASH-7', public.cairo_today() - 6, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
+    (v_comp_a, 'sale', 'SAL-DASH-8', public.cairo_today() - 7, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
+    (v_comp_a, 'sale', 'SAL-DASH-30', public.cairo_today() - 29, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
+    (v_comp_a, 'sale', 'SAL-DASH-31', public.cairo_today() - 30, v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null),
+    (v_comp_a, 'sale', 'SAL-DASH-DELETED', public.cairo_today(), v_cust_a, v_wh_a, 10, 10, 0, 0, 10, now()),
+    (v_comp_a, 'sale_return', 'RET-DASH-1', public.cairo_today(), v_cust_a, v_wh_a, 10, 10, 0, 0, 10, null);
 
   v_summary := public.get_home_dashboard_summary();
   if (v_summary->'sales'->>'today_count')::int is distinct from 1

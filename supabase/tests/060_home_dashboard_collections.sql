@@ -39,20 +39,20 @@ begin
   insert into public.accounts (company_id, name, kind) values (v_comp_a, 'عميل تحصيلات', 'customer') returning id into v_customer_a;
   insert into public.cash_boxes (company_id, name) values (v_comp_a, 'خزينة رئيسية') returning id into v_cash_box_a;
 
-  -- 2) Insert yesterday receipt (current_date - 1) direction 'in'
+  -- 2) Insert yesterday receipt (cairo_today - 1) direction 'in'
   insert into public.receipts (company_id, number, receipt_date, account_id, cash_box_id, amount, direction)
-  values (v_comp_a, 'RCP-YEST-1', current_date - 1, v_customer_a, v_cash_box_a, 2000, 'in');
+  values (v_comp_a, 'RCP-YEST-1', public.cairo_today() - 1, v_customer_a, v_cash_box_a, 2000, 'in');
 
-  -- 3) Insert today receipts (current_date) direction 'in' (two receipts: 1500 and 3500)
+  -- 3) Insert today receipts (cairo_today) direction 'in' (two receipts: 1500 and 3500)
   insert into public.receipts (company_id, number, receipt_date, account_id, cash_box_id, amount, direction)
-  values (v_comp_a, 'RCP-TODAY-1', current_date, v_customer_a, v_cash_box_a, 1500, 'in');
+  values (v_comp_a, 'RCP-TODAY-1', public.cairo_today(), v_customer_a, v_cash_box_a, 1500, 'in');
 
   insert into public.receipts (company_id, number, receipt_date, account_id, cash_box_id, amount, direction)
-  values (v_comp_a, 'RCP-TODAY-2', current_date, v_customer_a, v_cash_box_a, 3500, 'in');
+  values (v_comp_a, 'RCP-TODAY-2', public.cairo_today(), v_customer_a, v_cash_box_a, 3500, 'in');
 
   -- Insert a receipt with direction 'out' (should NOT be counted in collections)
   insert into public.receipts (company_id, number, receipt_date, account_id, cash_box_id, amount, direction)
-  values (v_comp_a, 'RCP-TODAY-OUT', current_date, v_customer_a, v_cash_box_a, 800, 'out');
+  values (v_comp_a, 'RCP-TODAY-OUT', public.cairo_today(), v_customer_a, v_cash_box_a, 800, 'out');
 
   -- 4) Call get_home_dashboard_summary()
   v_res_a := public.get_home_dashboard_summary();

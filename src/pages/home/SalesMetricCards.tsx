@@ -57,8 +57,7 @@ function computePerf(today: number, yesterday: number) {
 export default function SalesMetricCards({ sales, collections }: SalesMetricCardsProps) {
   const todayDate = useMemo(() => formatFullArabicDate(new Date()), []);
   const yesterdayDate = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
+    const d = new Date(Date.now() - 24 * 60 * 60 * 1000);
     return formatFullArabicDate(d);
   }, []);
 

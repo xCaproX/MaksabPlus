@@ -75,17 +75,17 @@ begin
   values (v_comp_a, 'صنف تجريبي أ', 'قطعة', 100, 70)
   returning id into v_item_a;
 
-  -- فاتورة بيع نقدية اليوم بقيمة 500
+  -- فاتورة بيع نقدية اليوم بقيمة 500 (بتوقيت مصر)
   insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, subtotal, total, paid)
-  values (v_comp_a, 'sale', 'INV-SALE-001', current_date, v_cust_a, v_wh_a, 500, 500, 500);
+  values (v_comp_a, 'sale', 'INV-SALE-001', public.cairo_today(), v_cust_a, v_wh_a, 500, 500, 500);
 
-  -- فاتورة بيع آجل أمس بقيمة 300 (مدفوع 100، متبقي 200)
+  -- فاتورة بيع آجل أمس بقيمة 300 (مدفوع 100، متبقي 200) (بتوقيت مصر)
   insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, subtotal, total, paid)
-  values (v_comp_a, 'sale', 'INV-SALE-002', current_date - 1, v_cust_a, v_wh_a, 300, 300, 100);
+  values (v_comp_a, 'sale', 'INV-SALE-002', public.cairo_today() - 1, v_cust_a, v_wh_a, 300, 300, 100);
 
-  -- فاتورة شراء اليوم بقيمة 400
+  -- فاتورة شراء اليوم بقيمة 400 (بتوقيت مصر)
   insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, subtotal, total, paid)
-  values (v_comp_a, 'purchase', 'INV-PUR-001', current_date, v_supp_a, v_wh_a, 400, 400, 400);
+  values (v_comp_a, 'purchase', 'INV-PUR-001', public.cairo_today(), v_supp_a, v_wh_a, 400, 400, 400);
 
   -- بنود الفاتورة لاختبار top_items
   insert into public.invoice_items (company_id, invoice_id, item_id, qty, unit_price)
