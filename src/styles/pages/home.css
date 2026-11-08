@@ -105,8 +105,8 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 18px 20px;
-  min-block-size: 164px;
+  padding: 20px;
+  min-block-size: 204px;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
@@ -289,6 +289,8 @@
   padding-block-start: 14px;
   border-block-start: 1px dashed var(--line);
   min-width: 0;
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .sales-kpi-count-badge {
