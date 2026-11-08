@@ -34,27 +34,29 @@ export default function SalesMetricCards({ sales, sparklines }: SalesMetricCards
     <HomeSection title="المبيعات" icon={ShoppingCart}>
       <div className="home-sales-grid">
         {periods.map(({ key, label, amount, count, sparkline }) => (
-          <div key={key} className={`sales-kpi-card metric-card metric-card-primary${count === undefined ? '' : ' sales-kpi-card-with-count'}`}>
-            <div className="sales-kpi-main">
-              <h3 className="sales-kpi-label">{label}</h3>
-              <span className="metric-card-icon" aria-hidden="true">
-                <ShoppingCart size={16} />
-              </span>
+          <div key={key} className="sales-kpi-card metric-card metric-card-primary">
+            <div className="sales-kpi-content">
+              <div className="sales-kpi-header">
+                <span className="sales-kpi-icon-wrap" aria-hidden="true">
+                  <ShoppingCart size={15} />
+                </span>
+                <h3 className="sales-kpi-label">{label}</h3>
+              </div>
               <MoneyDisplay value={amount} currency className="sales-kpi-amount" />
-            </div>
-            <div className="sales-kpi-footer">
               {count !== undefined && (
-                <div className="sales-kpi-count">
-                  <span>الفواتير</span>
-                  <bdi dir="ltr" className="num tabular-nums">{qty(count)}</bdi>
-                </div>
-              )}
-              {sparkline && sparkline.length > 0 && (
-                <div className="sales-kpi-sparkline" aria-hidden="true" title="مسار الحركة">
-                  <SparklineSvg data={sparkline} color="var(--primary)" fillColor="var(--primary)" width={72} height={22} />
+                <div className="sales-kpi-meta">
+                  <span className="sales-kpi-count-badge">
+                    <span className="sales-kpi-count-label">الفواتير</span>
+                    <bdi dir="ltr" className="sales-kpi-count-val tabular-nums">{qty(count)}</bdi>
+                  </span>
                 </div>
               )}
             </div>
+            {sparkline && sparkline.length > 0 && (
+              <div className="sales-kpi-chart-side" aria-hidden="true" title="مسار الحركة">
+                <SparklineSvg data={sparkline} color="var(--primary)" fillColor="var(--primary)" width={100} height={36} />
+              </div>
+            )}
           </div>
         ))}
       </div>
