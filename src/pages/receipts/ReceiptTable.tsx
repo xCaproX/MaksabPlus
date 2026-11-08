@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
-import { accountKindLabel, creationTime, formatDate, receiptTypeLabel } from '../../lib/format';
+import { accountKindLabel, creationTime, receiptTypeLabel } from '../../lib/format';
+import DateDisplay from '../../components/DateDisplay';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import StatusBadge from '../../components/StatusBadge';
@@ -69,11 +70,7 @@ export default function ReceiptTable({
       sortField: 'date',
       headerClassName: 'col-date',
       cellClassName: 'col-date',
-      render: (receipt) => (
-        <bdi dir="ltr" className="tabular-nums">
-          {formatDate(receipt.receipt_date)}
-        </bdi>
-      ),
+      render: (receipt) => <DateDisplay value={receipt.receipt_date} />,
     },
     {
       key: 'time',

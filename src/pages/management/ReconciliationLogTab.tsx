@@ -15,7 +15,8 @@ import PeriodFilter from '../../components/PeriodFilter';
 import { periodDates, shiftCalendarDate } from '../../lib/period';
 import Pagination from '../../components/Pagination';
 import { supabase } from '../../lib/supabase';
-import { creationTime, creationDate, money } from '../../lib/format';
+import { creationDate, creationTime, money } from '../../lib/format';
+import DateDisplay from '../../components/DateDisplay';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import { toast } from '../../components/Toast';
 import type { ReconciliationLogRow } from '../../lib/types';
@@ -226,7 +227,7 @@ export default function ReconciliationLogTab({
                       >
                         <td className="num strong col-datetime">
                           <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
-                            <bdi dir="ltr" className="tabular-nums">{creationDate(row.created_at)}</bdi>
+                            <DateDisplay value={row.created_at} />
                             <bdi dir="ltr" className="tabular-nums" style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
                               {creationTime(row.created_at)}
                             </bdi>
@@ -293,7 +294,7 @@ export default function ReconciliationLogTab({
               <div className="erp-detail-head">
                 <div>
                   <span>سجل التدقيق والمطابقة</span>
-                  <h2>{creationDate(selectedLog.created_at)} ({creationTime(selectedLog.created_at)})</h2>
+                  <h2><DateDisplay value={selectedLog.created_at} /> ({creationTime(selectedLog.created_at)})</h2>
                 </div>
                 <button
                   type="button"

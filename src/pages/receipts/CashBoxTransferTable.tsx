@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
-import { creationTime, formatDate } from '../../lib/format';
+import { creationTime } from '../../lib/format';
+import DateDisplay from '../../components/DateDisplay';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import RowActions from '../../components/RowActions';
@@ -55,11 +56,7 @@ export default function CashBoxTransferTable({
       sortField: 'date',
       headerClassName: 'col-date',
       cellClassName: 'col-date',
-      render: (transfer) => (
-        <bdi dir="ltr" className="tabular-nums">
-          {formatDate(transfer.transfer_date)}
-        </bdi>
-      ),
+      render: (transfer) => <DateDisplay value={transfer.transfer_date} />,
     },
     {
       key: 'time',

@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
-import { accountKindLabel, creationTime, formatDate, saleStatus, saleStatusLabel } from '../../lib/format';
+import { accountKindLabel, creationTime, saleStatus, saleStatusLabel } from '../../lib/format';
+import DateDisplay from '../../components/DateDisplay';
 import DocumentCreatorCell from '../../components/DocumentCreatorCell';
 import MoneyDisplay from '../../components/MoneyDisplay';
 import StatusBadge from '../../components/StatusBadge';
@@ -80,11 +81,7 @@ export default function InvoiceTable({
         sortField: 'date',
         headerClassName: 'col-date',
         cellClassName: 'col-date',
-        render: (invoice) => (
-          <bdi dir="ltr" className="tabular-nums">
-            {formatDate(invoice.invoice_date)}
-          </bdi>
-        ),
+        render: (invoice) => <DateDisplay value={invoice.invoice_date} />,
       },
       {
         key: 'time',

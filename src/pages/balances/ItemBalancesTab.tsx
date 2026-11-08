@@ -14,7 +14,8 @@ import {
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
-import { entityNumber, formatDate, money, qty as formatQty } from '../../lib/format';
+import { entityNumber, money, qty as formatQty } from '../../lib/format';
+import DateDisplay from '../../components/DateDisplay';
 import { translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import PeriodFilter from '../../components/PeriodFilter';
@@ -576,7 +577,7 @@ export default function ItemBalancesTab() {
                           className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}
                         >
                           <td className="num col-date" data-label="التاريخ">
-                            {formatDate(row.transaction_date)}
+                            <DateDisplay value={row.transaction_date} />
                           </td>
                           <td className="card-wide-cell" data-label="البيان">
                             {row.description}

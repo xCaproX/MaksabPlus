@@ -14,18 +14,21 @@ const summary = { totalAmount: 100, paidAmount: 40, remainingAmount: 60, profitT
 
 describe('document list presentation', () => {
   it('shows the requested invoice columns, separate paid/credit values, Cairo time and notes', () => {
-    render(<InvoiceTable loading={false} pageInvoices={[invoice]} kind="sale" partyHeader="العميل"
+    const { container } = render(<InvoiceTable loading={false} pageInvoices={[invoice]} kind="sale" partyHeader="العميل"
       sortOrder="date-desc" onSort={vi.fn()} canViewProfit={false} showDeleted={false}
       newLabel="فاتورة" isReturn={false} onView={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()}
       onRestore={vi.fn()} canEdit={false} canDelete={false} />);
     expect(screen.getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
       'الرقم', 'التاريخ', 'الوقت', 'المخزن', 'نوع الحساب', 'الحساب', 'الإجمالي', 'المسدد', 'الآجل', 'الحالة', 'ملاحظات', 'بواسطة', '',
     ]);
-    for (const text of ['06/11/2026', '12:30 PM', 'عميل', '40.00', '60.00', 'جزئية', 'تسليم الدور الثاني']) {
+    const dateEl = container.querySelector('.date-display');
+    expect(dateEl).toBeInTheDocument();
+    expect(dateEl?.textContent).toBe('06/11/2026');
+    expect(dateEl).toHaveAttribute('dir', 'rtl');
+    for (const text of ['12:30 PM', 'عميل', '40.00', '60.00', 'جزئية', 'تسليم الدور الثاني']) {
       expect(screen.getByText(text)).toBeInTheDocument();
     }
     expect(screen.queryByText('123,456.00')).not.toBeInTheDocument();
-    expect(screen.getByText('06/11/2026')).toHaveAttribute('dir', 'ltr');
     expect(screen.getByText('60.00').closest('span')).not.toHaveClass('remaining');
     expect(screen.getByText('60.00').closest('span')).not.toHaveClass('strong');
     expect(screen.getAllByRole('columnheader')[0]).toHaveClass('col-number');

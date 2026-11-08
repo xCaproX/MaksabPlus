@@ -430,7 +430,6 @@ input[type="number"] {
   padding: 0 12px !important;
   font-family: inherit;
   font-size: 13.5px;
-  direction: ltr;
   text-align: start;
   font-variant-numeric: tabular-nums;
   border-radius: 0 !important;

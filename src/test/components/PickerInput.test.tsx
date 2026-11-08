@@ -23,7 +23,7 @@ describe('shared date and time pickers', () => {
       expect(kinds).toEqual(['date', 'time']);
       fireEvent.change(view.container.querySelector('input[type="date"]')!, { target: { value: '2026-11-06' } });
       fireEvent.change(view.container.querySelector('input[type="time"]')!, { target: { value: '14:25' } });
-      expect(screen.getByLabelText('التاريخ')).toHaveValue('06/11/2026');
+      expect(screen.getByLabelText('التاريخ')).toHaveValue('06/\u200f11/\u200f2026');
       expect(screen.getByLabelText('الوقت')).toHaveValue('14:25');
       expect(screen.getByTestId('values')).toHaveTextContent('2026-11-06|14:25');
     } finally { HTMLInputElement.prototype.showPicker = previous; }

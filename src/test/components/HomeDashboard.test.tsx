@@ -23,7 +23,7 @@ vi.mock('../../lib/company', () => ({ getCurrentUserIdentity: vi.fn().mockResolv
 
 describe('Home Dashboard Components', () => {
   it('QuickActions renders user greeting and primary action buttons', () => {
-    render(
+    const { container } = render(
       <BrowserRouter>
         <QuickActions userName="عبد الرحمن" companyName="شركة الأهرام — 06-11-2026" />
       </BrowserRouter>
@@ -32,9 +32,12 @@ describe('Home Dashboard Components', () => {
     expect(screen.getByRole('heading', { name: 'مرحباً، عبد الرحمن' })).toBeInTheDocument();
     expect(screen.getByText(/شركة الأهرام/)).toBeInTheDocument();
     expect(screen.getByText('06-11-2026')).toHaveAttribute('dir', 'ltr');
-    const date = screen.getByText(/^\d{2}\/\d{2}\/\d{4}$/);
-    expect(date).toHaveAttribute('dir', 'ltr');
-    expect(date).toHaveAttribute('datetime', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
+    const timeEl = container.querySelector('time');
+    expect(timeEl).toBeInTheDocument();
+    expect(timeEl).toHaveAttribute('datetime', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
+    const dateDisplay = timeEl?.querySelector('.date-display');
+    expect(dateDisplay).toBeInTheDocument();
+    expect(dateDisplay).toHaveAttribute('dir', 'rtl');
     const saleBtn = screen.getByText('فاتورة بيع جديدة').closest('a');
     expect(saleBtn).toHaveAttribute('href', '/invoices?tab=sale&action=new');
 

@@ -42,7 +42,7 @@ describe('column-filter controls and reset', () => {
     expect(screen.queryByRole('option', { name: 'غير مسددة' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('option', { name: 'جزئية' }));
     fireEvent.change(screen.getByLabelText('بحث في التاريخ'), { target: { value: '05/11/2026' } });
-    expect(screen.getByLabelText('بحث في التاريخ')).toHaveValue('05/11/2026');
+    expect(screen.getByLabelText('بحث في التاريخ')).toHaveValue('05/\u200f11/\u200f2026');
     fireEvent.change(screen.getByLabelText('بحث في التاريخ'), { target: { value: '' } });
     fireEvent.blur(screen.getByLabelText('بحث في التاريخ'));
     expect(screen.getByLabelText('بحث في التاريخ')).toHaveValue('');

@@ -14,23 +14,23 @@ describe('shared period filter', () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-06T10:00:00Z'));
     render(<Example />);
     expect(screen.getByRole('combobox', { name: 'الفترة' })).toHaveValue('النهاردة');
-    expect(screen.getByLabelText('من تاريخ')).toHaveValue('06/11/2026');
-    expect(screen.getByLabelText('إلى تاريخ')).toHaveValue('06/11/2026');
+    expect(screen.getByLabelText('من تاريخ')).toHaveValue('06/\u200f11/\u200f2026');
+    expect(screen.getByLabelText('إلى تاريخ')).toHaveValue('06/\u200f11/\u200f2026');
 
     // Test Selecting "امس"
     fireEvent.click(screen.getByRole('combobox', { name: 'الفترة' }));
     expect(screen.queryByRole('option', { name: 'تاريخ مخصص' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('option', { name: 'امس' }));
-    expect(screen.getByLabelText('من تاريخ')).toHaveValue('05/11/2026');
-    expect(screen.getByLabelText('إلى تاريخ')).toHaveValue('05/11/2026');
+    expect(screen.getByLabelText('من تاريخ')).toHaveValue('05/\u200f11/\u200f2026');
+    expect(screen.getByLabelText('إلى تاريخ')).toHaveValue('05/\u200f11/\u200f2026');
 
     // Test Selecting "آخر 7 ايام"
     fireEvent.click(screen.getByRole('combobox', { name: 'الفترة' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'الفترة' }), { target: { value: '7' } });
     expect(screen.queryByRole('option', { name: 'آخر يومين' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('option', { name: 'آخر 7 ايام' }));
-    expect(screen.getByLabelText('من تاريخ')).toHaveValue('31/10/2026');
-    expect(screen.getByLabelText('إلى تاريخ')).toHaveValue('06/11/2026');
+    expect(screen.getByLabelText('من تاريخ')).toHaveValue('31/\u200f10/\u200f2026');
+    expect(screen.getByLabelText('إلى تاريخ')).toHaveValue('06/\u200f11/\u200f2026');
 
     // Test Selecting "كل الفترات"
     fireEvent.click(screen.getByRole('combobox', { name: 'الفترة' }));
@@ -45,7 +45,7 @@ describe('shared period filter', () => {
     expect(screen.queryByRole('option', { name: 'كل الفترات' })).not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'تاريخ مخصص' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('من تاريخ'), { target: { value: '01/10/2026' } });
-    expect(screen.getByLabelText('من تاريخ')).toHaveValue('01/10/2026');
+    expect(screen.getByLabelText('من تاريخ')).toHaveValue('01/\u200f10/\u200f2026');
     fireEvent.pointerDown(document.body);
     expect(screen.getByLabelText('الفترة')).toHaveValue('');
     expect(screen.getByLabelText('الفترة')).toHaveAttribute('placeholder', 'اختر الفترة');

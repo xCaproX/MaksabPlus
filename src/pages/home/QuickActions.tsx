@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { ShoppingCart, ArrowDownLeft, ArrowUpRight, ShoppingBag, Building2, CalendarDays } from 'lucide-react';
 import { useAccess } from '../../lib/access';
-import { formatDate, today } from '../../lib/format';
+import { today } from '../../lib/format';
+import DateDisplay from '../../components/DateDisplay';
 
 interface QuickActionsProps {
   userName: string;
@@ -38,7 +39,7 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
           )}
           <span className="home-welcome-meta-item">
             <CalendarDays size={14} aria-hidden="true" />
-            <time dateTime={date} dir="ltr" className="tabular-nums">{formatDate(date)}</time>
+            <time dateTime={date}><DateDisplay value={date} /></time>
           </span>
         </div>
       </div>

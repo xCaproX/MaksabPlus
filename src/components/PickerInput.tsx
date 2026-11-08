@@ -19,12 +19,13 @@ function toDisplay(iso: string): string {
   if (!iso || !iso.includes('-')) return '';
   const [y, m, d] = iso.split('-');
   if (!y || !m || !d) return '';
-  return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+  return `${d.padStart(2, '0')}/\u200f${m.padStart(2, '0')}/\u200f${y}`;
 }
 
 /** Convert display 'DD/MM/YYYY' or typed input to ISO 'YYYY-MM-DD' */
 function toIso(display: string): string | null {
-  const parts = display.trim().split('/');
+  const clean = display.replace(/\u200f/g, '').trim();
+  const parts = clean.split('/');
   if (parts.length === 3) {
     const d = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
@@ -58,12 +59,18 @@ export default function PickerInput({
   }, [value, kind]);
 
   function handleTextChange(e: ChangeEvent<HTMLInputElement>) {
-    let raw = e.target.value.replace(kind === 'date' ? /[^\d/]/g : /[^\d:]/g, '');
+    let raw = e.target.value.replace(/\u200f/g, '').replace(kind === 'date' ? /[^\d/]/g : /[^\d:]/g, '');
     const separator = kind === 'date' ? '/' : ':';
     if (raw.length === 2 && !raw.includes(separator)) raw += separator;
     else if (kind === 'date' && raw.length === 5 && raw.split('/').length === 2) raw += '/';
     if (raw.length <= (kind === 'date' ? 10 : 5)) {
-      setText(raw);
+      if (kind === 'date') {
+        const parts = raw.split('/');
+        const rlmVal = parts.join('/\u200f');
+        setText(rlmVal);
+      } else {
+        setText(raw);
+      }
       const parsed = parse(raw);
       if (!raw) onChange('');
       else if (parsed) onChange(parsed);
@@ -101,8 +108,8 @@ export default function PickerInput({
         type="text"
         id={id}
         inputMode="numeric"
-        placeholder={placeholder ?? (kind === 'date' ? 'DD/MM/YYYY' : 'HH:MM')}
-        dir="ltr"
+        placeholder={placeholder ?? (kind === 'date' ? 'يوم/شهر/سنة' : 'HH:MM')}
+        dir={kind === 'date' ? 'rtl' : 'ltr'}
         value={text}
         onChange={handleTextChange}
         onBlur={handleBlur}
