@@ -34,7 +34,7 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
       if (res.error) throw res.error;
       const chartData = res.data as DashboardChartsData;
       setData(chartData);
-      if (onTrendLoaded && chartData?.daily_trend) {
+      if (onTrendLoaded && chartData?.daily_trend && selectedDays === 30) {
         onTrendLoaded(chartData.daily_trend);
       }
     } catch (err: unknown) {

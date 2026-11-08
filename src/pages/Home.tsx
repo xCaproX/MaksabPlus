@@ -1,6 +1,6 @@
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { getCurrentUserIdentity } from '../lib/company';
-import { useEffect, useState, lazy, Suspense, useCallback } from 'react';
+import { useEffect, useState, lazy, Suspense, useCallback, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { ChartNoAxesColumnIncreasing, Package, Users, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -53,15 +53,18 @@ export default function Home() {
   const [companyName, setCompanyName] = useState('');
 
   const [sparklines, setSparklines] = useState<{ week?: number[]; month?: number[] }>({});
+  const sparklinesInitialized = useRef(false);
 
   const handleTrendLoaded = useCallback((trend: DailyTrendPoint[]) => {
-    if (!trend || trend.length === 0) return;
-    const monthSales = trend.map((t) => Number(t.sales || 0));
-    const weekSales = monthSales.slice(-7);
-    setSparklines({
-      week: weekSales,
-      month: monthSales,
-    });
+    if (!trend || trend.length === 0 || sparklinesInitialized.current) return;
+    if (trend.length >= 28) {
+      sparklinesInitialized.current = true;
+      const monthSales = trend.map((t) => Number(t.sales || 0));
+      setSparklines({
+        week: monthSales.slice(-7),
+        month: monthSales,
+      });
+    }
   }, []);
 
   async function loadDashboard() {
