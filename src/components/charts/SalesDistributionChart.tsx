@@ -17,6 +17,26 @@ interface SalesDistributionChartProps {
   distribution: SalesDistributionData;
 }
 
+function boldTooltipLine(text: string, ctx: CanvasRenderingContext2D | null): string {
+  if (!ctx) return text;
+  return {
+    toString() {
+      ctx.font = `bold 12px ${chartTokens.fontFamily}`;
+      return text;
+    },
+  } as unknown as string;
+}
+
+function normalTooltipLine(text: string, ctx: CanvasRenderingContext2D | null): string {
+  if (!ctx) return text;
+  return {
+    toString() {
+      ctx.font = `normal 12px ${chartTokens.fontFamily}`;
+      return text;
+    },
+  } as unknown as string;
+}
+
 export default function SalesDistributionChart({ distribution }: SalesDistributionChartProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<ChartJS | null>(null);
@@ -63,36 +83,6 @@ export default function SalesDistributionChart({ distribution }: SalesDistributi
           },
         ],
       },
-      plugins: [
-        {
-          id: 'distributionTitleColorBox',
-          afterTooltipDraw(chart, args) {
-            const tooltip = args.tooltip;
-            if (!tooltip || !tooltip.opacity || !tooltip.title || tooltip.title.length === 0) return;
-            const dataPoint = tooltip.dataPoints?.[0];
-            if (!dataPoint) return;
-            const idx = dataPoint.dataIndex;
-            const color = bgColors[idx] || chartTokens.colors.success;
-            const ctx2 = chart.ctx;
-            const pad = typeof tooltip.options.padding === 'number'
-              ? { top: tooltip.options.padding, right: tooltip.options.padding }
-              : (tooltip.options.padding as { top?: number; right?: number }) ?? { top: 10, right: 10 };
-            const padRight = pad.right ?? 10;
-            const padTop = pad.top ?? 10;
-            const boxSize = 10;
-            const x = tooltip.x + tooltip.width - padRight - boxSize;
-            const y = tooltip.y + padTop + 2;
-
-            ctx2.save();
-            ctx2.fillStyle = color;
-            ctx2.fillRect(x, y, boxSize, boxSize);
-            ctx2.strokeStyle = '#ffffff';
-            ctx2.lineWidth = 1;
-            ctx2.strokeRect(x, y, boxSize, boxSize);
-            ctx2.restore();
-          },
-        },
-      ],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -105,18 +95,18 @@ export default function SalesDistributionChart({ distribution }: SalesDistributi
           },
           tooltip: {
             ...defaultTooltipConfig,
-            displayColors: false,
+            displayColors: true,
+            boxPadding: 6,
+            bodySpacing: 6,
             callbacks: {
-              title: (items) => {
-                const label = items[0]?.label ?? '';
-                return label ? `\u200F\u00A0\u00A0\u00A0\u00A0${label}` : '';
-              },
+              title: () => [],
               label: (context) => {
                 const val = Number(context.raw || 0);
                 const percent = total > 0 ? ((val / total) * 100).toFixed(1) : '0';
                 return [
-                  `${money(val)} ج.م`,
-                  `(${percent}%)`,
+                  boldTooltipLine(context.label ?? '', ctx),
+                  normalTooltipLine(`${money(val)} ج.م`, ctx),
+                  normalTooltipLine(`(${percent}%)`, ctx),
                 ];
               },
             },
