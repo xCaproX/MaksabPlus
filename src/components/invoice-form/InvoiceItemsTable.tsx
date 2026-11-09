@@ -150,7 +150,6 @@ export default function InvoiceItemsTable({
                       inputMode="decimal"
                       min="0.0001"
                       step="0.0001"
-                      dir="ltr"
                       value={entryQty}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => onEntryQtyChange(e.target.value)}
@@ -177,7 +176,6 @@ export default function InvoiceItemsTable({
                     inputMode="decimal"
                     min="0"
                     step="0.01"
-                    dir="ltr"
                     placeholder="0.00"
                     value={entryUnitPrice}
                     onFocus={(e) => e.target.select()}
@@ -261,7 +259,6 @@ export default function InvoiceItemsTable({
                             inputMode="decimal"
                             min="0.0001"
                             step="0.0001"
-                            dir="ltr"
                             value={line.qty}
                             onFocus={(e) => e.target.select()}
                             onChange={(e) => {
@@ -307,7 +304,6 @@ export default function InvoiceItemsTable({
                           inputMode="decimal"
                           min="0"
                           step="0.01"
-                          dir="ltr"
                           placeholder="0.00"
                           value={line.unit_price}
                           onFocus={(e) => e.target.select()}

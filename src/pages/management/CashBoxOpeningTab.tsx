@@ -210,7 +210,6 @@ export default function CashBoxOpeningTab({
                           style={{ width: '100%', maxWidth: '140px' }}
                           type="number"
                           inputMode="decimal"
-                          dir="ltr"
                           step="0.0001"
                           disabled={!canEditOpening || saving}
                           value={cashValues[box.id] ?? '0'}

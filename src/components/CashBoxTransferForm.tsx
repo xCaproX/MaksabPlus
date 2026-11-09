@@ -241,7 +241,6 @@ export default function CashBoxTransferForm({
                     inputMode="decimal"
                     min="0.0001"
                     step="0.0001"
-                    dir="ltr"
                     placeholder="0.00"
                     value={amount}
                     onFocus={(e) => e.target.select()}

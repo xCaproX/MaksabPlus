@@ -638,19 +638,18 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                 <div className="form-row">
                   <label>
                     <span>رصيد بداية التعامل</span>
-                    <div className="input-with-suffix" dir="ltr">
+                    <div className="input-with-suffix">
                     <input
                       type="number"
                       inputMode="decimal"
                       step="0.01"
                       min="0"
-                      dir="ltr"
                       className="num no-spinner"
                       value={accountOpeningBalance}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setAccountOpeningBalance(e.target.value)}
                     />
-                    <span className="input-suffix" dir="rtl">ج.م</span>
+                    <span className="input-suffix">ج.م</span>
                     </div>
                   </label>
                   <label>
@@ -673,7 +672,6 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                   value={accountPhone}
                   onChange={(e) => setAccountPhone(e.target.value)}
                   placeholder="01xxxxxxxxx"
-                  dir="ltr"
                 />
               </label>
 

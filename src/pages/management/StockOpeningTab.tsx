@@ -292,7 +292,6 @@ export default function StockOpeningTab({
                           style={{ width: '100%', maxWidth: '130px' }}
                           type="number"
                           inputMode="decimal"
-                          dir="ltr"
                           min="0"
                           step="0.0001"
                           disabled={!canEditOpening || saving}
@@ -309,7 +308,6 @@ export default function StockOpeningTab({
                           style={{ width: '100%', maxWidth: '130px' }}
                           type="number"
                           inputMode="decimal"
-                          dir="ltr"
                           min="0"
                           step="0.0001"
                           value={value.cost}

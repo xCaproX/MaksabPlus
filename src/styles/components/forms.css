@@ -11,6 +11,8 @@ label {
 input,
 select,
 textarea {
+  direction: rtl;
+  text-align: start;
   font: inherit;
   font-size: 13.5px;
   color: var(--ink);
@@ -27,6 +29,11 @@ textarea {
     border-color var(--transition-fast),
     box-shadow var(--transition-fast),
     background-color var(--transition-fast);
+}
+
+input[type="email"] {
+  direction: ltr;
+  text-align: start;
 }
 
 input::placeholder,

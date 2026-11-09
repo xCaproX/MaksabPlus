@@ -622,7 +622,6 @@ export default function ItemsTab() {
                     inputMode="decimal"
                     step="0.0001"
                     min="0"
-                    dir="ltr"
                     className="num no-spinner"
                     value={salePrice}
                     onFocus={(e) => e.target.select()}
@@ -639,7 +638,6 @@ export default function ItemsTab() {
                     inputMode="decimal"
                     step="0.0001"
                     min="0"
-                    dir="ltr"
                     className="num no-spinner"
                     value={purchasePrice}
                     onFocus={(e) => e.target.select()}
@@ -690,7 +688,6 @@ export default function ItemsTab() {
                             inputMode="decimal"
                             step="0.0001"
                             min="0"
-                            dir="ltr"
                             className="num no-spinner"
                             value={itemOpeningQty}
                             onFocus={(e) => e.target.select()}
@@ -704,7 +701,6 @@ export default function ItemsTab() {
                             inputMode="decimal"
                             step="0.0001"
                             min="0"
-                            dir="ltr"
                             className="num no-spinner"
                             value={itemOpeningCost}
                             onFocus={(e) => e.target.select()}

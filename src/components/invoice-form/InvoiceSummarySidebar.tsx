@@ -111,7 +111,6 @@ export default function InvoiceSummarySidebar({
               <input
                 type="text"
                 inputMode="decimal"
-                dir="ltr"
                 placeholder="0.00"
                 value={paid}
                 onFocus={(e) => e.target.select()}

@@ -311,7 +311,6 @@ export default function AccountOpeningTab({
                           style={{ width: '100%', maxWidth: '140px' }}
                           type="number"
                           inputMode="decimal"
-                          dir="ltr"
                           step="0.0001"
                           disabled={!canEditOpening || saving}
                           value={accountValues[account.id] ?? '0'}
