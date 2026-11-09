@@ -17,6 +17,26 @@ interface SalesDistributionChartProps {
   distribution: SalesDistributionData;
 }
 
+function boldTooltipLine(text: string, ctx: CanvasRenderingContext2D | null): string {
+  if (!ctx) return text;
+  return {
+    toString() {
+      ctx.font = `bold 12px ${chartTokens.fontFamily}`;
+      return text;
+    },
+  } as unknown as string;
+}
+
+function normalTooltipLine(text: string, ctx: CanvasRenderingContext2D | null): string {
+  if (!ctx) return text;
+  return {
+    toString() {
+      ctx.font = `normal 12px ${chartTokens.fontFamily}`;
+      return text;
+    },
+  } as unknown as string;
+}
+
 export default function SalesDistributionChart({ distribution }: SalesDistributionChartProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<ChartJS | null>(null);
@@ -81,9 +101,9 @@ export default function SalesDistributionChart({ distribution }: SalesDistributi
                 const val = Number(context.raw || 0);
                 const percent = total > 0 ? ((val / total) * 100).toFixed(1) : '0';
                 return [
-                  context.label ?? '',
-                  `${money(val)} ج.م`,
-                  `(${percent}%)`,
+                  boldTooltipLine(context.label ?? '', ctx),
+                  normalTooltipLine(`${money(val)} ج.م`, ctx),
+                  normalTooltipLine(`(${percent}%)`, ctx),
                 ];
               },
             },

@@ -62,7 +62,8 @@ export const chartTokens = {
 export const defaultTooltipConfig = {
   rtl: true,
   textDirection: 'rtl' as const,
-  titleAlign: 'right' as const,
+  // في Chart.js مع تفعيل RTL، تُترجم 'left' إلى بداية السطر جهة اليمين (right padding) مع textAlign: 'right'
+  titleAlign: 'left' as const,
   bodyAlign: 'right' as const,
   footerAlign: 'right' as const,
   backgroundColor: '#0f172a',
