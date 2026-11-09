@@ -82,6 +82,17 @@ export function formatChartDate(value: string | null | undefined): string {
   return value;
 }
 
+export function formatFullChartDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  const raw = value.slice(0, 10);
+  const parts = raw.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const [y, m, d] = parts;
+    return `${y}/${m}/${d}`;
+  }
+  return value;
+}
+
 export function today(): string {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Africa/Cairo',

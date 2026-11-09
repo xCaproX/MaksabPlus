@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Chart as ChartJS, type ChartConfiguration } from 'chart.js';
 import { ensureChartRegistered, chartTokens, defaultTooltipConfig, defaultLegendConfig } from './chartDefaults';
-import { money, formatChartDate } from '../../lib/format';
+import { money, formatChartDate, formatFullChartDate } from '../../lib/format';
 import type { DailyTrendPoint } from './SalesTrendChart';
 
 interface SalesVsPurchasesChartProps {
@@ -104,14 +104,15 @@ export default function SalesVsPurchasesChart({ data }: SalesVsPurchasesChartPro
               title: (items) => {
                 const idx = items[0]?.dataIndex;
                 if (idx !== undefined && data[idx]) {
-                  return `التاريخ: ${formatChartDate(data[idx].date)}`;
+                  return formatFullChartDate(data[idx].date);
                 }
                 return items[0]?.label ?? '';
               },
               label: (context) => {
-                const label = context.dataset.label ?? '';
+                const isSales = context.datasetIndex === 0;
+                const prefix = isSales ? 'مبيعات' : 'مشتريات';
                 const val = context.parsed.y ?? 0;
-                return ` ${label}: ${money(val)} ج.م`;
+                return ` ${prefix}: ${money(val)} ج.م`;
               },
             },
           },

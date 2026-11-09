@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { money, qty, round2, formatDate, formatChartDate, entityNumber, getBalanceStatus } from '../lib/format';
+import { money, qty, round2, formatDate, formatChartDate, formatFullChartDate, entityNumber, getBalanceStatus } from '../lib/format';
 
 describe('format - دوال التنسيق المحاسبي والتواريخ', () => {
   describe('money', () => {
@@ -59,6 +59,20 @@ describe('format - دوال التنسيق المحاسبي والتواريخ',
     it('يُرجع شرطة "—" عند عدم وجود تاريخ', () => {
       expect(formatChartDate(null)).toBe('—');
       expect(formatChartDate(undefined)).toBe('—');
+    });
+  });
+
+  describe('formatFullChartDate', () => {
+    it('يحول تاريخ ISO (YYYY-MM-DD) إلى التاريخ الكامل المعتمد للشارتات (YYYY/MM/DD)', () => {
+      expect(formatFullChartDate('2026-11-26')).toBe('2026/11/26');
+      expect(formatFullChartDate('2026-11-10')).toBe('2026/11/10');
+      expect(formatFullChartDate('2026-01-05T12:00:00Z')).toBe('2026/01/05');
+    });
+
+    it('يُرجع شرطة "—" عند عدم وجود تاريخ', () => {
+      expect(formatFullChartDate(null)).toBe('—');
+      expect(formatFullChartDate(undefined)).toBe('—');
+      expect(formatFullChartDate('')).toBe('—');
     });
   });
 

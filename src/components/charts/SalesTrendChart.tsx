@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Chart as ChartJS, type ChartConfiguration } from 'chart.js';
 import { ensureChartRegistered, chartTokens, defaultTooltipConfig, defaultLegendConfig } from './chartDefaults';
-import { money, formatChartDate } from '../../lib/format';
+import { money, formatChartDate, formatFullChartDate } from '../../lib/format';
 
 export interface DailyTrendPoint {
   date: string;
@@ -110,20 +110,23 @@ export default function SalesTrendChart({ data }: SalesTrendChartProps) {
           legend: defaultLegendConfig,
           tooltip: {
             ...defaultTooltipConfig,
+            displayColors: false,
             callbacks: {
               title: (items) => {
                 const idx = items[0]?.dataIndex;
                 if (idx !== undefined && data[idx]) {
-                  return `التاريخ: ${formatChartDate(data[idx].date)}`;
+                  return formatFullChartDate(data[idx].date);
                 }
                 return items[0]?.label ?? '';
               },
               label: (context) => {
                 const val = context.parsed.y ?? 0;
                 const idx = context.dataIndex;
-                const count = data[idx]?.sales_count;
-                const countText = count !== null && count !== undefined ? ` (${count} فاتورة)` : '';
-                return ` المبيعات: ${money(val)} ج.م${countText}`;
+                const count = data[idx]?.sales_count ?? 0;
+                return [
+                  `${money(val)} ج.م`,
+                  `(الفواتير ${count})`,
+                ];
               },
             },
           },
