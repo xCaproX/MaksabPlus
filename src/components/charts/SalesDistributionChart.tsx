@@ -76,13 +76,12 @@ export default function SalesDistributionChart({ distribution }: SalesDistributi
           tooltip: {
             ...defaultTooltipConfig,
             callbacks: {
-              title: (items) => {
-                return items[0]?.label ?? '';
-              },
+              title: () => [],
               label: (context) => {
                 const val = Number(context.raw || 0);
                 const percent = total > 0 ? ((val / total) * 100).toFixed(1) : '0';
                 return [
+                  context.label ?? '',
                   `${money(val)} ج.م`,
                   `(${percent}%)`,
                 ];

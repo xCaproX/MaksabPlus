@@ -62,6 +62,9 @@ export const chartTokens = {
 export const defaultTooltipConfig = {
   rtl: true,
   textDirection: 'rtl' as const,
+  titleAlign: 'right' as const,
+  bodyAlign: 'right' as const,
+  footerAlign: 'right' as const,
   backgroundColor: '#0f172a',
   titleColor: '#ffffff',
   bodyColor: '#e2e8f0',
