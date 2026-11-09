@@ -1,5 +1,6 @@
 import AccountBalancePills from '../AccountBalancePills';
 import DateDisplay from '../DateDisplay';
+import DateInput from '../DateInput';
 import SearchableSelect from '../SearchableSelect';
 import { searchAccountsAsync } from '../../lib/masterDataQueries';
 import type { AccountKind, AccountRow, WarehouseOption } from '../../lib/types';
@@ -8,6 +9,7 @@ interface InvoiceAccountHeaderProps {
   isReadOnly: boolean;
   isWaste: boolean;
   date: string;
+  onDateChange?: (date: string) => void;
   warehouseId: string;
   selectableWarehouses: WarehouseOption[];
   selectedWarehouse?: WarehouseOption;
@@ -28,6 +30,7 @@ export default function InvoiceAccountHeader({
   isReadOnly,
   isWaste,
   date,
+  onDateChange,
   warehouseId,
   selectableWarehouses,
   selectedWarehouse,
@@ -49,9 +52,18 @@ export default function InvoiceAccountHeader({
       <div className="account-header-row1">
         <label className="field-date">
           <span>التاريخ</span>
-          <div className="readonly-val-box num">
-            <DateDisplay value={date} />
-          </div>
+          {isReadOnly ? (
+            <div className="readonly-val-box num">
+              <DateDisplay value={date} />
+            </div>
+          ) : (
+            <DateInput
+              value={date}
+              onChange={onDateChange ?? (() => {})}
+              ariaLabel="تاريخ الفاتورة"
+              required
+            />
+          )}
         </label>
 
         <label className="field-warehouse-select">

@@ -10,7 +10,7 @@ export function calculateInvoiceSubtotal(lines: LineDraft[]): number {
     const qty = Number(line.qty || 0);
     const price = Number(line.unit_price || 0);
     if (!Number.isFinite(qty) || !Number.isFinite(price)) return sum;
-    return sum + qty * price;
+    return sum + round2(qty * price);
   }, 0);
   return round2(subtotal);
 }

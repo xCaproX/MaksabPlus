@@ -27,6 +27,15 @@ describe('invoiceMath - حسابات الفواتير والأرصدة', () => {
       expect(calculateInvoiceSubtotal(lines)).toBe(31);
     });
 
+    it('يقرب كل بند بشكل منفصل لمنزلتين عشريتين مطابقاً لمعادلة قاعدة البيانات', () => {
+      const lines: LineDraft[] = [
+        { key: '1', item_id: 'item-1', qty: '3.335', unit_price: '1' },
+        { key: '2', item_id: 'item-2', qty: '3.335', unit_price: '1' },
+      ];
+      // في قاعدة البيانات: round(3.335 * 1, 2) + round(3.335 * 1, 2) = 3.34 + 3.34 = 6.68
+      expect(calculateInvoiceSubtotal(lines)).toBe(6.68);
+    });
+
     it('يُرجع 0 عند عدم وجود أي بنود نشطة', () => {
       expect(calculateInvoiceSubtotal([])).toBe(0);
       expect(calculateInvoiceSubtotal([{ key: '1', item_id: '', qty: '5', unit_price: '10' }])).toBe(0);

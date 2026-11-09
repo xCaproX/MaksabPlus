@@ -166,4 +166,43 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     expect(qtyInput.value).toBe('0.5');
     expect(qtyInput.min).toBe('0.0001');
   });
+
+  it('يعرض حقل إدخال التاريخ القابل للتعديل DateInput في وضع التحرير والإدخال، ويعرضه للعرض فقط في readOnly', () => {
+    const { unmount } = render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={mockEditingInvoice}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    const editableDate = screen.getByLabelText('تاريخ الفاتورة');
+    expect(editableDate).toBeInTheDocument();
+
+    unmount();
+
+    render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={mockEditingInvoice}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByLabelText('تاريخ الفاتورة')).not.toBeInTheDocument();
+  });
 });

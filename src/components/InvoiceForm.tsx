@@ -82,7 +82,7 @@ export default function InvoiceForm({
   const defaultWarehouse = resolveDefaultWarehouse(warehouses);
   const defaultCashBox = resolveDefaultCashBox(cashBoxes);
 
-  const [date] = useState(editing?.invoice.invoice_date ?? today());
+  const [date, setDate] = useState(editing?.invoice.invoice_date ?? today());
   const [accountKind, setAccountKind] = useState<AccountKind>(defaultAccountKind);
   const [accountId, setAccountId] = useState(editing?.invoice.account_id ?? defaultAccountId);
   const [warehouseId, setWarehouseId] = useState(
@@ -366,6 +366,7 @@ export default function InvoiceForm({
     setEntryUnitPrice('');
     setPaid('0.00');
     setNotes('');
+    setDate(today());
     if (!editing) {
       setAccountId(defaultAccountId);
       setAccountKind(defaultAccountKind);
@@ -503,6 +504,7 @@ export default function InvoiceForm({
             isReadOnly={isReadOnly}
             isWaste={isWaste}
             date={date}
+            onDateChange={setDate}
             warehouseId={warehouseId}
             selectableWarehouses={selectableWarehouses}
             selectedWarehouse={selectedWarehouse}
