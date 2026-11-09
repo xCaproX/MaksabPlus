@@ -77,6 +77,13 @@ export const PERMISSION_SECTIONS: SectionDef[] = [
       { id: 'management.cashBoxes', label: 'افتتاحيات الخزن', actions: ['view', 'edit'] },
     ],
   },
+  {
+    id: 'reports',
+    label: 'قسم التقارير والربحية',
+    items: [
+      { id: 'reports.profit', label: 'تقارير وأرقام الربحية وتكلفة البضاعة', actions: ['view'] },
+    ],
+  },
 ];
 
 /**

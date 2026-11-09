@@ -10,13 +10,14 @@ import {
 } from '../lib/permissionsConfig';
 
 describe('permissionsConfig - هيكل وقوالب الصلاحيات', () => {
-  it('يحتوي على كافة الأقسام الرئيسية الخمسة للنظام', () => {
+  it('يحتوي على كافة الأقسام الرئيسية للنظام بما فيها قسم التقارير والربحية', () => {
     const sectionIds = PERMISSION_SECTIONS.map((s) => s.id);
     expect(sectionIds).toContain('goods');
     expect(sectionIds).toContain('money');
     expect(sectionIds).toContain('data');
     expect(sectionIds).toContain('balances');
     expect(sectionIds).toContain('management');
+    expect(sectionIds).toContain('reports');
   });
 
   it('يجمع كافة مفاتيح الصلاحيات دون تكرار أو قيم فارغة', () => {

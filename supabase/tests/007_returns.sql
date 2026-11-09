@@ -35,8 +35,8 @@ insert into public.profiles (id, company_id, full_name) values
 insert into public.warehouses (id, company_id, name) values
   ('cccccccc-cccc-4ccc-8ccc-0000000000a1', 'cccccccc-cccc-4ccc-8ccc-0000000000f1', 'مخزن ك');
 
-insert into public.cash_boxes (id, company_id, name) values
-  ('cccccccc-cccc-4ccc-8ccc-0000000000b1', 'cccccccc-cccc-4ccc-8ccc-0000000000f1', 'خزنة ك');
+insert into public.cash_boxes (id, company_id, name, opening_balance) values
+  ('cccccccc-cccc-4ccc-8ccc-0000000000b1', 'cccccccc-cccc-4ccc-8ccc-0000000000f1', 'خزنة ك', 100);
 
 insert into public.accounts (id, company_id, name, kind) values
   ('cccccccc-cccc-4ccc-8ccc-0000000000c1', 'cccccccc-cccc-4ccc-8ccc-0000000000f1', 'عميل ك', 'customer'),
@@ -92,7 +92,7 @@ begin
     'sale return: receipt statement'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = -20,
+    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = 80,
     'sale return: cash -20'
   );
 end $$;
@@ -134,7 +134,7 @@ begin
     'purchase return: refund direction in'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = -10,
+    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = 90,
     'purchase return: cash -20 + 10 = -10'
   );
 end $$;
@@ -165,7 +165,7 @@ begin
     'sale + return: 100 - 50 - (40 - 20) = 30'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = 30,
+    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = 130,
     'sale + return: cash -20 + 10 + 40 = 30'
   );
 end $$;
@@ -202,7 +202,7 @@ begin
     'edit return: balance 100 - 20 - (40 - 5) = 45'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = 45,
+    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = 145,
     'edit return: cash 40 - 5 + 10 = 45'
   );
 end $$;
@@ -230,7 +230,7 @@ begin
     'delete return: balance 100 - 40'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = 50,
+    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = 150,
     'delete return: cash 40 + 10'
   );
 
@@ -280,7 +280,7 @@ begin
     'return without refund: balance 100 - 30 - 35 = 35'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = 45,
+    (select balance from public.v_cash_box_balances where id = 'cccccccc-cccc-4ccc-8ccc-0000000000b1') = 145,
     'return without refund: cash unchanged'
   );
   perform public.test_expect(

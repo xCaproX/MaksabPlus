@@ -39,9 +39,9 @@ declare
   v_return uuid;
   v_purchase_edit uuid;
   v_ok boolean;
+  v_err_msg text;
   v_waste_account uuid;
 begin
-  -- تعديل كمية شراء بعد بيع جزء منها يطبق الفرق مباشرة ولا يرفض بسبب رصيد مؤقت سالب.
   v_purchase_edit := public.create_invoice(
     'purchase', 'eeeeeeee-eeee-4eee-8eee-0000000000d1', 'eeeeeeee-eeee-4eee-8eee-0000000000a1',
     current_date, 0, null,
@@ -52,10 +52,24 @@ begin
     current_date, 0, null,
     '[{"item_id":"eeeeeeee-eeee-4eee-8eee-0000000000e2","qty":5,"unit_price":100}]'::jsonb
   );
+
+  -- تعديل بنود شراء بعد بيع لاحق ممنوع لحماية المتوسط المرجح والتكلفة التاريخية، لكن تعديل الملاحظات مسموح
+  v_err_msg := 'NO_ERROR';
+  begin
+    perform public.update_invoice(v_purchase_edit, 'eeeeeeee-eeee-4eee-8eee-0000000000d1',
+      'eeeeeeee-eeee-4eee-8eee-0000000000a1', current_date, 0, null,
+      '[{"item_id":"eeeeeeee-eeee-4eee-8eee-0000000000e2","qty":5,"unit_price":10}]'::jsonb);
+  exception when others then
+    v_err_msg := sqlerrm;
+  end;
+  perform public.test_expect(v_err_msg = 'cannot_modify_purchase_items_with_subsequent_sales', 'cannot modify purchase items with subsequent sales', v_err_msg);
+
+  -- تعديل الملاحظات فقط يمر بنجاح
   perform public.update_invoice(v_purchase_edit, 'eeeeeeee-eeee-4eee-8eee-0000000000d1',
-    'eeeeeeee-eeee-4eee-8eee-0000000000a1', current_date, 0, null,
-    '[{"item_id":"eeeeeeee-eeee-4eee-8eee-0000000000e2","qty":5,"unit_price":10}]'::jsonb);
-  perform public.test_expect((select qty from public.item_stock where item_id = 'eeeeeeee-eeee-4eee-8eee-0000000000e2') = 0, 'purchase edit applies net quantity change after a sale');
+    'eeeeeeee-eeee-4eee-8eee-0000000000a1', current_date, 0, 'ملاحظة محدثة',
+    '[{"item_id":"eeeeeeee-eeee-4eee-8eee-0000000000e2","qty":10,"unit_price":10}]'::jsonb);
+  perform public.test_expect((select notes from public.invoices where id = v_purchase_edit) = 'ملاحظة محدثة', 'purchase notes edit allowed');
+  perform public.test_expect((select qty from public.item_stock where item_id = 'eeeeeeee-eeee-4eee-8eee-0000000000e2') = 5, 'stock remains 5 after sale');
 
   v_purchase := public.create_invoice(
     'purchase', 'eeeeeeee-eeee-4eee-8eee-0000000000d1', 'eeeeeeee-eeee-4eee-8eee-0000000000a1',

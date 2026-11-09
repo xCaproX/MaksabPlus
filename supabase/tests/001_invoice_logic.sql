@@ -43,9 +43,9 @@ insert into public.warehouses (id, company_id, name) values
   ('11111111-1111-4111-8111-0000000000a9', '11111111-1111-4111-8111-0000000000f1', 'مخزن أ - فرعي'),
   ('22222222-2222-4222-8222-0000000000a2', '22222222-2222-4222-8222-0000000000f2', 'مخزن ب');
 
-insert into public.cash_boxes (id, company_id, name) values
-  ('11111111-1111-4111-8111-0000000000b1', '11111111-1111-4111-8111-0000000000f1', 'خزنة أ'),
-  ('22222222-2222-4222-8222-0000000000b2', '22222222-2222-4222-8222-0000000000f2', 'خزنة ب');
+insert into public.cash_boxes (id, company_id, name, opening_balance) values
+  ('11111111-1111-4111-8111-0000000000b1', '11111111-1111-4111-8111-0000000000f1', 'خزنة أ', 1000),
+  ('22222222-2222-4222-8222-0000000000b2', '22222222-2222-4222-8222-0000000000f2', 'خزنة ب', 0);
 
 insert into public.accounts (id, company_id, name, kind) values
   ('11111111-1111-4111-8111-0000000000c1', '11111111-1111-4111-8111-0000000000f1', 'عميل أ', 'customer'),
@@ -97,7 +97,7 @@ begin
     'sale: customer balance = 150'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 50,
+    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 1050,
     'sale: cash = +50'
   );
 end $$;
@@ -131,7 +131,7 @@ begin
     'purchase: supplier balance = 200'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = -50,
+    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 950,
     'purchase: cash = -50'
   );
 end $$;
@@ -170,7 +170,7 @@ begin
     'update: customer balance = 100'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 100,
+    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 1100,
     'update: cash = 100'
   );
 end $$;
@@ -207,7 +207,7 @@ begin
     'paid=0: customer balance = 300'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = -100,
+    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 900,
     'paid=0: cash = -100'
   );
 end $$;
@@ -240,7 +240,7 @@ begin
     '0 -> 50: receipt number kept'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = -50,
+    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 950,
     '0 -> 50: cash = -50'
   );
 
@@ -329,6 +329,19 @@ begin
   end;
   perform public.test_expect(v_ok, 'rejects paid > total');
 
+  -- دفع مشتريات أكبر من رصيد الخزنة المتاح يرفض بمنع السحب على المكشوف
+  v_ok := false;
+  begin
+    perform public.create_invoice(
+      'purchase', '11111111-1111-4111-8111-0000000000d1', '11111111-1111-4111-8111-0000000000a1',
+      current_date, 5000, null,
+      '[{"item_id":"11111111-1111-4111-8111-0000000000e1","qty":50,"unit_price":100}]'::jsonb
+    );
+  exception when others then
+    v_ok := (sqlerrm = 'insufficient_cash_box_balance');
+  end;
+  perform public.test_expect(v_ok, 'rejects purchase exceeding cash box balance');
+
   -- فاتورة بلا سطور
   v_ok := false;
   begin
@@ -391,7 +404,7 @@ begin
     'delete: supplier balance = 0'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 0,
+    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 1000,
     'delete: cash = 0'
   );
 
@@ -437,7 +450,7 @@ begin
     'sale to supplier: balance 100 - 20'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 20,
+    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 1020,
     'sale to supplier: cash +20 (direction from invoice)'
   );
   perform public.test_expect(
@@ -489,7 +502,7 @@ begin
     'update to customer: customer balance 100 - 20 + 30'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 20,
+    (select balance from public.v_cash_box_balances where id = '11111111-1111-4111-8111-0000000000b1') = 1020,
     'update to customer: cash unchanged 20'
   );
 end $$;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hasPermission, type AccessState } from '../lib/accessCheck';
+import { hasPermission, canViewProfit, type AccessState } from '../lib/accessCheck';
 
 describe('accessCheck - حوكمة الصلاحيات والأمان', () => {
   it('يرفض الصلاحية فوراً إذا لم توجد جلسة مستخدم (null أو undefined)', () => {
@@ -78,5 +78,33 @@ describe('accessCheck - حوكمة الصلاحيات والأمان', () => {
     expect(hasPermission(employee, 'goods.sale.view', 'money.in.view')).toBe(true);
     // هل يملك 'goods.sale.view' أو 'goods.purchase.view'؟
     expect(hasPermission(employee, 'goods.sale.view', 'goods.purchase.view')).toBe(false);
+  });
+});
+
+describe('canViewProfit - فحص صلاحيات الأرباح والتكلفة', () => {
+  it('يمنح مالك الشركة (owner) صلاحية رؤية الأرباح والتكلفة دائماً', () => {
+    const owner: AccessState = { role: 'owner', permissions: [] };
+    expect(canViewProfit(owner)).toBe(true);
+  });
+
+  it('يمنح الموظف إذا كان يمتلك صلاحية reports.profit.view صراحة', () => {
+    const privilegedEmp: AccessState = {
+      role: 'employee',
+      permissions: ['reports.profit.view'],
+    };
+    expect(canViewProfit(privilegedEmp)).toBe(true);
+  });
+
+  it('يحجب أرقام الأرباح عن الموظف إذا لم يمتلك صلاحية reports.profit.view', () => {
+    const normalEmp: AccessState = {
+      role: 'employee',
+      permissions: ['goods.sale.view', 'balances.view'],
+    };
+    expect(canViewProfit(normalEmp)).toBe(false);
+  });
+
+  it('يرفض الصلاحية في حالة عدم وجود جلسة (null أو undefined)', () => {
+    expect(canViewProfit(null)).toBe(false);
+    expect(canViewProfit(undefined)).toBe(false);
   });
 });

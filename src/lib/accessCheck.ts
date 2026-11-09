@@ -44,3 +44,12 @@ export function hasPermission(
     return false;
   });
 }
+
+/**
+ * فحص صلاحية الاطلاع على التكاليف والأرباح
+ * مسموح فقط لمالك الشركة (owner) أو من يمتلك صلاحية reports.profit.view صريحة
+ */
+export function canViewProfit(access: AccessState | null | undefined): boolean {
+  if (!access) return false;
+  return access.role === 'owner' || hasPermission(access, 'reports.profit.view');
+}
