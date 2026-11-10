@@ -321,7 +321,7 @@ export default function AccountOpeningTab({
                         />
                       </td>
                       <td className="num" style={{ width: '170px' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                           {(() => {
                             const status = getBalanceStatus(account.balance, account.kind);
                             return (

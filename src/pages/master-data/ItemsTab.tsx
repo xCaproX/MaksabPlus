@@ -425,7 +425,6 @@ export default function ItemsTab() {
                     field="price"
                     currentSort={sortOrder}
                     onSort={(s) => setSortOrder(s as ItemSort)}
-                    align="end"
                     className="num"
                   />
                   <th className="num col-hide-on-detail">سعر الشراء</th>

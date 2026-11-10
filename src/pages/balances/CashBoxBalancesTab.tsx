@@ -185,7 +185,6 @@ export default function CashBoxBalancesTab() {
                     field="balance"
                     currentSort={sortOrder}
                     onSort={(s) => setSortOrder(s as BalanceSort)}
-                    align="end"
                     className="num"
                   />
                   <th className="col-hide-on-detail col-notes">الملاحظات</th>

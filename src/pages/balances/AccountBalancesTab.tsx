@@ -361,7 +361,6 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                     field="balance"
                     currentSort={sortOrder}
                     onSort={(s) => setSortOrder(s as BalanceSort)}
-                    align="end"
                     className="num"
                   />
                   <th className="col-hide-on-detail col-notes">الملاحظات</th>
@@ -410,8 +409,6 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '8px',
-                              justifyContent: 'flex-end',
-                              width: '100%',
                             }}
                           >
                             <span className={`status-badge-mini status-${status.type}`}>
