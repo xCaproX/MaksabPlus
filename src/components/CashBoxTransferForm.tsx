@@ -248,6 +248,7 @@ export default function CashBoxTransferForm({
                     className="receipt-amount-input no-spinner num"
                     required
                   />
+                  <span className="line-unit-suffix">ج.م</span>
                   <button
                     type="button"
                     className="btn-settle-all-action"
@@ -305,7 +306,7 @@ export default function CashBoxTransferForm({
             </button>
           )}
           {onEdit && (
-            <button type="button" className="btn primary" onClick={onEdit}>
+            <button type="button" className={onRestore ? 'btn' : 'btn primary'} onClick={onEdit}>
               <Pencil size={15} />
               <span>تعديل التحويل</span>
             </button>

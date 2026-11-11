@@ -284,42 +284,48 @@ export default function StockOpeningTab({
                       }}
                     >
                       <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', row.item_number)}</bdi></td>
-                      <td className="num col-hide-on-detail" style={{ width: '100px' }}>{row.item_code}</td>
+                      <td className="num col-hide-on-detail" style={{ width: '100px' }}><bdi dir="ltr" className="tabular-nums">{row.item_code}</bdi></td>
                       <td className="strong">{row.item_name}</td>
                       <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '150px' }}>
-                        <input
-                          className="table-input num no-spinner"
-                          style={{ width: '100%', maxWidth: '130px' }}
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="0.0001"
-                          disabled={!canEditOpening || saving}
-                          value={value.qty}
-                          onFocus={(event) => event.target.select()}
-                          onChange={(event) =>
-                            setStockValues((values) => ({ ...values, [key]: { ...value, qty: event.target.value } }))
-                          }
-                        />
+                        <div className="input-with-suffix">
+                          <input
+                            className="table-input num no-spinner"
+                            style={{ width: '100%', maxWidth: '130px' }}
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.0001"
+                            disabled={!canEditOpening || saving}
+                            value={value.qty}
+                            onFocus={(event) => event.target.select()}
+                            onChange={(event) =>
+                              setStockValues((values) => ({ ...values, [key]: { ...value, qty: event.target.value } }))
+                            }
+                          />
+                          <span className="input-suffix">{row.unit}</span>
+                        </div>
                       </td>
                       {canViewProfit && <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '150px' }}>
-                        <input
-                          className="table-input num no-spinner"
-                          style={{ width: '100%', maxWidth: '130px' }}
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="0.0001"
-                          value={value.cost}
-                          disabled={!canEditOpening || row.cost_locked || saving}
-                          onFocus={(event) => event.target.select()}
-                          onChange={(event) =>
-                            setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))
-                          }
-                        />
+                        <div className="input-with-suffix">
+                          <input
+                            className="table-input num no-spinner"
+                            style={{ width: '100%', maxWidth: '130px' }}
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.0001"
+                            value={value.cost}
+                            disabled={!canEditOpening || row.cost_locked || saving}
+                            onFocus={(event) => event.target.select()}
+                            onChange={(event) =>
+                              setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))
+                            }
+                          />
+                          <span className="input-suffix">ج.م</span>
+                        </div>
                       </td>}
                       <td className="num strong" style={{ width: '140px' }}>
-                        {formatQty(row.current_qty)} {row.unit}
+                        <bdi dir="ltr" className="tabular-nums">{formatQty(row.current_qty)}</bdi> {row.unit}
                       </td>
                     </tr>
                   );
@@ -351,20 +357,20 @@ export default function StockOpeningTab({
               </div>
 
               <dl className="erp-detail-summary">
-                <div><dt>رقم الصنف</dt><dd className="num">{entityNumber('ITM', selectedItemRow.item_number)}</dd></div>
-                <div><dt>كود الصنف</dt><dd className="num">{selectedItemRow.item_code}</dd></div>
+                <div><dt>رقم الصنف</dt><dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', selectedItemRow.item_number)}</bdi></dd></div>
+                <div><dt>كود الصنف</dt><dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedItemRow.item_code}</bdi></dd></div>
                 <div><dt>المخزن</dt><dd>{selectedWarehouse?.name || selectedItemRow.warehouse_name}</dd></div>
-                <div><dt>الرصيد المتاح حاليًا</dt><dd className="num strong">{formatQty(selectedItemRow.current_qty)} {selectedItemRow.unit}</dd></div>
+                <div><dt>الرصيد المتاح حاليًا</dt><dd className="num strong"><bdi dir="ltr" className="tabular-nums">{formatQty(selectedItemRow.current_qty)}</bdi> {selectedItemRow.unit}</dd></div>
               </dl>
 
               <div className="erp-detail-totals">
                 <span>كمية البداية</span>
                 <strong className="num">
-                  {formatQty(Number(stockValues[`${selectedItemRow.warehouse_id}:${selectedItemRow.item_id}`]?.qty ?? selectedItemRow.opening_qty))} {selectedItemRow.unit}
+                  <bdi dir="ltr" className="tabular-nums">{formatQty(Number(stockValues[`${selectedItemRow.warehouse_id}:${selectedItemRow.item_id}`]?.qty ?? selectedItemRow.opening_qty))}</bdi> {selectedItemRow.unit}
                 </strong>
                 {canViewProfit && <><span>تكلفة الوحدة</span>
                 <strong className="num">
-                  {money(Number(stockValues[`${selectedItemRow.warehouse_id}:${selectedItemRow.item_id}`]?.cost ?? selectedItemRow.unit_cost))}
+                  <bdi dir="ltr" className="tabular-nums">{money(Number(stockValues[`${selectedItemRow.warehouse_id}:${selectedItemRow.item_id}`]?.cost ?? selectedItemRow.unit_cost))}</bdi>
                 </strong></>}
               </div>
 

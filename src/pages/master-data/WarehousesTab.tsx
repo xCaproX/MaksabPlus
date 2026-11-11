@@ -392,7 +392,7 @@ export default function WarehousesTab() {
               <dl className="erp-detail-summary">
                 <div>
                   <dt>الرقم</dt>
-                  <dd className="num">{entityNumber('WH', selectedWarehouse.serial_number)}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber('WH', selectedWarehouse.serial_number)}</bdi></dd>
                 </div>
                 <div>
                   <dt>النوع</dt>

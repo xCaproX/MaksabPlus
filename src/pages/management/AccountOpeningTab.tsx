@@ -303,19 +303,22 @@ export default function AccountOpeningTab({
                       <td className="strong">{account.name}</td>
                       <td className="muted col-hide-on-detail" style={{ width: '90px' }}>{isCustomer ? 'عميل' : 'مورد'}</td>
                       <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '160px' }}>
-                        <input
-                          className="table-input num no-spinner"
-                          style={{ width: '100%', maxWidth: '140px' }}
-                          type="number"
-                          inputMode="decimal"
-                          step="0.0001"
-                          disabled={!canEditOpening || saving}
-                          value={accountValues[account.id] ?? '0'}
-                          onFocus={(event) => event.target.select()}
-                          onChange={(event) =>
-                            setAccountValues((values) => ({ ...values, [account.id]: event.target.value }))
-                          }
-                        />
+                        <div className="input-with-suffix">
+                          <input
+                            className="table-input num no-spinner"
+                            style={{ width: '100%', maxWidth: '140px' }}
+                            type="number"
+                            inputMode="decimal"
+                            step="0.0001"
+                            disabled={!canEditOpening || saving}
+                            value={accountValues[account.id] ?? '0'}
+                            onFocus={(event) => event.target.select()}
+                            onChange={(event) =>
+                              setAccountValues((values) => ({ ...values, [account.id]: event.target.value }))
+                            }
+                          />
+                          <span className="input-suffix">ج.م</span>
+                        </div>
                       </td>
                       <td className="num" style={{ width: '170px' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -362,10 +365,10 @@ export default function AccountOpeningTab({
               </div>
 
               <dl className="erp-detail-summary">
-                <div><dt>الرقم</dt><dd className="num">{entityNumber(entityPrefix, selectedAccount.serial_number)}</dd></div>
-                <div><dt>الهاتف</dt><dd className="num">{selectedAccount.phone || '—'}</dd></div>
+                <div><dt>الرقم</dt><dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber(entityPrefix, selectedAccount.serial_number)}</bdi></dd></div>
+                <div><dt>الهاتف</dt><dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedAccount.phone || '—'}</bdi></dd></div>
                 <div><dt>الحالة</dt><dd>{selectedAccount.is_active ? 'نشط' : 'معطل'}</dd></div>
-                <div><dt>الرصيد الفعلي الحالي</dt><dd className="num strong">{money(selectedAccount.balance)}</dd></div>
+                <div><dt>الرصيد الفعلي الحالي</dt><dd className="num strong"><bdi dir="ltr" className="tabular-nums">{money(selectedAccount.balance)}</bdi></dd></div>
               </dl>
 
               <div className="erp-detail-totals">

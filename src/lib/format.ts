@@ -126,7 +126,7 @@ export function formatFullArabicDate(date: Date = new Date()): string {
       timeZone: 'Africa/Cairo',
     }).format(date).replace('،', '').trim();
   } catch {
-    return date.toLocaleDateString('ar-EG');
+    return date.toLocaleDateString('ar-EG', { timeZone: 'Africa/Cairo' });
   }
 }
 

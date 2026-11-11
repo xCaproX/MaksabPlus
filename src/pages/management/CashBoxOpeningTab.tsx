@@ -205,21 +205,26 @@ export default function CashBoxOpeningTab({
                       <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('CBX', box.serial_number)}</bdi></td>
                       <td className="strong">{box.name}</td>
                       <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '160px' }}>
-                        <input
-                          className="table-input num no-spinner"
-                          style={{ width: '100%', maxWidth: '140px' }}
-                          type="number"
-                          inputMode="decimal"
-                          step="0.0001"
-                          disabled={!canEditOpening || saving}
-                          value={cashValues[box.id] ?? '0'}
-                          onFocus={(event) => event.target.select()}
-                          onChange={(event) =>
-                            setCashValues((values) => ({ ...values, [box.id]: event.target.value }))
-                          }
-                        />
+                        <div className="input-with-suffix">
+                          <input
+                            className="table-input num no-spinner"
+                            style={{ width: '100%', maxWidth: '140px' }}
+                            type="number"
+                            inputMode="decimal"
+                            step="0.0001"
+                            disabled={!canEditOpening || saving}
+                            value={cashValues[box.id] ?? '0'}
+                            onFocus={(event) => event.target.select()}
+                            onChange={(event) =>
+                              setCashValues((values) => ({ ...values, [box.id]: event.target.value }))
+                            }
+                          />
+                          <span className="input-suffix">ج.م</span>
+                        </div>
                       </td>
-                      <td className="num strong remaining" style={{ width: '160px' }}>{money(box.balance)}</td>
+                      <td className="num strong remaining" style={{ width: '160px' }}>
+                        <bdi dir="ltr" className="tabular-nums">{money(box.balance)}</bdi>
+                      </td>
                     </tr>
                   );
                 })}
@@ -250,14 +255,14 @@ export default function CashBoxOpeningTab({
               </div>
 
               <dl className="erp-detail-summary">
-                <div><dt>رقم الخزنة</dt><dd className="num">{entityNumber('CBX', selectedBox.serial_number)}</dd></div>
+                <div><dt>رقم الخزنة</dt><dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber('CBX', selectedBox.serial_number)}</bdi></dd></div>
                 <div><dt>النوع</dt><dd>{selectedBox.is_primary ? 'الخزنة الرئيسية' : 'خزنة فرعية'}</dd></div>
-                <div><dt>الرصيد الفعلي الحالي</dt><dd className="num strong">{money(selectedBox.balance)}</dd></div>
+                <div><dt>الرصيد الفعلي الحالي</dt><dd className="num strong"><bdi dir="ltr" className="tabular-nums">{money(selectedBox.balance)}</bdi></dd></div>
               </dl>
 
               <div className="erp-detail-totals">
                 <span>الرصيد الافتتاحي</span>
-                <strong className="num remaining">{money(Number(cashValues[selectedBox.id] ?? selectedBox.opening_balance))}</strong>
+                <strong className="num remaining"><bdi dir="ltr" className="tabular-nums">{money(Number(cashValues[selectedBox.id] ?? selectedBox.opening_balance))}</bdi></strong>
               </div>
             </>
           ) : (

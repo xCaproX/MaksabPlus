@@ -416,7 +416,7 @@ export default function CashBoxesTab() {
               <dl className="erp-detail-summary">
                 <div>
                   <dt>الرقم</dt>
-                  <dd className="num">{entityNumber('CBX', selectedBox.serial_number)}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber('CBX', selectedBox.serial_number)}</bdi></dd>
                 </div>
                 <div>
                   <dt>النوع</dt>
@@ -495,16 +495,19 @@ export default function CashBoxesTab() {
               {!editingCashBoxId && (
                 <label>
                   الرصيد الافتتاحي
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.0001"
-                    className="num no-spinner"
-                    value={cashBoxOpeningBalance}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setCashBoxOpeningBalance(e.target.value)}
-                    placeholder="0.00"
-                  />
+                  <div className="input-with-suffix">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.0001"
+                      className="num no-spinner"
+                      value={cashBoxOpeningBalance}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setCashBoxOpeningBalance(e.target.value)}
+                      placeholder="0.00"
+                    />
+                    <span className="input-suffix">ج.م</span>
+                  </div>
                 </label>
               )}
             </div>

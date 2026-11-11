@@ -281,7 +281,7 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
           <aside className="users-sidebar-panel" aria-label="قائمة الموظفين">
             <div className="users-sidebar-head">
               <div className="head-row">
-                <strong>المستخدمون ({filteredUsers.length})</strong>
+                <strong>المستخدمون (<bdi dir="ltr" className="tabular-nums">{filteredUsers.length}</bdi>)</strong>
               </div>
 
               <div className="users-sidebar-filters">
@@ -343,7 +343,7 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
                         <span className="badge danger">موقوف</span>
                       )}
                       <span className="muted">
-                        {isOwner ? 'كامل الصلاحيات' : `${userKeys.length} من ${allKeys.length} صلاحية`}
+                        {isOwner ? 'كامل الصلاحيات' : <><bdi dir="ltr" className="tabular-nums">{userKeys.length}</bdi> من <bdi dir="ltr" className="tabular-nums">{allKeys.length}</bdi> صلاحية</>}
                       </span>
                     </div>
                   </button>
@@ -450,7 +450,7 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
 
                       <div className="matrix-toolbar-actions">
                         <span className="matrix-toolbar-count">
-                          <strong>{currentDraftKeys.length}</strong> من <strong>{allKeys.length}</strong>
+                          <strong><bdi dir="ltr" className="tabular-nums">{currentDraftKeys.length}</bdi></strong> من <strong><bdi dir="ltr" className="tabular-nums">{allKeys.length}</bdi></strong>
                         </span>
                         <button
                           type="button"
@@ -561,7 +561,7 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
 
               <div className="matrix-toolbar-actions">
                 <span className="matrix-toolbar-count" style={{ fontSize: '11px' }}>
-                  ({invitePermissions.length} من {allKeys.length})
+                  (<bdi dir="ltr" className="tabular-nums">{invitePermissions.length}</bdi> من <bdi dir="ltr" className="tabular-nums">{allKeys.length}</bdi>)
                 </span>
                 <button
                   type="button"
@@ -776,7 +776,7 @@ function SectionGroupRows({
             <span className="matrix-section-chevron">{isExpanded ? '▾' : '▸'}</span>
             <span>{section.label}</span>
             <span className="muted" style={{ fontSize: '11px', fontWeight: 'normal' }}>
-              ({checkedCount} من {totalCount})
+              (<bdi dir="ltr" className="tabular-nums">{checkedCount}</bdi> من <bdi dir="ltr" className="tabular-nums">{totalCount}</bdi>)
             </span>
           </button>
         </td>

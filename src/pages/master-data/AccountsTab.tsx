@@ -556,11 +556,11 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
               <dl className="erp-detail-summary">
                 <div>
                   <dt>الرقم التسلسلي</dt>
-                  <dd className="num">{entityNumber(entityPrefix, selectedAccount.serial_number)}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber(entityPrefix, selectedAccount.serial_number)}</bdi></dd>
                 </div>
                 <div>
                   <dt>رقم الهاتف</dt>
-                  <dd className="num">{selectedAccount.phone || '—'}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedAccount.phone || '—'}</bdi></dd>
                 </div>
                 <div>
                   <dt>الحالة</dt>

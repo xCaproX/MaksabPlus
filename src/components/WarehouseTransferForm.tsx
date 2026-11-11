@@ -521,7 +521,7 @@ export default function WarehouseTransferForm({
                   return (
                     <tr key={line.key} className="inserted-line-row">
                       <td className="w-num center line-index-cell" data-label="#">
-                        {index + 1}
+                        <bdi dir="ltr" className="tabular-nums">{index + 1}</bdi>
                       </td>
                       <td data-label="الصنف">
                         <div className="inserted-item-info">
@@ -601,7 +601,7 @@ export default function WarehouseTransferForm({
             </button>
           )}
           {onEdit && (
-            <button type="button" className="btn primary" onClick={onEdit}>
+            <button type="button" className={onRestore ? 'btn' : 'btn primary'} onClick={onEdit}>
               <Pencil size={15} />
               <span>تعديل التحويل</span>
             </button>

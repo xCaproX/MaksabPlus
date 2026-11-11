@@ -518,11 +518,11 @@ export default function ItemsTab() {
               <dl className="erp-detail-summary">
                 <div>
                   <dt>الرقم</dt>
-                  <dd className="num">{entityNumber('ITM', selectedItem.serial_number)}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', selectedItem.serial_number)}</bdi></dd>
                 </div>
                 <div>
                   <dt>كود الصنف</dt>
-                  <dd className="num">{selectedItem.code}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedItem.code}</bdi></dd>
                 </div>
                 <div>
                   <dt>الوحدة</dt>
@@ -536,9 +536,9 @@ export default function ItemsTab() {
 
               <div className="erp-detail-totals">
                 <span>سعر البيع</span>
-                <strong className="num">{money(selectedItem.sale_price)}</strong>
+                <strong className="num"><bdi dir="ltr" className="tabular-nums">{money(selectedItem.sale_price)}</bdi></strong>
                 <span>سعر الشراء</span>
-                <strong className="num">{money(selectedItem.purchase_price)}</strong>
+                <strong className="num"><bdi dir="ltr" className="tabular-nums">{money(selectedItem.purchase_price)}</bdi></strong>
               </div>
 
               {selectedItem.notes && (
@@ -616,37 +616,43 @@ export default function ItemsTab() {
 
                 <label>
                   سعر البيع الافتراضي
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.0001"
-                    min="0"
-                    className="num no-spinner"
-                    value={salePrice}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setSalePrice(e.target.value)}
-                    placeholder="0.00"
-                    required
-                  />
+                  <div className="input-with-suffix">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.0001"
+                      min="0"
+                      className="num no-spinner"
+                      value={salePrice}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setSalePrice(e.target.value)}
+                      placeholder="0.00"
+                      required
+                    />
+                    <span className="input-suffix">ج.م</span>
+                  </div>
                 </label>
 
                 <label>
                   سعر الشراء الافتراضي
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.0001"
-                    min="0"
-                    className="num no-spinner"
-                    value={purchasePrice}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => setPurchasePrice(e.target.value)}
-                    placeholder="0.00"
-                    required
-                  />
+                  <div className="input-with-suffix">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.0001"
+                      min="0"
+                      className="num no-spinner"
+                      value={purchasePrice}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setPurchasePrice(e.target.value)}
+                      placeholder="0.00"
+                      required
+                    />
+                    <span className="input-suffix">ج.م</span>
+                  </div>
                 </label>
 
-                <label className="span-2">
+                <label style={{ gridColumn: '1 / -1' }}>
                   ملاحظات الصنف
                   <input
                     type="text"
@@ -682,29 +688,35 @@ export default function ItemsTab() {
                       <>
                         <label>
                           الكمية الافتتاحية
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            step="0.0001"
-                            min="0"
-                            className="num no-spinner"
-                            value={itemOpeningQty}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) => setItemOpeningQty(e.target.value)}
-                          />
+                          <div className="input-with-suffix">
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              step="0.0001"
+                              min="0"
+                              className="num no-spinner"
+                              value={itemOpeningQty}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setItemOpeningQty(e.target.value)}
+                            />
+                            <span className="input-suffix">{itemUnit.trim() || 'قطعة'}</span>
+                          </div>
                         </label>
                         <label>
                           تكلفة الوحدة الافتتاحية
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            step="0.0001"
-                            min="0"
-                            className="num no-spinner"
-                            value={itemOpeningCost}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) => setItemOpeningCost(e.target.value)}
-                          />
+                          <div className="input-with-suffix">
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              step="0.0001"
+                              min="0"
+                              className="num no-spinner"
+                              value={itemOpeningCost}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setItemOpeningCost(e.target.value)}
+                            />
+                            <span className="input-suffix">ج.م</span>
+                          </div>
                         </label>
                       </>
                     )}

@@ -333,6 +333,7 @@ export default function ReceiptForm({
                     className="receipt-amount-input no-spinner num"
                     required
                   />
+                  <span className="line-unit-suffix">ج.م</span>
                   <button
                     type="button"
                     className="btn-settle-all-action"
@@ -452,7 +453,7 @@ export default function ReceiptForm({
           {onEdit && editing?.is_free && (
             <button
               type="button"
-              className="btn primary btn-receipt-edit"
+              className={onRestore ? 'btn btn-receipt-edit' : 'btn primary btn-receipt-edit'}
               onClick={onEdit}
             >
               <Pencil size={15} />

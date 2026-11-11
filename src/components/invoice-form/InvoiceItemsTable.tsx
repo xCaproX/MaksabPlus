@@ -169,26 +169,29 @@ export default function InvoiceItemsTable({
                   </div>
                 </td>
                 <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
-                  <input
-                    ref={entryPriceInputRef}
-                    aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={entryUnitPrice}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => onEntryPriceChange(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        onInsertLine();
-                      }
-                    }}
-                    disabled={isWaste}
-                    className="no-spinner num"
-                  />
+                  <div className="line-qty-group">
+                    <input
+                      ref={entryPriceInputRef}
+                      aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={entryUnitPrice}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => onEntryPriceChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          onInsertLine();
+                        }
+                      }}
+                      disabled={isWaste}
+                      className="no-spinner num"
+                    />
+                    <span className="line-unit-suffix">ج.م</span>
+                  </div>
                 </td>
                 <td className="line-total" data-label="الإجمالي">
                   <MoneyDisplay value={entryLineTotal} />
@@ -233,7 +236,7 @@ export default function InvoiceItemsTable({
                 return (
                   <tr key={line.key} className="inserted-line-row">
                     <td className="w-num center line-index-cell" data-label="#">
-                      {index + 1}
+                      <bdi dir="ltr" className="tabular-nums">{index + 1}</bdi>
                     </td>
                     <td data-label="الصنف">
                       <div className="inserted-item-info">
@@ -300,19 +303,22 @@ export default function InvoiceItemsTable({
                       {isReadOnly ? (
                         <MoneyDisplay value={line.unit_price} className="readonly-line-price" />
                       ) : (
-                        <input
-                          aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={line.unit_price}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => onUpdateLine(line.key, { unit_price: e.target.value })}
-                          disabled={isWaste}
-                          className="no-spinner num"
-                        />
+                        <div className="line-qty-group">
+                          <input
+                            aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={line.unit_price}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => onUpdateLine(line.key, { unit_price: e.target.value })}
+                            disabled={isWaste}
+                            className="no-spinner num"
+                          />
+                          <span className="line-unit-suffix">ج.م</span>
+                        </div>
                       )}
                     </td>
                     <td className="line-total" data-label="الإجمالي">

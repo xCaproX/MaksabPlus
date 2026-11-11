@@ -305,8 +305,8 @@ td.row-actions > * + * {
   opacity: 0.8;
 }
 
-/* Columns retain full visibility since detail panel is an overlay drawer */
-/* .erp-sales-workspace.detail-open .col-hide-on-detail { display: none !important; } */
+/* Hide lower-priority columns when detail panel is open */
+.erp-sales-workspace.detail-open .col-hide-on-detail { display: none !important; }
 
 .erp-pagination {
   display: flex;

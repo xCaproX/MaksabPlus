@@ -15,7 +15,7 @@ import PeriodFilter from '../../components/PeriodFilter';
 import { periodDates, shiftCalendarDate } from '../../lib/period';
 import Pagination from '../../components/Pagination';
 import { supabase } from '../../lib/supabase';
-import { creationDate, creationTime, money } from '../../lib/format';
+import { creationDate, creationTime, money, qty } from '../../lib/format';
 import DateDisplay from '../../components/DateDisplay';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import { toast } from '../../components/Toast';
@@ -249,19 +249,19 @@ export default function ReconciliationLogTab({
                         </td>
                         <td className="col-hide-on-detail muted" style={{ fontSize: '0.85rem' }}>
                           <span>
-                            <bdi className="tabular-nums">{row.accounts_count}</bdi> حساب •{' '}
-                            <bdi className="tabular-nums">{row.cash_boxes_count}</bdi> خزنة •{' '}
-                            <bdi className="tabular-nums">{row.items_count}</bdi> صنف
+                            <bdi dir="ltr" className="tabular-nums">{row.accounts_count}</bdi> حساب •{' '}
+                            <bdi dir="ltr" className="tabular-nums">{row.cash_boxes_count}</bdi> خزنة •{' '}
+                            <bdi dir="ltr" className="tabular-nums">{row.items_count}</bdi> صنف
                           </span>
                         </td>
                         <td>
                           {isClean ? (
                             <span className="status-badge-mini status-active">
-                              متطابقة 100%
+                              <bdi dir="ltr" className="tabular-nums">100%</bdi> متطابقة
                             </span>
                           ) : (
                             <span className="status-badge-mini status-warning">
-                              {row.discrepancies_count} فروقات
+                              <bdi dir="ltr" className="tabular-nums">{row.discrepancies_count}</bdi> فروقات
                             </span>
                           )}
                         </td>
@@ -317,20 +317,20 @@ export default function ReconciliationLogTab({
                 </div>
                 <div>
                   <dt>الحسابات المفحوصة</dt>
-                  <dd className="num"><bdi>{selectedLog.accounts_count}</bdi> حساب</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedLog.accounts_count}</bdi> حساب</dd>
                 </div>
                 <div>
                   <dt>الخزن المفحوصة</dt>
-                  <dd className="num"><bdi>{selectedLog.cash_boxes_count}</bdi> خزنة</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedLog.cash_boxes_count}</bdi> خزنة</dd>
                 </div>
                 <div>
                   <dt>أصناف المخزون</dt>
-                  <dd className="num"><bdi>{selectedLog.items_count}</bdi> صنف</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedLog.items_count}</bdi> صنف</dd>
                 </div>
                 <div>
                   <dt>الفروقات المكتشفة</dt>
                   <dd className="num strong" style={{ color: selectedLog.discrepancies_count > 0 ? '#d97706' : '#10b981' }}>
-                    <bdi>{selectedLog.discrepancies_count}</bdi> فرق
+                    <bdi dir="ltr" className="tabular-nums">{selectedLog.discrepancies_count}</bdi> فرق
                   </dd>
                 </div>
                 {selectedLog.notes && (
@@ -377,30 +377,38 @@ export default function ReconciliationLogTab({
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedLog.discrepancies.map((item, index) => (
-                          <tr key={`${item.entity_id}-${index}`}>
-                            <td>{item.entity_type}</td>
-                            <td style={{ fontWeight: 600 }}>{item.entity_name}</td>
-                            <td className="tabular-nums" dir="ltr">
-                              <bdi>{money(item.old_balance)}</bdi>
-                            </td>
-                            <td className="tabular-nums" dir="ltr" style={{ fontWeight: 600 }}>
-                              <bdi>{money(item.reconciled_balance)}</bdi>
-                            </td>
-                            <td
-                              className="tabular-nums"
-                              dir="ltr"
-                              style={{
-                                fontWeight: 700,
-                                color: item.discrepancy > 0 ? '#10b981' : '#ef4444',
-                              }}
-                            >
-                              <bdi>
-                                {item.discrepancy > 0 ? `+${money(item.discrepancy)}` : money(item.discrepancy)}
-                              </bdi>
-                            </td>
-                          </tr>
-                        ))}
+                        {selectedLog.discrepancies.map((item, index) => {
+                          const isItem = item.entity_type === 'item' || item.entity_type === 'صنف';
+                          const formatVal = isItem ? qty : money;
+                          const typeLabel =
+                            ({ account: 'حساب', cash_box: 'خزنة', item: 'صنف' } as Record<string, string>)[
+                              item.entity_type
+                            ] ?? item.entity_type;
+                          return (
+                            <tr key={`${item.entity_id}-${index}`}>
+                              <td>{typeLabel}</td>
+                              <td style={{ fontWeight: 600 }}>{item.entity_name}</td>
+                              <td className="tabular-nums" dir="ltr">
+                                <bdi dir="ltr" className="tabular-nums">{formatVal(item.old_balance)}</bdi>
+                              </td>
+                              <td className="tabular-nums" dir="ltr" style={{ fontWeight: 600 }}>
+                                <bdi dir="ltr" className="tabular-nums">{formatVal(item.reconciled_balance)}</bdi>
+                              </td>
+                              <td
+                                className="tabular-nums"
+                                dir="ltr"
+                                style={{
+                                  fontWeight: 700,
+                                  color: item.discrepancy > 0 ? '#10b981' : '#ef4444',
+                                }}
+                              >
+                                <bdi dir="ltr" className="tabular-nums">
+                                  {item.discrepancy > 0 ? `+${formatVal(item.discrepancy)}` : formatVal(item.discrepancy)}
+                                </bdi>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

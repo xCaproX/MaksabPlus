@@ -108,17 +108,20 @@ export default function InvoiceSummarySidebar({
             {isReadOnly ? (
               <MoneyDisplay value={paidNumber} strong className="strip-value" />
             ) : (
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={paid}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => onPaidChange(e.target.value)}
-                onBlur={onPaidBlur}
-                className="no-spinner num left-paid-input"
-                aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
-              />
+              <>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={paid}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => onPaidChange(e.target.value)}
+                  onBlur={onPaidBlur}
+                  className="no-spinner num left-paid-input"
+                  aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
+                />
+                <span className="line-unit-suffix">ج.م</span>
+              </>
             )}
           </div>
         </div>
@@ -228,7 +231,7 @@ export default function InvoiceSummarySidebar({
           {onEdit && (
             <button
               type="button"
-              className="btn primary btn-invoice-edit"
+              className={onRestore ? 'btn btn-invoice-edit' : 'btn primary btn-invoice-edit'}
               onClick={onEdit}
             >
               <Pencil size={15} />
