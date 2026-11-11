@@ -34,8 +34,8 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
     { item_id: 'itm-1', warehouse_id: 'wh-2', current_qty: 10 },
   ] as any;
 
-  it('يعرض كبسولات إجمالي الكميات وعدد الأصناف الموحدة', () => {
-    render(
+  it('يعرض شرائط إجمالي الكميات وعدد الأصناف في الشريط الجانبي الأيسر الموحد', () => {
+    const { container } = render(
       <WarehouseTransferForm
         warehouses={mockWarehouses}
         items={mockItems}
@@ -46,8 +46,11 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
       />
     );
 
-    expect(screen.getByText('عدد الأصناف:')).toBeInTheDocument();
-    expect(screen.getByText('إجمالي الكميات:')).toBeInTheDocument();
+    const leftSidebar = container.querySelector('.invoice-part-left');
+    expect(leftSidebar).toBeInTheDocument();
+    expect(leftSidebar).toHaveTextContent('عدد الأصناف');
+    expect(leftSidebar).toHaveTextContent('إجمالي الكميات');
+    expect(leftSidebar?.querySelector('textarea.left-notes-textarea')).toBeInTheDocument();
   });
 
   it('في وضع التعديل: يحسب الرصيد المتاح بإضافة الكمية المحولة سابقاً إلى رصيد مخزن المصدر', () => {
@@ -165,7 +168,9 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
     expect(screen.queryByLabelText('تاريخ التحويل')).not.toBeInTheDocument();
   });
 
-  it('يربط حاوية جدول الأصناف بفئات right-card و items-table-card لتخصيص المساحة الزائدة للجدول في الإنشاء والقراءة فقط', () => {
+  it('يربط النموذج بتخطيط invoice-two-parts-layout ويخصص المساحة الزائدة لجدول الأصناف في الإنشاء والقراءة فقط', () => {
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
     const { container, rerender } = render(
       <WarehouseTransferForm
         warehouses={mockWarehouses}
@@ -178,9 +183,14 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
       />
     );
 
-    const cardEdit = container.querySelector('.transfer-lines-card');
+    const form = container.querySelector('form');
+    expect(form).toHaveClass('invoice-form', 'invoice-two-parts-layout', 'warehouse-transfer-form');
+    expect(container.querySelector('.invoice-part-right .account-header-card')).toBeInTheDocument();
+    const cardEdit = container.querySelector('.invoice-part-right .transfer-lines-card');
     expect(cardEdit).toHaveClass('right-card', 'items-table-card');
     expect(cardEdit?.querySelector('.lines-wrap .lines-table')).toBeInTheDocument();
+    expect(container.querySelector('.invoice-part-left .left-actions-group')).toBeInTheDocument();
+    expect(screen.getByText('حفظ التحويل المخزني')).toBeInTheDocument();
 
     rerender(
       <WarehouseTransferForm
@@ -191,12 +201,19 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
         readOnly={true}
         onSaved={vi.fn()}
         onCancel={vi.fn()}
+        onEdit={onEdit}
+        onDelete={onDelete}
       />
     );
 
-    const cardReadOnly = container.querySelector('.transfer-lines-card');
+    const cardReadOnly = container.querySelector('.invoice-part-right .transfer-lines-card');
     expect(cardReadOnly).toHaveClass('right-card', 'items-table-card');
     expect(cardReadOnly?.querySelector('.lines-wrap .lines-table')).toBeInTheDocument();
+    expect(container.querySelector('.invoice-part-left .readonly-actions-group')).toBeInTheDocument();
+    expect(screen.getByText('تعديل التحويل')).toBeInTheDocument();
+    expect(screen.getByText('طباعة')).toBeInTheDocument();
+    expect(screen.getByText('حذف')).toBeInTheDocument();
+    expect(screen.getByText('إغلاق')).toBeInTheDocument();
   });
 });
 

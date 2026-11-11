@@ -1229,6 +1229,12 @@
   border-color: rgba(234, 179, 8, 0.5);
 }
 
+.strip-value-count {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
 .strip-value-total {
   font-size: 17.5px;
   font-weight: 850;
@@ -1458,15 +1464,27 @@
   }
   .invoice-two-parts-layout {
     grid-template-columns: 1fr !important;
+    flex: none !important;
+    min-height: auto !important;
     height: auto !important;
     overflow: visible !important;
   }
-  .invoice-part-right {
+  .invoice-part-right,
+  .invoice-part-left {
+    min-height: auto !important;
     height: auto !important;
     overflow: visible !important;
   }
   .items-table-card {
-    min-height: 280px;
+    flex: none;
+    min-height: auto;
+    height: auto;
+    overflow: visible;
+  }
+  .items-table-card .lines-wrap {
+    flex: none;
+    min-height: auto;
+    overflow-y: visible;
   }
 }
 
@@ -1524,14 +1542,14 @@
   font-weight: 650;
   color: var(--ink, #0f172a);
 }
-.invoice-form .readonly-actions-group {
+.invoice-two-parts-layout .readonly-actions-group {
   display: grid !important;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   width: 100%;
   margin-top: auto;
 }
-.invoice-form .readonly-actions-group .btn {
+.invoice-two-parts-layout .readonly-actions-group .btn {
   width: 100%;
   min-height: 38px;
   padding: 6px 8px;
@@ -1543,7 +1561,7 @@
   gap: 6px;
   white-space: nowrap;
 }
-.invoice-form .readonly-actions-group .btn:last-child:nth-child(odd) {
+.invoice-two-parts-layout .readonly-actions-group .btn:last-child:nth-child(odd) {
   grid-column: span 2;
 }
 .linked-receipt-box {

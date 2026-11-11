@@ -1,8 +1,9 @@
-import { Check, Pencil, Printer, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { money } from '../../lib/format';
 import SearchableSelect from '../SearchableSelect';
 import MoneyDisplay from '../MoneyDisplay';
 import StatusBadge from '../StatusBadge';
+import DocumentSummarySidebar from './DocumentSummarySidebar';
 import type { CashBoxRow, InvoiceRow, LineDraft } from '../../lib/types';
 
 export interface EditingInvoice {
@@ -64,8 +65,52 @@ export default function InvoiceSummarySidebar({
   onRestore,
   onPrint,
 }: InvoiceSummarySidebarProps) {
+  const saveLabel = editing
+    ? 'حفظ التعديلات'
+    : isReturn
+      ? 'حفظ المرتجع'
+      : isWaste
+        ? 'حفظ الهالك'
+        : 'حفظ الفاتورة';
+
+  const restoreLabel = `استعادة ${isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}`;
+
+  const linkedReceiptNode = editing?.invoice.receipt_number ? (
+    <div className="left-field-box linked-receipt-box">
+      <span className="linked-receipt-title">السند المالي المرتبط</span>
+      <div className="linked-receipt-badge">
+        <span>إيصال</span>
+        <bdi className="num" dir="ltr">
+          {editing.invoice.receipt_number}
+        </bdi>
+        <MoneyDisplay value={editing.invoice.receipt_amount ?? 0} currency />
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className="invoice-part-left">
+    <DocumentSummarySidebar
+      isReadOnly={isReadOnly}
+      isEditing={Boolean(editing)}
+      notes={notes}
+      busy={busy}
+      notesPlaceholder="ملاحظات اختيارية على الفاتورة…"
+      emptyNotesText="لا توجد ملاحظات على الفاتورة"
+      saveLabel={saveLabel}
+      restoreLabel={restoreLabel}
+      editLabel="تعديل الفاتورة"
+      printLabel="طباعة الفاتورة"
+      deleteLabel="حذف الفاتورة"
+      resetTitle="مسح بيانات الفاتورة الحالية والبدء من جديد"
+      onNotesChange={onNotesChange}
+      onResetNew={onResetNew}
+      onCancel={onCancel}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onRestore={onRestore}
+      onPrint={onPrint}
+      extraContent={linkedReceiptNode}
+    >
       {/* 1. إجمالي الفاتورة والخانة على نفس السطر */}
       <div className="left-row-strip left-total-strip">
         <span className="strip-label">
@@ -180,136 +225,6 @@ export default function InvoiceSummarySidebar({
           </label>
         </div>
       )}
-
-      {/* 5. ملاحظات */}
-      <div className="left-field-box">
-        <label>
-          <span>ملاحظات</span>
-          {isReadOnly ? (
-            <div className="readonly-val-box readonly-notes">
-              {notes || 'لا توجد ملاحظات على الفاتورة'}
-            </div>
-          ) : (
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => onNotesChange(e.target.value)}
-              placeholder="ملاحظات اختيارية على الفاتورة…"
-              className="left-notes-textarea"
-            />
-          )}
-        </label>
-      </div>
-
-      {/* السند المالي المرتبط إن وجد */}
-      {editing?.invoice.receipt_number && (
-        <div className="left-field-box linked-receipt-box">
-          <span className="linked-receipt-title">السند المالي المرتبط</span>
-          <div className="linked-receipt-badge">
-            <span>إيصال</span>
-            <bdi className="num" dir="ltr">
-              {editing.invoice.receipt_number}
-            </bdi>
-            <MoneyDisplay value={editing.invoice.receipt_amount ?? 0} currency />
-          </div>
-        </div>
-      )}
-
-      {/* 6. أزرار الإجراءات */}
-      {isReadOnly ? (
-        <div className="left-actions-group readonly-actions-group">
-          {onRestore && (
-            <button
-              type="button"
-              className="btn primary btn-invoice-restore"
-              onClick={onRestore}
-            >
-              <RotateCcw size={15} />
-              <span>استعادة {isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}</span>
-            </button>
-          )}
-          {onEdit && (
-            <button
-              type="button"
-              className={onRestore ? 'btn btn-invoice-edit' : 'btn primary btn-invoice-edit'}
-              onClick={onEdit}
-            >
-              <Pencil size={15} />
-              <span>تعديل الفاتورة</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-invoice-print"
-            onClick={onPrint ?? (() => window.print())}
-          >
-            <Printer size={15} />
-            <span>طباعة الفاتورة</span>
-          </button>
-          {onDelete && (
-            <button
-              type="button"
-              className="btn danger btn-invoice-delete"
-              onClick={onDelete}
-            >
-              <Trash2 size={15} />
-              <span>حذف الفاتورة</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-invoice-close"
-            onClick={onCancel}
-          >
-            <span>إغلاق</span>
-          </button>
-        </div>
-      ) : (
-        <div className="left-actions-group">
-          <button
-            type="submit"
-            className="btn primary btn-invoice-save"
-            disabled={busy}
-          >
-            <Save size={16} />
-            <span>
-              {busy
-                ? 'جارٍ الحفظ…'
-                : editing
-                  ? 'حفظ التعديلات'
-                  : isReturn
-                    ? 'حفظ المرتجع'
-                    : isWaste
-                      ? 'حفظ الهالك'
-                      : 'حفظ الفاتورة'}
-            </span>
-          </button>
-
-          {editing ? (
-            <button
-              type="button"
-              className="btn btn-invoice-clear"
-              onClick={onCancel}
-              disabled={busy}
-              title="إلغاء التعديل والعودة"
-            >
-              <X size={15} />
-              <span>إلغاء</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-invoice-clear"
-              onClick={onResetNew}
-              disabled={busy}
-              title="مسح بيانات الفاتورة الحالية والبدء من جديد"
-            >
-              <RotateCcw size={14} />
-              <span>مسح / جديد</span>
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+    </DocumentSummarySidebar>
   );
 }

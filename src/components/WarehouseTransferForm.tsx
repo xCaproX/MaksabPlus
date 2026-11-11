@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { Plus, RotateCcw, Save, Trash2, Pencil, Printer, X } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { FOCUS_SETTLE_DELAY_MS } from '../lib/ui';
 import { qty as formatQty, today } from '../lib/format';
@@ -8,6 +8,7 @@ import { calculateAvailableStock } from '../lib/invoiceValidation';
 import DateDisplay from './DateDisplay';
 import DateInput from './DateInput';
 import SearchableSelect from './SearchableSelect';
+import DocumentSummarySidebar from './invoice-form/DocumentSummarySidebar';
 import { searchWarehouseItemsAsync, lookupBarcodeItem } from '../lib/masterDataQueries';
 import { resolveDefaultWarehouse } from '../lib/defaults';
 import { clampDocQty, clampDocQtyOnBlur, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
@@ -295,106 +296,77 @@ export default function WarehouseTransferForm({
   }
 
   return (
-    <form className="warehouse-transfer-form" onSubmit={submit}>
-      {/* بطاقة المخازن والملاحظات الموحدة */}
-      <div className="account-header-card">
-        <div className="transfer-header-grid">
-          <label className="field-date">
-            <span>التاريخ</span>
-            {readOnly ? (
-              <div className="readonly-val-box num">
-                <DateDisplay value={date} />
-              </div>
-            ) : (
-              <DateInput
-                value={date}
-                onChange={setDate}
-                ariaLabel="تاريخ التحويل"
-                required
-              />
-            )}
-          </label>
+    <form className="invoice-form invoice-two-parts-layout warehouse-transfer-form" onSubmit={submit}>
+      <div className="invoice-part-right">
+        {/* بطاقة المخازن والتاريخ الموحدة */}
+        <div className="right-card account-header-card">
+          <div className="transfer-header-grid">
+            <label className="field-date">
+              <span>التاريخ</span>
+              {readOnly ? (
+                <div className="readonly-val-box num">
+                  <DateDisplay value={date} />
+                </div>
+              ) : (
+                <DateInput
+                  value={date}
+                  onChange={setDate}
+                  ariaLabel="تاريخ التحويل"
+                  required
+                />
+              )}
+            </label>
 
-          <label className="field-transfer-source">
-            <span>من مخزن (المصدر)</span>
-            {readOnly ? (
-              <div className="readonly-val-box">
-                {choices.find((w) => w.id === sourceId)?.name ?? editing?.source_warehouse_name ?? '—'}
-              </div>
-            ) : (
-              <SearchableSelect
-                value={sourceId}
-                options={choices.map((warehouse) => ({
-                  value: warehouse.id,
-                  label: warehouse.name,
-                }))}
-                onChange={handleSourceWarehouseChange}
-                placeholder="اختر مخزن المصدر…"
-                searchPlaceholder="ابحث باسم مخزن المصدر…"
-                emptyMessage="لا توجد مخازن متاحة"
-                required
-              />
-            )}
-          </label>
-
-          <label className="field-transfer-destination">
-            <span>إلى مخزن (الوجهة)</span>
-            {readOnly ? (
-              <div className="readonly-val-box">
-                {choices.find((w) => w.id === destinationId)?.name ?? editing?.destination_warehouse_name ?? '—'}
-              </div>
-            ) : (
-              <SearchableSelect
-                value={destinationId}
-                options={choices
-                  .filter((warehouse) => warehouse.id !== sourceId)
-                  .map((warehouse) => ({
+            <label className="field-transfer-source">
+              <span>من مخزن (المصدر)</span>
+              {readOnly ? (
+                <div className="readonly-val-box">
+                  {choices.find((w) => w.id === sourceId)?.name ?? editing?.source_warehouse_name ?? '—'}
+                </div>
+              ) : (
+                <SearchableSelect
+                  value={sourceId}
+                  options={choices.map((warehouse) => ({
                     value: warehouse.id,
                     label: warehouse.name,
                   }))}
-                onChange={setDestinationId}
-                placeholder="اختر مخزن الوجهة…"
-                searchPlaceholder="ابحث باسم مخزن الوجهة…"
-                emptyMessage="لا توجد مخازن متاحة"
-                required
-              />
-            )}
-          </label>
-        </div>
+                  onChange={handleSourceWarehouseChange}
+                  placeholder="اختر مخزن المصدر…"
+                  searchPlaceholder="ابحث باسم مخزن المصدر…"
+                  emptyMessage="لا توجد مخازن متاحة"
+                  required
+                />
+              )}
+            </label>
 
-        <div className="account-header-row2">
-          <div className="field-account-notes">
-            {readOnly ? (
-              <div className="readonly-val-box readonly-notes">
-                {notes || 'لا توجد ملاحظات على أمر التحويل'}
-              </div>
-            ) : (
-              <input
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="ملاحظات اختيارية على أمر التحويل…"
-                className="account-notes-input"
-                aria-label="ملاحظات التحويل"
-              />
-            )}
-          </div>
-
-          <div className="account-balance-pills">
-            <div className="stat-pill" title="عدد أصناف أمر التحويل">
-              <span>عدد الأصناف:</span>
-              <strong dir="ltr" className="num">{lines.length}</strong>
-            </div>
-
-            <div className="stat-pill" title="إجمالي الكميات المنقولة">
-              <span>إجمالي الكميات:</span>
-              <strong dir="ltr" className="num">{formatQty(totalTransferQty)}</strong>
-            </div>
+            <label className="field-transfer-destination">
+              <span>إلى مخزن (الوجهة)</span>
+              {readOnly ? (
+                <div className="readonly-val-box">
+                  {choices.find((w) => w.id === destinationId)?.name ?? editing?.destination_warehouse_name ?? '—'}
+                </div>
+              ) : (
+                <SearchableSelect
+                  value={destinationId}
+                  options={choices
+                    .filter((warehouse) => warehouse.id !== sourceId)
+                    .map((warehouse) => ({
+                      value: warehouse.id,
+                      label: warehouse.name,
+                    }))}
+                  onChange={setDestinationId}
+                  placeholder="اختر مخزن الوجهة…"
+                  searchPlaceholder="ابحث باسم مخزن الوجهة…"
+                  emptyMessage="لا توجد مخازن متاحة"
+                  required
+                />
+              )}
+            </label>
           </div>
         </div>
-      </div>
 
-      {/* جدول الأصناف وشريط الإدخال الثابت */}
-      <div className="right-card items-table-card transfer-lines-card">
+        {/* جدول الأصناف وشريط الإدخال الثابت */}
+        <div className="right-card items-table-card transfer-lines-card">
         <div className="lines-wrap">
           <table className="lines-table">
             <thead>
@@ -589,68 +561,49 @@ export default function WarehouseTransferForm({
             </tbody>
           </table>
         </div>
+        </div>
       </div>
 
-      {/* أزرار الإجراءات الموحدة */}
-      {readOnly ? (
-        <div className="form-modal-actions readonly-actions-group" style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: '10px' }}>
-          {onRestore && (
-            <button type="button" className="btn primary" onClick={onRestore}>
-              <RotateCcw size={15} />
-              <span>استعادة أمر التحويل</span>
-            </button>
-          )}
-          {onEdit && (
-            <button type="button" className={onRestore ? 'btn' : 'btn primary'} onClick={onEdit}>
-              <Pencil size={15} />
-              <span>تعديل التحويل</span>
-            </button>
-          )}
-          <button type="button" className="btn" onClick={onPrint ?? (() => window.print())}>
-            <Printer size={15} />
-            <span>طباعة</span>
-          </button>
-          {onDelete && (
-            <button type="button" className="btn danger" onClick={onDelete}>
-              <Trash2 size={15} />
-              <span>حذف</span>
-            </button>
-          )}
-          <button type="button" className="btn" onClick={onCancel}>
-            <span>إغلاق</span>
-          </button>
+      {/* الشريط الجانبي الأيسر الموحد للملخص والملاحظات والإجراءات */}
+      <DocumentSummarySidebar
+        isReadOnly={readOnly}
+        isEditing={Boolean(editing)}
+        notes={notes}
+        busy={busy}
+        notesPlaceholder="ملاحظات اختيارية على أمر التحويل…"
+        emptyNotesText="لا توجد ملاحظات على أمر التحويل"
+        saveLabel={editing ? 'حفظ التعديلات' : 'حفظ التحويل المخزني'}
+        restoreLabel="استعادة أمر التحويل"
+        editLabel="تعديل التحويل"
+        printLabel="طباعة"
+        deleteLabel="حذف"
+        resetTitle="مسح بيانات التحويل الحالية والبدء من جديد"
+        onNotesChange={setNotes}
+        onResetNew={handleReset}
+        onCancel={onCancel}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onRestore={onRestore}
+        onPrint={onPrint}
+      >
+        <div className="left-row-strip">
+          <span className="strip-label">عدد الأصناف</span>
+          <div className="strip-value-box">
+            <bdi dir="ltr" className="num tabular-nums strip-value strip-value-count">
+              {lines.length}
+            </bdi>
+          </div>
         </div>
-      ) : (
-        <div className="form-modal-actions">
-          <button type="submit" className="btn primary" disabled={busy}>
-            <Save size={16} />
-            <span>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل المخزني'}</span>
-          </button>
-          {editing ? (
-            <button
-              type="button"
-              className="btn"
-              onClick={onCancel}
-              disabled={busy}
-              title="إلغاء التعديل والعودة"
-            >
-              <X size={15} />
-              <span>إلغاء</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn"
-              onClick={handleReset}
-              disabled={busy}
-              title="مسح بيانات التحويل الحالية والبدء من جديد"
-            >
-              <RotateCcw size={14} />
-              <span>مسح / جديد</span>
-            </button>
-          )}
+
+        <div className="left-row-strip left-total-strip">
+          <span className="strip-label">إجمالي الكميات</span>
+          <div className="strip-value-box">
+            <bdi dir="ltr" className="num tabular-nums strip-value strip-value-total">
+              {formatQty(totalTransferQty)}
+            </bdi>
+          </div>
         </div>
-      )}
+      </DocumentSummarySidebar>
     </form>
   );
 }

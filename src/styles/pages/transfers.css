@@ -1,27 +1,9 @@
 /* =============================================================
    Maksab Warehouse & Cash Box Transfers Forms
-   Inherits master modal-head, account-header-card, items-table-card, and stat-pill standards
+   Inherits invoice-two-parts-layout, account-header-card, items-table-card, and left sidebar standards
    ============================================================= */
 
 /* Warehouse Transfer Form */
-.warehouse-transfer-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.invoice-entry-modal .warehouse-transfer-form {
-  flex: 1;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-.warehouse-transfer-form .form-modal-actions {
-  flex-shrink: 0;
-  margin-top: 0;
-}
-
 .transfer-header-grid {
   display: grid;
   grid-template-columns: 150px 1fr 1fr;
@@ -67,21 +49,12 @@
   align-items: center;
 }
 
-@media (max-width: 1080px) {
-  .invoice-entry-modal .warehouse-transfer-form {
-    height: auto;
-    overflow: visible;
-  }
-  .transfer-lines-card {
-    overflow: visible;
-  }
-}
-
 @media (max-width: 760px) {
   .transfer-header-grid,
   .cashbox-transfer-boxes-grid {
     grid-template-columns: 1fr;
   }
+  .transfer-lines-card,
   .transfer-lines-card .lines-wrap {
     overflow: visible;
   }
