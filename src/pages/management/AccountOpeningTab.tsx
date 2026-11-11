@@ -210,6 +210,7 @@ export default function AccountOpeningTab({
     }
     setSaving(true);
     try {
+      const payload: { account_id: string; opening_balance: number }[] = [];
       for (const account of changed) {
         const opening = Number(accountValues[account.id] ?? 0);
         if (!Number.isFinite(opening)) {
@@ -217,16 +218,12 @@ export default function AccountOpeningTab({
           setSaving(false);
           return;
         }
-        const { error: saveError } = await supabase.rpc('save_account', {
-          p_account_id: account.id,
-          p_name: account.name,
-          p_kind: account.kind,
-          p_phone: account.phone,
-          p_is_active: account.is_active,
-          p_opening_balance: opening,
-        });
-        if (saveError) throw new Error(saveError.message);
+        payload.push({ account_id: account.id, opening_balance: opening });
       }
+      const { error: saveError } = await supabase.rpc('save_account_opening_balances', {
+        p_accounts: payload,
+      });
+      if (saveError) throw new Error(saveError.message);
       toast.success(`تم حفظ الأرصدة الافتتاحية بنجاح (${changed.length} حساب).`);
       await onRefresh();
     } catch (err) {

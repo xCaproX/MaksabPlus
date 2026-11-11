@@ -303,7 +303,7 @@ export default function ItemsTab() {
         .from('items')
         .update({
           name: itemName.trim(),
-          code: itemCode.trim() || null,
+          code: itemCode.trim() || editingItem.code,
           unit: itemUnit.trim() || 'قطعة',
           sale_price: Number(salePrice),
           purchase_price: Number(purchasePrice),
