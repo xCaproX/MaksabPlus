@@ -93,9 +93,13 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
       />
     );
 
-    // الرصيد المتاح المعروض في السطر يجب أن يكون 10 وليس 0
+    // الرصيد المتاح المعروض في السطر يجب أن يكون 10 وليس 0، مع عزل الرقم بـ bdi dir="ltr" وإبقاء الوحدة خارجه
     const availableCells = screen.getAllByText('10');
     expect(availableCells.length).toBeGreaterThan(0);
+    const availableCell = availableCells[0].closest('td');
+    expect(availableCell?.querySelector('bdi[dir="ltr"]')).toHaveTextContent('10');
+    expect(availableCell?.querySelector('bdi[dir="ltr"]')?.textContent).not.toContain('كجم');
+    expect(availableCell).toHaveTextContent('كجم');
   });
 
   it('في وضع العرض readOnly لمستند محذوف: يظهر زر "استعادة أمر التحويل" عند تمرير onRestore', () => {

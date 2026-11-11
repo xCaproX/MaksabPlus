@@ -430,9 +430,12 @@ export default function WarehouseTransferForm({
                   </td>
                   <td className="num" data-label="المتاح بالمصدر">
                     {entrySelectedItem ? (
-                      <span dir="ltr">
-                        <strong>{formatQty(entryAvailableStock)}</strong> {entrySelectedItem.unit}
-                      </span>
+                      <>
+                        <bdi dir="ltr" className="num tabular-nums">
+                          <strong>{formatQty(entryAvailableStock)}</strong>
+                        </bdi>{' '}
+                        {entrySelectedItem.unit}
+                      </>
                     ) : (
                       '—'
                     )}
@@ -502,9 +505,10 @@ export default function WarehouseTransferForm({
                         </div>
                       </td>
                       <td className="num" data-label="المتاح بالمصدر">
-                        <span dir="ltr">
-                          <strong>{formatQty(available)}</strong> {itemUnitDisplay}
-                        </span>
+                        <bdi dir="ltr" className="num tabular-nums">
+                          <strong>{formatQty(available)}</strong>
+                        </bdi>{' '}
+                        {itemUnitDisplay}
                       </td>
                       <td data-label={`الكمية (${itemUnitDisplay})`}>
                         {readOnly ? (
