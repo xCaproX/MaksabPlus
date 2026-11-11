@@ -298,6 +298,7 @@ declare
   v_invoice uuid;
 begin
   select id into v_invoice from public.invoices where number = 'SAL-000001';
+  perform public.delete_free_receipt((select id from public.receipts where number = 'PAY-000001'));
   perform public.delete_invoice(v_invoice);
 
   perform public.test_expect(
@@ -305,8 +306,8 @@ begin
     'cascade: linked receipt soft deleted with invoice'
   );
   perform public.test_expect(
-    (select balance from public.v_cash_box_balances where id = '55555555-5555-4555-8555-0000000000b1') = -40,
-    'cascade: cash = -40 (supplier free only)'
+    (select balance from public.v_cash_box_balances where id = '55555555-5555-4555-8555-0000000000b1') = 0,
+    'cascade: cash = 0 after linked receipt soft deleted'
   );
 end $$;
 

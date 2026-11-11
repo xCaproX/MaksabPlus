@@ -63,6 +63,11 @@ const MESSAGES: Record<string, string> = {
   no_cash_box: 'لا توجد خزنة معرّفة',
   forbidden_company: 'غير مسموح بالوصول لهذه الشركة',
   permission_denied: 'ليس لديك صلاحية لتنفيذ هذه العملية',
+  insufficient_privilege: 'ليس لديك صلاحية لتنفيذ هذه العملية',
+  cannot_delete_purchase_with_subsequent_sales:
+    'لا يمكن حذف فاتورة الشراء لوجود حركات صرف أو بيع لاحقة على أصنافها',
+  cannot_modify_purchase_items_with_subsequent_sales:
+    'لا يمكن تعديل أصناف أو كميات أو أسعار فاتورة الشراء لوجود حركات صرف أو بيع لاحقة عليها',
   invalid_statement_period: 'اختر فترة صحيحة لكشف الحساب',
 };
 

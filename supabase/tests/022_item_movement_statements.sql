@@ -26,7 +26,7 @@ insert into public.warehouses (id, company_id, name) values
   ('22222222-2222-4222-8222-000000000302', '22222222-2222-4222-8222-0000000000a1', 'المخزن الثاني'),
   ('22222222-2222-4222-8222-000000000303', '22222222-2222-4222-8222-0000000000a2', 'مخزن شركة أخرى');
 insert into public.stock_opening_balances (company_id, warehouse_id, item_id, opening_qty, unit_cost, created_at) values
-  ('22222222-2222-4222-8222-0000000000a1', '22222222-2222-4222-8222-000000000301', '22222222-2222-4222-8222-000000000201', 12, 10, '2026-05-01 10:00:00+00');
+  ('22222222-2222-4222-8222-0000000000a1', '22222222-2222-4222-8222-000000000301', '22222222-2222-4222-8222-000000000201', 10, 10, '2026-05-01 10:00:00+00');
 insert into public.item_stock (company_id, warehouse_id, item_id, qty, avg_cost) values
   ('22222222-2222-4222-8222-0000000000a1', '22222222-2222-4222-8222-000000000301', '22222222-2222-4222-8222-000000000201', 77, 10);
 insert into public.invoices (company_id, kind, number, invoice_date, account_id, warehouse_id, total, paid, created_at) values
