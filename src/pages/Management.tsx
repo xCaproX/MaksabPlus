@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import { Play } from 'lucide-react';
+import { Play, UserPlus } from 'lucide-react';
 import { useAccess } from '../lib/access';
 import UserPermissions from '../components/UserPermissions';
 import { useMasterData, type MasterDataResource } from '../context/MasterDataContext';
@@ -121,6 +121,16 @@ export default function Management() {
             >
               <Play size={16} />
               <span>بدء فحص جديد</span>
+            </button>
+          )}
+          {tab === 'users' && access?.role === 'owner' && (
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => setIsInviteOpen(true)}
+            >
+              <UserPlus size={16} />
+              <span>دعوة موظف جديد</span>
             </button>
           )}
           {canEditOpening && tab !== 'users' && tab !== 'reconciliations' && (

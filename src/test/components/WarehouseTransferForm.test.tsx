@@ -132,5 +132,37 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
 
     expect(screen.getByText('استعادة أمر التحويل')).toBeInTheDocument();
   });
+
+  it('يعرض حقل إدخال التاريخ القابل للتعديل DateInput في وضع الإنشاء والتعديل، ويعرضه للقراءة فقط في readOnly', () => {
+    const { unmount } = render(
+      <WarehouseTransferForm
+        warehouses={mockWarehouses}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={null}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText('تاريخ التحويل')).toBeInTheDocument();
+
+    unmount();
+
+    render(
+      <WarehouseTransferForm
+        warehouses={mockWarehouses}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={null}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByLabelText('تاريخ التحويل')).not.toBeInTheDocument();
+  });
 });
 

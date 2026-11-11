@@ -132,8 +132,17 @@ export default function Invoices() {
     refresh,
     resourceStatus,
   } = useMasterData(canViewCurrentTab ? (formOpen ? formResources : WAREHOUSE_LIST) : undefined);
-  const accounts = useMemo(() => rawAccounts.filter((a) => a.is_active), [rawAccounts]);
-  const items = useMemo(() => rawItems.filter((i) => i.is_active), [rawItems]);
+  const accounts = useMemo(
+    () => rawAccounts.filter((a) => a.is_active || a.id === editing?.invoice.account_id),
+    [rawAccounts, editing],
+  );
+  const items = useMemo(() => {
+    const editingItemIds = new Set<string>([
+      ...(editing?.lines?.map((l) => l.item_id) ?? []),
+      ...(editingTransfer?.lines?.map((l) => l.item_id) ?? []),
+    ]);
+    return rawItems.filter((i) => i.is_active || editingItemIds.has(i.id));
+  }, [rawItems, editing, editingTransfer]);
 
 
   useEffect(() => {

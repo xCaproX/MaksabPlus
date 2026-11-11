@@ -19,6 +19,7 @@ interface InvoiceAccountHeaderProps {
   accountId: string;
   selectableAccounts: AccountRow[];
   selectedAccount?: AccountRow;
+  accountNameFallback?: string;
   onAccountChange: (id: string) => void;
   accountNotesDisplay: string;
   balanceBefore: number;
@@ -40,6 +41,7 @@ export default function InvoiceAccountHeader({
   accountId,
   selectableAccounts,
   selectedAccount,
+  accountNameFallback,
   onAccountChange,
   accountNotesDisplay,
   balanceBefore,
@@ -111,11 +113,11 @@ export default function InvoiceAccountHeader({
           <label className="field-account-select">
             <span>الحساب</span>
             {isReadOnly ? (
-              <div className="readonly-val-box strong">{selectedAccount?.name ?? '—'}</div>
+              <div className="readonly-val-box strong">{selectedAccount?.name ?? accountNameFallback ?? '—'}</div>
             ) : (
               <SearchableSelect
                 value={accountId}
-                selectedLabel={selectedAccount?.name}
+                selectedLabel={selectedAccount?.name ?? accountNameFallback}
                 options={
                   selectableAccounts.length <= 50
                     ? selectableAccounts.map((account) => ({

@@ -20,16 +20,19 @@ export function matchesSearchQuery(
   });
 }
 
+export function escapeLikePattern(term: string): string {
+  return term
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+}
+
 /**
  * يهرّب النص للاستخدام الآمن في فلاتر PostgREST
  * يضع القيمة بين علامتي تنصيص "..." مع تهريب \ و " و % و _
  */
 export function escapePostgrestFilterValue(term: string): string {
-  const escaped = term
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/%/g, '\\%')
-    .replace(/_/g, '\\_');
+  const escaped = escapeLikePattern(term).replace(/"/g, '\\"');
   return `"%${escaped}%"`;
 }
 

@@ -5,6 +5,8 @@ import { FOCUS_SETTLE_DELAY_MS } from '../lib/ui';
 import { qty as formatQty, today } from '../lib/format';
 import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
+import DateDisplay from './DateDisplay';
+import DateInput from './DateInput';
 import SearchableSelect from './SearchableSelect';
 import { searchWarehouseItemsAsync, lookupBarcodeItem } from '../lib/masterDataQueries';
 import { resolveDefaultWarehouse } from '../lib/defaults';
@@ -52,7 +54,7 @@ export default function WarehouseTransferForm({
   const [destinationId, setDestinationId] = useState(
     editing?.destination_warehouse_id ?? activeWarehouses.find((warehouse) => warehouse.id !== sourceId)?.id ?? '',
   );
-  const [date] = useState(editing?.transfer_date ?? today());
+  const [date, setDate] = useState(editing?.transfer_date ?? today());
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [lines, setLines] = useState<DraftLine[]>(() => {
     if (editing?.lines?.length) {
@@ -297,11 +299,27 @@ export default function WarehouseTransferForm({
       {/* بطاقة المخازن والملاحظات الموحدة */}
       <div className="account-header-card">
         <div className="transfer-header-grid">
+          <label className="field-date">
+            <span>التاريخ</span>
+            {readOnly ? (
+              <div className="readonly-val-box num">
+                <DateDisplay value={date} />
+              </div>
+            ) : (
+              <DateInput
+                value={date}
+                onChange={setDate}
+                ariaLabel="تاريخ التحويل"
+                required
+              />
+            )}
+          </label>
+
           <label className="field-transfer-source">
             <span>من مخزن (المصدر)</span>
             {readOnly ? (
               <div className="readonly-val-box">
-                {choices.find((w) => w.id === sourceId)?.name ?? '—'}
+                {choices.find((w) => w.id === sourceId)?.name ?? editing?.source_warehouse_name ?? '—'}
               </div>
             ) : (
               <SearchableSelect
@@ -323,7 +341,7 @@ export default function WarehouseTransferForm({
             <span>إلى مخزن (الوجهة)</span>
             {readOnly ? (
               <div className="readonly-val-box">
-                {choices.find((w) => w.id === destinationId)?.name ?? '—'}
+                {choices.find((w) => w.id === destinationId)?.name ?? editing?.destination_warehouse_name ?? '—'}
               </div>
             ) : (
               <SearchableSelect
@@ -497,6 +515,8 @@ export default function WarehouseTransferForm({
                 lines.map((line, index) => {
                   const available = getAvailableStock(line.item_id, sourceId);
                   const item = items.find((entry) => entry.id === line.item_id);
+                  const itemNameDisplay = item?.name ?? line.item_name ?? '—';
+                  const itemUnitDisplay = item?.unit ?? line.unit ?? 'قطعة';
 
                   return (
                     <tr key={line.key} className="inserted-line-row">
@@ -505,25 +525,25 @@ export default function WarehouseTransferForm({
                       </td>
                       <td data-label="الصنف">
                         <div className="inserted-item-info">
-                          <span className="item-name">{item?.name ?? '—'}</span>
+                          <span className="item-name">{itemNameDisplay}</span>
                           {item?.code && <span className="item-code-tag">{item.code}</span>}
                         </div>
                       </td>
                       <td className="num" data-label="المتاح بالمصدر">
                         <span dir="ltr">
-                          <strong>{formatQty(available)}</strong> {item?.unit ?? ''}
+                          <strong>{formatQty(available)}</strong> {itemUnitDisplay}
                         </span>
                       </td>
-                      <td data-label={item ? `الكمية (${item.unit})` : 'الكمية المنقولة'}>
+                      <td data-label={`الكمية (${itemUnitDisplay})`}>
                         {readOnly ? (
                           <div className="readonly-line-qty-box">
                             <bdi className="num" dir="ltr">{formatQty(line.qty)}</bdi>
-                            <span className="readonly-unit-text">{item?.unit ?? 'قطعة'}</span>
+                            <span className="readonly-unit-text">{itemUnitDisplay}</span>
                           </div>
                         ) : (
                           <div className="line-qty-group">
                             <input
-                              aria-label={`الكمية المنقولة — ${item?.name ?? ''}`}
+                              aria-label={`الكمية المنقولة — ${itemNameDisplay}`}
                               type="number"
                               inputMode="decimal"
                               min="0.0001"
@@ -531,38 +551,21 @@ export default function WarehouseTransferForm({
                               value={line.qty}
                               onFocus={(e) => e.target.select()}
                               onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === '') {
-                                  updateLine(line.key, { qty: '' });
-                                  return;
-                                }
-                                const num = parseFloat(val);
-                                if (isNaN(num)) {
-                                  updateLine(line.key, { qty: '1' });
-                                  return;
-                                }
-                                if (available > 0 && num > available) {
-                                  updateLine(line.key, { qty: String(available) });
-                                  toast.warning(`الكمية المتاحة بالمصدر (${formatQty(available)}) هي الحد الأقصى`);
-                                  return;
-                                }
-                                if (num <= 0 && val !== '0' && val !== '0.') {
-                                  updateLine(line.key, { qty: '1' });
-                                  return;
-                                }
+                                const val = clampDocQty(
+                                  e.target.value,
+                                  available,
+                                  true,
+                                  `الكمية المتاحة بالمصدر (${formatQty(available)}) هي الحد الأقصى`,
+                                );
                                 updateLine(line.key, { qty: val });
                               }}
                               onBlur={() => {
-                                const num = parseFloat(line.qty);
-                                if (isNaN(num) || num <= 0) {
-                                  updateLine(line.key, { qty: '1' });
-                                } else if (available > 0 && num > available) {
-                                  updateLine(line.key, { qty: String(available) });
-                                }
+                                const val = clampDocQtyOnBlur(line.qty, available, true);
+                                updateLine(line.key, { qty: val });
                               }}
                               className="no-spinner num"
                             />
-                            <span className="line-unit-suffix">{item?.unit ?? 'قطعة'}</span>
+                            <span className="line-unit-suffix">{itemUnitDisplay}</span>
                           </div>
                         )}
                       </td>

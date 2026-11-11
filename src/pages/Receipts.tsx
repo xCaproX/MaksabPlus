@@ -122,7 +122,10 @@ export default function Receipts() {
   const canViewCurrentTab = can(`money.${tab}.view`);
   const formResources = formOpen && !isCashBoxTransfer ? RECEIPT_RESOURCES : CASH_BOX_RESOURCES;
   const { accounts: rawAccounts, cashBoxes, refresh, resourceStatus } = useMasterData(canViewCurrentTab ? formResources : undefined);
-  const accounts = useMemo(() => rawAccounts.filter((a) => a.is_active), [rawAccounts]);
+  const accounts = useMemo(
+    () => rawAccounts.filter((a) => a.is_active || a.id === editing?.account_id),
+    [rawAccounts, editing],
+  );
 
 
   const tabTitle = isCashBoxTransfer ? 'تحويلات الخزن' : isIn ? 'إيصالات الاستلام' : 'إيصالات الصرف';

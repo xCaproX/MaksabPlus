@@ -205,4 +205,44 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
 
     expect(screen.queryByLabelText('تاريخ الفاتورة')).not.toBeInTheDocument();
   });
+
+  it('يعرض اسم الحساب واسم الصنف ووحدته من بيانات الفاتورة التاريخية عند عدم وجودهما في القوائم النشطة', () => {
+    const historicalInvoice = {
+      ...mockEditingInvoice,
+      invoice: {
+        ...mockEditingInvoice.invoice,
+        account_id: 'acc-deactivated',
+        account_name: 'عميل موقوف تاريخي',
+      },
+      lines: [
+        {
+          key: 'l-hist',
+          item_id: 'itm-deactivated',
+          item_name: 'صنف تاريخي موقوف',
+          unit: 'كرتونة',
+          qty: '3',
+          unit_price: '100',
+        },
+      ],
+    };
+
+    render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={historicalInvoice}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('عميل موقوف تاريخي')).toBeInTheDocument();
+    expect(screen.getByText('صنف تاريخي موقوف')).toBeInTheDocument();
+    expect(screen.getByText('كرتونة')).toBeInTheDocument();
+  });
 });

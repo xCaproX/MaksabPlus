@@ -88,4 +88,55 @@ describe('SearchableSelect component', () => {
 
     expect(onBarcodeScan).toHaveBeenCalledWith('622123456789');
   });
+
+  it('selects matching option on Enter when searching by name even if onBarcodeScan is provided', () => {
+    const onBarcodeScan = vi.fn();
+    const onChange = vi.fn();
+
+    render(
+      <SearchableSelect
+        value=""
+        options={syncOptions}
+        onChange={onChange}
+        onBarcodeScan={onBarcodeScan}
+      />,
+    );
+
+    const input = screen.getByRole('combobox');
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'صنف ب' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onChange).toHaveBeenCalledWith('2');
+    expect(onBarcodeScan).not.toHaveBeenCalled();
+  });
+
+  it('does not prepend the current value at index 0 while typing a search query in async mode', async () => {
+    const mockLoad = vi.fn().mockImplementation(async (q: string) => {
+      if (q === 'سمير') return [{ value: '20', label: 'سمير للتجارة' }];
+      return [{ value: '1', label: 'عميل نقدي' }];
+    });
+    const onChange = vi.fn();
+
+    render(
+      <SearchableSelect
+        value="1"
+        selectedLabel="عميل نقدي"
+        loadOptions={mockLoad}
+        onChange={onChange}
+      />,
+    );
+
+    const input = screen.getByRole('combobox');
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'سمير' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('سمير للتجارة')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('عميل نقدي')).not.toBeInTheDocument();
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('20');
+  });
 });

@@ -1,7 +1,7 @@
 import { collectAllRows } from './exportRows';
 import { supabase } from './supabase';
 import { qty as formatQty } from './format';
-import { buildPostgrestOrFilter } from './search';
+import { buildPostgrestOrFilter, escapeLikePattern } from './search';
 import type { AccountKind, WarehouseOption } from './types';
 import type { SearchOption } from '../components/SearchableSelect';
 
@@ -56,7 +56,10 @@ export async function searchAccountsAsync(
     .limit(limit);
 
   if (trimmed) {
-    req = req.or(buildPostgrestOrFilter(['name', 'phone', 'serial_number'], trimmed));
+    const baseFilter = buildPostgrestOrFilter(['name', 'phone'], trimmed);
+    const digits = trimmed.replace(/^#/, '');
+    const serialFilter = /^\d+$/.test(digits) ? `,serial_number.eq.${digits}` : '';
+    req = req.or(`${baseFilter}${serialFilter}`);
   }
 
   const { data, error } = await req;
@@ -122,12 +125,14 @@ export async function lookupBarcodeItem(
   const trimmed = barcode.trim();
   if (!trimmed || !warehouseId) return null;
 
+  const escapedBarcode = escapeLikePattern(trimmed);
+
   // 1. البحث في مخزن الفاتورة الحالي أولاً
   const { data: stockRow } = await supabase
     .from('v_warehouse_items')
     .select('item_id, item_name, item_code, unit, current_qty, sale_price, purchase_price')
     .eq('warehouse_id', warehouseId)
-    .ilike('item_code', trimmed)
+    .ilike('item_code', escapedBarcode)
     .maybeSingle();
 
   if (stockRow) {
@@ -149,7 +154,7 @@ export async function lookupBarcodeItem(
   const { data: item } = await supabase
     .from('items')
     .select('id, name, code, unit, sale_price, purchase_price')
-    .ilike('code', trimmed)
+    .ilike('code', escapedBarcode)
     .eq('is_active', true)
     .maybeSingle();
 

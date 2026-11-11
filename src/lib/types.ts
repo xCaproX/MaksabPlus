@@ -192,6 +192,7 @@ export interface WarehouseTransferRow {
 export interface WarehouseTransferLine {
   item_id: string;
   item_name?: string;
+  unit?: string;
   qty: number;
   unit_cost?: number | null;
 }
@@ -214,6 +215,8 @@ export interface CashBoxTransferRow {
 export interface LineDraft {
   key: string;
   item_id: string;
+  item_name?: string;
+  unit?: string;
   qty: string;
   unit_price: string;
 }

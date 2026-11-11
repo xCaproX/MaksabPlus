@@ -65,12 +65,14 @@ export default function SearchableSelect({
   const [loadingAsync, setLoadingAsync] = useState(false);
   const [savedOption, setSavedOption] = useState<SearchOption | null>(null);
 
+  const trimmedQuery = query.trim();
+
   // الخيارات الفعالة
   const effectiveOptions = useMemo(() => {
     if (!isAsync) return options ?? [];
 
-    // في النمط غير المتزامن، نحرص على عدم فقدان الخيار المحدد حاليًا
-    if (value && !asyncOptions.some((o) => o.value === value)) {
+    // في النمط غير المتزامن، نحرص على عدم فقدان الخيار المحدد حاليًا عند فتح القائمة بدون بحث
+    if (!trimmedQuery && value && !asyncOptions.some((o) => o.value === value)) {
       if (savedOption && savedOption.value === value) {
         return [savedOption, ...asyncOptions];
       }
@@ -79,17 +81,25 @@ export default function SearchableSelect({
       }
     }
     return asyncOptions;
-  }, [isAsync, options, asyncOptions, value, savedOption, selectedLabel]);
+  }, [isAsync, options, asyncOptions, trimmedQuery, value, savedOption, selectedLabel]);
 
-  const selected = effectiveOptions.find((option) => option.value === value);
+  const selected = useMemo(() => {
+    const fromEffective = effectiveOptions.find((option) => option.value === value);
+    if (fromEffective) return fromEffective;
+    if (savedOption && savedOption.value === value) return savedOption;
+    const fromStatic = options?.find((option) => option.value === value);
+    if (fromStatic) return fromStatic;
+    if (value && selectedLabel) return { value, label: selectedLabel };
+    return undefined;
+  }, [effectiveOptions, savedOption, options, value, selectedLabel]);
 
   // تصفية الخيارات في النمط المتزامن
   const filteredOptions = useMemo(() => {
     if (isAsync) return effectiveOptions;
     return effectiveOptions.filter((option) =>
-      option.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
+      option.label.toLocaleLowerCase().includes(trimmedQuery.toLocaleLowerCase()),
     );
-  }, [isAsync, effectiveOptions, query]);
+  }, [isAsync, effectiveOptions, trimmedQuery]);
 
   // إغلاق القائمة عند النقر بالخارج
   useEffect(() => {
@@ -130,7 +140,10 @@ export default function SearchableSelect({
 
   // جلب البيانات لحظيًا مع تأخير (Debounce 250ms) في النمط غير المتزامن
   useEffect(() => {
-    if (!isAsync || !open) return;
+    if (!isAsync || !open) {
+      setLoadingAsync(false);
+      return;
+    }
 
     let active = true;
     setLoadingAsync(true);
@@ -178,17 +191,21 @@ export default function SearchableSelect({
       event.preventDefault();
       const currentQuery = query.trim();
 
-      // مسح الباركود السريع
+      if (open && activeIndex >= 0 && filteredOptions[activeIndex]) {
+        choose(filteredOptions[activeIndex]);
+        return;
+      }
+
+      if (open && !loadingAsync && filteredOptions.length > 0) {
+        choose(filteredOptions[0]);
+        return;
+      }
+
+      // مسح الباركود السريع عند عدم وجود خيار مطابق في القائمة أو أثناء الإدخال السريع للباركود
       if (onBarcodeScan && currentQuery) {
         onBarcodeScan(currentQuery);
         setQuery('');
         setOpen(false);
-        return;
-      }
-
-      if (open) {
-        const option = filteredOptions[activeIndex >= 0 ? activeIndex : 0];
-        if (option) choose(option);
       }
     } else if (event.key === 'Escape') {
       setOpen(false);

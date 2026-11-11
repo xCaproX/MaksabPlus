@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchesSearchQuery, escapePostgrestFilterValue, buildPostgrestOrFilter, DOCUMENT_SEARCH_FIELDS } from '../lib/search';
+import { matchesSearchQuery, escapeLikePattern, escapePostgrestFilterValue, buildPostgrestOrFilter, DOCUMENT_SEARCH_FIELDS } from '../lib/search';
 
 describe('search - محرك البحث العربي والمطابقة', () => {
   it.each(Object.keys(DOCUMENT_SEARCH_FIELDS) as (keyof typeof DOCUMENT_SEARCH_FIELDS)[])(
@@ -60,5 +60,9 @@ describe('search - محرك البحث العربي والمطابقة', () => {
     expect(filter).toBe(
       'notes.ilike."%فحص مطابقة (2026)، كابروو%",performed_by_name.ilike."%فحص مطابقة (2026)، كابروو%"',
     );
+  });
+
+  it('يهرب رموز LIKE الخاصة (% و _ و \\) في escapeLikePattern لمنع التطابق العشوائي في الباركود', () => {
+    expect(escapeLikePattern('100%_item\\A')).toBe('100\\%\\_item\\\\A');
   });
 });

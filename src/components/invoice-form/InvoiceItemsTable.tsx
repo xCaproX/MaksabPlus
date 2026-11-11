@@ -220,6 +220,8 @@ export default function InvoiceItemsTable({
             ) : (
               lines.map((line, index) => {
                 const selectedItem = items.find((item) => item.id === line.item_id);
+                const itemNameDisplay = selectedItem?.name ?? line.item_name ?? '—';
+                const itemUnitDisplay = selectedItem?.unit ?? line.unit ?? 'قطعة';
                 const lineTotal = round2(Number(line.qty || 0) * Number(line.unit_price || 0));
 
                 const availableStock = getItemAvailableStock(line.item_id, warehouseId);
@@ -235,26 +237,26 @@ export default function InvoiceItemsTable({
                     </td>
                     <td data-label="الصنف">
                       <div className="inserted-item-info">
-                        <span className="item-name">{selectedItem?.name ?? '—'}</span>
+                        <span className="item-name">{itemNameDisplay}</span>
                         {selectedItem?.code && (
                           <span className="item-code-tag">{selectedItem.code}</span>
                         )}
                       </div>
                     </td>
-                    <td data-label={selectedItem ? `الكمية (${selectedItem.unit})` : 'الكمية'}>
+                    <td data-label={`الكمية (${itemUnitDisplay})`}>
                       {isReadOnly ? (
                         <div className="readonly-line-qty-box">
                           <bdi className="num" dir="ltr">
                             {formatQty(line.qty)}
                           </bdi>
                           <span className="readonly-unit-text">
-                            {selectedItem ? selectedItem.unit : 'قطعة'}
+                            {itemUnitDisplay}
                           </span>
                         </div>
                       ) : (
                         <div className="line-qty-group">
                           <input
-                            aria-label={`الكمية — ${selectedItem?.name ?? ''} (${selectedItem?.unit ?? 'قطعة'})`}
+                            aria-label={`الكمية — ${itemNameDisplay} (${itemUnitDisplay})`}
                             type="number"
                             inputMode="decimal"
                             min="0.0001"
@@ -284,7 +286,7 @@ export default function InvoiceItemsTable({
                             className="no-spinner num"
                           />
                           <span className="line-unit-suffix">
-                            {selectedItem ? selectedItem.unit : 'قطعة'}
+                            {itemUnitDisplay}
                           </span>
                         </div>
                       )}

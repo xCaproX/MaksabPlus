@@ -175,12 +175,25 @@ export default function InvoiceForm({
     }
   }
 
-  function getItemAvailableStock(itemId: string, targetWarehouseId = warehouseId): number {
+  function getItemAvailableStock(
+    itemId: string,
+    targetWarehouseId = warehouseId,
+    rawWarehouseStock?: number,
+  ): number {
     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
     return calculateAvailableStock({
       itemId,
       warehouseId: targetWarehouseId,
-      stockRows,
+      stockRows:
+        rawWarehouseStock !== undefined
+          ? ([
+              {
+                item_id: itemId,
+                warehouse_id: targetWarehouseId,
+                current_qty: rawWarehouseStock,
+              } as StockOpeningRow,
+            ])
+          : stockRows,
       editingWarehouseId: isStockLimited ? editing?.invoice.warehouse_id : undefined,
       editingLines: editing?.lines,
     });
@@ -250,9 +263,13 @@ export default function InvoiceForm({
       : undefined);
 
   const entryAvailableStock = entryItemId
-    ? entryAsyncOption && entryAsyncOption.value === entryItemId
-      ? entryAsyncOption.stock
-      : getItemAvailableStock(entryItemId, warehouseId)
+    ? getItemAvailableStock(
+        entryItemId,
+        warehouseId,
+        entryAsyncOption && entryAsyncOption.value === entryItemId
+          ? entryAsyncOption.stock
+          : undefined,
+      )
     : 0;
   const entryLineTotal = round2(Number(entryQty || 0) * Number(entryUnitPrice || 0));
 
@@ -270,10 +287,7 @@ export default function InvoiceForm({
     }
 
     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-    const availableStock =
-      selectedOption !== undefined
-        ? selectedOption.stock
-        : getItemAvailableStock(itemId, warehouseId);
+    const availableStock = getItemAvailableStock(itemId, warehouseId, selectedOption?.stock);
 
     if (isStockLimited && availableStock <= 0) {
       toast.warning('الصنف غير متوفر');
@@ -514,6 +528,7 @@ export default function InvoiceForm({
             accountId={accountId}
             selectableAccounts={selectableAccounts}
             selectedAccount={selectedAccount}
+            accountNameFallback={editing?.invoice.account_name}
             onAccountChange={handleAccountChange}
             accountNotesDisplay={accountNotesDisplay}
             balanceBefore={balanceBefore}
