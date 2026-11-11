@@ -634,11 +634,7 @@ export default function Invoices() {
           ? (editingTransfer?.id ?? 'new-transfer') + modalMode
           : (editing?.invoice.id ?? 'new-invoice') + modalMode
       }
-      modalClassName={
-        isWarehouseTransfer
-          ? 'transaction-entry-modal'
-          : 'transaction-entry-modal invoice-entry-modal'
-      }
+      modalClassName="transaction-entry-modal invoice-entry-modal"
       modalBackdropClassName="transaction-entry-backdrop"
       renderModalContent={() =>
         isWarehouseTransfer ? (

@@ -394,7 +394,7 @@ export default function WarehouseTransferForm({
       </div>
 
       {/* جدول الأصناف وشريط الإدخال الثابت */}
-      <div className="transfer-lines-card">
+      <div className="right-card items-table-card transfer-lines-card">
         <div className="lines-wrap">
           <table className="lines-table">
             <thead>

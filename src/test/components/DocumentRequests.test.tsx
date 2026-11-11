@@ -163,4 +163,13 @@ describe('document list request lifecycle', () => {
     view.rerender(<MemoryRouter><Invoices /></MemoryRouter>);
     expect(screen.getByRole('button', { name: 'اختبار إتمام الحفظ' })).toBeInTheDocument();
   });
+
+  it('uses invoice-entry-modal sizing classes for warehouse transfer modals as well as invoices', async () => {
+    render(<MemoryRouter initialEntries={['/?tab=warehouse_transfer']}><Invoices /></MemoryRouter>);
+    await resolvePair(expectPair(0, 'get_warehouse_transfer_kpis_columns', 0));
+    fireEvent.click(screen.getByRole('button', { name: '+ تحويل بين مخازن' }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('modal', 'transaction-entry-modal', 'invoice-entry-modal');
+    expect(dialog.querySelector('.transfer-lines-card')).toHaveClass('right-card', 'items-table-card');
+  });
 });

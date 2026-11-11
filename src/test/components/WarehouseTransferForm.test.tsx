@@ -164,5 +164,39 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
 
     expect(screen.queryByLabelText('تاريخ التحويل')).not.toBeInTheDocument();
   });
+
+  it('يربط حاوية جدول الأصناف بفئات right-card و items-table-card لتخصيص المساحة الزائدة للجدول في الإنشاء والقراءة فقط', () => {
+    const { container, rerender } = render(
+      <WarehouseTransferForm
+        warehouses={mockWarehouses}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={null}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    const cardEdit = container.querySelector('.transfer-lines-card');
+    expect(cardEdit).toHaveClass('right-card', 'items-table-card');
+    expect(cardEdit?.querySelector('.lines-wrap .lines-table')).toBeInTheDocument();
+
+    rerender(
+      <WarehouseTransferForm
+        warehouses={mockWarehouses}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={null}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    const cardReadOnly = container.querySelector('.transfer-lines-card');
+    expect(cardReadOnly).toHaveClass('right-card', 'items-table-card');
+    expect(cardReadOnly?.querySelector('.lines-wrap .lines-table')).toBeInTheDocument();
+  });
 });
 

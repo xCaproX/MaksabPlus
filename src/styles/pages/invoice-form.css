@@ -1140,7 +1140,7 @@
   color: #1e293b;
 }
 
-.invoice-part-right .lines-wrap {
+.items-table-card .lines-wrap {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -1150,7 +1150,7 @@
   background: #ffffff;
 }
 
-.invoice-part-right .lines-table thead th {
+.items-table-card .lines-table thead th {
   position: sticky;
   top: 0;
   z-index: 5;
