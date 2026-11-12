@@ -150,9 +150,9 @@ export async function lookupBarcodeItem(
     };
   }
 
-  // 2. إذا لم يكن متوفراً في هذا المخزن، البحث في جدول الأصناف العام
+  // 2. إذا لم يكن متوفراً في هذا المخزن، البحث في عرض الأصناف المحمي (بدون قراءة purchase_price مباشرة من items)
   const { data: item } = await supabase
-    .from('items')
+    .from('v_item_stock')
     .select('id, name, code, unit, sale_price, purchase_price')
     .ilike('code', escapedBarcode)
     .eq('is_active', true)

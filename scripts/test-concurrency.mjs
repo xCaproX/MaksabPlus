@@ -3,16 +3,37 @@ import fs from 'fs';
 import path from 'path';
 import assert from 'node:assert/strict';
 
-function getConnectionString() {
-  if (process.env.SUPABASE_DB_URL) return process.env.SUPABASE_DB_URL;
-  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-  const envPath = path.resolve('.env.local');
-  if (fs.existsSync(envPath)) {
-    const env = fs.readFileSync(envPath, 'utf8');
-    const match = env.match(/^SUPABASE_DB_URL=(.+)$/m);
-    if (match) return match[1].trim();
+function assertLocalDatabaseUrl(connStr) {
+  let hostname = '';
+  try {
+    hostname = new URL(connStr).hostname.toLowerCase();
+  } catch {
+    throw new Error('Invalid database connection string.');
   }
-  throw new Error('SUPABASE_DB_URL or DATABASE_URL environment variable is required to run concurrency tests.');
+  if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(hostname)) {
+    throw new Error(
+      `Refusing to run destructive concurrency tests against non-local host "${hostname}". Local Postgres only.`,
+    );
+  }
+}
+
+function getConnectionString() {
+  let connStr = '';
+  if (process.env.SUPABASE_DB_URL) connStr = process.env.SUPABASE_DB_URL;
+  else if (process.env.DATABASE_URL) connStr = process.env.DATABASE_URL;
+  else {
+    const envPath = path.resolve('.env.local');
+    if (fs.existsSync(envPath)) {
+      const env = fs.readFileSync(envPath, 'utf8');
+      const match = env.match(/^SUPABASE_DB_URL=(.+)$/m);
+      if (match) connStr = match[1].trim();
+    }
+  }
+  if (!connStr) {
+    throw new Error('SUPABASE_DB_URL or DATABASE_URL environment variable is required to run concurrency tests.');
+  }
+  assertLocalDatabaseUrl(connStr);
+  return connStr;
 }
 
 async function createAuthenticatedClient(connStr, userId) {
@@ -36,9 +57,11 @@ async function runConcurrencySuite() {
   const companyId = '99999999-9999-4999-8999-0000000000c0';
   const userId = '99999999-9999-4999-8999-000000000001';
   const warehouseId = '99999999-9999-4999-8999-0000000000d1';
+  const warehouse2Id = '99999999-9999-4999-8999-0000000000d2';
   const cashBoxId = '99999999-9999-4999-8999-0000000000b1';
   const cashBoxSmallId = '99999999-9999-4999-8999-0000000000b2';
   const customerId = '99999999-9999-4999-8999-0000000000a1';
+  const supplierId = '99999999-9999-4999-8999-0000000000a2';
   const itemA = '99999999-9999-4999-8999-0000000000e1';
   const itemB = '99999999-9999-4999-8999-0000000000e2';
 
@@ -69,7 +92,9 @@ async function runConcurrencySuite() {
       ON CONFLICT (id) DO UPDATE SET company_id = EXCLUDED.company_id, access_role = 'owner'
     `);
     await superClient.query(`
-      INSERT INTO public.warehouses (id, company_id, name) VALUES ('${warehouseId}', '${companyId}', 'مخزن التزامن')
+      INSERT INTO public.warehouses (id, company_id, name)
+      VALUES ('${warehouseId}', '${companyId}', 'مخزن التزامن'),
+             ('${warehouse2Id}', '${companyId}', 'مخزن التزامن 2')
     `);
     await superClient.query(`
       INSERT INTO public.cash_boxes (id, company_id, name, opening_balance)
@@ -78,7 +103,8 @@ async function runConcurrencySuite() {
     `);
     await superClient.query(`
       INSERT INTO public.accounts (id, company_id, name, kind)
-      VALUES ('${customerId}', '${companyId}', 'عميل التزامن', 'customer')
+      VALUES ('${customerId}', '${companyId}', 'عميل التزامن', 'customer'),
+             ('${supplierId}', '${companyId}', 'مورد التزامن', 'supplier')
     `);
     await superClient.query(`
       INSERT INTO public.items (id, company_id, name, sale_price, purchase_price)
@@ -255,8 +281,89 @@ async function runConcurrencySuite() {
     assert.equal(Number(stockB.qty), 97, 'مخزون الصنف B بعد خصم (1 + 2) يجب أن يكون 97 (100 - 3)');
     console.log('   ✅ نجح السيناريو 5: اجتاز الفحص بترتيب أقفال تصاعدي صارم دون حدوث أي Deadlock وبدقة حسابية تامة.\n');
 
+    // =========================================================================
+    // السيناريو 6: فاتورة شراء مدفوعة مقابل إيصال صرف حر متزامنين على نفس المورد والخزنة
+    // =========================================================================
+    console.log('7. تشغيل السيناريو 6: فاتورة شراء نقدية مقابل إيصال صرف حر متزامنين...');
+    const { rows: [cashBefore6] } = await superClient.query(`
+      SELECT balance FROM public.v_cash_box_balances WHERE id = '${cashBoxId}'
+    `);
+    const purchasePromise = client1.query(`
+      SELECT public.create_invoice_with_cash_box(
+        'purchase', '${supplierId}', '${warehouseId}', public.cairo_today(), 100, 'شراء متزامن',
+        jsonb_build_array(jsonb_build_object('item_id', '${itemA}'::uuid, 'qty', 2, 'unit_price', 50)),
+        '${cashBoxId}'
+      )
+    `);
+    const freeOutPromise = client2.query(`
+      SELECT public.create_free_receipt(
+        '${supplierId}', '${cashBoxId}', public.cairo_today(), 50, 'صرف حر متزامن', 'سند', 'out'
+      )
+    `);
+    await Promise.all([purchasePromise, freeOutPromise]);
+    const { rows: [cashAfter6] } = await superClient.query(`
+      SELECT balance FROM public.v_cash_box_balances WHERE id = '${cashBoxId}'
+    `);
+    assert.equal(Number(cashAfter6.balance), Number(cashBefore6.balance) - 150, 'رصيد الخزنة بعد الشراء والإيصال الحر يجب أن ينقص 150');
+    console.log('   ✅ نجح السيناريو 6: فاتورة الشراء والإيصال الحر تم تنفيذهما بدون Deadlock.\n');
+
+    // =========================================================================
+    // السيناريو 7: save_opening_balances مقابل create_invoice متزامنين على نفس الصنف والخزنة
+    // =========================================================================
+    console.log('8. تشغيل السيناريو 7: حفظ الأرصدة الافتتاحية مقابل فاتورة شراء متزامنين...');
+    const openingPromise = client1.query(`
+      SELECT public.save_opening_balances(
+        jsonb_build_array(jsonb_build_object('cash_box_id', '${cashBoxId}'::uuid, 'opening_balance', 1200)),
+        jsonb_build_array(jsonb_build_object('warehouse_id', '${warehouseId}'::uuid, 'item_id', '${itemB}'::uuid, 'opening_qty', 10, 'unit_cost', 40))
+      )
+    `);
+    const concurrentPurchase = client2.query(`
+      SELECT public.create_invoice_with_cash_box(
+        'purchase', '${supplierId}', '${warehouseId}', public.cairo_today(), 80, 'شراء أثناء الافتتاحي',
+        jsonb_build_array(jsonb_build_object('item_id', '${itemB}'::uuid, 'qty', 2, 'unit_price', 40)),
+        '${cashBoxId}'
+      )
+    `);
+    await Promise.all([openingPromise, concurrentPurchase]);
+    console.log('   ✅ نجح السيناريو 7: حفظ الأرصدة الافتتاحية وفاتورة الشراء تم تنفيذهما بدون Deadlock.\n');
+
+    // =========================================================================
+    // السيناريو 8: تحويلان مخزنيان متعاكسان (wh1 -> wh2 و wh2 -> wh1) بالتزامن
+    // =========================================================================
+    console.log('9. تشغيل السيناريو 8: تحويلان مخزنيان متعاكسان (wh1 -> wh2 و wh2 -> wh1)...');
+    await superClient.query(`
+      INSERT INTO public.item_stock (company_id, warehouse_id, item_id, qty, avg_cost)
+      VALUES ('${companyId}', '${warehouse2Id}', '${itemA}', 20, 30)
+      ON CONFLICT (warehouse_id, item_id) DO UPDATE SET qty = 20
+    `);
+    const { rows: [w1Before] } = await superClient.query(`
+      SELECT qty FROM public.item_stock WHERE warehouse_id = '${warehouseId}' AND item_id = '${itemA}'
+    `);
+    const transfer1 = client1.query(`
+      SELECT public.create_warehouse_transfer(
+        '${warehouseId}', '${warehouse2Id}', public.cairo_today(), 'تحويل 1 -> 2',
+        jsonb_build_array(jsonb_build_object('item_id', '${itemA}'::uuid, 'qty', 5))
+      )
+    `);
+    const transfer2 = client2.query(`
+      SELECT public.create_warehouse_transfer(
+        '${warehouse2Id}', '${warehouseId}', public.cairo_today(), 'تحويل 2 -> 1',
+        jsonb_build_array(jsonb_build_object('item_id', '${itemA}'::uuid, 'qty', 3))
+      )
+    `);
+    await Promise.all([transfer1, transfer2]);
+    const { rows: [w1After] } = await superClient.query(`
+      SELECT qty FROM public.item_stock WHERE warehouse_id = '${warehouseId}' AND item_id = '${itemA}'
+    `);
+    const { rows: [w2After] } = await superClient.query(`
+      SELECT qty FROM public.item_stock WHERE warehouse_id = '${warehouse2Id}' AND item_id = '${itemA}'
+    `);
+    assert.equal(Number(w1After.qty), Number(w1Before.qty) - 5 + 3, 'مخزون المخزن 1 بعد التحويلين المتعاكسين غير دقيق');
+    assert.equal(Number(w2After.qty), 20 + 5 - 3, 'مخزون المخزن 2 بعد التحويلين المتعاكسين غير دقيق');
+    console.log('   ✅ نجح السيناريو 8: التحويلان المخزنيان المتعاكسان تم تنفيذهما بدون Deadlock وبأرصدة دقيقة.\n');
+
     console.log('================================================================================');
-    console.log('🎉 جميع سيناريوهات التزامن الخمسة نجحت بنسبة 100% (ALL CONCURRENCY TESTS PASSED)!');
+    console.log('🎉 جميع سيناريوهات التزامن الثمانية نجحت بنسبة 100% (ALL CONCURRENCY TESTS PASSED)!');
     console.log('================================================================================\n');
 
   } finally {

@@ -53,3 +53,23 @@ export function canViewProfit(access: AccessState | null | undefined): boolean {
   if (!access) return false;
   return access.role === 'owner' || hasPermission(access, 'reports.profit.view');
 }
+
+/**
+ * فحص صلاحية الاطلاع على أسعار الشراء وتعديلها
+ * مسموح لمن يملك صلاحية الأرباح أو صلاحيات فواتير ومرتجعات الشراء
+ */
+export function canViewPurchasePrice(access: AccessState | null | undefined): boolean {
+  if (!access) return false;
+  return (
+    canViewProfit(access) ||
+    hasPermission(
+      access,
+      'goods.purchase.view',
+      'goods.purchase.create',
+      'goods.purchase.edit',
+      'goods.purchase_return.view',
+      'goods.purchase_return.create',
+      'goods.purchase_return.edit',
+    )
+  );
+}

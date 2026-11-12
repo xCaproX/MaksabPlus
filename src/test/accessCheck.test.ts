@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hasPermission, canViewProfit, type AccessState } from '../lib/accessCheck';
+import { hasPermission, canViewProfit, canViewPurchasePrice, type AccessState } from '../lib/accessCheck';
 
 describe('accessCheck - حوكمة الصلاحيات والأمان', () => {
   it('يرفض الصلاحية فوراً إذا لم توجد جلسة مستخدم (null أو undefined)', () => {
@@ -106,5 +106,27 @@ describe('canViewProfit - فحص صلاحيات الأرباح والتكلفة'
   it('يرفض الصلاحية في حالة عدم وجود جلسة (null أو undefined)', () => {
     expect(canViewProfit(null)).toBe(false);
     expect(canViewProfit(undefined)).toBe(false);
+  });
+});
+
+describe('canViewPurchasePrice - فحص صلاحيات رؤية أسعار الشراء', () => {
+  it('يحجب سعر الشراء عن الكاشير وأمين المخزن والمشاهد الذين يملكون صلاحيات الأصناف فقط', () => {
+    const cashier: AccessState = {
+      role: 'employee',
+      permissions: ['goods.sale.view', 'goods.sale.create', 'data.items.view'],
+    };
+    const warehouseKeeper: AccessState = {
+      role: 'employee',
+      permissions: ['data.items.view', 'data.items.create', 'data.items.edit', 'balances.items.view'],
+    };
+    expect(canViewPurchasePrice(cashier)).toBe(false);
+    expect(canViewPurchasePrice(warehouseKeeper)).toBe(false);
+  });
+
+  it('يسمح برؤية سعر الشراء للمالك أو من يملك صلاحيات المشتريات أو الأرباح', () => {
+    expect(canViewPurchasePrice({ role: 'owner', permissions: [] })).toBe(true);
+    expect(canViewPurchasePrice({ role: 'employee', permissions: ['reports.profit.view'] })).toBe(true);
+    expect(canViewPurchasePrice({ role: 'employee', permissions: ['goods.purchase.create'] })).toBe(true);
+    expect(canViewPurchasePrice({ role: 'employee', permissions: ['goods.purchase_return.view'] })).toBe(true);
   });
 });

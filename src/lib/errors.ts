@@ -66,6 +66,10 @@ const MESSAGES: Record<string, string> = {
   insufficient_privilege: 'ليس لديك صلاحية لتنفيذ هذه العملية',
   cannot_delete_purchase_with_subsequent_sales:
     'لا يمكن حذف فاتورة الشراء لوجود حركات صرف أو بيع لاحقة على أصنافها',
+  cannot_restore_purchase_with_subsequent_sales:
+    'لا يمكن استعادة فاتورة الشراء لوجود حركات صرف أو بيع لاحقة على أصنافها',
+  cannot_modify_purchase_date_with_subsequent_sales:
+    'لا يمكن تغيير تاريخ فاتورة الشراء لوجود حركات صرف أو بيع لاحقة على أصنافها',
   cannot_modify_purchase_items_with_subsequent_sales:
     'لا يمكن تعديل أصناف أو كميات أو أسعار فاتورة الشراء لوجود حركات صرف أو بيع لاحقة عليها',
   invalid_statement_period: 'اختر فترة صحيحة لكشف الحساب',

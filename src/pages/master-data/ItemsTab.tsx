@@ -51,7 +51,7 @@ type StatusFilter = 'all' | 'active' | 'inactive';
 const PAGE_SIZE = 20;
 
 export default function ItemsTab() {
-  const { can } = useAccess();
+  const { can, canViewPurchasePrice } = useAccess();
   const { refresh } = useMasterData();
   const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
 
@@ -284,7 +284,7 @@ export default function ItemsTab() {
     setItemCode(item.code);
     setItemUnit(item.unit);
     setSalePrice(String(item.sale_price));
-    setPurchasePrice(String(item.purchase_price));
+    setPurchasePrice(item.purchase_price == null ? '' : String(item.purchase_price));
     setItemActive(item.is_active);
     setItemNotes(item.notes || '');
     setIsModalOpen(true);
@@ -299,17 +299,29 @@ export default function ItemsTab() {
     event.preventDefault();
 
     if (editingItem) {
+      const updatePayload: {
+        name: string;
+        code: string;
+        unit: string;
+        sale_price: number;
+        purchase_price?: number;
+        is_active: boolean;
+        notes: string | null;
+      } = {
+        name: itemName.trim(),
+        code: itemCode.trim() || editingItem.code,
+        unit: itemUnit.trim() || 'قطعة',
+        sale_price: Number(salePrice),
+        is_active: itemActive,
+        notes: itemNotes.trim() || null,
+      };
+      if (canViewPurchasePrice) {
+        updatePayload.purchase_price = Number(purchasePrice);
+      }
+
       const { error: updateError } = await supabase
         .from('items')
-        .update({
-          name: itemName.trim(),
-          code: itemCode.trim() || editingItem.code,
-          unit: itemUnit.trim() || 'قطعة',
-          sale_price: Number(salePrice),
-          purchase_price: Number(purchasePrice),
-          is_active: itemActive,
-          notes: itemNotes.trim() || null,
-        })
+        .update(updatePayload)
         .eq('id', editingItem.id);
 
       if (updateError) {
@@ -324,7 +336,7 @@ export default function ItemsTab() {
           p_name: itemName.trim(),
           p_unit: itemUnit.trim() || 'قطعة',
           p_sale_price: Number(salePrice),
-          p_purchase_price: Number(purchasePrice),
+          p_purchase_price: canViewPurchasePrice ? Number(purchasePrice) : 0,
           p_is_active: itemActive,
           p_warehouse_id: itemOpeningWarehouseId || null,
           p_opening_qty: Number(itemOpeningQty) || 0,
@@ -427,19 +439,25 @@ export default function ItemsTab() {
                     onSort={(s) => setSortOrder(s as ItemSort)}
                     className="num"
                   />
-                  <th className="num col-hide-on-detail">سعر الشراء</th>
+                  {canViewPurchasePrice && <th className="num col-hide-on-detail">سعر الشراء</th>}
                   <th>الحالة</th>
                   <th aria-label="الإجراءات" />
                 </tr>
-                <ColumnFilterRow scope="master_items" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
+                <ColumnFilterRow
+                  scope="master_items"
+                  values={columns.values}
+                  onChange={columns.setField}
+                  onReset={columns.reset}
+                  excludeKeys={canViewPurchasePrice ? undefined : ['purchase_price']}
+                />
               </thead>
               <tbody>
                 {loading && (
-                  <SkeletonRows columns={8} />
+                  <SkeletonRows columns={canViewPurchasePrice ? 8 : 7} />
                 )}
                 {!loading && items.length === 0 && (
                   <EmptyState
-                    colSpan={8}
+                    colSpan={canViewPurchasePrice ? 8 : 7}
                     compact
                     title="لا توجد أصناف تطابق البحث أو الفلاتر"
                     description="جرّب تعديل كلمات البحث."
@@ -466,7 +484,9 @@ export default function ItemsTab() {
                         <td className="strong">{item.name}</td>
                         <td className="col-hide-on-detail">{item.unit}</td>
                         <td className="num strong"><bdi dir="ltr" className="tabular-nums">{money(item.sale_price)}</bdi></td>
-                        <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{money(item.purchase_price)}</bdi></td>
+                        {canViewPurchasePrice && (
+                          <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{money(item.purchase_price)}</bdi></td>
+                        )}
                         <td>
                           <StatusBadge variant={item.is_active ? 'paid' : 'unpaid'}>
                             {item.is_active ? 'نشط' : 'موقوف'}
@@ -537,8 +557,12 @@ export default function ItemsTab() {
               <div className="erp-detail-totals">
                 <span>سعر البيع</span>
                 <strong className="num"><bdi dir="ltr" className="tabular-nums">{money(selectedItem.sale_price)}</bdi></strong>
-                <span>سعر الشراء</span>
-                <strong className="num"><bdi dir="ltr" className="tabular-nums">{money(selectedItem.purchase_price)}</bdi></strong>
+                {canViewPurchasePrice && (
+                  <>
+                    <span>سعر الشراء</span>
+                    <strong className="num"><bdi dir="ltr" className="tabular-nums">{money(selectedItem.purchase_price)}</bdi></strong>
+                  </>
+                )}
               </div>
 
               {selectedItem.notes && (
@@ -633,24 +657,26 @@ export default function ItemsTab() {
                   </div>
                 </label>
 
-                <label>
-                  سعر الشراء الافتراضي
-                  <div className="input-with-suffix">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.0001"
-                      min="0"
-                      className="num no-spinner"
-                      value={purchasePrice}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => setPurchasePrice(e.target.value)}
-                      placeholder="0.00"
-                      required
-                    />
-                    <span className="input-suffix">ج.م</span>
-                  </div>
-                </label>
+                {canViewPurchasePrice && (
+                  <label>
+                    سعر الشراء الافتراضي
+                    <div className="input-with-suffix">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.0001"
+                        min="0"
+                        className="num no-spinner"
+                        value={purchasePrice}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setPurchasePrice(e.target.value)}
+                        placeholder="0.00"
+                        required
+                      />
+                      <span className="input-suffix">ج.م</span>
+                    </div>
+                  </label>
+                )}
 
                 <label style={{ gridColumn: '1 / -1' }}>
                   ملاحظات الصنف

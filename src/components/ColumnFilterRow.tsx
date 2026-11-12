@@ -14,11 +14,12 @@ export interface ColumnFilterRowProps {
   onChange: (key: string, value: string) => void;
   onReset: () => void;
   options?: Record<string, SearchOption[]>;
+  excludeKeys?: readonly string[];
   as?: 'row' | 'bar';
 }
 
-export default function ColumnFilterRow({ scope, kind = '', owner = false, values, onChange, onReset, options = {}, as = 'row' }: ColumnFilterRowProps) {
-  const columns = listColumns(scope, owner, kind);
+export default function ColumnFilterRow({ scope, kind = '', owner = false, values, onChange, onReset, options = {}, excludeKeys, as = 'row' }: ColumnFilterRowProps) {
+  const columns = listColumns(scope, owner, kind).filter((column) => !excludeKeys?.includes(column.key));
   const rowRef = useRef<HTMLTableRowElement>(null);
   useStableTableColumns(rowRef, scope + kind + owner);
 

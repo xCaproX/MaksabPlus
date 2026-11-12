@@ -2,10 +2,10 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { Navigate } from 'react-router-dom';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { supabase } from './supabase';
-import { hasPermission, canViewProfit, type AccessState } from './accessCheck';
+import { hasPermission, canViewProfit, canViewPurchasePrice, type AccessState } from './accessCheck';
 
 export type { AccessState };
-export { hasPermission, canViewProfit };
+export { hasPermission, canViewProfit, canViewPurchasePrice };
 type AccessContextValue = { access: AccessState | null; loading: boolean; can: (...keys: string[]) => boolean };
 const AccessContext = createContext<AccessContextValue>({ access: null, loading: true, can: () => false });
 
@@ -33,7 +33,11 @@ export function AccessProvider({ children }: { children: ReactNode }) {
 
 export function useAccess() {
   const context = useContext(AccessContext);
-  return { ...context, canViewProfit: canViewProfit(context.access) };
+  return {
+    ...context,
+    canViewProfit: canViewProfit(context.access),
+    canViewPurchasePrice: canViewPurchasePrice(context.access),
+  };
 }
 
 export function AccessRoute({ permissions, children }: { permissions: string[]; children: ReactNode }) {
