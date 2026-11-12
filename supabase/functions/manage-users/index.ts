@@ -7,7 +7,43 @@ const corsHeaders = {
 };
 
 const isValidPermissionKey = (key: unknown): boolean =>
-  typeof key === 'string' && /^[a-z_]+(\.[a-z_]+)+$/.test(key);
+  typeof key === 'string' && (key === '*' || /^[a-zA-Z_]+(\.[a-zA-Z_]+)+$/.test(key));
+
+function resolveSafeRedirectOrigin(rawOrigin: string | null): string | null {
+  if (!rawOrigin) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(rawOrigin);
+  } catch {
+    return null;
+  }
+  const isLocalDev =
+    parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1');
+  if (parsed.protocol !== 'https:' && !isLocalDev) return null;
+
+  const configured = [Deno.env.get('ALLOWED_ORIGINS'), Deno.env.get('SITE_URL')]
+    .filter((v): v is string => Boolean(v && v.trim()))
+    .flatMap((v) => v.split(','))
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  if (configured.length > 0) {
+    const allowedOrigins = new Set(
+      configured
+        .map((item) => {
+          try {
+            return new URL(item).origin;
+          } catch {
+            return null;
+          }
+        })
+        .filter((v): v is string => Boolean(v)),
+    );
+    return allowedOrigins.has(parsed.origin) ? parsed.origin : null;
+  }
+
+  return parsed.origin;
+}
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -16,8 +52,9 @@ Deno.serve(async (request) => {
   const url = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !anonKey || !serviceKey) return json({ error: 'server_not_configured' }, 500);
   const authorization = request.headers.get('Authorization');
-  if (!url || !anonKey || !serviceKey || !authorization) return json({ error: 'server_not_configured' }, 500);
+  if (!authorization) return json({ error: 'not_authenticated' }, 401);
 
   const caller = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
   const { data: authData, error: authError } = await caller.auth.getUser();
@@ -43,9 +80,9 @@ Deno.serve(async (request) => {
       }
       const { data: companyId, error: companyError } = await caller.rpc('current_company_id');
       if (companyError || !companyId) throw companyError ?? new Error('company_not_found');
-      const origin = request.headers.get('origin');
+      const safeOrigin = resolveSafeRedirectOrigin(request.headers.get('origin'));
       const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-        ...(origin ? { redirectTo: `${origin}/set-password` } : {}),
+        ...(safeOrigin ? { redirectTo: `${safeOrigin}/set-password` } : {}),
         data: { full_name: fullName },
       });
       if (inviteError || !invited.user) throw inviteError ?? new Error('invite_failed');
