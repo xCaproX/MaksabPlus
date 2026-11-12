@@ -362,8 +362,96 @@ async function runConcurrencySuite() {
     assert.equal(Number(w2After.qty), 20 + 5 - 3, 'مخزون المخزن 2 بعد التحويلين المتعاكسين غير دقيق');
     console.log('   ✅ نجح السيناريو 8: التحويلان المخزنيان المتعاكسان تم تنفيذهما بدون Deadlock وبأرصدة دقيقة.\n');
 
+    // =========================================================================
+    // السيناريو 9: تعديل فاتورة بتبديل مخزن وصنف معكوس [B -> A] بالتزامن مع إنشاء [A, B] وتبديل مخزنين متعاكسين
+    // =========================================================================
+    console.log('10. تشغيل السيناريو 9: تعديل فاتورة بتبديل أصناف ومخازن معكوسة بالتزامن...');
+    await superClient.query(`
+      INSERT INTO public.item_stock (company_id, warehouse_id, item_id, qty, avg_cost)
+      VALUES
+        ('${companyId}', '${warehouseId}', '${itemA}', 50, 30),
+        ('${companyId}', '${warehouseId}', '${itemB}', 50, 40),
+        ('${companyId}', '${warehouse2Id}', '${itemA}', 50, 30),
+        ('${companyId}', '${warehouse2Id}', '${itemB}', 50, 40)
+      ON CONFLICT (warehouse_id, item_id) DO UPDATE SET qty = 50
+    `);
+
+    const { rows: [inv9Row1] } = await client1.query(`
+      SELECT public.create_invoice(
+        'sale', '${customerId}', '${warehouse2Id}', public.cairo_today(), 0, 'فاتورة قبل التعديل 1',
+        jsonb_build_array(jsonb_build_object('item_id', '${itemB}'::uuid, 'qty', 2, 'unit_price', 60)),
+        null
+      ) AS id
+    `);
+    const { rows: [inv9Row2] } = await client2.query(`
+      SELECT public.create_invoice(
+        'sale', '${customerId}', '${warehouseId}', public.cairo_today(), 0, 'فاتورة قبل التعديل 2',
+        jsonb_build_array(jsonb_build_object('item_id', '${itemA}'::uuid, 'qty', 4, 'unit_price', 50)),
+        null
+      ) AS id
+    `);
+
+    const editSwap1 = client1.query(`
+      SELECT public.update_invoice(
+        '${inv9Row1.id}', '${customerId}', '${warehouseId}', public.cairo_today(), 0, 'تعديل wh2/B -> wh1/A',
+        jsonb_build_array(jsonb_build_object('item_id', '${itemA}'::uuid, 'qty', 3, 'unit_price', 50)),
+        null
+      )
+    `);
+    const editSwap2 = client2.query(`
+      SELECT public.update_invoice(
+        '${inv9Row2.id}', '${customerId}', '${warehouse2Id}', public.cairo_today(), 0, 'تعديل wh1/A -> wh2/B',
+        jsonb_build_array(jsonb_build_object('item_id', '${itemB}'::uuid, 'qty', 5, 'unit_price', 60)),
+        null
+      )
+    `);
+    await Promise.all([editSwap1, editSwap2]);
+
+    const { rows: [inv9Row3] } = await client1.query(`
+      SELECT public.create_invoice(
+        'sale', '${customerId}', '${warehouseId}', public.cairo_today(), 0, 'فاتورة قبل تبديل نفس المخزن',
+        jsonb_build_array(jsonb_build_object('item_id', '${itemB}'::uuid, 'qty', 1, 'unit_price', 60)),
+        null
+      ) AS id
+    `);
+
+    const sameWhSwap = client1.query(`
+      SELECT public.update_invoice(
+        '${inv9Row3.id}', '${customerId}', '${warehouseId}', public.cairo_today(), 0, 'تبديل B -> A',
+        jsonb_build_array(jsonb_build_object('item_id', '${itemA}'::uuid, 'qty', 2, 'unit_price', 50)),
+        null
+      )
+    `);
+    const concurrentCreateAB = client2.query(`
+      SELECT public.create_invoice(
+        'sale', '${customerId}', '${warehouseId}', public.cairo_today(), 0, 'بيع متزامن A ثم B',
+        jsonb_build_array(
+          jsonb_build_object('item_id', '${itemA}'::uuid, 'qty', 1, 'unit_price', 50),
+          jsonb_build_object('item_id', '${itemB}'::uuid, 'qty', 1, 'unit_price', 60)
+        ),
+        null
+      )
+    `);
+    await Promise.all([sameWhSwap, concurrentCreateAB]);
+
+    const { rows: finalStock9 } = await superClient.query(`
+      SELECT warehouse_id, item_id, qty
+      FROM public.item_stock
+      WHERE company_id = '${companyId}'
+    `);
+    const stockMap9 = new Map(finalStock9.map((r) => [`${r.warehouse_id}:${r.item_id}`, Number(r.qty)]));
+    // wh1/itemA: 50 - 3 (editSwap1) - 2 (sameWhSwap) - 1 (concurrentCreateAB) = 44
+    // wh1/itemB: 50 - 1 (concurrentCreateAB) = 49
+    // wh2/itemA: 50 (no net sale remains after editSwap1 moved off wh2/itemB)
+    // wh2/itemB: 50 - 5 (editSwap2) = 45
+    assert.equal(stockMap9.get(`${warehouseId}:${itemA}`), 44, 'رصيد itemA في المخزن 1 بعد التعديل المتزامن غير دقيق');
+    assert.equal(stockMap9.get(`${warehouseId}:${itemB}`), 49, 'رصيد itemB في المخزن 1 بعد التعديل المتزامن غير دقيق');
+    assert.equal(stockMap9.get(`${warehouse2Id}:${itemA}`), 50, 'رصيد itemA في المخزن 2 غير دقيق');
+    assert.equal(stockMap9.get(`${warehouse2Id}:${itemB}`), 45, 'رصيد itemB في المخزن 2 غير دقيق');
+    console.log('   ✅ نجح السيناريو 9: تعديل الفواتير المتعاكس على الأصناف والمخازن تم تنفيذه بدون Deadlock وبأرصدة دقيقة.\n');
+
     console.log('================================================================================');
-    console.log('🎉 جميع سيناريوهات التزامن الثمانية نجحت بنسبة 100% (ALL CONCURRENCY TESTS PASSED)!');
+    console.log('🎉 جميع سيناريوهات التزامن التسعة نجحت بنسبة 100% (ALL CONCURRENCY TESTS PASSED)!');
     console.log('================================================================================\n');
 
   } finally {
