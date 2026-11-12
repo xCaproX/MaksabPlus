@@ -436,7 +436,6 @@ td.row-actions > * + * {
   background: #f7f9fc;
   border-block-end: 1px solid var(--border, #dbe3ef);
 }
-.column-filter-row-double td { block-size: 90px; }
 /* Out-of-flow controls cannot contribute intrinsic width to table columns.
    Headings and record cells determine exactly the same widths without this row. */
 .column-filter-cell {
@@ -466,6 +465,9 @@ td.row-actions > * + * {
 .column-filter-row .picker-input:has(> input[type="date"]) { inline-size: calc(var(--table-date-width) - 18px); }
 .column-filter-row .picker-input:has(> input[type="time"]) { inline-size: calc(var(--table-time-width) - 18px); }
 .column-filter-date { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
+.column-filter-row .col-datetime .column-filter-date { flex-direction: row; align-items: center; gap: 6px; }
+.column-filter-row .col-datetime .picker-input:has(> input[type="date"]) { inline-size: calc(var(--table-date-width) - 12px); }
+.column-filter-row .col-datetime .picker-input:has(> input[type="time"]) { inline-size: calc(var(--table-time-width) - 12px); }
 .column-filter-clear {
   display: inline-flex; align-items: center; justify-content: center; flex: 0 0 34px;
   inline-size: 34px; block-size: var(--column-filter-control-size); padding: 0;
