@@ -1,15 +1,17 @@
-import { round2 } from './format';
+import { round2, round4 } from './format';
 import type { AccountKind, InvoiceKind, LineDraft } from './types';
 
 /**
- * حساب إجمالي بنود الفاتورة مع التقريب المحاسبي لمنزلتين عشريتين
+ * حساب إجمالي بنود الفاتورة مع تقريب الكمية والسعر لـ 4 منازل وتقريب السطر لمنزلتين عشريتين
  */
 export function calculateInvoiceSubtotal(lines: LineDraft[]): number {
   const activeLines = lines.filter((line) => Boolean(line.item_id));
   const subtotal = activeLines.reduce((sum, line) => {
-    const qty = Number(line.qty || 0);
-    const price = Number(line.unit_price || 0);
-    if (!Number.isFinite(qty) || !Number.isFinite(price)) return sum;
+    const rawQty = Number(line.qty || 0);
+    const rawPrice = Number(line.unit_price || 0);
+    if (!Number.isFinite(rawQty) || !Number.isFinite(rawPrice)) return sum;
+    const qty = round4(rawQty);
+    const price = round4(rawPrice);
     return sum + round2(qty * price);
   }, 0);
   return round2(subtotal);

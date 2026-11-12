@@ -118,6 +118,16 @@ export default function ReceiptForm({
   const selectedCashBox = cashBoxes.find((b) => b.id === cashBoxId);
   const cashBoxAvailableBalance = Number(selectedCashBox?.balance || 0) + (editing && editing.cash_box_id === cashBoxId ? prevAmount : 0);
   const isOverdraft = !isIn && !isReadOnly && roundedAmount > cashBoxAvailableBalance;
+  const editingSourceCashBox =
+    editing && isIn && cashBoxId !== editing.cash_box_id
+      ? cashBoxes.find((b) => b.id === editing.cash_box_id)
+      : undefined;
+  const isPreviousBoxOverdraft = Boolean(
+    !isReadOnly &&
+      editingSourceCashBox &&
+      round2(Number(editingSourceCashBox.balance || 0) - prevAmount) < 0,
+  );
+  const hasOverdraft = isOverdraft || isPreviousBoxOverdraft;
 
   function handleAccountKindChange(nextKind: AccountKind) {
     setAccountKind(nextKind);
@@ -405,11 +415,23 @@ export default function ReceiptForm({
         </div>
       </div>
 
-      {/* تنبيه الرصيد المتاح عند الصرف */}
+      {/* تنبيه الرصيد المتاح عند الصرف أو عجز الخزنة السابقة عند نقل إيصال استلام */}
       {!isIn && !isReadOnly && (
         <div className={`cashbox-balance-hint ${isOverdraft ? 'is-danger' : ''}`}>
           <span>رصيد الخزنة المتاح:</span>
           <MoneyDisplay value={cashBoxAvailableBalance} strong />
+        </div>
+      )}
+
+      {isPreviousBoxOverdraft && editingSourceCashBox && (
+        <div className="cashbox-balance-hint is-danger" role="alert">
+          <span>
+            تنبيه: لا يمكن نقل الإيصال من ({editingSourceCashBox.name}) لأن رصيدها الحالي (
+            <bdi dir="ltr" className="tabular-nums">{money(editingSourceCashBox.balance)}</bdi>
+            ) لا يكفي لعكس المبلغ السابق (
+            <bdi dir="ltr" className="tabular-nums">{money(prevAmount)}</bdi>
+            )
+          </span>
         </div>
       )}
 
@@ -445,7 +467,7 @@ export default function ReceiptForm({
         isReadOnly={isReadOnly}
         isEditing={Boolean(editing)}
         busy={busy}
-        saveDisabled={isOverdraft}
+        saveDisabled={hasOverdraft}
         containerClassName="row-actions-group"
         saveLabel={editing ? 'حفظ التعديلات' : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
         restoreLabel="استعادة الإيصال"

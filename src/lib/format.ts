@@ -58,6 +58,10 @@ export function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+export function round4(value: number): number {
+  return Math.round((value + Number.EPSILON) * 10000) / 10000;
+}
+
 export function formatDate(value: string | null | undefined): string {
   if (!value) return '—';
   const raw = value.slice(0, 10);

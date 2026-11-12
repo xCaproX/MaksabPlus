@@ -343,4 +343,53 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     const beforePill = screen.getByText('المديونية قبل:').closest('.stat-pill')!;
     expect(beforePill).toHaveTextContent('1,000.00');
   });
+
+  it('يحذر ويعطل الحفظ عند نقل إيصال استلام من خزنة رصيدها أقل من المبلغ السابق', async () => {
+    const boxes = [
+      { id: 'cb-main', company_id: 'comp-1', name: 'الخزنة الرئيسية', balance: 500, is_primary: true, is_active: true } as any,
+      { id: 'cb-alt', company_id: 'comp-1', name: 'خزنة فرعية', balance: 2000, is_primary: false, is_active: true } as any,
+    ];
+    const mockEditing = {
+      id: 'rec-2',
+      number: 'RCP-000002',
+      receipt_date: '2026-11-01',
+      amount: 1500,
+      account_id: 'acc-1',
+      account_name: 'عميل تجريبي',
+      account_kind: 'customer',
+      cash_box_id: 'cb-main',
+      cash_box_name: 'الخزنة الرئيسية',
+      is_free: true,
+      notes: '',
+      statement: null,
+      description: null,
+      invoice_id: null,
+      invoice_number: null,
+      invoice_kind: null,
+      direction: 'in',
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+    } as any;
+
+    render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={mockAccounts}
+          cashBoxes={boxes}
+          editing={mockEditing}
+          readOnly={false}
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    const boxInput = screen.getByDisplayValue(/الخزنة الرئيسية/);
+    fireEvent.focus(boxInput);
+    fireEvent.click(await screen.findByText(/خزنة فرعية/));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('لا يمكن نقل الإيصال من (الخزنة الرئيسية)');
+    expect(screen.getByRole('button', { name: 'حفظ التعديلات' })).toBeDisabled();
+  });
 });

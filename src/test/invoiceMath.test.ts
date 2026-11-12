@@ -36,6 +36,14 @@ describe('invoiceMath - حسابات الفواتير والأرصدة', () => {
       expect(calculateInvoiceSubtotal(lines)).toBe(6.68);
     });
 
+    it('يقرب الكمية والسعر إلى 4 منازل عشرية قبل حساب السطر مطابقاً لقاعدة البيانات', () => {
+      const lines: LineDraft[] = [
+        { key: '1', item_id: 'item-1', qty: '10000.00004', unit_price: '1.00499' },
+      ];
+      // round4(10000.00004) = 10000, round4(1.00499) = 1.005 => round2(10000 * 1.005) = 10050
+      expect(calculateInvoiceSubtotal(lines)).toBe(10050);
+    });
+
     it('يُرجع 0 عند عدم وجود أي بنود نشطة', () => {
       expect(calculateInvoiceSubtotal([])).toBe(0);
       expect(calculateInvoiceSubtotal([{ key: '1', item_id: '', qty: '5', unit_price: '10' }])).toBe(0);
