@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Check, Pencil, Printer, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { Check } from 'lucide-react';
+import DocumentActionsBar from './DocumentActionsBar';
 import { supabase } from '../lib/supabase';
 import { money, round2, today } from '../lib/format';
 import DateDisplay from './DateDisplay';
@@ -314,52 +315,23 @@ export default function CashBoxTransferForm({
       </div>
 
       {/* أزرار الإجراءات الموحدة */}
-      {isReadOnly ? (
-        <div className="form-modal-actions readonly-actions-group" style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: '10px' }}>
-          {onRestore && (
-            <button type="button" className="btn primary" onClick={onRestore}>
-              <RotateCcw size={15} />
-              <span>استعادة التحويل</span>
-            </button>
-          )}
-          {onEdit && (
-            <button type="button" className={onRestore ? 'btn' : 'btn primary'} onClick={onEdit}>
-              <Pencil size={15} />
-              <span>تعديل التحويل</span>
-            </button>
-          )}
-          <button type="button" className="btn" onClick={onPrint ?? (() => window.print())}>
-            <Printer size={15} />
-            <span>طباعة</span>
-          </button>
-          {onDelete && (
-            <button type="button" className="btn danger" onClick={onDelete}>
-              <Trash2 size={15} />
-              <span>حذف</span>
-            </button>
-          )}
-          <button type="button" className="btn" onClick={onCancel}>
-            <span>إغلاق</span>
-          </button>
-        </div>
-      ) : (
-        <div className="form-modal-actions">
-          <button type="submit" className="btn primary" disabled={busy || isOverdraft}>
-            <Save size={16} />
-            <span>{busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'حفظ التحويل بين الخزن'}</span>
-          </button>
-          {editing ? (
-            <button type="button" className="btn" onClick={onCancel} disabled={busy}>
-              <span>إلغاء</span>
-            </button>
-          ) : (
-            <button type="button" className="btn" onClick={handleReset} disabled={busy}>
-              <RotateCcw size={14} />
-              <span>مسح / جديد</span>
-            </button>
-          )}
-        </div>
-      )}
+      <DocumentActionsBar
+        isReadOnly={isReadOnly}
+        isEditing={Boolean(editing)}
+        busy={busy}
+        saveDisabled={isOverdraft}
+        containerClassName="form-modal-actions"
+        saveLabel={editing ? 'حفظ التعديلات' : 'حفظ التحويل بين الخزن'}
+        restoreLabel="استعادة التحويل"
+        editLabel="تعديل التحويل"
+        showCancelIcon={false}
+        onRestore={onRestore}
+        onEdit={onEdit}
+        onPrint={onPrint}
+        onDelete={onDelete}
+        onCancel={onCancel}
+        onResetNew={handleReset}
+      />
     </form>
   );
 }

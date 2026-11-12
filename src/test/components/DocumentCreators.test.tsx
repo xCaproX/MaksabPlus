@@ -14,7 +14,7 @@ function example(kind: string, name: string | null) {
   const row = { ...base, created_by_name: name };
   switch (kind) {
     case 'invoice': return <InvoiceTable {...actions} sortOrder="date-desc" kind="sale" partyHeader="الحساب"
-      canViewProfit={false} newLabel="فاتورة" isReturn={false} pageInvoices={[{ ...row, total: 100, paid: 40, remaining: 60 } as InvoiceRow]} />;
+      newLabel="فاتورة" isReturn={false} pageInvoices={[{ ...row, total: 100, paid: 40, remaining: 60 } as InvoiceRow]} />;
     case 'warehouse': return <WarehouseTransferTable {...actions} sortOrder="date-desc" canViewProfit={false}
       pageTransfers={[{ ...row, total_qty: 2, line_count: 1 } as WarehouseTransferRow]} />;
     case 'receipt': return <ReceiptTable {...actions} sortOrder="date-desc"

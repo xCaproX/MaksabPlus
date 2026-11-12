@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pencil, Printer, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import DocumentActionsBar from '../DocumentActionsBar';
 
 interface DocumentSummarySidebarProps {
   isReadOnly: boolean;
@@ -79,90 +79,33 @@ export default function DocumentSummarySidebar({
 
       {extraContent}
 
-      {isReadOnly ? (
-        <div className="left-actions-group readonly-actions-group">
-          {onRestore && (
-            <button
-              type="button"
-              className="btn primary btn-invoice-restore"
-              onClick={onRestore}
-            >
-              <RotateCcw size={15} />
-              <span>{restoreLabel}</span>
-            </button>
-          )}
-          {onEdit && (
-            <button
-              type="button"
-              className={onRestore ? 'btn btn-invoice-edit' : 'btn primary btn-invoice-edit'}
-              onClick={onEdit}
-            >
-              <Pencil size={15} />
-              <span>{editLabel}</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-invoice-print"
-            onClick={onPrint ?? (() => window.print())}
-          >
-            <Printer size={15} />
-            <span>{printLabel}</span>
-          </button>
-          {onDelete && (
-            <button
-              type="button"
-              className="btn danger btn-invoice-delete"
-              onClick={onDelete}
-            >
-              <Trash2 size={15} />
-              <span>{deleteLabel}</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-invoice-close"
-            onClick={onCancel}
-          >
-            <span>إغلاق</span>
-          </button>
-        </div>
-      ) : (
-        <div className="left-actions-group">
-          <button
-            type="submit"
-            className="btn primary btn-invoice-save"
-            disabled={busy}
-          >
-            <Save size={16} />
-            <span>{busy ? 'جارٍ الحفظ…' : saveLabel}</span>
-          </button>
-
-          {isEditing ? (
-            <button
-              type="button"
-              className="btn btn-invoice-clear"
-              onClick={onCancel}
-              disabled={busy}
-              title={cancelTitle}
-            >
-              <X size={15} />
-              <span>إلغاء</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-invoice-clear"
-              onClick={onResetNew}
-              disabled={busy}
-              title={resetTitle}
-            >
-              <RotateCcw size={14} />
-              <span>مسح / جديد</span>
-            </button>
-          )}
-        </div>
-      )}
+      <DocumentActionsBar
+        isReadOnly={isReadOnly}
+        isEditing={isEditing}
+        busy={busy}
+        containerClassName="left-actions-group"
+        saveLabel={saveLabel}
+        restoreLabel={restoreLabel}
+        editLabel={editLabel}
+        printLabel={printLabel}
+        deleteLabel={deleteLabel}
+        cancelTitle={cancelTitle}
+        resetTitle={resetTitle}
+        saveClassName="btn-invoice-save"
+        restoreClassName="btn-invoice-restore"
+        editClassName="btn-invoice-edit"
+        printClassName="btn-invoice-print"
+        deleteClassName="btn-invoice-delete"
+        closeClassName="btn-invoice-close"
+        cancelClassName="btn-invoice-clear"
+        resetClassName="btn-invoice-clear"
+        onRestore={onRestore}
+        onEdit={onEdit}
+        onPrint={onPrint}
+        onDelete={onDelete}
+        onCancel={onCancel}
+        onResetNew={onResetNew}
+      />
     </div>
   );
 }

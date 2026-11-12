@@ -433,6 +433,7 @@ export default function InvoiceForm({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isReadOnly) return;
     const priceNum = Number(entryUnitPrice || 0);
     const pending = flushPendingDocLine(
       lines,

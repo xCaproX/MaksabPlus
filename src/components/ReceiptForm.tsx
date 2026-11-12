@@ -2,7 +2,8 @@ import DateDisplay from './DateDisplay';
 import AccountBalancePills from './AccountBalancePills';
 import { useState, useEffect, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ExternalLink, FileText, Pencil, Printer, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { Check, ExternalLink, FileText } from 'lucide-react';
+import DocumentActionsBar from './DocumentActionsBar';
 import { supabase } from '../lib/supabase';
 import { money, round2, today } from '../lib/format';
 import { tafqeet } from '../lib/tafqeet';
@@ -440,95 +441,35 @@ export default function ReceiptForm({
       {/* -------------------------------------------------------------------
           السطر الخامس: أزرار الإجراءات (قراءة فقط أو تحرير/إضافة)
           ------------------------------------------------------------------- */}
-      {isReadOnly ? (
-        <div className="row-actions-group readonly-actions-group">
-          {onRestore && (
-            <button
-              type="button"
-              className="btn primary btn-receipt-restore"
-              onClick={onRestore}
-            >
-              <RotateCcw size={15} />
-              <span>استعادة الإيصال</span>
-            </button>
-          )}
-          {onEdit && editing?.is_free && (
-            <button
-              type="button"
-              className={onRestore ? 'btn btn-receipt-edit' : 'btn primary btn-receipt-edit'}
-              onClick={onEdit}
-            >
-              <Pencil size={15} />
-              <span>تعديل الإيصال</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-receipt-print"
-            onClick={onPrint ?? (() => window.print())}
-          >
-            <Printer size={15} />
-            <span>طباعة الإيصال</span>
-          </button>
-          {onDelete && editing?.is_free && (
-            <button
-              type="button"
-              className="btn danger btn-receipt-delete"
-              onClick={onDelete}
-            >
-              <Trash2 size={15} />
-              <span>حذف الإيصال</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-receipt-close"
-            onClick={onCancel}
-          >
-            <span>إغلاق</span>
-          </button>
-        </div>
-      ) : (
-        <div className="row-actions-group">
-          <button
-            type="submit"
-            className="btn primary btn-receipt-save-full"
-            disabled={busy || isOverdraft}
-          >
-            <Save size={16} />
-            <span>
-              {busy
-                ? 'جارٍ الحفظ…'
-                : editing
-                ? 'حفظ التعديلات'
-                : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
-            </span>
-          </button>
-
-          {editing ? (
-            <button
-              type="button"
-              className="btn btn-receipt-clear-full"
-              onClick={onCancel}
-              disabled={busy}
-              title="إلغاء التعديل والعودة"
-            >
-              <span>إلغاء</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-receipt-clear-full"
-              onClick={handleResetNew}
-              disabled={busy}
-              title="مسح الحقول والبدء من جديد"
-            >
-              <RotateCcw size={14} />
-              <span>مسح / جديد</span>
-            </button>
-          )}
-        </div>
-      )}
+      <DocumentActionsBar
+        isReadOnly={isReadOnly}
+        isEditing={Boolean(editing)}
+        busy={busy}
+        saveDisabled={isOverdraft}
+        containerClassName="row-actions-group"
+        saveLabel={editing ? 'حفظ التعديلات' : `حفظ إيصال ${isIn ? 'الاستلام' : 'الصرف'}`}
+        restoreLabel="استعادة الإيصال"
+        editLabel="تعديل الإيصال"
+        printLabel="طباعة الإيصال"
+        deleteLabel="حذف الإيصال"
+        cancelTitle="إلغاء التعديل والعودة"
+        resetTitle="مسح الحقول والبدء من جديد"
+        showCancelIcon={false}
+        saveClassName="btn-receipt-save-full"
+        restoreClassName="btn-receipt-restore"
+        editClassName="btn-receipt-edit"
+        printClassName="btn-receipt-print"
+        deleteClassName="btn-receipt-delete"
+        closeClassName="btn-receipt-close"
+        cancelClassName="btn-receipt-clear-full"
+        resetClassName="btn-receipt-clear-full"
+        onRestore={onRestore}
+        onEdit={editing?.is_free ? onEdit : undefined}
+        onPrint={onPrint}
+        onDelete={editing?.is_free ? onDelete : undefined}
+        onCancel={onCancel}
+        onResetNew={handleResetNew}
+      />
     </form>
   );
 }

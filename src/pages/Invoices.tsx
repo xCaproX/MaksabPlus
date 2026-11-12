@@ -104,6 +104,7 @@ export default function Invoices() {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const openedFromViewRef = useRef(false);
   const openedTransferFromViewRef = useRef(false);
+  const modalRequestRef = useRef(0);
   const [editing, setEditing] = useState<EditingInvoice | null>(null);
   const [editingTransfer, setEditingTransfer] = useState<
     (WarehouseTransferRow & { lines: WarehouseTransferLine[] }) | null
@@ -396,6 +397,7 @@ export default function Invoices() {
   }
 
   function openNew() {
+    modalRequestRef.current += 1;
     setEditing(null);
     setEditingTransfer(null);
     openedFromViewRef.current = false;
@@ -405,12 +407,15 @@ export default function Invoices() {
   }
 
   async function openTransferModal(transfer: WarehouseTransferRow, mode: 'view' | 'edit' = 'view') {
+    const reqId = ++modalRequestRef.current;
     openedTransferFromViewRef.current = mode === 'view';
     try {
       const lines = await loadTransferLines(transfer.id);
+      if (modalRequestRef.current !== reqId) return;
       setEditingTransfer({ ...transfer, lines });
       setEditing(null);
     } catch (error) {
+      if (modalRequestRef.current !== reqId) return;
       toast.error(errorMessage(error));
       return;
     }
@@ -419,12 +424,15 @@ export default function Invoices() {
   }
 
   async function openInvoiceModal(invoice: InvoiceRow, mode: 'view' | 'edit' = 'view') {
+    const reqId = ++modalRequestRef.current;
     openedFromViewRef.current = mode === 'view';
     try {
       const lines = await loadInvoiceLines(invoice.id);
+      if (modalRequestRef.current !== reqId) return;
       setEditing({ invoice, lines });
       setEditingTransfer(null);
     } catch (error) {
+      if (modalRequestRef.current !== reqId) return;
       toast.error(errorMessage(error));
       return;
     }
@@ -749,7 +757,6 @@ export default function Invoices() {
             partyHeader={partyHeader}
             sortOrder={sortOrder}
             onSort={setSortOrder}
-            canViewProfit={Boolean(canViewProfit)}
             showDeleted={showDeleted}
             newLabel={newLabel}
             isReturn={isReturn}

@@ -29,7 +29,6 @@ interface InvoiceTableProps {
   partyHeader: string;
   sortOrder: SaleSort;
   onSort: (s: SaleSort) => void;
-  canViewProfit: boolean;
   showDeleted: boolean;
   newLabel: string;
   isReturn: boolean;

@@ -257,6 +257,7 @@ export default function WarehouseTransferForm({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (readOnly) return;
     if (!sourceId || !destinationId || sourceId === destinationId) {
       return toast.error('اختر مخزنين مختلفين (مخزن المصدر ومخزن الوجهة)');
     }
