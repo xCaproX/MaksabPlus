@@ -64,6 +64,11 @@ export default function SalesTrendChart({ data }: SalesTrendChartProps) {
         responsive: true,
         maintainAspectRatio: false,
         resizeDelay: 20,
+        layout: {
+          padding: {
+            left: 20,
+          },
+        },
         interaction: {
           intersect: false,
           mode: 'index',
