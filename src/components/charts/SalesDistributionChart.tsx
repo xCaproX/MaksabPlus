@@ -146,31 +146,15 @@ export default function SalesDistributionChart({ distribution }: SalesDistributi
 
       <div className="sales-dist-indicators">
         <div className="sales-dist-indicator is-cash">
-          <div className="sales-dist-indicator-head">
-            <span className="sales-dist-dot" aria-hidden="true" />
-            <span className="sales-dist-label">مبيعات نقدية</span>
-          </div>
-          <div className="sales-dist-percent">
-            <bdi dir="ltr" className="tabular-nums">{cashPct}%</bdi>
-          </div>
-          <div className="sales-dist-amount">
-            <bdi dir="ltr" className="tabular-nums">{money(cash)}</bdi>
-            <span>ج.م</span>
-          </div>
+          <span className="sales-dist-dot" aria-hidden="true" />
+          <span className="sales-dist-label">مبيعات نقدية</span>
+          <bdi dir="ltr" className="sales-dist-percent tabular-nums">{cashPct}%</bdi>
         </div>
 
         <div className="sales-dist-indicator is-credit">
-          <div className="sales-dist-indicator-head">
-            <span className="sales-dist-dot" aria-hidden="true" />
-            <span className="sales-dist-label">مبيعات آجلة</span>
-          </div>
-          <div className="sales-dist-percent">
-            <bdi dir="ltr" className="tabular-nums">{creditPct}%</bdi>
-          </div>
-          <div className="sales-dist-amount">
-            <bdi dir="ltr" className="tabular-nums">{money(credit)}</bdi>
-            <span>ج.م</span>
-          </div>
+          <span className="sales-dist-dot" aria-hidden="true" />
+          <span className="sales-dist-label">مبيعات آجلة</span>
+          <bdi dir="ltr" className="sales-dist-percent tabular-nums">{creditPct}%</bdi>
         </div>
       </div>
     </div>
