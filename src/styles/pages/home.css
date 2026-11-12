@@ -769,6 +769,152 @@
   font-size: var(--font-sm);
 }
 
+/* Sales Distribution (Cash vs Credit) Chart & Visible Percentage Indicators */
+.sales-dist-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.sales-dist-canvas-wrap {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.sales-dist-center {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2px;
+  padding-inline: 16px;
+}
+
+.sales-dist-center-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.sales-dist-center-value {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+.sales-dist-center-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sales-dist-indicators {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.sales-dist-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  min-width: 0;
+  text-align: center;
+}
+
+.sales-dist-indicator.is-cash {
+  background: var(--success-light);
+  border-color: var(--success-border);
+}
+
+.sales-dist-indicator.is-credit {
+  background: var(--danger-light);
+  border-color: var(--danger-border);
+}
+
+.sales-dist-indicator-head {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sales-dist-dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.sales-dist-indicator.is-cash .sales-dist-dot {
+  background: var(--success);
+}
+
+.sales-dist-indicator.is-credit .sales-dist-dot {
+  background: var(--danger);
+}
+
+.sales-dist-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+}
+
+.sales-dist-percent {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.sales-dist-indicator.is-cash .sales-dist-percent {
+  color: var(--success);
+}
+
+.sales-dist-indicator.is-credit .sales-dist-percent {
+  color: var(--danger);
+}
+
+.sales-dist-amount {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
 @media (max-width: 991px) {
   .home-charts-grid {
     grid-template-columns: minmax(0, 1fr);

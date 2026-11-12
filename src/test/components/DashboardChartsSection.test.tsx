@@ -111,6 +111,7 @@ describe('DashboardChartsSection Component', () => {
     await waitFor(() => {
       expect(screen.getByText('أكثر الأصناف طلباً')).toBeInTheDocument();
       expect(screen.getByText('كبار العملاء')).toBeInTheDocument();
+      expect(screen.getByText('نسبة التحصيل النقدي مقارنة بالآجل خلال آخر شهر')).toBeInTheDocument();
       expect(screen.getByText('أعلى 10 أصناف حسب الكمية المباعة خلال آخر شهر')).toBeInTheDocument();
       expect(screen.getByText('أعلى 10 عملاء حسب قيمة المشتريات خلال آخر شهر')).toBeInTheDocument();
       expect(screen.getByText('بيبسي كانز')).toBeInTheDocument();
@@ -125,8 +126,34 @@ describe('DashboardChartsSection Component', () => {
 
     await waitFor(() => {
       expect(supabase.rpc).toHaveBeenCalledWith('get_home_dashboard_charts', { p_days: 7 });
+      expect(screen.getByText('نسبة التحصيل النقدي مقارنة بالآجل خلال آخر أسبوع')).toBeInTheDocument();
       expect(screen.getByText('أعلى 10 أصناف حسب الكمية المباعة خلال آخر أسبوع')).toBeInTheDocument();
       expect(screen.getByText('أعلى 10 عملاء حسب قيمة المشتريات خلال آخر أسبوع')).toBeInTheDocument();
+    });
+  });
+
+  it('shows empty state for sales distribution when only returns exist (cash and credit are zero)', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValueOnce({
+      data: {
+        ...mockChartsData,
+        sales_distribution: {
+          cash_sales: 0,
+          credit_sales: 0,
+          returns_total: 250,
+        },
+      },
+      error: null,
+    } as never);
+
+    render(
+      <BrowserRouter>
+        <DashboardChartsSection />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('لا توجد بيانات توزيع مبيعات كافية')).toBeInTheDocument();
+      expect(screen.queryByTestId('mock-distribution-chart')).not.toBeInTheDocument();
     });
   });
 });

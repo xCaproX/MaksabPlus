@@ -104,8 +104,7 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
   const hasDistributionData = Boolean(
     data?.sales_distribution &&
     (Number(data.sales_distribution.cash_sales) > 0 ||
-     Number(data.sales_distribution.credit_sales) > 0 ||
-     Number(data.sales_distribution.returns_total) > 0)
+     Number(data.sales_distribution.credit_sales) > 0)
   );
 
   const rangeLabel = getRangeLabel(range);
@@ -166,7 +165,7 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
         {data?.permissions.can_view_sales && (
           <ChartContainer
             title="توزيع المبيعات (نقدي / آجل)"
-            subtitle="نسبة التحصيل النقدي مقارنة بالآجل"
+            subtitle={`نسبة التحصيل النقدي مقارنة بالآجل خلال ${rangeLabel}`}
             icon={PieChart}
             loading={loading}
             error={error}
