@@ -47,12 +47,12 @@
    - المعادلة المطبقة في `apply_stock_movement` عندما `qty + p_qty_delta > 0`:
      $$\text{New Avg Cost} = \text{round}\left(\frac{(\text{Old Qty} \times \text{Old Avg Cost}) + (\text{Incoming Qty} \times \text{Unit Cost})}{\text{Old Qty} + \text{Incoming Qty}}, 4\right)$$
    - يُخزن الناتج في `item_stock.avg_cost` لكل مخزن على حدة.
-   - **حماية التكلفة من التعديل بأثر رجعي (`purchase_invoice_has_later_outflow`)**: تمنع `0078` و`0079` و`0081` و`0082` تعديل أو استعادة أو حذف فاتورة شراء (أو إرجاع تاريخها للوراء) إذا وُجدت بعدها حركات خروج لأي من أصنافها من نفس المخزن (`sale`, `waste`, `purchase_return`, أو `warehouse_transfers`) سواء بتاريخ لاحق أو بوقت إنشاء فعلي لاحق (`created_at > pinv.created_at`)، إلا للتعديلات الآمنة المحددة مع استدعاء `sync_invoice_receipt` دائماً. وفي `0082` يعالج مسار التعديل بالصافي (`update_invoice`) إضافة وحذف الأصناف عبر `FULL OUTER JOIN` مع تمرير تكلفة الوحدة المحذوفة ومعالجة كسور التقريب العشرية في `apply_stock_movement`.
+   - **حماية التكلفة من التعديل بأثر رجعي (`purchase_invoice_has_later_outflow`)**: تمنع `0078` و`0079` و`0081` و`0082` و`0084` تعديل أو استعادة أو حذف فاتورة شراء (أو إرجاع تاريخها للوراء) إذا وُجدت بعدها حركات خروج أو تسعير مرتبطة لأي من أصنافها من نفس المخزن (`sale`, `waste`, `purchase_return`, `sale_return`, أو `warehouse_transfers`) سواء بتاريخ لاحق أو بوقت إنشاء فعلي لاحق (`created_at > pinv.created_at`)، إلا للتعديلات الآمنة المحددة مع استدعاء `sync_invoice_receipt` دائماً. وفي `0082` يعالج مسار التعديل بالصافي (`update_invoice`) إضافة وحذف الأصناف عبر `FULL OUTER JOIN` مع تمرير تكلفة الوحدة المحذوفة ومعالجة كسور التقريب العشرية في `apply_stock_movement`، كما توحد `0084` تقريب الكميات والأسعار إلى 4 منازل عشرية قبل الحساب ومزامنة `recalc_invoice_totals` (بما يشمل فرق سعر `purchase_return`).
 3. **المدفوعات والمستحقات**:
    - إذا كان `paid > 0`: يتحقق `sync_invoice_receipt` من كفاية رصيد الخزنة (`insufficient_cash_box_balance`) وينشئ سند صرف مرتبطاً (`direction = 'out'`).
 
 ### 3. فواتير المرتجعات (`sale_return`, `purchase_return`)
-- **مرتجع البيع (`sale_return`)**: يعيد البضاعة إلى `item_stock` ويخصم قيمتها من رصيد العميل؛ وإذا سُجّل مسترد نقدي (`paid > 0`) ينشئ سند صرف مرتبطاً مع التحقق من كفاية رصيد الخزنة.
+- **مرتجع البيع (`sale_return`)**: يعيد البضاعة إلى `item_stock` ويخصم قيمتها من رصيد العميل؛ وعند الإرجاع لمخزن فارغ بلا تكلفة، تقتبس `resolve_sale_return_unit_cost` (`0084`) التكلفة من آخر بيع للعميل، ثم آخر بيع بالشركة، ثم متوسط مخزن آخر، ثم الافتتاحي أو سعر الشراء الافتراضي؛ وإذا سُجّل مسترد نقدي (`paid > 0`) ينشئ سند صرف مرتبطاً مع التحقق من كفاية رصيد الخزنة.
 - **مرتجع الشراء (`purchase_return`)**: يخرج البضاعة من `item_stock` ويخصم قيمتها من رصيد المورد؛ وإذا سُجّل استرداد نقدي ينشئ سند قبض مرتبطاً. ويُحسب كحركة خروج لاحقة في `purchase_invoice_has_later_outflow`.
 
 ### 4. فواتير الهالك والإتلاف (`waste`)
@@ -67,10 +67,10 @@
 ### 6. التحويلات الداخلية والأرصدة الافتتاحية واستعادة المستندات
 - **تحويل مخزني (`warehouse_transfers`)**: يخصم من `source_warehouse_id` ويزيد `destination_warehouse_id` في معاملة واحدة مع نقل التكلفة الفعلية، ويُمنع تعديله أو حذفه إذا تلاه تحويل أو فاتورة أو تسوية أو رصيد افتتاحي أحدث (`warehouse_transfer_has_later_movement` في `0083`).
 - **تحويل نقدية (`cash_box_transfers`)**: يخصم من `source_cash_box_id` (بعد التحقق من الرصيد ومنع السالب حتى عند التعديل أو الحذف) ويودع في `destination_cash_box_id` مع قفل الخزنتين بترتيب `id` التصاعدي.
-- **استعادة الفواتير (`restore_invoice` - هجرة `0083`)**: تتطلب أن يكون الحساب والمخزن وجميع أصناف الفاتورة نشطة (`is_active = true`).
+- **استعادة الفواتير والإيصالات وتعطيل المخزن الرئيسي (`restore_invoice`, `restore_receipt`, `toggle_warehouse_active` - هجرتا `0083` و`0084`)**: تتطلب استعادة الفاتورة أن يكون الحساب والمخزن وجميع أصناف الفاتورة (والخزنة في الفواتير المدفوعة) نشطة (`is_active = true`)، كما تتطلب استعادة الإيصال نشاط الحساب والخزنة المرتبطين، ويُمنع تعطيل المخزن الرئيسي (`is_primary`).
 - **الأرصدة الافتتاحية الذرية**:
   - `save_account_opening_balances`: حفظ افتتاحيات العملاء والموردين في معاملة ذرية واحدة (`0080`).
-  - `save_opening_balances`: حفظ افتتاحيات الخزن والمخزون مع منع الرصيد الافتتاحي السالب للخزن (`0083` عند الإنشاء والافتتاحي)، ومنع كسر رصيد الخزنة للسالب، وتحديث `item_stock.avg_cost` إذا لم تكن هناك حركات على الصنف مع عدم مسح `avg_cost` القائم عند حفظ كمية صفرية لمخزن فرعي (`0079`, `0082`).
+  - `save_opening_balances`: حفظ افتتاحيات الخزن والمخزون مع منع الرصيد الافتتاحي السالب للخزن (`0083` عند الإنشاء والافتتاحي)، ومنع كسر رصيد الخزنة للسالب، واستخدام تكلفة الافتتاح الأصلية `v_open.unit_cost` عند تعديل الكمية بعد الحركات (`0084`)، وتحديث `item_stock.avg_cost` إذا لم تكن هناك حركات على الصنف مع عدم مسح `avg_cost` القائم عند حفظ كمية صفرية لمخزن فرعي (`0079`, `0082`).
 
 ---
 
@@ -82,5 +82,5 @@
 2. **ترتيب الأقفال الموحد (Lock Ordering)**:
    - تلتزم دوال الفواتير (`update_invoice`, `delete_invoice`, `restore_invoice`) بترتيب أقفال ثابت: `invoices -> accounts (ordered by id) -> item_stock (ordered by warehouse_id, item_id) -> receipts -> cash_boxes` لمنع حدوث `Deadlock` في المعاملات المتزامنة (`0077`, `0080`, `0081`, `0083`).
 3. **محرك المطابقة والرقابة (`run_comprehensive_reconciliation`, `reconcile_all_balances`, `reconcile_item_stock`)**:
-   - يحسب الأرصدة المتوقعة عبر `calculate_expected_account_balance` و`calculate_expected_cash_box_balance` ومراجعة حركات المخزون (شاملاً الأصناف والمخازن الموقوفة ذات الأرصدة أو الحركات السابقة في كل من `reconcile_item_stock_internal` و`run_comprehensive_reconciliation` مع قفل مسبق بترتيب `accounts -> item_stock -> cash_boxes` في وضع التصحيح منذ `0083`).
+   - يحسب الأرصدة المتوقعة عبر `calculate_expected_account_balance` و`calculate_expected_cash_box_balance` ومراجعة حركات المخزون (شاملاً الأصناف والمخازن الموقوفة ذات الأرصدة أو الحركات السابقة في كل من `reconcile_item_stock_internal` و`run_comprehensive_reconciliation` مع قفل مسبق بترتيب `accounts -> item_stock -> cash_boxes` في وضع التصحيح منذ `0083`، وتوسيع الفحص والتصحيح في `0084` ليشمل تناسق `subtotal`/`total`/`cost_total`/`profit_total`/`paid` في الفواتير مع البنود والإيصالات المرتبطة).
    - وضع المحاكاة (`simulation`) يعرض الفروقات دون تعديل، ووضع التصحيح (`reconcile`) يعيد المزامنة ويسجل النتيجة في `balance_reconciliation_logs` (مقصور على المالك).

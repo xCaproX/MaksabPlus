@@ -85,7 +85,7 @@ flowchart LR
    ```
 3. **تقييد صلاحيات التنفيذ والعروض**:
    - `REVOKE ALL ON FUNCTION ... FROM public, anon;` مع منح `authenticated` فقط للدوال المخصصة للاستدعاء من العميل.
-   - سحب استدعاء الدوال المساعدة الداخلية (`next_document_number`, `purchase_invoice_has_later_outflow`, `warehouse_transfer_has_later_movement`, `recalc_invoice_totals`, `apply_stock_movement`, `calculate_expected_*`) من `authenticated` أيضاً (`0055`, `0080`, `0083`).
+   - سحب استدعاء الدوال المساعدة الداخلية (`next_document_number`, `purchase_invoice_has_later_outflow`, `warehouse_transfer_has_later_movement`, `resolve_sale_return_unit_cost`, `recalc_invoice_totals`, `apply_stock_movement`, `calculate_expected_*`) من `authenticated` أيضاً (`0055`, `0080`, `0083`, `0084`).
    - تشغيل كافة العروض (`v_*`) بخاصية `security_invoker = true` وسحب صلاحيات `public, anon` عنها.
 
 ---
