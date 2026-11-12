@@ -37,7 +37,7 @@ export default function SalesVsPurchasesChart({ data }: SalesVsPurchasesChartPro
           {
             label: 'المبيعات (ج.م)',
             data: salesValues,
-            backgroundColor: chartTokens.colors.primary,
+            backgroundColor: chartTokens.colors.accent,
             borderRadius: 4,
             maxBarThickness: 18,
           },
