@@ -98,7 +98,7 @@ erDiagram
 - `v_warehouse_transfer_list` و `v_warehouse_transfer_items`: عرض التحويلات المخزنية وبنودها مع حجب التكلفة لغير المخولين.
 - `v_cash_box_transfer_list`: عرض تحويلات الخزن.
 - `v_account_balances` و `v_cash_box_balances`: عروض أرصدة العملاء والموردين والخزن.
-- `v_item_stock`, `v_warehouse_items`, `v_stock_opening_balances`: عروض المخزون وافتتاحيات المخزون، مع حجب التكاليف عبر `can_view_profit()` وحجب `purchase_price` عبر `can_view_purchase_price()`.
+- `v_item_stock`, `v_warehouse_items`, `v_stock_opening_balances`: عروض المخزون وافتتاحيات المخزون، مع حجب التكاليف عبر `can_view_profit()` وحجب `purchase_price` عبر `read_protected_purchase_price()` و`can_view_purchase_price()`. وتفحص `v_stock_opening_balances.cost_locked` المستندات والتحويلات غير المحذوفة فقط (`0083`).
 
 ### دوال التصفح والـ KPI وفلاتر الأعمدة (Pagination, Column Filters & KPIs)
 - `get_invoice_page` و `get_document_page`: جلب صفحات الفواتير، الإيصالات، والتحويلات بالخادم مع الفلاتر النصية وفلاتر الأعمدة المتحققة عبر `validate_list_columns` و `list_column_schema`.
@@ -111,7 +111,7 @@ erDiagram
 
 ---
 
-## ملخص الهجرات (Migrations 0001 - 0080)
+## ملخص الهجرات (Migrations 0001 - 0083)
 
 1. **0001 - 0003**: تأسيس الجداول (`companies`, `profiles`, `accounts`, `items`, `warehouses`, `item_stock`, `cash_boxes`, `invoices`, `invoice_items`, `receipts`)، دالة `current_company_id()`، وسياسات RLS، ودوال الإنشاء الأولى.
 2. **0004 - 0013**: إضافة الإيصالات الحرة، قيود التعديل، الحذف المرن (Soft Delete)، فواتير المرتجع (Returns)، والحسابات الثابتة.
@@ -127,3 +127,6 @@ erDiagram
 12. **0071 - 0075**: دوال الرسوم البيانية للوحة التحكم (`get_home_dashboard_charts`)، مقارنة مبيعات وتحصيلات اليوم وأمس، وتوسيع الفترات حتى 365 يوماً وطول الوقت مع قوائم كبار العملاء والأصناف.
 13. **0076 - 0078**: توحيد التوقيت المحلي على `Africa/Cairo` عبر `cairo_today()`، ترتيب أقفال الأصناف في الفواتير، والتحصين الشامل للمحرك المحاسبي (منع السحب على المكشوف، حماية المتوسط المرجح عند وجود خروج لاحق، مطابقة الحسابات مع المقاصة، حصر `reconcile_item_stock` بالمالك، استبعاد الفواتير المستقبلية، ودعم `reports.profit.view`).
 14. **0079 - 0080**: تضمين `purchase_return` في فحص الخروج اللاحق، سد كافة ثغرات السحب على المكشوف في الفواتير والتحويلات والافتتاحيات، مزامنة `avg_cost` في الافتتاحيات، إصلاح كشف حركة الصنف، تعطيل الصنف عند ارتباطه بتحويل مخزني، توحيد ترتيب الأقفال الكامل، حماية `purchase_price` عبر `can_view_purchase_price()`، فرض الصلاحيات الدقيقة على البيانات الأساسية والافتتاحيات وكشوف الحسابات، وإضافة `save_account_opening_balances` الذرية.
+15. **0081**: تقييد قراءة وتعديل `items.purchase_price` عبر `read_protected_purchase_price` وسحب القراءة المباشرة للعمود، منع استعادة فاتورة الشراء أو إرجاع تاريخها للوراء عند وجود خروج لاحق، توحيد ترتيب الأقفال في `create_invoice` و`save_opening_balances` وجميع دوال السندات والتحويلات، واستبعاد المستندات المستقبلية من لوحة التحكم والرسوم البيانية.
+16. **0082**: إصلاح مسار التعديل بالصافي في `update_invoice` عبر `FULL OUTER JOIN` وتمرير تكلفة الوحدة المحذوفة، معالجة انحراف تقريب الكسور لـ 4 منازل عشرياً في `apply_stock_movement`، توسيع `purchase_invoice_has_later_outflow` ليشمل الخروج ذو `created_at > pinv.created_at` حتى بتاريخ أقدم، ومنع مسح `item_stock.avg_cost` في `save_opening_balances` عند الحفظ بكمية صفرية لمخزن به رصيد أو حركات.
+17. **0083**: شمول الأصناف والمخازن المعطلة ذات الأرصدة أو الحركات مع قفل مسبق بترتيب موحد داخل `run_comprehensive_reconciliation`، منع الرصيد الافتتاحي السالب للخزن، توحيد توقيت `Africa/Cairo` لتسويات الافتتاحية في كشوف الحساب والخزن والأصناف، قفل `(warehouse_id, item_id)` مسبقاً في `update_invoice` و`restore_invoice`، تحديث `warehouse_transfer_has_later_movement` و`v_stock_opening_balances.cost_locked`، منع استعادة الفواتير على كيانات معطلة، وشمول الحسابات والخزن المعطلة ذات الأرصدة في `get_home_dashboard_summary`.

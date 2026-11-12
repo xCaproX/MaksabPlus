@@ -47,7 +47,7 @@
    - المعادلة المطبقة في `apply_stock_movement` عندما `qty + p_qty_delta > 0`:
      $$\text{New Avg Cost} = \text{round}\left(\frac{(\text{Old Qty} \times \text{Old Avg Cost}) + (\text{Incoming Qty} \times \text{Unit Cost})}{\text{Old Qty} + \text{Incoming Qty}}, 4\right)$$
    - يُخزن الناتج في `item_stock.avg_cost` لكل مخزن على حدة.
-   - **حماية التكلفة من التعديل بأثر رجعي (`purchase_invoice_has_later_outflow`)**: تمنع `0078` و`0079` تعديل أو حذف فاتورة شراء إذا وُجدت بعدها حركات خروج لأي من أصنافها من نفس المخزن (`sale`, `waste`, `purchase_return`, أو `warehouse_transfers`)، إلا للتعديلات الآمنة المحددة (مثل تحديث المدفوع أو الملاحظات عند الحفاظ على الأصناف والكميات والأسعار والتاريخ والمخزن مع استدعاء `sync_invoice_receipt` دائماً).
+   - **حماية التكلفة من التعديل بأثر رجعي (`purchase_invoice_has_later_outflow`)**: تمنع `0078` و`0079` و`0081` و`0082` تعديل أو استعادة أو حذف فاتورة شراء (أو إرجاع تاريخها للوراء) إذا وُجدت بعدها حركات خروج لأي من أصنافها من نفس المخزن (`sale`, `waste`, `purchase_return`, أو `warehouse_transfers`) سواء بتاريخ لاحق أو بوقت إنشاء فعلي لاحق (`created_at > pinv.created_at`)، إلا للتعديلات الآمنة المحددة مع استدعاء `sync_invoice_receipt` دائماً. وفي `0082` يعالج مسار التعديل بالصافي (`update_invoice`) إضافة وحذف الأصناف عبر `FULL OUTER JOIN` مع تمرير تكلفة الوحدة المحذوفة ومعالجة كسور التقريب العشرية في `apply_stock_movement`.
 3. **المدفوعات والمستحقات**:
    - إذا كان `paid > 0`: يتحقق `sync_invoice_receipt` من كفاية رصيد الخزنة (`insufficient_cash_box_balance`) وينشئ سند صرف مرتبطاً (`direction = 'out'`).
 
@@ -64,21 +64,23 @@
 - **سند حر (`invoice_id IS NULL`)**: سداد أو قبض مباشر عبر `create_free_receipt` / `update_free_receipt` / `delete_free_receipt` / `restore_receipt`، ويُقفل الحساب والخزنة لمنع السحب على المكشوف أو تضارب الأقفال.
 - **سند مرتبط (`invoice_id IS NOT NULL`)**: يُدار حصرياً عبر `sync_invoice_receipt` داخل معاملات الفواتير ويُحظر تعديله أو حذفه مباشرة.
 
-### 6. التحويلات الداخلية والأرصدة الافتتاحية
-- **تحويل مخزني (`warehouse_transfers`)**: يخصم من `source_warehouse_id` ويزيد `destination_warehouse_id` في معاملة واحدة مع نقل التكلفة الفعلية.
+### 6. التحويلات الداخلية والأرصدة الافتتاحية واستعادة المستندات
+- **تحويل مخزني (`warehouse_transfers`)**: يخصم من `source_warehouse_id` ويزيد `destination_warehouse_id` في معاملة واحدة مع نقل التكلفة الفعلية، ويُمنع تعديله أو حذفه إذا تلاه تحويل أو فاتورة أو تسوية أو رصيد افتتاحي أحدث (`warehouse_transfer_has_later_movement` في `0083`).
 - **تحويل نقدية (`cash_box_transfers`)**: يخصم من `source_cash_box_id` (بعد التحقق من الرصيد ومنع السالب حتى عند التعديل أو الحذف) ويودع في `destination_cash_box_id` مع قفل الخزنتين بترتيب `id` التصاعدي.
+- **استعادة الفواتير (`restore_invoice` - هجرة `0083`)**: تتطلب أن يكون الحساب والمخزن وجميع أصناف الفاتورة نشطة (`is_active = true`).
 - **الأرصدة الافتتاحية الذرية**:
   - `save_account_opening_balances`: حفظ افتتاحيات العملاء والموردين في معاملة ذرية واحدة (`0080`).
-  - `save_opening_balances`: حفظ افتتاحيات الخزن والمخزون مع منع كسر رصيد الخزنة للسالب وتحديث `item_stock.avg_cost` إذا لم تكن هناك حركات على الصنف (`0079`).
+  - `save_opening_balances`: حفظ افتتاحيات الخزن والمخزون مع منع الرصيد الافتتاحي السالب للخزن (`0083` عند الإنشاء والافتتاحي)، ومنع كسر رصيد الخزنة للسالب، وتحديث `item_stock.avg_cost` إذا لم تكن هناك حركات على الصنف مع عدم مسح `avg_cost` القائم عند حفظ كمية صفرية لمخزن فرعي (`0079`, `0082`).
 
 ---
 
 ## التوقيت المحلي، ترتيب الأقفال، ومحرك المطابقة
 
-1. **توقيت القاهرة الموحد (`cairo_today()`)**:
-   - تعتمد الجداول والـ RPCs تاريخ مصر (`Africa/Cairo`) عند غياب التاريخ، وتُستبعد المستندات ذات التواريخ المستقبلية من إحصائيات اليوم في لوحة التحكم (`0076`, `0078`).
+1. **توقيت القاهرة الموحد (`cairo_today()` و`Africa/Cairo`)**:
+   - تعتمد الجداول والـ RPCs تاريخ مصر (`Africa/Cairo`) عند غياب التاريخ، وتُستبعد المستندات ذات التواريخ المستقبلية من إحصائيات اليوم في لوحة التحكم (`0076`, `0078`, `0081`)، كما تشمل `get_home_dashboard_summary` أرصدة الخزن والحسابات المعطلة ذات الأرصدة غير الصفرية (`0083`).
+   - تُحوّل تواريخ تسويات الأرصدة الافتتاحية داخل كشوف الحساب والخزن وحركة الصنف إلى `(created_at at time zone 'Africa/Cairo')::date` (`0083`).
 2. **ترتيب الأقفال الموحد (Lock Ordering)**:
-   - تلتزم دوال الفواتير (`update_invoice`, `delete_invoice`, `restore_invoice`) بترتيب أقفال ثابت: `invoices -> accounts -> item_stock (ordered by item_id) -> receipts -> cash_boxes` لمنع حدوث `Deadlock` في المعاملات المتزامنة (`0077`, `0080`).
+   - تلتزم دوال الفواتير (`update_invoice`, `delete_invoice`, `restore_invoice`) بترتيب أقفال ثابت: `invoices -> accounts (ordered by id) -> item_stock (ordered by warehouse_id, item_id) -> receipts -> cash_boxes` لمنع حدوث `Deadlock` في المعاملات المتزامنة (`0077`, `0080`, `0081`, `0083`).
 3. **محرك المطابقة والرقابة (`run_comprehensive_reconciliation`, `reconcile_all_balances`, `reconcile_item_stock`)**:
-   - يحسب الأرصدة المتوقعة عبر `calculate_expected_account_balance` و`calculate_expected_cash_box_balance` ومراجعة حركات المخزون (شاملاً الأصناف والمخازن الموقوفة ذات الحركات السابقة في `reconcile_item_stock_internal`).
+   - يحسب الأرصدة المتوقعة عبر `calculate_expected_account_balance` و`calculate_expected_cash_box_balance` ومراجعة حركات المخزون (شاملاً الأصناف والمخازن الموقوفة ذات الأرصدة أو الحركات السابقة في كل من `reconcile_item_stock_internal` و`run_comprehensive_reconciliation` مع قفل مسبق بترتيب `accounts -> item_stock -> cash_boxes` في وضع التصحيح منذ `0083`).
    - وضع المحاكاة (`simulation`) يعرض الفروقات دون تعديل، ووضع التصحيح (`reconcile`) يعيد المزامنة ويسجل النتيجة في `balance_reconciliation_logs` (مقصور على المالك).

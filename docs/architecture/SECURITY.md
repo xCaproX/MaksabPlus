@@ -23,7 +23,7 @@ flowchart LR
    - كل جدول عمل في النظام مفعل عليه RLS إجبارياً.
    - شرط القراءة: `USING (company_id = current_company_id())`.
    - شرط الكتابة: `WITH CHECK (company_id = current_company_id())`.
-   - تم إثبات العزل عبر اختبارات SQL في `supabase/tests/` (مثل `002_rls_isolation.sql` و`052_warehouse_item_tenant_isolation.sql` و`065_permissions_security_and_lock_order.sql`) تضمن استحالة قراءة أو تعديل مستخدم شركة أخرى أو الدور `anon` لبيانات الشركة.
+   - تم إثبات العزل عبر اختبارات SQL في `supabase/tests/` (مثل `002_rls_isolation.sql` و`052_warehouse_item_tenant_isolation.sql` و`065_permissions_security_and_lock_order.sql` حتى `069_cross_trading_returns_and_decimal_edges.sql`) تضمن استحالة قراءة أو تعديل مستخدم شركة أخرى أو الدور `anon` لبيانات الشركة.
 
 ---
 
@@ -57,9 +57,9 @@ flowchart LR
 - **حماية التكلفة والربح (`can_view_profit()`)**:
   - تتحقق الدالة في PostgreSQL من `is_company_owner() or has_permission('reports.profit.view')` (تم تثبيتها في الهجرة `0078`).
   - عند عدم توفر الصلاحية: تُرجع العروض ودوال الـ KPI (`v_invoice_list`, `v_invoice_items`, `v_warehouse_transfer_items`, `v_warehouse_items`, `v_stock_opening_balances`, `get_invoice_kpis_columns`, `get_warehouse_transfer_kpis_columns`, `get_warehouse_stock_kpis_columns`) قيمة `NULL` لحقول التكلفة والربح والتقييم، كما تُحجب القراءة المباشرة عبر `read_protected_cost` وتُمنع الفلترة على الأعمدة الحساسة (`ownerOnly` في `validate_list_columns`).
-- **حماية سعر الشراء (`can_view_purchase_price()` - هجرة `0080`)**:
-  - تتحقق من `can_view_profit()` أو امتلاك أي صلاحية شراء أو مرتجع شراء أو بيانات الأصناف (`goods.purchase.*`, `goods.purchase_return.*`, `data.items.*`).
-  - تحجب عمود `purchase_price` (`NULL`) في `v_warehouse_items`, `v_stock_opening_balances`, و`v_item_stock` عن الموظفين غير المخولين (مثل الكاشير الذي يملك `goods.sale.*` فقط).
+- **حماية سعر الشراء (`can_view_purchase_price()` و`read_protected_purchase_price()` - هجرتا `0080` و`0081`)**:
+  - تتحقق من `can_view_profit()` أو امتلاك أي صلاحية شراء أو مرتجع شراء (`goods.purchase.*`, `goods.purchase_return.*`).
+  - سُحبت القراءة المباشرة لعمود `items.purchase_price` عن دور `authenticated` لصالح دوال العرض والفلترة المحمية (`0081`)، وتُحجب قيمة `purchase_price` (`NULL`) في `v_warehouse_items`, `v_stock_opening_balances`, `v_item_stock` و`filter_master_item_rows` وتُمنع تصفيته عبر `validate_list_columns` للموظفين غير المخولين. كما تخفي الواجهة حقل تكلفة الوحدة الافتتاحية عند إنشاء الصنف لمن لا يملك `canViewProfit`.
 
 ---
 
@@ -85,7 +85,7 @@ flowchart LR
    ```
 3. **تقييد صلاحيات التنفيذ والعروض**:
    - `REVOKE ALL ON FUNCTION ... FROM public, anon;` مع منح `authenticated` فقط للدوال المخصصة للاستدعاء من العميل.
-   - سحب استدعاء الدوال المساعدة الداخلية (`next_document_number`, `purchase_invoice_has_later_outflow`, `recalc_invoice_totals`, `apply_stock_movement`, `calculate_expected_*`) من `authenticated` أيضاً (`0055`, `0080`).
+   - سحب استدعاء الدوال المساعدة الداخلية (`next_document_number`, `purchase_invoice_has_later_outflow`, `warehouse_transfer_has_later_movement`, `recalc_invoice_totals`, `apply_stock_movement`, `calculate_expected_*`) من `authenticated` أيضاً (`0055`, `0080`, `0083`).
    - تشغيل كافة العروض (`v_*`) بخاصية `security_invoker = true` وسحب صلاحيات `public, anon` عنها.
 
 ---
