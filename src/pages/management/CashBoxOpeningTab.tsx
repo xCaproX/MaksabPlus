@@ -113,8 +113,8 @@ export default function CashBoxOpeningTab({
       opening_balance: Number(cashValues[box.id] ?? 0),
     }));
 
-    if (cash.some((line) => !Number.isFinite(line.opening_balance))) {
-      toast.error('راجع أرصدة الخزن. القيم يجب أن تكون صحيحة.');
+    if (cash.some((line) => !Number.isFinite(line.opening_balance) || line.opening_balance < 0)) {
+      toast.error('راجع أرصدة الخزن. القيم يجب أن تكون صحيحة وغير سالبة.');
       return;
     }
 
@@ -212,6 +212,7 @@ export default function CashBoxOpeningTab({
                             type="number"
                             inputMode="decimal"
                             step="0.0001"
+                            min="0"
                             disabled={!canEditOpening || saving}
                             value={cashValues[box.id] ?? '0'}
                             onFocus={(event) => event.target.select()}

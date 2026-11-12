@@ -155,11 +155,27 @@ export default function StockOpeningTab({
   }, [filteredStockRows, stockValues, canViewProfit]);
 
   async function handleSave() {
-    const stock = stockRows.map((row) => {
-      const value = stockValues[`${row.warehouse_id}:${row.item_id}`] ?? {
-        qty: String(row.opening_qty),
-        cost: String(row.unit_cost),
-      };
+    const changedRows = stockRows.filter((row) => {
+      const value = stockValues[`${row.warehouse_id}:${row.item_id}`];
+      if (!value) return false;
+      const nextQty = Number(value.qty);
+      const prevQty = Number(row.opening_qty);
+      if (!Number.isFinite(nextQty) || nextQty !== prevQty) return true;
+      if (canViewProfit) {
+        const nextCost = Number(value.cost);
+        const prevCost = Number(row.unit_cost);
+        if (!Number.isFinite(nextCost) || nextCost !== prevCost) return true;
+      }
+      return false;
+    });
+
+    if (changedRows.length === 0) {
+      toast.info('لم يتم تعديل أي رصيد أو تكلفة للمخزون.');
+      return;
+    }
+
+    const stock = changedRows.map((row) => {
+      const value = stockValues[`${row.warehouse_id}:${row.item_id}`]!;
       return {
         warehouse_id: row.warehouse_id,
         item_id: row.item_id,
@@ -189,7 +205,7 @@ export default function StockOpeningTab({
       if (saveError) {
         toast.error(translateDbError(saveError.message));
       } else {
-        toast.success('تم حفظ أرصدة وتكلفة المخزون الافتتاحية بنجاح.');
+        toast.success(`تم حفظ أرصدة وتكلفة المخزون الافتتاحية بنجاح (${changedRows.length} بند).`);
         await onRefresh();
       }
     } catch (err) {

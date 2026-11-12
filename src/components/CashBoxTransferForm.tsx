@@ -51,6 +51,7 @@ export default function CashBoxTransferForm({
   const [busy, setBusy] = useState(false);
 
   const numAmount = Number(amount || 0);
+  const roundedAmount = round2(numAmount);
   const tafqeetText = numAmount > 0 ? tafqeet(numAmount) : '';
 
   // حساب الأرصدة قبل وبعد
@@ -61,13 +62,14 @@ export default function CashBoxTransferForm({
   const editSourceAdj = editing?.source_cash_box_id === sourceId ? prevAmount : editing?.destination_cash_box_id === sourceId ? -prevAmount : 0;
   const editDestAdj = editing?.destination_cash_box_id === destinationId ? -prevAmount : editing?.source_cash_box_id === destinationId ? prevAmount : 0;
 
-  const sourceAvailableBalance = Math.max(0, Number(sourceBox?.balance ?? 0) + editSourceAdj);
-  const destInitialBalance = Math.max(0, Number(destBox?.balance ?? 0) + editDestAdj);
+  const sourceAvailableBalance = Number(sourceBox?.balance ?? 0) + editSourceAdj;
+  const destInitialBalance = Number(destBox?.balance ?? 0) + editDestAdj;
 
   const sourceBalanceAfter = sourceAvailableBalance - numAmount;
   const destBalanceAfter = destInitialBalance + numAmount;
 
-  const isOverdraft = !isReadOnly && numAmount > sourceAvailableBalance;
+  const isOverdraft = !isReadOnly && roundedAmount > sourceAvailableBalance;
+  const isDestOverdraft = !isReadOnly && Boolean(destBox) && destInitialBalance + roundedAmount < 0;
 
   function handleSettleAll() {
     if (!sourceId) {
@@ -95,11 +97,14 @@ export default function CashBoxTransferForm({
     if (!sourceId || !destinationId || sourceId === destinationId) {
       return toast.error('اختر خزنتين مختلفتين (خزنة المصدر وخزنة الوجهة)');
     }
-    if (!(numAmount > 0)) {
+    if (!(roundedAmount > 0)) {
       return toast.error('أدخل مبلغًا صحيحاً أكبر من صفر');
     }
     if (isOverdraft) {
       return toast.error(`المبلغ المطلوب تحويله يتجاوز رصيد خزنة المصدر (${money(sourceAvailableBalance)})`);
+    }
+    if (isDestOverdraft) {
+      return toast.error(`لا يمكن تقليل مبلغ التحويل لأن خزنة الوجهة (${destBox?.name ?? ''}) تم الصرف منها وسيصبح رصيدها سالباً`);
     }
 
     setBusy(true);
@@ -107,7 +112,7 @@ export default function CashBoxTransferForm({
       p_source_cash_box_id: sourceId,
       p_destination_cash_box_id: destinationId,
       p_transfer_date: date,
-      p_amount: round2(numAmount),
+      p_amount: roundedAmount,
       p_notes: notes.trim() || null,
     };
     const { error: rpcError } = editing
@@ -216,7 +221,11 @@ export default function CashBoxTransferForm({
               <div className="stat-pill">
                 <span>الرصيد بعد:</span>
                 <MoneyDisplay value={destBalanceAfter} strong />
-                <span className="stat-pill-tag tag-credit">زيادة</span>
+                {destBalanceAfter < 0 ? (
+                  <span className="stat-pill-tag tag-debit">عجز</span>
+                ) : (
+                  <span className="stat-pill-tag tag-credit">زيادة</span>
+                )}
               </div>
             </div>
           )}
@@ -239,8 +248,8 @@ export default function CashBoxTransferForm({
                     aria-label="المبلغ المراد تحويله"
                     type="number"
                     inputMode="decimal"
-                    min="0.0001"
-                    step="0.0001"
+                    min="0.01"
+                    step="0.01"
                     placeholder="0.00"
                     value={amount}
                     onFocus={(e) => e.target.select()}
@@ -276,6 +285,14 @@ export default function CashBoxTransferForm({
       {isOverdraft && (
         <div className="overdraft-warning-badge" role="alert">
           تنبيه: المبلغ ({money(numAmount)}) يتجاوز رصيد خزنة المصدر المتاح ({money(sourceAvailableBalance)})
+        </div>
+      )}
+
+      {isDestOverdraft && (
+        <div className="overdraft-warning-badge" role="alert">
+          تنبيه: بعد تعديل التحويل سيصبح رصيد خزنة الوجهة ({destBox?.name ?? ''}) سالباً بقيمة{' '}
+          <bdi dir="ltr" className="tabular-nums">{money(destBalanceAfter)}</bdi>{' '}
+          لأن جزءاً من المبلغ تم صرفه بالفعل
         </div>
       )}
 

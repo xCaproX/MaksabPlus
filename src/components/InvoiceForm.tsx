@@ -141,14 +141,15 @@ export default function InvoiceForm({
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId);
+  const isSameEditingAccount = Boolean(editing) && accountId === editing?.invoice.account_id;
   const { netInvoiceDebt, balanceBefore, balanceAfter } = calculateBalancePreview({
     currentAccountBalance: Number(selectedAccount?.balance || 0),
     isReturn,
     total,
     paid: paidNumber,
-    isEditing: Boolean(editing),
-    editingTotal: Number(editing?.invoice.total || 0),
-    editingPaid: Number(editing?.invoice.paid || 0),
+    isEditing: isSameEditingAccount,
+    editingTotal: isSameEditingAccount ? Number(editing?.invoice.total || 0) : 0,
+    editingPaid: isSameEditingAccount ? Number(editing?.invoice.paid || 0) : 0,
     accountKind: selectedAccount?.kind,
     invoiceKind: kind,
   });

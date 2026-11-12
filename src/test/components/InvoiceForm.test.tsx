@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import InvoiceForm from '../../components/InvoiceForm';
 
 vi.mock('../../components/Toast', () => ({
@@ -244,5 +244,48 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     expect(screen.getByText('عميل موقوف تاريخي')).toBeInTheDocument();
     expect(screen.getByText('صنف تاريخي موقوف')).toBeInTheDocument();
     expect(screen.getByText('كرتونة')).toBeInTheDocument();
+  });
+
+  it('عند تغيير الحساب في وضع التعديل لا يخصم صافي الفاتورة السابقة من رصيد الحساب الجديد', async () => {
+    const accountsWithThird = [
+      ...mockAccounts,
+      {
+        id: 'acc-3',
+        name: 'عميل جديد للمعاينة',
+        kind: 'customer',
+        balance: 1000,
+        is_active: true,
+        notes: '',
+        phone: '01011111111',
+        serial_number: 3,
+        opening_balance: 0,
+        invoiced: 1000,
+        paid: 0,
+        has_documents: true,
+        system_key: null,
+      },
+    ] as any;
+
+    render(
+      <InvoiceForm
+        kind="sale"
+        accounts={accountsWithThird}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={mockEditingInvoice}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    const accountCombo = screen.getByDisplayValue(/شركة النور للتجارة/);
+    fireEvent.focus(accountCombo);
+    fireEvent.click(await screen.findByText(/عميل جديد للمعاينة/));
+
+    const beforePill = screen.getByText('المديونية قبل:').closest('.stat-pill')!;
+    expect(beforePill).toHaveTextContent('1,000.00');
   });
 });

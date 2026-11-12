@@ -281,4 +281,66 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     expect(screen.getByText('عميل')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('اختر النوع…')).toBeNull();
   });
+
+  it('عند تغيير الحساب في وضع التعديل لا يخصم أثر الإيصال السابق من رصيد الحساب الجديد وتكون الدقة منزلتين عشريتين', async () => {
+    const accountsWithSecond = [
+      ...mockAccounts,
+      {
+        id: 'acc-2',
+        name: 'عميل آخر',
+        kind: 'customer',
+        balance: 1000,
+        opening_balance: 0,
+        is_active: true,
+        notes: null,
+        serial_number: 2,
+        phone: '01099999999',
+        address: 'الجيزة',
+      },
+    ] as any;
+
+    const mockEditing = {
+      id: 'rec-1',
+      number: 'REC-001',
+      receipt_date: '2026-11-01',
+      amount: 1500,
+      account_id: 'acc-1',
+      account_name: 'عميل تجريبي',
+      account_kind: 'customer',
+      cash_box_id: 'cb-main',
+      cash_box_name: 'الخزنة الرئيسية',
+      is_free: true,
+      notes: 'دفعة',
+      direction: 'in',
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+    } as any;
+
+    render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={accountsWithSecond}
+          cashBoxes={mockCashBoxes}
+          editing={mockEditing}
+          readOnly={false}
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    const amountInput = screen.getByLabelText('مبلغ الإيصال');
+    expect(amountInput).toHaveAttribute('step', '0.01');
+    expect(amountInput).toHaveAttribute('min', '0.01');
+
+    // تغيير الحساب إلى العميل الآخر ذي الرصيد 1000
+    const accountCombo = screen.getByDisplayValue(/عميل تجريبي/);
+    fireEvent.focus(accountCombo);
+    fireEvent.click(await screen.findByText(/عميل آخر/));
+
+    // يجب أن يبقى "المديونية قبل:" للعميل الجديد مساوياً 1,000.00 ج.م دون عكس مبلغ 1,500 منه
+    const beforePill = screen.getByText('المديونية قبل:').closest('.stat-pill')!;
+    expect(beforePill).toHaveTextContent('1,000.00');
+  });
 });

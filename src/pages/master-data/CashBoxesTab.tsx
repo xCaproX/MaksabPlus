@@ -209,11 +209,17 @@ export default function CashBoxesTab() {
       }
       toast.success(`تم تعديل اسم الخزنة إلى «${cashBoxName.trim()}»`);
     } else {
+      const openingValue = Number(cashBoxOpeningBalance || 0);
+      if (!Number.isFinite(openingValue) || openingValue < 0) {
+        toast.error('الرصيد الافتتاحي للخزنة يجب ألا يكون سالباً');
+        return;
+      }
+
       const { error: rpcError } = await supabase.rpc(
         'create_cash_box_with_opening_balance_and_notes',
         {
           p_name: cashBoxName.trim(),
-          p_opening_balance: Number(cashBoxOpeningBalance) || 0,
+          p_opening_balance: openingValue,
           p_notes: cashBoxNotes.trim() || null,
         },
       );
@@ -500,6 +506,7 @@ export default function CashBoxesTab() {
                       type="number"
                       inputMode="decimal"
                       step="0.0001"
+                      min="0"
                       className="num no-spinner"
                       value={cashBoxOpeningBalance}
                       onFocus={(e) => e.target.select()}

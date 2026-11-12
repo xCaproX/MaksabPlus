@@ -51,7 +51,7 @@ type StatusFilter = 'all' | 'active' | 'inactive';
 const PAGE_SIZE = 20;
 
 export default function ItemsTab() {
-  const { can, canViewPurchasePrice } = useAccess();
+  const { can, canViewPurchasePrice, canViewProfit } = useAccess();
   const { refresh } = useMasterData();
   const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
 
@@ -340,7 +340,11 @@ export default function ItemsTab() {
           p_is_active: itemActive,
           p_warehouse_id: itemOpeningWarehouseId || null,
           p_opening_qty: Number(itemOpeningQty) || 0,
-          p_unit_cost: Number(itemOpeningCost) || 0,
+          p_unit_cost: canViewProfit
+            ? Number(itemOpeningCost) || 0
+            : canViewPurchasePrice
+              ? Number(purchasePrice) || 0
+              : 0,
           p_notes: itemNotes.trim() || null,
           p_code: itemCode.trim() || null,
         },
@@ -728,22 +732,24 @@ export default function ItemsTab() {
                             <span className="input-suffix">{itemUnit.trim() || 'قطعة'}</span>
                           </div>
                         </label>
-                        <label>
-                          تكلفة الوحدة الافتتاحية
-                          <div className="input-with-suffix">
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              step="0.0001"
-                              min="0"
-                              className="num no-spinner"
-                              value={itemOpeningCost}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => setItemOpeningCost(e.target.value)}
-                            />
-                            <span className="input-suffix">ج.م</span>
-                          </div>
-                        </label>
+                        {canViewProfit && (
+                          <label>
+                            تكلفة الوحدة الافتتاحية
+                            <div className="input-with-suffix">
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                step="0.0001"
+                                min="0"
+                                className="num no-spinner"
+                                value={itemOpeningCost}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => setItemOpeningCost(e.target.value)}
+                              />
+                              <span className="input-suffix">ج.م</span>
+                            </div>
+                          </label>
+                        )}
                       </>
                     )}
                   </>

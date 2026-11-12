@@ -91,8 +91,9 @@ export default function ReceiptForm({
   const prevAmount = editing ? Number(editing.amount || 0) : 0;
 
   // الرصيد قبل المعاملة الحالية
+  const isSameEditingAccount = Boolean(editing) && accountId === editing?.account_id;
   let balanceBefore = currentBalance;
-  if (editing) {
+  if (isSameEditingAccount && editing) {
     if (isCust) {
       balanceBefore = editing.direction === 'in' ? currentBalance + prevAmount : currentBalance - prevAmount;
     } else {
@@ -101,6 +102,7 @@ export default function ReceiptForm({
   }
 
   const numAmount = Number(amount || 0);
+  const roundedAmount = round2(numAmount);
 
   // الرصيد بعد المعاملة الحالية
   let balanceAfter: number;
@@ -114,7 +116,7 @@ export default function ReceiptForm({
 
   const selectedCashBox = cashBoxes.find((b) => b.id === cashBoxId);
   const cashBoxAvailableBalance = Number(selectedCashBox?.balance || 0) + (editing && editing.cash_box_id === cashBoxId ? prevAmount : 0);
-  const isOverdraft = !isIn && !isReadOnly && numAmount > cashBoxAvailableBalance;
+  const isOverdraft = !isIn && !isReadOnly && roundedAmount > cashBoxAvailableBalance;
 
   function handleAccountKindChange(nextKind: AccountKind) {
     setAccountKind(nextKind);
@@ -166,7 +168,7 @@ export default function ReceiptForm({
     if (isReadOnly) return;
     if (!accountId) return toast.error('اختر الحساب أولاً');
     if (!cashBoxId) return toast.error('اختر الخزنة');
-    if (!(numAmount > 0)) return toast.error('أدخل مبلغاً صحيحاً أكبر من صفر');
+    if (!(roundedAmount > 0)) return toast.error('أدخل مبلغاً صحيحاً أكبر من صفر');
 
     if (isOverdraft) {
       return toast.error(`رصيد الخزنة غير كافٍ لصرف هذا المبلغ. الرصيد المتاح هو ${money(cashBoxAvailableBalance)}`);
@@ -178,7 +180,7 @@ export default function ReceiptForm({
       p_account_id: accountId,
       p_cash_box_id: cashBoxId,
       p_receipt_date: date,
-      p_amount: round2(numAmount),
+      p_amount: roundedAmount,
       p_description: trimmedNotes,
       p_notes: trimmedNotes,
     };
@@ -324,8 +326,8 @@ export default function ReceiptForm({
                     aria-label="مبلغ الإيصال"
                     type="number"
                     inputMode="decimal"
-                    min="0.0001"
-                    step="0.0001"
+                    min="0.01"
+                    step="0.01"
                     placeholder="0.00"
                     value={amount}
                     onFocus={(e) => e.target.select()}
