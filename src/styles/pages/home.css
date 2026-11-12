@@ -783,6 +783,7 @@
 
 .sales-dist-canvas-wrap {
   position: relative;
+  isolation: isolate;
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
@@ -790,9 +791,15 @@
   overflow: hidden;
 }
 
+.sales-dist-canvas-wrap canvas {
+  position: relative;
+  z-index: 1;
+}
+
 .sales-dist-center {
   position: absolute;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
   display: flex;
   flex-direction: column;
