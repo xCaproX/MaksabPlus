@@ -80,7 +80,39 @@
 }
 
 .home-welcome-bar .btn.primary {
-  border-color: var(--muted-light);
+  background: var(--card);
+  border-color: var(--card);
+  color: var(--primary);
+}
+
+.home-welcome-bar .btn.primary:hover {
+  background: var(--bg);
+  border-color: var(--bg);
+  color: var(--primary-dark);
+}
+
+.home-welcome-bar .btn.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--card);
+}
+
+.home-welcome-bar .btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.48);
+  color: var(--card);
+}
+
+.home-welcome-bar .btn.secondary .text-success {
+  color: var(--success-border);
+}
+
+.home-welcome-bar .btn.secondary .text-danger {
+  color: var(--danger-border);
+}
+
+.home-welcome-bar .btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
 }
 
 /* 2. Sales & Collections Pulse Section (Today & Yesterday) */
