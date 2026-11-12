@@ -5,11 +5,11 @@ import AccountsTab from '../../pages/master-data/AccountsTab';
 
 const api = vi.hoisted(() => ({
   rows: [] as object[], rpc: vi.fn(), update: vi.fn(), refresh: vi.fn(),
-  error: vi.fn(), success: vi.fn(),
+  error: vi.fn(), success: vi.fn(), info: vi.fn(),
 }));
 vi.mock('../../lib/access', () => ({ useAccess: () => ({ can: () => true }) }));
 vi.mock('../../context/MasterDataContext', () => ({ useMasterData: () => ({ refresh: api.refresh }) }));
-vi.mock('../../components/Toast', () => ({ toast: { error: api.error, success: api.success } }));
+vi.mock('../../components/Toast', () => ({ toast: { error: api.error, success: api.success, info: api.info } }));
 vi.mock('../../lib/supabase', () => {
   function queryBuilder() {
     const query = {
@@ -152,5 +152,35 @@ describe('customer and supplier account form', () => {
     );
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('button', { name: 'إضافة العميل' })).toBeInTheDocument();
+  });
+
+  it.each([
+    { deletedPermanently: false, expectedKind: 'info' as const, expectedText: /تم إيقاف تفعيل العميل «حساب الحذف»/ },
+    { deletedPermanently: true, expectedKind: 'success' as const, expectedText: /تم حذف العميل «حساب الحذف» نهائياً/ },
+  ])('distinguishes soft deactivation from permanent deletion when delete_account returns $deletedPermanently', async ({ deletedPermanently, expectedKind, expectedText }) => {
+    api.rows = [{ id: 'account-del-1', name: 'حساب الحذف', kind: 'customer', serial_number: 2,
+      phone: '', notes: '', is_active: true, system_key: null }];
+    api.rpc.mockImplementation((name: string) =>
+      name === 'delete_account'
+        ? Promise.resolve({ data: deletedPermanently, error: null })
+        : Promise.resolve({ data: {}, error: null }),
+    );
+    render(
+      <MemoryRouter initialEntries={['/data?tab=customers']}>
+        <AccountsTab kind="customer" />
+      </MemoryRouter>,
+    );
+
+    const actionsBtn = await screen.findByRole('button', { name: 'قائمة الإجراءات' });
+    fireEvent.click(actionsBtn);
+    const deleteMenuBtn = await screen.findByRole('menuitem', { name: 'حذف' });
+    fireEvent.click(deleteMenuBtn);
+
+    const confirmDialog = await screen.findByRole('dialog');
+    fireEvent.click(within(confirmDialog).getByRole('button', { name: 'حذف' }));
+
+    await waitFor(() => expect(api[expectedKind]).toHaveBeenCalledWith(expect.stringMatching(expectedText)));
+    if (expectedKind === 'info') expect(api.success).not.toHaveBeenCalled();
+    else expect(api.info).not.toHaveBeenCalled();
   });
 });

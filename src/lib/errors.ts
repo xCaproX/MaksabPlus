@@ -21,7 +21,7 @@ const MESSAGES: Record<string, string> = {
   invalid_warehouse: 'اختر مخزنًا صحيحًا',
   warehouse_has_stock: 'لا يمكن إيقاف مخزن ما زالت به كميات. صفّر رصيده أولًا.',
   warehouse_has_stock_for_delete: 'لا يمكن حذف المخزن ما دامت به كميات أو تسويات مخزون.',
-  primary_location_protected: 'لا يمكن حذف المخزن أو الخزنة الرئيسية.',
+  primary_location_protected: 'لا يمكن حذف أو إيقاف المخزن أو الخزنة الرئيسية.',
   warehouse_not_found: 'المخزن غير موجود أو لا يتبع شركتك.',
   cash_box_not_found: 'الخزنة غير موجودة أو لا تتبع شركتك.',
   warehouse_has_documents: 'لا يمكن حذف المخزن لوجود فواتير مرتبطة به.',

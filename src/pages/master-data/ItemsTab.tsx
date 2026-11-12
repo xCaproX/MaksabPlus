@@ -373,13 +373,17 @@ export default function ItemsTab() {
     )
       return;
 
-    const { error: deleteError } = await supabase.rpc('delete_item', { p_item_id: item.id });
+    const { data: deletedPermanently, error: deleteError } = await supabase.rpc('delete_item', { p_item_id: item.id });
     if (deleteError) {
       toast.error(translateDbError(deleteError.message));
       return;
     }
 
-    toast.success(`تم حذف الصنف «${item.name}»`);
+    if (deletedPermanently === false) {
+      toast.info(`تم إيقاف تفعيل الصنف «${item.name}» لوجود حركات أو أرصدة مرتبطة به`);
+    } else {
+      toast.success(`تم حذف الصنف «${item.name}» نهائياً`);
+    }
     setSelectedItem(null);
     setVersion((v) => v + 1);
     void refresh(['items', 'stock']);

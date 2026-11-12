@@ -391,13 +391,13 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
 
   async function removeAccount(account: AccountRow) {
     const confirmed = await askConfirmation(
-      `هل تريد حذف ${entityTitle} «${account.name}» نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`,
-      'حذف نهائي',
+      `حذف ${entityTitle} «${account.name}»؟ لن يُحذف نهائياً إذا كانت له حركات أو رصيد، بل سيتم تعطيله فقط.`,
+      'حذف',
       { danger: true },
     );
     if (!confirmed) return;
 
-    const { error: rpcError } = await supabase.rpc('delete_account', {
+    const { data: deletedPermanently, error: rpcError } = await supabase.rpc('delete_account', {
       p_account_id: account.id,
     });
 
@@ -406,7 +406,11 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
       return;
     }
 
-    toast.success(`تم حذف ${entityTitle} «${account.name}» نهائياً`);
+    if (deletedPermanently === false) {
+      toast.info(`تم إيقاف تفعيل ${entityTitle} «${account.name}» لوجود معاملات أو رصيد مرتبط به`);
+    } else {
+      toast.success(`تم حذف ${entityTitle} «${account.name}» نهائياً`);
+    }
     if (selectedAccount?.id === account.id) {
       setSelectedAccount(null);
     }
