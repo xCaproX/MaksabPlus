@@ -22,8 +22,8 @@
 - **Pure CSS / Modular Design System**: تصميم مبني على CSS Variables و Design Tokens مخصص للمشروع يدعم RTL بالكامل والخصائص المنطقية (`inline-start`/`inline-end`) دون مكتبات UI ثقيلة لضمان أعلى سرعة استجابة.
 
 ### 3. الاختبارات وضمان الجودة (Quality Assurance)
-- **Vitest & React Testing Library** (53 ملف اختبار): لاختبارات الفرونت إند والمكونات وحسابات الفواتير والفلاتر.
-- **PGlite (Postgres WASM)** (70 ملف اختبار SQL عبر `npm run test:db`): لاختبار جميع الـ 84 هجرة ودوال SQL محلياً في بيئة مطابقة لقاعدة بيانات الإنتاج.
+- **Vitest & React Testing Library** (54 ملف اختبار): لاختبارات الفرونت إند والمكونات وحسابات الفواتير والفلاتر.
+- **PGlite (Postgres WASM)** (71 ملف اختبار SQL عبر `npm run test:db`): لاختبار جميع الـ 85 هجرة ودوال SQL محلياً في بيئة مطابقة لقاعدة بيانات الإنتاج.
 - **Node Tests & Verification Scripts**: اختبارات `manage-users.test.mjs` و `verify-remote-db.test.mjs` و `free-receipt-concurrency.mjs` و `scripts/test-concurrency.mjs`، بالإضافة إلى `supabase/verify-remote-db.mjs` لفحص قاعدة البيانات السحابية.
 - **ESLint & TypeScript**: للفحص الثابت (`tsc --noEmit`, `eslint src`).
 
@@ -52,8 +52,8 @@ MaksabPlus/
 │   └── main.tsx                  # نقطة انطلاق تطبيق React
 ├── supabase/                     # إعدادات وهجرات واختبارات قاعدة البيانات
 │   ├── functions/                # دوال Edge Functions (manage-users)
-│   ├── migrations/               # 84 ملف هجرة مرتبة بالتواريخ والأرقام التسلسلية
-│   ├── tests/                    # 70 ملف اختبار SQL + fixtures + بيئة PGlite المحلية
+│   ├── migrations/               # 85 ملف هجرة مرتبة بالتواريخ والأرقام التسلسلية
+│   ├── tests/                    # 71 ملف اختبار SQL + fixtures + بيئة PGlite المحلية
 │   └── verify-remote-db.mjs      # سكريبت التحقق من تكامل قاعدة البيانات السحابية
 ├── scripts/                      # سكريبتات التحقق من الواجهة والتخطيط والتزامن
 ├── docs/                         # التوثيق والتقارير

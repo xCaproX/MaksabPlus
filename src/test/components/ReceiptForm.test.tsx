@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ReceiptForm from '../../components/ReceiptForm';
+import { supabase } from '../../lib/supabase';
 
 vi.mock('../../components/Toast', () => ({
   toast: {
@@ -391,5 +392,10 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('لا يمكن نقل الإيصال من (الخزنة الرئيسية)');
     expect(screen.getByRole('button', { name: 'حفظ التعديلات' })).toBeDisabled();
+
+    // محاولة الإرسال مباشرة (مثل الضغط على Enter) يجب ألا تستدعي RPC
+    const form = screen.getByRole('button', { name: 'حفظ التعديلات' }).closest('form')!;
+    fireEvent.submit(form);
+    expect(supabase.rpc).not.toHaveBeenCalled();
   });
 });

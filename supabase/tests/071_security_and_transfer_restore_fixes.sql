@@ -20,6 +20,7 @@ declare
   v_wh_1 uuid := '71717171-7171-4717-8717-000000000011';
   v_wh_2 uuid;
   v_box_1 uuid := '71717171-7171-4717-8717-000000000021';
+  v_box_inactive uuid := '71717171-7171-4717-8717-000000000022';
   v_item_a uuid;
   v_cust_a uuid;
   v_sup_a uuid;
@@ -43,7 +44,9 @@ begin
     (v_comp_a, v_emp_a, 'data.items.view');
 
   insert into public.warehouses (id, company_id, name, is_primary, is_active) values (v_wh_1, v_comp_a, 'الرئيسي', true, true);
-  insert into public.cash_boxes (id, company_id, name, is_primary, is_active) values (v_box_1, v_comp_a, 'الخزنة', true, true);
+  insert into public.cash_boxes (id, company_id, name, is_primary, is_active) values
+    (v_box_1, v_comp_a, 'الخزنة', true, true),
+    (v_box_inactive, v_comp_a, 'خزنة معطلة', false, false);
 
   perform set_config('request.jwt.claims', json_build_object('sub', v_owner_a, 'role', 'authenticated')::text, true);
   set local role authenticated;
@@ -73,6 +76,15 @@ begin
 
   -- 2) تقريب p_amount لـ 4 منازل في الإيصال الحر عند رصيد 100.0000
   v_rcp_in := public.create_free_receipt(v_cust_a, v_box_1, current_date, 100.0000, 'إيداع 100', null, 'in');
+
+  -- رفض نقل الإيصال الحر إلى خزنة معطلة في update_free_receipt
+  begin
+    perform public.update_free_receipt(v_rcp_in, v_cust_a, v_box_inactive, current_date, 100.0000, 'نقل لخزنة معطلة', null);
+    raise exception 'expected invalid_cash_box when moving receipt to inactive cash box';
+  exception when others then
+    if sqlerrm not like '%invalid_cash_box%' then raise; end if;
+  end;
+
   v_rcp_out := public.create_free_receipt(v_sup_a, v_box_1, current_date, 100.00004, 'صرف مقرب لـ 100', null, 'out');
   if (select amount from public.receipts where id = v_rcp_out) <> 100.0000 then
     raise exception 'expected rounded receipt amount 100.0000';

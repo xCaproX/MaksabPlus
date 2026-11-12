@@ -185,6 +185,12 @@ export default function ReceiptForm({
       return toast.error(`رصيد الخزنة غير كافٍ لصرف هذا المبلغ. الرصيد المتاح هو ${money(cashBoxAvailableBalance)}`);
     }
 
+    if (isPreviousBoxOverdraft && editingSourceCashBox) {
+      return toast.error(
+        `لا يمكن نقل الإيصال من (${editingSourceCashBox.name}) لأن رصيدها الحالي (${money(editingSourceCashBox.balance)}) لا يكفي لعكس المبلغ السابق (${money(prevAmount)})`,
+      );
+    }
+
     setBusy(true);
     const trimmedNotes = notes.trim() || null;
     const args = {

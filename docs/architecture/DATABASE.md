@@ -111,7 +111,7 @@ erDiagram
 
 ---
 
-## ملخص الهجرات (Migrations 0001 - 0084)
+## ملخص الهجرات (Migrations 0001 - 0085)
 
 1. **0001 - 0003**: تأسيس الجداول (`companies`, `profiles`, `accounts`, `items`, `warehouses`, `item_stock`, `cash_boxes`, `invoices`, `invoice_items`, `receipts`)، دالة `current_company_id()`، وسياسات RLS، ودوال الإنشاء الأولى.
 2. **0004 - 0013**: إضافة الإيصالات الحرة، قيود التعديل، الحذف المرن (Soft Delete)، فواتير المرتجع (Returns)، والحسابات الثابتة.
@@ -131,3 +131,4 @@ erDiagram
 16. **0082**: إصلاح مسار التعديل بالصافي في `update_invoice` عبر `FULL OUTER JOIN` وتمرير تكلفة الوحدة المحذوفة، معالجة انحراف تقريب الكسور لـ 4 منازل عشرياً في `apply_stock_movement`، توسيع `purchase_invoice_has_later_outflow` ليشمل الخروج ذو `created_at > pinv.created_at` حتى بتاريخ أقدم، ومنع مسح `item_stock.avg_cost` في `save_opening_balances` عند الحفظ بكمية صفرية لمخزن به رصيد أو حركات.
 17. **0083**: شمول الأصناف والمخازن المعطلة ذات الأرصدة أو الحركات مع قفل مسبق بترتيب موحد داخل `run_comprehensive_reconciliation`، منع الرصيد الافتتاحي السالب للخزن، توحيد توقيت `Africa/Cairo` لتسويات الافتتاحية في كشوف الحساب والخزن والأصناف، قفل `(warehouse_id, item_id)` مسبقاً في `update_invoice` و`restore_invoice`، تحديث `warehouse_transfer_has_later_movement` و`v_stock_opening_balances.cost_locked`، منع استعادة الفواتير على كيانات معطلة، وشمول الحسابات والخزن المعطلة ذات الأرصدة في `get_home_dashboard_summary`.
 18. **0084**: توحيد تقريب كميات وأسعار الفاتورة إلى 4 منازل عشرية ومزامنة إجمالي وربح الفواتير (شاملاً فرق سعر `purchase_return`) في `recalc_invoice_totals`، تسعير `sale_return` عند الإرجاع لمخزن فارغ عبر `resolve_sale_return_unit_cost`، شمول `sale_return` في `purchase_invoice_has_later_outflow`، استخدام تكلفة الافتتاح الأصلية `v_open.unit_cost` عند تعديل الكمية الافتتاحية بعد الحركات وتوحيد `cost_locked` في `v_stock_opening_balances`، منع استعادة الفواتير المدفوعة أو الإيصالات على حساب/خزنة معطلة، منع تعطيل المخزن الرئيسي (`toggle_warehouse_active`)، خصم مرتجعات المبيعات من قائمة الأكثر مبيعاً (`top_items`)، وتوسيع `run_comprehensive_reconciliation` لفحص وتصحيح تناسق إجمالي وتكلفة وربح ومدفوعات الفواتير مع البنود والإيصالات.
+19. **0085**: منع `restore_warehouse_transfer` عند وجود صنف معطل، فحص صلاحية `master_items.purchase_price` في `validate_list_columns` قبل تخطي القيم الفارغة، تضمين `s.company_id = i.company_id` في ربط `v_item_stock`، توحيد القفل المسبق لـ `cash_boxes` في `delete_free_receipt` لكلا الاتجاهين، وتقريب `p_amount` لـ 4 منازل في `create_free_receipt` و`update_free_receipt`.
