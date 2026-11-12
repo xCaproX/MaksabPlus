@@ -295,7 +295,7 @@ export default function InvoiceItemsTable({
                       )}
                       {!isReadOnly && isStockExceeded && (
                         <span className="stock-warning-text" role="alert">
-                          تنبيه: الكمية ({line.qty}) تتجاوز المتاح ({formatQty(availableStock)})
+                          تنبيه: الكمية (<bdi dir="ltr" className="tabular-nums">{line.qty}</bdi>) تتجاوز المتاح (<bdi dir="ltr" className="tabular-nums">{formatQty(availableStock)}</bdi>)
                         </span>
                       )}
                     </td>

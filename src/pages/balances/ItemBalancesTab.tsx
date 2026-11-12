@@ -425,11 +425,11 @@ export default function ItemBalancesTab() {
               <dl className="erp-detail-summary">
                 <div>
                   <dt>رقم الصنف</dt>
-                  <dd className="num">{entityNumber('ITM', selectedItem.item_number)}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', selectedItem.item_number)}</bdi></dd>
                 </div>
                 <div>
                   <dt>كود الصنف</dt>
-                  <dd className="num">{selectedItem.item_code}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedItem.item_code}</bdi></dd>
                 </div>
                 <div>
                   <dt>المخزن</dt>
@@ -444,7 +444,7 @@ export default function ItemBalancesTab() {
               <div className="erp-detail-totals">
                 <span>الكمية الحالية</span>
                 <strong className="num">
-                  {formatQty(selectedItem.current_qty)} {selectedItem.unit}
+                  <bdi dir="ltr" className="tabular-nums">{formatQty(selectedItem.current_qty)}</bdi> {selectedItem.unit}
                 </strong>
               </div>
 

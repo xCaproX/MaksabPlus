@@ -1,4 +1,5 @@
 import ColumnFilterRow from './ColumnFilterRow';
+import StatusBadge from './StatusBadge';
 import { useColumnFilters } from '../lib/useColumnFilters';
 import { matchesColumnFilters } from '../lib/columnFilters';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
@@ -330,17 +331,17 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
                     <div className="card-top">
                       <span className="user-name">{user.full_name || 'بدون اسم'}</span>
                       {isOwner ? (
-                        <span className="badge info">مدير المنشأة</span>
+                        <StatusBadge variant="linked">مدير المنشأة</StatusBadge>
                       ) : (
-                        <span className="badge">موظف</span>
+                        <StatusBadge variant="neutral">موظف</StatusBadge>
                       )}
                     </div>
                     <span className="user-email">{user.email}</span>
                     <div className="card-bottom">
                       {isOwner || user.is_active ? (
-                        <span className="badge ok">نشط</span>
+                        <StatusBadge variant="paid">نشط</StatusBadge>
                       ) : (
-                        <span className="badge danger">موقوف</span>
+                        <StatusBadge variant="unpaid">موقوف</StatusBadge>
                       )}
                       <span className="muted">
                         {isOwner ? 'كامل الصلاحيات' : <><bdi dir="ltr" className="tabular-nums">{userKeys.length}</bdi> من <bdi dir="ltr" className="tabular-nums">{allKeys.length}</bdi> صلاحية</>}
@@ -363,17 +364,17 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
                       <span dir="ltr">{selectedUser.email}</span>
                       <span>•</span>
                       {selectedUser.access_role === 'owner' ? (
-                        <span className="badge info">مدير المنشأة (مالك)</span>
+                        <StatusBadge variant="linked">مدير المنشأة (مالك)</StatusBadge>
                       ) : (
-                        <span className="badge">موظف</span>
+                        <StatusBadge variant="neutral">موظف</StatusBadge>
                       )}
                       <span>•</span>
                       {selectedUser.access_role === 'owner' ? (
-                        <span className="badge ok">نشط دائمًا</span>
+                        <StatusBadge variant="paid">نشط دائمًا</StatusBadge>
                       ) : selectedUser.is_active ? (
-                        <span className="badge ok">الحساب نشط</span>
+                        <StatusBadge variant="paid">الحساب نشط</StatusBadge>
                       ) : (
-                        <span className="badge danger">الحساب موقوف</span>
+                        <StatusBadge variant="unpaid">الحساب موقوف</StatusBadge>
                       )}
                     </div>
                   </div>

@@ -49,6 +49,8 @@ describe('Home Dashboard Components', () => {
 
     const purchaseBtn = screen.getByText('فاتورة شراء').closest('a');
     expect(purchaseBtn).toHaveAttribute('href', '/invoices?tab=purchase&action=new');
+    expect(container.querySelectorAll('.btn.primary')).toHaveLength(1);
+    expect(saleBtn).toHaveClass('primary');
   });
 
   it('SalesMetricCards renders today and yesterday sales and collections metrics with performance indicators', () => {

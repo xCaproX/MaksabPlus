@@ -4,8 +4,8 @@
 .toast-container {
   position: fixed;
   top: 24px;
-  left: 50%;
-  transform: translateX(-50%);
+  inset-inline: 0;
+  margin-inline: auto;
   z-index: var(--z-toast, 300);
   display: flex;
   flex-direction: column;

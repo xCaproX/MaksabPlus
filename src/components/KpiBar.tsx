@@ -1,6 +1,14 @@
 import { LoadingMessage, Skeleton } from './LoadingSkeleton';
+import StatusBadge, { type StatusBadgeVariant } from './StatusBadge';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
+
+const KPI_BADGE_VARIANT: Record<'ok' | 'danger' | 'neutral' | 'info', StatusBadgeVariant> = {
+  ok: 'paid',
+  danger: 'unpaid',
+  info: 'linked',
+  neutral: 'neutral',
+};
 
 export interface KpiItem {
   id: string;
@@ -63,9 +71,9 @@ export default function KpiBar({
                 {!loading && (item.subtext || item.badge) && (
                   <div className="kpi-card-footer">
                     {item.badge && (
-                      <span className={`badge ${item.badge.variant ?? 'neutral'}`}>
+                      <StatusBadge variant={KPI_BADGE_VARIANT[item.badge.variant ?? 'neutral']}>
                         {item.badge.text}
-                      </span>
+                      </StatusBadge>
                     )}
                     {item.subtext && <span className="kpi-subtext">{item.subtext}</span>}
                   </div>

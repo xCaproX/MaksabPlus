@@ -341,8 +341,8 @@ export default function ReceiptForm({
                     type="button"
                     className="btn-settle-all-action"
                     onClick={handleSettleAll}
-                    title="استلام كامل المديونية"
-                    aria-label="استلام كامل المديونية"
+                    title={isIn ? 'استلام كامل المديونية' : 'سداد كامل المستحق'}
+                    aria-label={isIn ? 'استلام كامل المديونية' : 'سداد كامل المستحق'}
                   >
                     <Check size={14} strokeWidth={2.5} />
                     <span>كامل المديونية</span>

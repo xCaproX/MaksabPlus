@@ -285,7 +285,7 @@ export default function CashBoxTransferForm({
 
       {isOverdraft && (
         <div className="overdraft-warning-badge" role="alert">
-          تنبيه: المبلغ ({money(numAmount)}) يتجاوز رصيد خزنة المصدر المتاح ({money(sourceAvailableBalance)})
+          تنبيه: المبلغ (<bdi dir="ltr" className="tabular-nums">{money(numAmount)}</bdi>) يتجاوز رصيد خزنة المصدر المتاح (<bdi dir="ltr" className="tabular-nums">{money(sourceAvailableBalance)}</bdi>)
         </div>
       )}
 
