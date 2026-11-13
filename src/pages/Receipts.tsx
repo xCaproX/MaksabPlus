@@ -1,3 +1,4 @@
+import { fetchDocumentDetail } from '../lib/documentLinks';
 import { loadDocumentSection } from '../lib/loadDocumentSection';
 import ColumnFilterRow from '../components/ColumnFilterRow';
 import { useColumnFilters } from '../lib/useColumnFilters';
@@ -164,29 +165,19 @@ export default function Receipts() {
 
     if (docParam) {
       const reqId = ++modalRequestRef.current;
+      const detailScope = targetTab === 'cash_box_transfer' ? 'cash_box_transfer' : 'receipt';
       void (async () => {
         try {
-          if (targetTab === 'cash_box_transfer') {
-            const { data, error } = await supabase
-              .from('v_cash_box_transfer_list')
-              .select('*')
-              .eq('id', docParam)
-              .maybeSingle();
-            if (modalRequestRef.current !== reqId) return;
-            if (error || !data) {
-              toast.warning('المستند المطلوب غير موجود أو لا تملك صلاحية عرضه');
-              return;
-            }
-            const transfer = data as CashBoxTransferRow;
-            if (!can('money.cash_box_transfer.view')) {
-              toast.warning('لا تملك صلاحية عرض هذا المستند');
-              return;
-            }
+          const result = await fetchDocumentDetail(detailScope, docParam);
+          if (modalRequestRef.current !== reqId) return;
+          if (!result.ok) {
+            toast.warning(result.message);
+            return;
+          }
+
+          if (detailScope === 'cash_box_transfer') {
+            const transfer = result.doc as unknown as CashBoxTransferRow;
             if (transfer.deleted_at) {
-              if (!can('money.cash_box_transfer.delete')) {
-                toast.warning('هذا المستند محذوف ولا تملك صلاحية عرضه أو استعادته');
-                return;
-              }
               setShowDeleted(true);
               toast.info('تم فتح مستند محذوف للمعاينة');
             }
@@ -198,27 +189,9 @@ export default function Receipts() {
             return;
           }
 
-          const { data, error } = await supabase
-            .from('v_receipt_list')
-            .select('*')
-            .eq('id', docParam)
-            .maybeSingle();
-          if (modalRequestRef.current !== reqId) return;
-          if (error || !data) {
-            toast.warning('المستند المطلوب غير موجود أو لا تملك صلاحية عرضه');
-            return;
-          }
-          const receipt = data as ReceiptRow;
+          const receipt = result.doc as unknown as ReceiptRow;
           const docDir = receipt.direction;
-          if (!can(`money.${docDir}.view`)) {
-            toast.warning('لا تملك صلاحية عرض هذا المستند');
-            return;
-          }
           if (receipt.deleted_at) {
-            if (!can(`money.${docDir}.delete`)) {
-              toast.warning('هذا المستند محذوف ولا تملك صلاحية عرضه أو استعادته');
-              return;
-            }
             setShowDeleted(true);
             toast.info('تم فتح مستند محذوف للمعاينة');
           }
@@ -611,6 +584,7 @@ export default function Receipts() {
         setDateFrom(from);
         setDateTo(to);
       }}
+      onResetFilters={columns.reset}
       showDeleted={showDeleted}
       onDeletedToggle={toggleDeleted}
       canDelete={Boolean(can(`money.${tab}.delete`))}

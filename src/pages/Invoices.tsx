@@ -1,3 +1,4 @@
+import { fetchDocumentDetail } from '../lib/documentLinks';
 import { loadDocumentSection } from '../lib/loadDocumentSection';
 import ColumnFilterRow from '../components/ColumnFilterRow';
 import { useColumnFilters } from '../lib/useColumnFilters';
@@ -269,34 +270,27 @@ export default function Invoices() {
 
     if (docParam) {
       const reqId = ++modalRequestRef.current;
+      const detailScope = targetKind === 'warehouse_transfer' ? 'warehouse_transfer' : 'invoice';
       void (async () => {
         try {
-          if (targetKind === 'warehouse_transfer') {
-            const { data, error } = await supabase
-              .from('v_warehouse_transfer_list')
-              .select('*')
-              .eq('id', docParam)
-              .maybeSingle();
-            if (modalRequestRef.current !== reqId) return;
-            if (error || !data) {
-              toast.warning('المستند المطلوب غير موجود أو لا تملك صلاحية عرضه');
-              return;
-            }
-            const transfer = data as WarehouseTransferRow;
-            if (!can('goods.warehouse_transfer.view')) {
-              toast.warning('لا تملك صلاحية عرض هذا المستند');
-              return;
-            }
+          const result = await fetchDocumentDetail(detailScope, docParam);
+          if (modalRequestRef.current !== reqId) return;
+          if (!result.ok) {
+            toast.warning(result.message);
+            return;
+          }
+
+          if (detailScope === 'warehouse_transfer') {
+            const transfer = result.doc as unknown as WarehouseTransferRow;
             if (transfer.deleted_at) {
-              if (!can('goods.warehouse_transfer.delete')) {
-                toast.warning('هذا المستند محذوف ولا تملك صلاحية عرضه أو استعادته');
-                return;
-              }
               setShowDeleted(true);
               toast.info('تم فتح مستند محذوف للمعاينة');
             }
-            const lines = await loadTransferLines(transfer.id);
-            if (modalRequestRef.current !== reqId) return;
+            const lines = result.lines.map((line) => ({
+              item_id: String(line.item_id ?? ''),
+              qty: Number(line.qty ?? 0),
+              unit_cost: line.unit_cost === null || line.unit_cost === undefined ? null : Number(line.unit_cost),
+            })) as WarehouseTransferLine[];
             openedTransferFromViewRef.current = true;
             setEditingTransfer({ ...transfer, lines });
             setEditing(null);
@@ -305,32 +299,18 @@ export default function Invoices() {
             return;
           }
 
-          const { data, error } = await supabase
-            .from('v_invoice_list')
-            .select('*')
-            .eq('id', docParam)
-            .maybeSingle();
-          if (modalRequestRef.current !== reqId) return;
-          if (error || !data) {
-            toast.warning('المستند المطلوب غير موجود أو لا تملك صلاحية عرضه');
-            return;
-          }
-          const invoice = data as InvoiceRow;
-          const docKind = invoice.kind;
-          if (!can(`goods.${docKind}.view`)) {
-            toast.warning('لا تملك صلاحية عرض هذا المستند');
-            return;
-          }
+          const invoice = result.doc as unknown as InvoiceRow;
           if (invoice.deleted_at) {
-            if (!can(`goods.${docKind}.delete`)) {
-              toast.warning('هذا المستند محذوف ولا تملك صلاحية عرضه أو استعادته');
-              return;
-            }
             setShowDeleted(true);
             toast.info('تم فتح مستند محذوف للمعاينة');
           }
-          const lines = await loadInvoiceLines(invoice.id);
-          if (modalRequestRef.current !== reqId) return;
+          const lines: LineDraft[] = result.lines.map((line) => ({
+            key: crypto.randomUUID(),
+            item_id: String(line.item_id ?? ''),
+            qty: String(Number(line.qty ?? 0)),
+            unit_price: String(Number(line.unit_price ?? 0)),
+          }));
+          const docKind = invoice.kind;
           openedFromViewRef.current = true;
           if (docKind !== kind) {
             pendingDeepLinkIdRef.current = invoice.id;
@@ -729,6 +709,7 @@ export default function Invoices() {
         setDateFrom(from);
         setDateTo(to);
       }}
+      onResetFilters={columns.reset}
       showDeleted={showDeleted}
       onDeletedToggle={toggleDeleted}
       sortOrder={sortOrder}

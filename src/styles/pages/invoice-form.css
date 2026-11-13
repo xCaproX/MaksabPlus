@@ -431,7 +431,7 @@
 }
 
 .line-index-cell {
-  color: #94a3b8;
+  color: var(--muted, #64748b);
   font-weight: 700;
   font-size: 13px;
   user-select: none;
@@ -533,7 +533,7 @@
 .empty-lines-placeholder-row td {
   padding: 32px 16px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--muted, #64748b);
   font-size: 13.5px;
   font-weight: 600;
   background: #ffffff;
@@ -675,7 +675,7 @@
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
-  color: #94a3b8;
+  color: var(--muted, #64748b);
   font-size: 15px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -825,14 +825,14 @@
 }
 
 .total-input-box.disabled label {
-  color: #94a3b8;
+  color: var(--muted, #64748b);
   cursor: not-allowed;
 }
 
 .total-input-box.disabled select,
 .total-input-box.disabled input {
   background: #f8fafc;
-  color: #94a3b8;
+  color: var(--muted, #64748b);
   border-color: #e2e8f0;
   cursor: not-allowed;
 }
@@ -1268,13 +1268,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border-radius: 6px;
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+@media (pointer: coarse) {
+  .btn-paid-quick {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 .btn-paid-quick.btn-paid-all {

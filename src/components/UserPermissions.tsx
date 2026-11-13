@@ -20,10 +20,12 @@ import {
 } from '../lib/permissionsConfig';
 import { errorMessage } from '../lib/errors';
 import { collectAllRows } from '../lib/exportRows';
+import ConfirmDialog from './ConfirmDialog';
 import Modal from './Modal';
 import SearchableSelect from './SearchableSelect';
 import ChangePasswordModal from './ChangePasswordModal';
 import EmptyState from './EmptyState';
+import { LoadingSkeleton } from './LoadingSkeleton';
 import { toast } from './Toast';
 
 type CompanyUser = {
@@ -43,6 +45,19 @@ interface UserPermissionsProps {
   onDirtyCountChange?: (count: number) => void;
 }
 
+function isUserDraftDirty(
+  user: CompanyUser | null,
+  drafts: Record<string, PermissionKey[]>,
+): boolean {
+  if (!user || user.access_role === 'owner') return false;
+  const saved = user.permission_keys ?? [];
+  const draft = drafts[user.user_id];
+  if (!draft) return false;
+  if (draft.length !== saved.length) return true;
+  const savedSet = new Set(saved);
+  return draft.some((key) => !savedSet.has(key));
+}
+
 export default function UserPermissions({
   inviteOpen,
   onInviteOpenChange,
@@ -57,6 +72,7 @@ export default function UserPermissions({
 
   // الموظف المختار والبحث
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<UserFilterStatus>('all');
   const columns = useColumnFilters('users', () => { setSearchTerm(''); setStatusFilter('all'); });
@@ -147,22 +163,25 @@ export default function UserPermissions({
   const currentDraftKeys = selectedUser
     ? drafts[selectedUser.user_id] ?? selectedUser.permission_keys ?? []
     : [];
+  const isSelectedUserDirty = isUserDraftDirty(selectedUser, drafts);
 
-  const dirtyUsersCount = useMemo(() => {
-    return users.filter((u) => {
-      if (u.access_role === 'owner') return false;
-      const saved = u.permission_keys ?? [];
-      const draft = drafts[u.user_id];
-      if (!draft) return false;
-      if (draft.length !== saved.length) return true;
-      const savedSet = new Set(saved);
-      return draft.some((key) => !savedSet.has(key));
-    }).length;
-  }, [users, drafts]);
+  const dirtyUsersCount = useMemo(
+    () => users.filter((u) => isUserDraftDirty(u, drafts)).length,
+    [users, drafts],
+  );
 
   useEffect(() => {
     onDirtyCountChange?.(dirtyUsersCount);
   }, [dirtyUsersCount, onDirtyCountChange]);
+
+  function handleSelectUser(nextUserId: string) {
+    if (nextUserId === selectedUserId) return;
+    if (isSelectedUserDirty) {
+      setPendingUserId(nextUserId);
+      return;
+    }
+    setSelectedUserId(nextUserId);
+  }
 
   function toggleSectionCollapse(sectionId: string) {
     setExpandedSections((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
@@ -296,7 +315,7 @@ export default function UserPermissions({
   return (
     <div className="stack user-permissions-page">
       {loading ? (
-        <div className="card empty">جارٍ تحميل المستخدمين والصلاحيات…</div>
+        <LoadingSkeleton layout="page" label="جارٍ تحميل المستخدمين والصلاحيات…" />
       ) : (
         <div className="erp-users-workspace">
           {/* الجانب الأيمن (Master List): قائمة الموظفين مدمجة */}
@@ -334,9 +353,11 @@ export default function UserPermissions({
             <ColumnFilterRow as="bar" scope="users" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
             <div className="users-list-scroll">
               {filteredUsers.length === 0 && (
-                <p className="empty" style={{ padding: '16px', fontSize: '12px' }}>
-                  لا يوجد مستخدمون يطابقون البحث.
-                </p>
+                <EmptyState
+                  compact
+                  icon={UserCheck}
+                  title="لا يوجد مستخدمون يطابقون البحث."
+                />
               )}
               {filteredUsers.map((user) => {
                 const isSelected = selectedUserId === user.user_id;
@@ -347,7 +368,7 @@ export default function UserPermissions({
                     key={user.user_id}
                     type="button"
                     className={`user-item-card ${isSelected ? 'active' : ''}`}
-                    onClick={() => setSelectedUserId(user.user_id)}
+                    onClick={() => handleSelectUser(user.user_id)}
                   >
                     <div className="card-top">
                       <span className="user-name">{user.full_name || 'بدون اسم'}</span>
@@ -431,6 +452,35 @@ export default function UserPermissions({
                     </div>
                   )}
                 </div>
+
+                {isSelectedUserDirty && selectedUser.access_role === 'employee' && (
+                  <div className="user-dirty-banner" role="status">
+                    <span>توجد تعديلات غير محفوظة على صلاحيات هذا الموظف</span>
+                    <div className="user-dirty-banner-actions">
+                      <button
+                        type="button"
+                        className="btn ghost sm"
+                        disabled={busy}
+                        onClick={() =>
+                          setDrafts((prev) => ({
+                            ...prev,
+                            [selectedUser.user_id]: selectedUser.permission_keys ?? [],
+                          }))
+                        }
+                      >
+                        تراجع
+                      </button>
+                      <button
+                        type="button"
+                        className="btn primary sm"
+                        disabled={busy}
+                        onClick={() => void savePermissions(selectedUser)}
+                      >
+                        {busy ? 'جارٍ الحفظ…' : 'حفظ الصلاحيات'}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {selectedUser.access_role === 'owner' ? (
                   <div style={{ padding: '20px' }}>
@@ -666,6 +716,27 @@ export default function UserPermissions({
         }
         onClose={() => setPasswordTargetUser(null)}
       />
+
+      {pendingUserId !== null && (
+        <ConfirmDialog
+          title="تغييرات غير محفوظة"
+          message="لديك تعديلات غير محفوظة على صلاحيات الموظف الحالي. هل تريد تجاهلها والانتقال لموظف آخر؟"
+          confirmLabel="تجاهل التعديلات"
+          danger
+          onConfirm={() => {
+            const nextId = pendingUserId;
+            setPendingUserId(null);
+            if (selectedUser && selectedUser.access_role === 'employee') {
+              setDrafts((prev) => ({
+                ...prev,
+                [selectedUser.user_id]: selectedUser.permission_keys ?? [],
+              }));
+            }
+            setSelectedUserId(nextId);
+          }}
+          onCancel={() => setPendingUserId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -811,8 +882,7 @@ function SectionGroupRows({
           {!readOnly && (
             <button
               type="button"
-              className="btn compact"
-              style={{ fontSize: '11px', minHeight: '22px', padding: '1px 8px' }}
+              className="btn sm"
               disabled={disabled}
               onClick={() => onToggleSection(section)}
             >
@@ -871,8 +941,7 @@ function SectionGroupRows({
                 {!readOnly && (
                   <button
                     type="button"
-                    className="btn compact"
-                    style={{ fontSize: '10px', minHeight: '20px', padding: '1px 6px' }}
+                    className="btn sm"
                     disabled={disabled}
                     onClick={() => onToggleItem(item)}
                   >

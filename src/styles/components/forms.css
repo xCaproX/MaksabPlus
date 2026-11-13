@@ -451,6 +451,7 @@ input[type="number"] {
 }
 
 .date-picker-trigger {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -465,6 +466,14 @@ input[type="number"] {
   transition:
     background-color var(--transition-fast),
     color var(--transition-fast);
+}
+
+@media (pointer: coarse) {
+  .date-picker-trigger::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
 }
 
 .date-picker-trigger:hover {

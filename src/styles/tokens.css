@@ -1,5 +1,5 @@
 :root {
-  --table-date-width: 100px;
+  --table-date-width: 112px;
   --table-time-width: 80px;
 
   /* Z-index scale: ترتيب الطبقات الموثق (الإشعارات فوق كل النوافذ) */
@@ -12,8 +12,10 @@
   --ink-secondary: #334155;
   --muted: #64748b;
   --muted-light: #94a3b8;
+  --sidebar-muted: #cbd5e1;
   --line: #e2e8f0;
   --line-strong: #cbd5e1;
+  --input-border: #cbd5e1;
 
   --primary: #2e425c;
   --primary-hover: #223348;
@@ -26,19 +28,27 @@
   --accent-light: #e0f2fe;
 
   --danger: #dc2626;
+  --danger-ink: #991b1b;
   --danger-strong: #881337;
   --danger-hover: #b91c1c;
   --danger-light: #fef2f2;
   --danger-border: #fecaca;
 
   --success: #16a34a;
+  --success-ink: #166534;
   --success-hover: #15803d;
   --success-light: #f0fdf4;
   --success-border: #bbf7d0;
 
   --warning: #d97706;
+  --warning-ink: #92400e;
   --warning-light: #fffbeb;
   --warning-border: #fde68a;
+
+  --info: #0369a1;
+  --info-ink: #075985;
+  --info-light: #e0f2fe;
+  --info-border: #bae6fd;
 
   /* Modern Radius System */
   --radius-xs: 5px;

@@ -604,3 +604,18 @@
   font-size: var(--font-xs);
 }
 .document-export-btn { margin-inline-start: auto; flex-shrink: 0; white-space: nowrap; gap: 8px; font-size: 12px; }
+.document-filter-reset-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  border-radius: var(--radius-full, 9999px);
+  padding-inline: 10px;
+}
+.document-filter-reset-pill:hover {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+}

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import { Play, UserPlus } from 'lucide-react';
+import { AlertCircle, Play, UserPlus } from 'lucide-react';
 import { useAccess } from '../lib/access';
 import ConfirmDialog from '../components/ConfirmDialog';
+import EmptyState from '../components/EmptyState';
+import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { useNavigationDirtyGuard } from '../components/NavigationGuardContext';
 import UserPermissions from '../components/UserPermissions';
 import { useMasterData, type MasterDataResource } from '../context/MasterDataContext';
@@ -174,19 +176,20 @@ export default function Management() {
       </div>
 
       {canViewCurrentTab && loadError && (
-        <div className="empty-state" role="alert">
-          <p>تعذّر تحميل البيانات كاملة. حدّث الصفحة وحاول مرة أخرى.</p>
-        </div>
+        <EmptyState
+          icon={AlertCircle}
+          title="تعذّر تحميل البيانات كاملة"
+          description="حدّث الصفحة وحاول مرة أخرى."
+        />
       )}
 
       {!canViewCurrentTab ? (
-        <div className="empty-state">
-          <p>ليس لديك صلاحية لعرض هذا القسم.</p>
-        </div>
+        <EmptyState
+          icon={AlertCircle}
+          title="ليس لديك صلاحية لعرض هذا القسم"
+        />
       ) : !hasLoaded && loadError ? null : !hasLoaded ? (
-        <div className="loading-state">
-          <p>جاري تحميل البيانات...</p>
-        </div>
+        <LoadingSkeleton layout="page" label="جارٍ تحميل البيانات…" />
       ) : (
         <>
           {tab === 'customers' && (

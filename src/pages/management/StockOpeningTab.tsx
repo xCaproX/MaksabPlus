@@ -4,6 +4,7 @@ import { matchesColumnFilters } from '../../lib/columnFilters';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAccess } from '../../lib/access';
 import { Boxes, DollarSign, CheckCircle2, FileText, X } from 'lucide-react';
+import EmptyState from '../../components/EmptyState';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
 import SearchableSelect from '../../components/SearchableSelect';
@@ -289,11 +290,12 @@ export default function StockOpeningTab({
               </thead>
               <tbody>
                 {pageStock.length === 0 && (
-                  <tr>
-                    <td colSpan={canViewProfit ? 6 : 5} className="empty">
-                      لا توجد أصناف في هذا المخزن تطابق البحث.
-                    </td>
-                  </tr>
+                  <EmptyState
+                    colSpan={canViewProfit ? 6 : 5}
+                    compact
+                    icon={Boxes}
+                    title="لا توجد أصناف في هذا المخزن تطابق البحث."
+                  />
                 )}
                 {pageStock.map((row) => {
                   const key = `${row.warehouse_id}:${row.item_id}`;

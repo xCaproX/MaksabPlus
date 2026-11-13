@@ -503,7 +503,7 @@ td.row-actions > * + * {
 }
 :is(.column-filter-row, .column-filter-bar) .picker-input { block-size: var(--column-filter-control-size); min-block-size: var(--column-filter-control-size); }
 :is(.column-filter-row, .column-filter-bar) .date-picker-trigger {
-  flex: 0 0 22px; inline-size: 22px; min-inline-size: 0;
+  flex: 0 0 26px; inline-size: 26px; min-inline-size: 0;
 }
 :is(.column-filter-row, .column-filter-bar) .date-picker-trigger svg { inline-size: 14px; block-size: 14px; }
 .column-filter-cell .column-filter-clear { flex-shrink: 1; max-inline-size: 100%; min-inline-size: 0; }

@@ -3,6 +3,7 @@ import { useColumnFilters } from '../../lib/useColumnFilters';
 import { matchesColumnFilters } from '../../lib/columnFilters';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Wallet, Landmark, X } from 'lucide-react';
+import EmptyState from '../../components/EmptyState';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
 import SortableHeader from '../../components/SortableHeader';
@@ -196,11 +197,12 @@ export default function CashBoxOpeningTab({
               </thead>
               <tbody>
                 {pageBoxes.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="empty">
-                      لا توجد خزن تطابق البحث.
-                    </td>
-                  </tr>
+                  <EmptyState
+                    colSpan={4}
+                    compact
+                    icon={Wallet}
+                    title="لا توجد خزن تطابق البحث."
+                  />
                 )}
                 {pageBoxes.map((box) => {
                   const isSelected = selectedBox?.id === box.id;

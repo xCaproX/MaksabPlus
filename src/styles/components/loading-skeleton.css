@@ -16,6 +16,23 @@
   vertical-align: middle;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .loading-skeleton {
+    background: linear-gradient(90deg, var(--line) 25%, #f1f5f9 50%, var(--line) 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.4s ease-in-out infinite;
+  }
+
+  @keyframes skeletonShimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+}
+
 .skeleton-row td {
   block-size: 2.75rem;
 }

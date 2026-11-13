@@ -3,6 +3,7 @@ import { useColumnFilters } from '../../lib/useColumnFilters';
 import { matchesColumnFilters } from '../../lib/columnFilters';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Users, ShoppingBag, AlertCircle, Wallet, CheckCircle2, X } from 'lucide-react';
+import EmptyState from '../../components/EmptyState';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
 import SortableHeader from '../../components/SortableHeader';
@@ -293,11 +294,12 @@ export default function AccountOpeningTab({
               </thead>
               <tbody>
                 {pageAccounts.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="empty">
-                      {isCustomer ? 'لا توجد حسابات عملاء تطابق البحث.' : 'لا توجد حسابات موردين تطابق البحث.'}
-                    </td>
-                  </tr>
+                  <EmptyState
+                    colSpan={5}
+                    compact
+                    icon={isCustomer ? Users : ShoppingBag}
+                    title={isCustomer ? 'لا توجد حسابات عملاء تطابق البحث.' : 'لا توجد حسابات موردين تطابق البحث.'}
+                  />
                 )}
                 {pageAccounts.map((account) => {
                   const isSelected = selectedAccount?.id === account.id;

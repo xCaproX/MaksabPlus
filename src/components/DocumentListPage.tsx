@@ -43,6 +43,7 @@ export interface DocumentListPageProps<TTab extends string = string> {
   dateFrom: string;
   dateTo: string;
   onDatesChange: (from: string, to: string) => void;
+  onResetFilters?: () => void;
   showDeleted: boolean;
   onDeletedToggle?: () => void;
   canDelete?: boolean;
@@ -92,6 +93,7 @@ export default function DocumentListPage<TTab extends string = string>({
   dateFrom,
   dateTo,
   onDatesChange,
+  onResetFilters,
   showDeleted,
   onDeletedToggle,
   canDelete = true,
@@ -181,6 +183,7 @@ export default function DocumentListPage<TTab extends string = string>({
         }}
         disabled={toolbarDisabled}
         onDatesChange={onDatesChange}
+        onResetFilters={onResetFilters}
       />
 
       {/* مساحة عرض الجدول والترقيم */}

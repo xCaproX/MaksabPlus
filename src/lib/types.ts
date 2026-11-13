@@ -29,6 +29,8 @@ export interface AccountStatementRow {
   running_balance: number;
   total_debit: number;
   total_credit: number;
+  doc_id?: string | null;
+  doc_kind?: string | null;
 }
 
 export interface CashBoxStatementRow {
@@ -42,6 +44,8 @@ export interface CashBoxStatementRow {
   running_balance: number;
   total_incoming: number;
   total_outgoing: number;
+  doc_id?: string | null;
+  doc_kind?: string | null;
 }
 
 export interface ItemMovementStatementRow {
@@ -55,6 +59,8 @@ export interface ItemMovementStatementRow {
   running_balance: number;
   total_incoming: number;
   total_outgoing: number;
+  doc_id?: string | null;
+  doc_kind?: string | null;
 }
 
 export interface ItemRow {

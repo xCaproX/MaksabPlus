@@ -10,6 +10,8 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonRows } from '../../components/LoadingSkeleton';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import PeriodFilter from '../../components/PeriodFilter';
 import { periodDates, shiftCalendarDate } from '../../lib/period';
@@ -194,19 +196,15 @@ export default function ReconciliationLogTab({
                 <ColumnFilterRow scope="reconciliations" owner values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
-                {loading && (
-                  <tr>
-                    <td colSpan={6} className="empty">
-                      جارٍ تحميل سجل التدقيق…
-                    </td>
-                  </tr>
-                )}
+                {loading && <SkeletonRows columns={6} />}
                 {!loading && logs.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="empty">
-                      لا توجد عمليات فحص ومطابقة مسجلة حتى الآن. اضغط على «بدء فحص جديد» للتدقيق.
-                    </td>
-                  </tr>
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    icon={History}
+                    title="لا توجد عمليات فحص ومطابقة مسجلة حتى الآن."
+                    description="اضغط على «بدء فحص جديد» للتدقيق."
+                  />
                 )}
                 {!loading &&
                   logs.map((row) => {

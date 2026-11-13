@@ -109,6 +109,32 @@
   background: #f8fafc;
 }
 
+.statement-doc-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.statement-doc-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.statement-doc-link .link-ext-icon {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+@media print {
+  .statement-doc-link {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
 @media (max-width: 760px) {
   .account-statement-heading,
   .account-statement-period {

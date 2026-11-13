@@ -3,6 +3,7 @@ import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import {
   X,
   Printer,
@@ -11,8 +12,13 @@ import {
   ShoppingBag,
   AlertCircle,
   Wallet,
+  ExternalLink,
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
+import EmptyState from '../../components/EmptyState';
+import { SkeletonRows } from '../../components/LoadingSkeleton';
+import { useAccess } from '../../lib/access';
+import { getStatementRowLink } from '../../lib/documentLinks';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, getBalanceStatus, money } from '../../lib/format';
 import DateDisplay from '../../components/DateDisplay';
@@ -47,6 +53,7 @@ interface AccountBalancesSummary {
 }
 
 export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
+  const { can } = useAccess();
   const isCustomer = kind === 'customer';
   const entityPrefix = isCustomer ? 'CUS' : 'SUP';
   const entityTitle = isCustomer ? 'عميل' : 'مورد';
@@ -392,19 +399,14 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                 <ColumnFilterRow scope="account_balances" kind={kind} values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
-                {loading && (
-                  <tr>
-                    <td colSpan={6} className="empty">
-                      جارٍ التحميل…
-                    </td>
-                  </tr>
-                )}
+                {loading && <SkeletonRows columns={6} />}
                 {!loading && pagedAccounts.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="empty">
-                      لا توجد حسابات {entityPlural} تطابق البحث.
-                    </td>
-                  </tr>
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    icon={Users}
+                    title={`لا توجد حسابات ${entityPlural} تطابق البحث.`}
+                  />
                 )}
                 {!loading &&
                   pagedAccounts.map((account) => {
@@ -655,28 +657,38 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {statementRows.map((row, index) => (
-                        <tr
-                          key={`${row.row_type}-${row.transaction_date}-${row.receipt_number ?? row.invoice_number ?? index}`}
-                          className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}
-                        >
-                          <td className="num col-date" data-label="التاريخ">
-                            <DateDisplay value={row.transaction_date} />
-                          </td>
-                          <td className="card-wide-cell" data-label="البيان">
-                            {row.description}
-                          </td>
-                          <td className="num" data-label="مدين">
-                            {Number(row.debit) ? money(row.debit) : '—'}
-                          </td>
-                          <td className="num" data-label="دائن">
-                            {Number(row.credit) ? money(row.credit) : '—'}
-                          </td>
-                          <td className="num strong" data-label="الرصيد">
-                            {money(row.running_balance)}
-                          </td>
-                        </tr>
-                      ))}
+                      {statementRows.map((row, index) => {
+                        const rowLink = getStatementRowLink(row.doc_id, row.doc_kind, can);
+                        return (
+                          <tr
+                            key={`${row.row_type}-${row.transaction_date}-${row.receipt_number ?? row.invoice_number ?? index}`}
+                            className={`responsive-row ${row.row_type === 'opening' ? 'statement-opening-row' : ''}`}
+                          >
+                            <td className="num col-date" data-label="التاريخ">
+                              <DateDisplay value={row.transaction_date} />
+                            </td>
+                            <td className="card-wide-cell" data-label="البيان">
+                              {rowLink ? (
+                                <Link className="statement-doc-link" to={rowLink}>
+                                  <span>{row.description}</span>
+                                  <ExternalLink size={13} className="link-ext-icon print-hidden" aria-hidden="true" />
+                                </Link>
+                              ) : (
+                                row.description
+                              )}
+                            </td>
+                            <td className="num" data-label="مدين">
+                              {Number(row.debit) ? money(row.debit) : '—'}
+                            </td>
+                            <td className="num" data-label="دائن">
+                              {Number(row.credit) ? money(row.credit) : '—'}
+                            </td>
+                            <td className="num strong" data-label="الرصيد">
+                              {money(row.running_balance)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
