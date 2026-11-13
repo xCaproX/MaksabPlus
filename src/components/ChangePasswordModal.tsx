@@ -100,7 +100,7 @@ export default function ChangePasswordModal({
   }
 
   return (
-    <Modal title={title} onClose={handleClose}>
+    <Modal title={title} onClose={handleClose} dismissible={!busy} isDirty={Boolean(password || confirmPassword)}>
       <form className="stack change-password-form" onSubmit={handleSubmit}>
         <div className="account-header-card">
           <p className="hint change-password-hint">

@@ -12,6 +12,7 @@ import DocumentSummarySidebar from './invoice-form/DocumentSummarySidebar';
 import { searchWarehouseItemsAsync, lookupBarcodeItem } from '../lib/masterDataQueries';
 import { resolveDefaultWarehouse } from '../lib/defaults';
 import { clampDocQty, clampDocQtyOnBlur, DOC_LINE_CLAMP_WARNING, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
+import { useModalDirtyGuard } from './Modal';
 import { toast } from './Toast';
 import type { ItemRow, StockOpeningRow, WarehouseOption, WarehouseTransferLine, WarehouseTransferRow } from '../lib/types';
 
@@ -95,6 +96,36 @@ export default function WarehouseTransferForm({
   const entrySelectedItem = items.find((entry) => entry.id === entryItemId);
   const entryAvailableStock = entryItemId ? getAvailableStock(entryItemId, sourceId) : 0;
   const totalTransferQty = lines.reduce((sum, line) => sum + Number(line.qty || 0), 0);
+
+  const [initialSnapshot] = useState(() => ({
+    sourceId,
+    destinationId,
+    date,
+    notes: notes.trim(),
+    linesKey: JSON.stringify(
+      lines.map((line) => ({
+        item_id: line.item_id,
+        qty: Number(line.qty || 0),
+      })),
+    ),
+  }));
+
+  const currentLinesKey = JSON.stringify(
+    lines.map((line) => ({
+      item_id: line.item_id,
+      qty: Number(line.qty || 0),
+    })),
+  );
+  const isDirty =
+    !readOnly &&
+    (sourceId !== initialSnapshot.sourceId ||
+      destinationId !== initialSnapshot.destinationId ||
+      date !== initialSnapshot.date ||
+      notes.trim() !== initialSnapshot.notes ||
+      Boolean(entryItemId) ||
+      currentLinesKey !== initialSnapshot.linesKey);
+
+  const { requestClose } = useModalDirtyGuard(isDirty);
 
   const selectableItems = items.filter(
     (item) => item.is_active !== false || lines.some((l) => l.item_id === item.id)
@@ -619,7 +650,7 @@ export default function WarehouseTransferForm({
         resetTitle="مسح بيانات التحويل الحالية والبدء من جديد"
         onNotesChange={setNotes}
         onResetNew={handleReset}
-        onCancel={onCancel}
+        onCancel={() => requestClose(onCancel)}
         onEdit={onEdit}
         onDelete={onDelete}
         onRestore={onRestore}

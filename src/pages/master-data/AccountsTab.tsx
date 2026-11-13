@@ -623,6 +623,18 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
           className="master-data-modal account-modal"
           backdropClassName="master-data-backdrop"
           dismissible={!savingAccount}
+          isDirty={
+            editingAccount
+              ? accountName !== editingAccount.name ||
+                accountPhone !== (editingAccount.phone ?? '') ||
+                accountNotes !== (editingAccount.notes || '') ||
+                accountActive !== editingAccount.is_active
+              : accountName.trim() !== '' ||
+                accountPhone.trim() !== '' ||
+                accountNotes.trim() !== '' ||
+                Number(accountOpeningBalance || 0) !== 0 ||
+                !accountActive
+          }
         >
           <form onSubmit={saveAccount} className="stack" aria-busy={savingAccount}>
             <fieldset className="stack form-fields" disabled={savingAccount}>

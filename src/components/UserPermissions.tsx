@@ -511,7 +511,12 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
 
       {/* نافذة دعوة موظف جديد */}
       {isInviteOpen && (
-        <Modal title="دعوة موظف جديد" onClose={() => setIsInviteOpen(false)}>
+        <Modal
+          title="دعوة موظف جديد"
+          onClose={() => setIsInviteOpen(false)}
+          dismissible={!busy}
+          isDirty={Boolean(inviteFullName.trim() || inviteEmail.trim() || invitePermissions.length > 0)}
+        >
           <form className="stack invoice-form" onSubmit={invite}>
             <p className="hint">
               أدخل بيانات الموظف لتصله دعوة تسجيل الدخول عبر البريد الإلكتروني مع الصلاحيات المحددة له.

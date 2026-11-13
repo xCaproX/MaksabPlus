@@ -611,6 +611,25 @@ export default function ItemsTab() {
           className="master-data-modal"
           backdropClassName="master-data-backdrop"
           onClose={cancelEdit}
+          isDirty={
+            editingItem
+              ? itemName !== editingItem.name ||
+                itemCode !== editingItem.code ||
+                itemUnit !== editingItem.unit ||
+                salePrice !== String(editingItem.sale_price) ||
+                purchasePrice !== (editingItem.purchase_price == null ? '' : String(editingItem.purchase_price)) ||
+                itemActive !== editingItem.is_active ||
+                itemNotes !== (editingItem.notes || '')
+              : itemName.trim() !== '' ||
+                itemCode.trim() !== '' ||
+                itemUnit !== 'قطعة' ||
+                salePrice !== '' ||
+                purchasePrice !== '' ||
+                itemNotes.trim() !== '' ||
+                !itemActive ||
+                Number(itemOpeningQty || 0) !== 0 ||
+                Number(itemOpeningCost || 0) !== 0
+          }
         >
           <form className="stack" onSubmit={saveItem}>
             <div className="account-header-card">

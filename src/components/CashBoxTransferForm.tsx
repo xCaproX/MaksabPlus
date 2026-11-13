@@ -10,6 +10,7 @@ import { toast } from './Toast';
 import SearchableSelect from './SearchableSelect';
 import DateInput from './DateInput';
 import MoneyDisplay from './MoneyDisplay';
+import { useModalDirtyGuard } from './Modal';
 import { resolveDefaultCashBox } from '../lib/defaults';
 import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
 
@@ -53,6 +54,24 @@ export default function CashBoxTransferForm({
 
   const numAmount = Number(amount || 0);
   const roundedAmount = round2(numAmount);
+
+  const [initialSnapshot] = useState(() => ({
+    sourceId,
+    destinationId,
+    date,
+    amount: editing ? round2(Number(editing.amount || 0)).toFixed(2) : '0.00',
+    notes: notes.trim(),
+  }));
+
+  const isDirty =
+    !isReadOnly &&
+    (sourceId !== initialSnapshot.sourceId ||
+      destinationId !== initialSnapshot.destinationId ||
+      date !== initialSnapshot.date ||
+      roundedAmount.toFixed(2) !== initialSnapshot.amount ||
+      notes.trim() !== initialSnapshot.notes);
+
+  const { requestClose } = useModalDirtyGuard(isDirty);
   const tafqeetText = numAmount > 0 ? tafqeet(numAmount) : '';
 
   // حساب الأرصدة قبل وبعد
@@ -329,7 +348,7 @@ export default function CashBoxTransferForm({
         onEdit={onEdit}
         onPrint={onPrint}
         onDelete={onDelete}
-        onCancel={onCancel}
+        onCancel={() => requestClose(onCancel)}
         onResetNew={handleReset}
       />
     </form>

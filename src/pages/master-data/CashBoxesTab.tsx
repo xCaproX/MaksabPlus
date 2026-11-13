@@ -471,12 +471,20 @@ export default function CashBoxesTab() {
       </div>
 
       {/* مودال الإضافة والتعديل */}
-      {isModalOpen && (
+      {isModalOpen && (() => {
+        const editingBox = editingCashBoxId ? cashBoxes.find((b) => b.id === editingCashBoxId) : undefined;
+        const isBoxDirty = editingBox
+          ? cashBoxName !== editingBox.name || cashBoxNotes !== (editingBox.notes || '')
+          : cashBoxName.trim() !== '' ||
+            cashBoxNotes.trim() !== '' ||
+            Number(cashBoxOpeningBalance || 0) !== 0;
+        return (
         <Modal
           title={editingCashBoxId ? 'تعديل خزنة' : 'إضافة خزنة'}
           className="master-data-modal"
           backdropClassName="master-data-backdrop"
           onClose={cancelEdit}
+          isDirty={isBoxDirty}
         >
           <form className="stack" onSubmit={saveCashBox}>
             <div className="account-header-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -528,7 +536,8 @@ export default function CashBoxesTab() {
             </div>
           </form>
         </Modal>
-      )}
+        );
+      })()}
 
       {confirmation && (
         <ConfirmDialog

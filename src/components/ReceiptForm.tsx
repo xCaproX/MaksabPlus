@@ -13,6 +13,7 @@ import { searchAccountsAsync } from '../lib/masterDataQueries';
 import { resolveDefaultCashBox, sortCashBoxesWithPrimaryFirst } from '../lib/defaults';
 import DateInput from './DateInput';
 import MoneyDisplay from './MoneyDisplay';
+import { useModalDirtyGuard } from './Modal';
 import { toast } from './Toast';
 import type {
   AccountKind,
@@ -84,6 +85,26 @@ export default function ReceiptForm({
   const [amount, setAmount] = useState(editing ? String(Number(editing.amount)) : '');
   const [notes, setNotes] = useState(editing?.notes ?? editing?.statement ?? '');
   const [busy, setBusy] = useState(false);
+
+  const [initialSnapshot] = useState(() => ({
+    accountKind,
+    accountId,
+    date,
+    amount: editing ? round2(Number(editing.amount || 0)).toFixed(2) : '0.00',
+    notes: notes.trim(),
+  }));
+
+  const expectedCashBoxId = editing?.cash_box_id ?? defaultCashBox?.id ?? '';
+  const isDirty =
+    !isReadOnly &&
+    (accountKind !== initialSnapshot.accountKind ||
+      accountId !== initialSnapshot.accountId ||
+      cashBoxId !== expectedCashBoxId ||
+      date !== initialSnapshot.date ||
+      round2(Number(amount || 0)).toFixed(2) !== initialSnapshot.amount ||
+      notes.trim() !== initialSnapshot.notes);
+
+  const { requestClose } = useModalDirtyGuard(isDirty);
 
   const selectableAccounts = accounts.filter((account) => account.kind === accountKind);
   const selectedAccount = accounts.find((a) => a.id === accountId);
@@ -495,7 +516,7 @@ export default function ReceiptForm({
         onEdit={editing?.is_free ? onEdit : undefined}
         onPrint={onPrint}
         onDelete={editing?.is_free ? onDelete : undefined}
-        onCancel={onCancel}
+        onCancel={() => requestClose(onCancel)}
         onResetNew={handleResetNew}
       />
     </form>

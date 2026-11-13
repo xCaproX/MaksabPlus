@@ -9,6 +9,7 @@ import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
 import type { WarehouseItemOption } from '../lib/masterDataQueries';
 import ConfirmDialog from './ConfirmDialog';
+import { useModalDirtyGuard } from './Modal';
 import { toast } from './Toast';
 import InvoiceAccountHeader from './invoice-form/InvoiceAccountHeader';
 import InvoiceItemsTable from './invoice-form/InvoiceItemsTable';
@@ -144,6 +145,44 @@ export default function InvoiceForm({
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId);
   const isSameEditingAccount = Boolean(editing) && accountId === editing?.invoice.account_id;
+
+  const [initialSnapshot] = useState(() => ({
+    date,
+    accountKind,
+    accountId,
+    warehouseId,
+    cashBoxId,
+    paid: Number(paid || 0).toFixed(2),
+    notes: notes.trim(),
+    linesKey: JSON.stringify(
+      lines.map((line) => ({
+        item_id: line.item_id,
+        qty: Number(line.qty || 0),
+        unit_price: Number(line.unit_price || 0),
+      })),
+    ),
+  }));
+
+  const currentLinesKey = JSON.stringify(
+    lines.map((line) => ({
+      item_id: line.item_id,
+      qty: Number(line.qty || 0),
+      unit_price: Number(line.unit_price || 0),
+    })),
+  );
+  const isDirty =
+    !isReadOnly &&
+    (date !== initialSnapshot.date ||
+      accountKind !== initialSnapshot.accountKind ||
+      accountId !== initialSnapshot.accountId ||
+      warehouseId !== initialSnapshot.warehouseId ||
+      cashBoxId !== initialSnapshot.cashBoxId ||
+      notes.trim() !== initialSnapshot.notes ||
+      Boolean(entryItemId) ||
+      currentLinesKey !== initialSnapshot.linesKey ||
+      (!cashAccountSelected && Number(paid || 0).toFixed(2) !== initialSnapshot.paid));
+
+  const { requestClose } = useModalDirtyGuard(isDirty);
   const { netInvoiceDebt, balanceBefore, balanceAfter } = calculateBalancePreview({
     currentAccountBalance: Number(selectedAccount?.balance || 0),
     isReturn,
@@ -644,7 +683,7 @@ export default function InvoiceForm({
           onCashBoxChange={(val) => setCashBoxId(val)}
           onNotesChange={setNotes}
           onResetNew={handleResetNew}
-          onCancel={onCancel}
+          onCancel={() => requestClose(onCancel)}
           onEdit={onEdit}
           onDelete={onDelete}
           onRestore={onRestore}

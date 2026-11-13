@@ -445,12 +445,18 @@ export default function WarehousesTab() {
       </div>
 
       {/* مودال الإضافة والتعديل */}
-      {isModalOpen && (
+      {isModalOpen && (() => {
+        const editingWarehouse = editingWarehouseId ? warehouses.find((w) => w.id === editingWarehouseId) : undefined;
+        const isWarehouseDirty = editingWarehouse
+          ? warehouseName !== editingWarehouse.name || warehouseNotes !== (editingWarehouse.notes || '')
+          : warehouseName.trim() !== '' || warehouseNotes.trim() !== '';
+        return (
         <Modal
           title={editingWarehouseId ? 'تعديل مخزن' : 'إضافة مخزن'}
           className="master-data-modal"
           backdropClassName="master-data-backdrop"
           onClose={cancelEdit}
+          isDirty={isWarehouseDirty}
         >
           <form className="stack" onSubmit={saveWarehouse}>
             <div className="account-header-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -483,7 +489,8 @@ export default function WarehousesTab() {
             </div>
           </form>
         </Modal>
-      )}
+        );
+      })()}
 
       {confirmation && (
         <ConfirmDialog
