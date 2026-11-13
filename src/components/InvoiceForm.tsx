@@ -122,11 +122,22 @@ export default function InvoiceForm({
     (account) =>
       account.id === accountId && ['cash_customer', 'cash_supplier'].includes(account.system_key ?? ''),
   );
+  const paidSourceRef = useRef<'auto_cash' | 'manual' | 'saved'>(
+    editing ? 'saved' : cashAccountSelected ? 'auto_cash' : 'manual',
+  );
+  const prevCashAccountSelectedRef = useRef(cashAccountSelected);
 
-  // السداد الكامل التلقائي للحسابات النقدية عند تغير الإجمالي، وضبط المدفوع ألا يتجاوز الإجمالي
+  // السداد الكامل التلقائي للحسابات النقدية، وتصفيره عند الانتقال لآجل فقط إذا كان تلقائياً
   useEffect(() => {
+    const switchedFromCashToCredit = prevCashAccountSelectedRef.current && !cashAccountSelected;
+    prevCashAccountSelectedRef.current = cashAccountSelected;
+
     if (cashAccountSelected) {
+      paidSourceRef.current = 'auto_cash';
       setPaid(Number(total).toFixed(2));
+    } else if (switchedFromCashToCredit && paidSourceRef.current === 'auto_cash') {
+      paidSourceRef.current = 'manual';
+      setPaid('0.00');
     } else if (paidNumber > total) {
       setPaid(Number(total).toFixed(2));
     }
@@ -202,9 +213,12 @@ export default function InvoiceForm({
   function handleAccountKindChange(nextKind: AccountKind) {
     setAccountKind(nextKind);
     const nextCashKey = nextKind === 'customer' ? 'cash_customer' : 'cash_supplier';
-    const nextAccountId = accounts.find((a) => a.system_key === nextCashKey)?.id ?? '';
-    setAccountId(nextAccountId);
-    setPaid(Number(total).toFixed(2));
+    const nextCashAccount = accounts.find((a) => a.system_key === nextCashKey);
+    setAccountId(nextCashAccount?.id ?? '');
+    if (nextCashAccount) {
+      paidSourceRef.current = 'auto_cash';
+      setPaid(Number(total).toFixed(2));
+    }
   }
 
   function handleAccountChange(id: string) {
@@ -213,6 +227,7 @@ export default function InvoiceForm({
       (account) => account.id === id && ['cash_customer', 'cash_supplier'].includes(account.system_key ?? ''),
     );
     if (isCash) {
+      paidSourceRef.current = 'auto_cash';
       setPaid(Number(total).toFixed(2));
     }
   }
@@ -324,12 +339,17 @@ export default function InvoiceForm({
       return;
     }
 
-    if (selectedOption) {
+    const hasMetadata = Boolean(selectedOption && 'code' in selectedOption && selectedOption.code !== undefined);
+    if (hasMetadata && selectedOption) {
       setEntryAsyncOption(selectedOption);
     }
 
     const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-    const availableStock = getItemAvailableStock(itemId, warehouseId, selectedOption?.stock);
+    const availableStock = getItemAvailableStock(
+      itemId,
+      warehouseId,
+      hasMetadata ? selectedOption?.stock : undefined,
+    );
 
     if (isStockLimited && availableStock <= 0) {
       toast.warning('الصنف غير متوفر');
@@ -337,19 +357,12 @@ export default function InvoiceForm({
     }
 
     const item = items.find((candidate) => candidate.id === itemId);
-    const price = selectedOption
-      ? isWaste
-        ? 0
-        : isPurchase
-          ? Number(selectedOption.purchasePrice)
-          : Number(selectedOption.salePrice)
-      : item
-        ? isWaste
-          ? 0
-          : isPurchase
-            ? Number(item.purchase_price)
-            : Number(item.sale_price)
-        : 0;
+    const rawPrice = isWaste
+      ? 0
+      : isPurchase
+        ? (item?.purchase_price ?? (hasMetadata ? selectedOption?.purchasePrice : undefined) ?? 0)
+        : (item?.sale_price ?? (hasMetadata ? selectedOption?.salePrice : undefined) ?? 0);
+    const price = Number(rawPrice || 0);
 
     setEntryItemId(itemId);
     setEntryUnitPrice(String(price));
@@ -432,6 +445,10 @@ export default function InvoiceForm({
     setNotes('');
     setDate(today());
     if (!editing) {
+      paidSourceRef.current =
+        defaultSystemKey === 'cash_customer' || defaultSystemKey === 'cash_supplier'
+          ? 'auto_cash'
+          : 'manual';
       setAccountId(defaultAccountId);
       setAccountKind(defaultAccountKind);
     }
@@ -649,6 +666,7 @@ export default function InvoiceForm({
           onPaidChange={(val) => {
             const normalized = normalizeDigits(val);
             if (!/^\d*\.?\d*$/.test(normalized)) return;
+            paidSourceRef.current = 'manual';
             const num = parseFloat(normalized);
             if (!isNaN(num) && num > total) {
               setPaid(Number(total).toFixed(2));
@@ -668,17 +686,23 @@ export default function InvoiceForm({
               num = total;
               toast.warning('العميل النقدي يلزم سداد كامل قيمة الفاتورة');
             }
+            paidSourceRef.current = cashAccountSelected ? 'auto_cash' : 'manual';
             const parts = paid.split('.');
             const decimals = parts[1] ? Math.max(2, parts[1].length) : 2;
             setPaid(num.toFixed(decimals));
           }}
-          onQuickPaidAll={() => setPaid(Number(total).toFixed(2))}
+          onQuickPaidAll={() => {
+            paidSourceRef.current = cashAccountSelected ? 'auto_cash' : 'manual';
+            setPaid(Number(total).toFixed(2));
+          }}
           onQuickPaidZero={() => {
             if (cashAccountSelected) {
               toast.warning('العميل النقدي يلزم سداد كامل قيمة الفاتورة ولا يمكن تصفير المدفوع');
+              paidSourceRef.current = 'auto_cash';
               setPaid(Number(total).toFixed(2));
               return;
             }
+            paidSourceRef.current = 'manual';
             setPaid('0.00');
           }}
           onCashBoxChange={(val) => setCashBoxId(val)}

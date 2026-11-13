@@ -4,7 +4,7 @@ import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import { matchesColumnFilters } from '../../lib/columnFilters';
 import Pagination from '../../components/Pagination';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { X, Landmark, CheckCircle2, Wallet } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
@@ -64,6 +64,8 @@ export default function CashBoxesTab() {
   const [cashBoxName, setCashBoxName] = useState('');
   const [cashBoxNotes, setCashBoxNotes] = useState('');
   const [cashBoxOpeningBalance, setCashBoxOpeningBalance] = useState('0');
+  const [savingCashBox, setSavingCashBox] = useState(false);
+  const saveInProgress = useRef(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -190,53 +192,74 @@ export default function CashBoxesTab() {
   }
 
   function cancelEdit() {
+    if (saveInProgress.current) return;
     setEditingCashBoxId(null);
     setIsModalOpen(false);
   }
 
   async function saveCashBox(event: FormEvent) {
     event.preventDefault();
+    if (saveInProgress.current) return;
+    saveInProgress.current = true;
+    setSavingCashBox(true);
 
-    if (editingCashBoxId) {
-      const { error: updateError } = await supabase.rpc('update_cash_box', {
-        p_cash_box_id: editingCashBoxId,
-        p_name: cashBoxName.trim(),
-        p_notes: cashBoxNotes.trim() || null,
-      });
-      if (updateError) {
-        toast.error(translateDbError(updateError.message));
-        return;
-      }
-      toast.success(`تم تعديل اسم الخزنة إلى «${cashBoxName.trim()}»`);
-    } else {
-      const openingValue = Number(cashBoxOpeningBalance || 0);
-      if (!Number.isFinite(openingValue) || openingValue < 0) {
-        toast.error('الرصيد الافتتاحي للخزنة يجب ألا يكون سالباً');
-        return;
-      }
-
-      const { error: rpcError } = await supabase.rpc(
-        'create_cash_box_with_opening_balance_and_notes',
-        {
+    try {
+      if (editingCashBoxId) {
+        const { error: updateError } = await supabase.rpc('update_cash_box', {
+          p_cash_box_id: editingCashBoxId,
           p_name: cashBoxName.trim(),
-          p_opening_balance: openingValue,
           p_notes: cashBoxNotes.trim() || null,
-        },
-      );
-      if (rpcError) {
-        toast.error(translateDbError(rpcError.message));
-        return;
-      }
-      toast.success(`تمت إضافة الخزنة «${cashBoxName.trim()}»`);
-    }
+        });
+        if (updateError) {
+          toast.error(translateDbError(updateError.message));
+          return;
+        }
+        toast.success(`تم تعديل اسم الخزنة إلى «${cashBoxName.trim()}»`);
+      } else {
+        const openingValue = Number(cashBoxOpeningBalance || 0);
+        if (!Number.isFinite(openingValue) || openingValue < 0) {
+          toast.error('الرصيد الافتتاحي للخزنة يجب ألا يكون سالباً');
+          return;
+        }
 
-    cancelEdit();
-    setSelectedBox(null);
-    setVersion((v) => v + 1);
-    void refresh(['cashBoxes']);
+        const { error: rpcError } = await supabase.rpc(
+          'create_cash_box_with_opening_balance_and_notes',
+          {
+            p_name: cashBoxName.trim(),
+            p_opening_balance: openingValue,
+            p_notes: cashBoxNotes.trim() || null,
+          },
+        );
+        if (rpcError) {
+          toast.error(translateDbError(rpcError.message));
+          return;
+        }
+        toast.success(`تمت إضافة الخزنة «${cashBoxName.trim()}»`);
+      }
+
+      setEditingCashBoxId(null);
+      setIsModalOpen(false);
+      setSelectedBox(null);
+      setVersion((v) => v + 1);
+      void refresh(['cashBoxes']);
+    } catch (err: unknown) {
+      toast.error(translateDbError(errorMessage(err)));
+    } finally {
+      saveInProgress.current = false;
+      setSavingCashBox(false);
+    }
   }
 
   async function toggleCashBox(box: CashBoxRecord) {
+    const nextState = !box.is_active;
+    const actionLabel = nextState ? 'تفعيل' : 'إيقاف';
+    const confirmed = await askConfirmation(
+      `هل تريد ${actionLabel} الخزنة «${box.name}»؟`,
+      actionLabel,
+      nextState ? undefined : { danger: true },
+    );
+    if (!confirmed) return;
+
     const { error: updateError } = await supabase.rpc('toggle_cash_box_active', {
       p_cash_box_id: box.id,
     });
@@ -244,7 +267,8 @@ export default function CashBoxesTab() {
       toast.error(translateDbError(updateError.message));
       return;
     }
-    toast.success(`تم ${box.is_active ? 'إيقاف' : 'تفعيل'} الخزنة «${box.name}»`);
+    toast.success(`تم ${actionLabel} الخزنة «${box.name}»`);
+    setSelectedBox((cur) => (cur?.id === box.id ? { ...cur, is_active: nextState } : cur));
     setVersion((v) => v + 1);
     void refresh(['cashBoxes']);
   }
@@ -483,11 +507,13 @@ export default function CashBoxesTab() {
           title={editingCashBoxId ? 'تعديل خزنة' : 'إضافة خزنة'}
           className="master-data-modal"
           backdropClassName="master-data-backdrop"
+          dismissible={!savingCashBox}
           onClose={cancelEdit}
           isDirty={isBoxDirty}
         >
-          <form className="stack" onSubmit={saveCashBox}>
-            <div className="account-header-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <form className="stack" onSubmit={saveCashBox} aria-busy={savingCashBox}>
+            <fieldset className="stack form-fields" disabled={savingCashBox}>
+              <div className="account-header-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <label>
                 اسم الخزنة
                 <input
@@ -526,11 +552,12 @@ export default function CashBoxesTab() {
                 </label>
               )}
             </div>
+            </fieldset>
             <div className="form-modal-actions">
-              <button type="submit" className="btn primary">
-                {editingCashBoxId ? 'حفظ التعديلات' : 'إضافة خزنة'}
+              <button type="submit" className="btn primary" disabled={savingCashBox}>
+                {savingCashBox ? 'جارٍ الحفظ…' : editingCashBoxId ? 'حفظ التعديلات' : 'إضافة خزنة'}
               </button>
-              <button type="button" className="btn" onClick={cancelEdit}>
+              <button type="button" className="btn" onClick={cancelEdit} disabled={savingCashBox}>
                 إلغاء
               </button>
             </div>

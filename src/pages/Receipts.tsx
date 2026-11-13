@@ -5,7 +5,7 @@ import { useDocumentPageNumber } from '../lib/useDocumentPageNumber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { translateDbError } from '../lib/errors';
+import { errorMessage, translateDbError } from '../lib/errors';
 import CashBoxTransferForm from '../components/CashBoxTransferForm';
 import ReceiptForm from '../components/ReceiptForm';
 import { documentListQuery } from '../lib/documentListQuery';
@@ -56,6 +56,8 @@ export default function Receipts() {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const openedFromViewRef = useRef(false);
   const openedTransferFromViewRef = useRef(false);
+  const pendingDeepLinkIdRef = useRef<string | null>(null);
+  const modalRequestRef = useRef(0);
 
   const [editing, setEditing] = useState<ReceiptRow | null>(null);
   const [editingTransfer, setEditingTransfer] = useState<CashBoxTransferRow | null>(null);
@@ -96,23 +98,26 @@ export default function Receipts() {
         const nextParams = new URLSearchParams(searchParams);
         nextParams.delete('action');
         setSearchParams(nextParams, { replace: true });
-      } else {
+      } else if (pendingDeepLinkIdRef.current === null) {
         setFormOpen(false);
       }
-    } else if (action === 'new') {
-      const canCreate = can(`money.${tab}.create`);
-      if (canCreate) {
-        resetForm();
-        setEditing(null);
-        setEditingTransfer(null);
-        openedFromViewRef.current = false;
-        openedTransferFromViewRef.current = false;
-        setModalMode('create');
-        setFormOpen(true);
+    } else {
+      pendingDeepLinkIdRef.current = null;
+      if (action === 'new') {
+        const canCreate = can(`money.${tab}.create`);
+        if (canCreate) {
+          resetForm();
+          setEditing(null);
+          setEditingTransfer(null);
+          openedFromViewRef.current = false;
+          openedTransferFromViewRef.current = false;
+          setModalMode('create');
+          setFormOpen(true);
+        }
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('action');
+        setSearchParams(nextParams, { replace: true });
       }
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete('action');
-      setSearchParams(nextParams, { replace: true });
     }
   }, [tabParam, tab, searchParams, can, setSearchParams]);
 
@@ -135,7 +140,112 @@ export default function Receipts() {
   const columns = useColumnFilters(tab, () => {
     setDateFrom(periodDates().from); setDateTo(periodDates().to); setShowDeleted(false); setPage(1);
   });
+  const setColumnFieldImmediate = columns.setFieldImmediate;
   const { page, setPage } = useDocumentPageNumber([columns.filters, dateFrom, dateTo, sortOrder, tab, showDeleted]);
+
+  useEffect(() => {
+    const targetTab = tabParam && VALID_RECEIPT_TABS.includes(tabParam) ? tabParam : 'in';
+    if (targetTab !== tab) return;
+
+    const searchParam = searchParams.get('search')?.trim();
+    const docParam = searchParams.get('doc')?.trim();
+    if (!searchParam && !docParam) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (searchParam) nextParams.delete('search');
+    if (docParam) nextParams.delete('doc');
+    setSearchParams(nextParams, { replace: true });
+
+    if (searchParam) {
+      setColumnFieldImmediate('number', searchParam);
+      setDateFrom('');
+      setDateTo('');
+    }
+
+    if (docParam) {
+      const reqId = ++modalRequestRef.current;
+      void (async () => {
+        try {
+          if (targetTab === 'cash_box_transfer') {
+            const { data, error } = await supabase
+              .from('v_cash_box_transfer_list')
+              .select('*')
+              .eq('id', docParam)
+              .maybeSingle();
+            if (modalRequestRef.current !== reqId) return;
+            if (error || !data) {
+              toast.warning('المستند المطلوب غير موجود أو لا تملك صلاحية عرضه');
+              return;
+            }
+            const transfer = data as CashBoxTransferRow;
+            if (!can('money.cash_box_transfer.view')) {
+              toast.warning('لا تملك صلاحية عرض هذا المستند');
+              return;
+            }
+            if (transfer.deleted_at) {
+              if (!can('money.cash_box_transfer.delete')) {
+                toast.warning('هذا المستند محذوف ولا تملك صلاحية عرضه أو استعادته');
+                return;
+              }
+              setShowDeleted(true);
+              toast.info('تم فتح مستند محذوف للمعاينة');
+            }
+            openedTransferFromViewRef.current = true;
+            setEditingTransfer(transfer);
+            setEditing(null);
+            setModalMode('view');
+            setFormOpen(true);
+            return;
+          }
+
+          const { data, error } = await supabase
+            .from('v_receipt_list')
+            .select('*')
+            .eq('id', docParam)
+            .maybeSingle();
+          if (modalRequestRef.current !== reqId) return;
+          if (error || !data) {
+            toast.warning('المستند المطلوب غير موجود أو لا تملك صلاحية عرضه');
+            return;
+          }
+          const receipt = data as ReceiptRow;
+          const docDir = receipt.direction;
+          if (!can(`money.${docDir}.view`)) {
+            toast.warning('لا تملك صلاحية عرض هذا المستند');
+            return;
+          }
+          if (receipt.deleted_at) {
+            if (!can(`money.${docDir}.delete`)) {
+              toast.warning('هذا المستند محذوف ولا تملك صلاحية عرضه أو استعادته');
+              return;
+            }
+            setShowDeleted(true);
+            toast.info('تم فتح مستند محذوف للمعاينة');
+          }
+          openedFromViewRef.current = true;
+          if (docDir !== tab) {
+            pendingDeepLinkIdRef.current = receipt.id;
+            setDirection(docDir);
+            setTab(docDir);
+            setSearchParams((prev) => {
+              const synced = new URLSearchParams(prev);
+              synced.set('tab', docDir);
+              synced.delete('doc');
+              return synced;
+            }, { replace: true });
+          }
+          setEditing(receipt);
+          setEditingTransfer(null);
+          setModalMode('view');
+          setFormOpen(true);
+        } catch (err) {
+          if (modalRequestRef.current === reqId) {
+            toast.error(errorMessage(err));
+          }
+        }
+      })();
+    }
+  }, [tabParam, tab, searchParams, can, setSearchParams, setColumnFieldImmediate]);
   const columnFilter = <ColumnFilterRow scope={isCashBoxTransfer ? 'cash_transfer' : 'receipt'} kind={direction}
      values={columns.values} onChange={columns.setField} onReset={columns.reset}
     options={{ cashBoxes: cashBoxes.map((b) => ({ value: b.id, label: b.name })) }} />;

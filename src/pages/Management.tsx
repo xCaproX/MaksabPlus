@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { Play, UserPlus } from 'lucide-react';
 import { useAccess } from '../lib/access';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useNavigationDirtyGuard } from '../components/NavigationGuardContext';
 import UserPermissions from '../components/UserPermissions';
 import { useMasterData, type MasterDataResource } from '../context/MasterDataContext';
 import AccountOpeningTab from './management/AccountOpeningTab';
@@ -56,23 +58,35 @@ export default function Management() {
   const warehouses = useMemo(() => rawWarehouses.filter((w) => w.is_active !== false), [rawWarehouses]);
   const [saving, setSaving] = useState(false);
   const [saveTrigger, setSaveTrigger] = useState(0);
+  const [dirtyCount, setDirtyCount] = useState(0);
+  const [pendingTab, setPendingTab] = useState<ManagementTab | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+
+  useNavigationDirtyGuard(dirtyCount > 0);
 
   useEffect(() => {
     const targetTab = (tabParam && VALID_MANAGEMENT_TABS.includes(tabParam)) ? tabParam : 'customers';
     if (targetTab !== tab && visibleTabs.some((t) => t.id === targetTab)) {
       setTab(targetTab);
+      setDirtyCount(0);
     }
   }, [tabParam, tab, visibleTabs]);
 
   useEffect(() => {
     if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === tab)) {
       setTab(visibleTabs[0].id);
+      setDirtyCount(0);
     }
   }, [visibleTabs, tab]);
 
   function handleTabChange(nextTab: ManagementTab) {
+    if (nextTab === tab) return;
+    if (dirtyCount > 0) {
+      setPendingTab(nextTab);
+      return;
+    }
     setTab(nextTab);
+    setDirtyCount(0);
     setSearchParams({ tab: nextTab });
   }
 
@@ -184,6 +198,7 @@ export default function Management() {
               saving={saving}
               setSaving={setSaving}
               saveTrigger={saveTrigger}
+              onDirtyCountChange={setDirtyCount}
             />
           )}
           {tab === 'suppliers' && (
@@ -195,6 +210,7 @@ export default function Management() {
               saving={saving}
               setSaving={setSaving}
               saveTrigger={saveTrigger}
+              onDirtyCountChange={setDirtyCount}
             />
           )}
           {tab === 'items' && (
@@ -206,6 +222,7 @@ export default function Management() {
               saving={saving}
               setSaving={setSaving}
               saveTrigger={saveTrigger}
+              onDirtyCountChange={setDirtyCount}
             />
           )}
           {tab === 'cashBoxes' && (
@@ -216,6 +233,7 @@ export default function Management() {
               saving={saving}
               setSaving={setSaving}
               saveTrigger={saveTrigger}
+              onDirtyCountChange={setDirtyCount}
             />
           )}
           {tab === 'reconciliations' && (
@@ -227,9 +245,44 @@ export default function Management() {
             <UserPermissions
               inviteOpen={isInviteOpen}
               onInviteOpenChange={setIsInviteOpen}
+              onDirtyCountChange={setDirtyCount}
             />
           )}
         </>
+      )}
+
+      {dirtyCount > 0 && canEditOpening && tab !== 'users' && tab !== 'reconciliations' && (
+        <div className="management-sticky-save-bar" role="region" aria-label="شريط حفظ التعديلات">
+          <span className="management-dirty-count">
+            يوجد <strong dir="ltr" className="tabular-nums">{dirtyCount}</strong> تعديل غير محفوظ
+          </span>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={saving || loading || Boolean(loadError)}
+            onClick={() => setSaveTrigger((count) => count + 1)}
+          >
+            {saving ? 'جارٍ الحفظ…' : saveBtnLabel}
+          </button>
+        </div>
+      )}
+
+      {pendingTab !== null && (
+        <ConfirmDialog
+          title="تغييرات غير محفوظة"
+          message="لديك تعديلات لم تُحفظ بعد في هذا التبويب. إذا غادرت الآن ستفقد التعديلات."
+          confirmLabel="مغادرة دون حفظ"
+          danger
+          onConfirm={() => {
+            const next = pendingTab;
+            setPendingTab(null);
+            if (!next) return;
+            setDirtyCount(0);
+            setTab(next);
+            setSearchParams({ tab: next });
+          }}
+          onCancel={() => setPendingTab(null)}
+        />
       )}
     </div>
   );

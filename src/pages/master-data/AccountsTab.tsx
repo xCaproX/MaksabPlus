@@ -312,6 +312,14 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
       toast.error(`أدخل اسم ${entityTitle}`);
       return;
     }
+    if (editingAccount && editingAccount.is_active && !accountActive) {
+      const confirmed = await askConfirmation(
+        `هل تريد إيقاف ${entityTitle} «${accountName.trim()}»؟`,
+        'إيقاف',
+        { danger: true },
+      );
+      if (!confirmed) return;
+    }
     saveInProgress.current = true;
     setSavingAccount(true);
 

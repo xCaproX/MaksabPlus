@@ -13,10 +13,10 @@ export default function QuickActions({ userName, companyName }: QuickActionsProp
   const { can, access } = useAccess();
 
   const isOwner = access?.role === 'owner';
-  const canSale = isOwner || can('goods.sale.create', 'goods.sale.view', 'goods.view');
-  const canReceiptIn = isOwner || can('money.in.create', 'money.in.view', 'money.view');
-  const canReceiptOut = isOwner || can('money.out.create', 'money.out.view', 'money.view');
-  const canPurchase = isOwner || can('goods.purchase.create', 'goods.purchase.view', 'goods.view');
+  const canSale = isOwner || can('goods.sale.create');
+  const canReceiptIn = isOwner || can('money.in.create');
+  const canReceiptOut = isOwner || can('money.out.create');
+  const canPurchase = isOwner || can('goods.purchase.create');
 
   const date = today();
 

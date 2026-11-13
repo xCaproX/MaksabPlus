@@ -4,7 +4,7 @@ import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import { matchesColumnFilters } from '../../lib/columnFilters';
 import Pagination from '../../components/Pagination';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { X, Warehouse, CheckCircle2 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
@@ -60,6 +60,8 @@ export default function WarehousesTab() {
   const [editingWarehouseId, setEditingWarehouseId] = useState<string | null>(null);
   const [warehouseName, setWarehouseName] = useState('');
   const [warehouseNotes, setWarehouseNotes] = useState('');
+  const [savingWarehouse, setSavingWarehouse] = useState(false);
+  const saveInProgress = useRef(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -167,43 +169,64 @@ export default function WarehousesTab() {
   }
 
   function cancelEdit() {
+    if (saveInProgress.current) return;
     setEditingWarehouseId(null);
     setIsModalOpen(false);
   }
 
   async function saveWarehouse(event: FormEvent) {
     event.preventDefault();
+    if (saveInProgress.current) return;
+    saveInProgress.current = true;
+    setSavingWarehouse(true);
 
-    if (editingWarehouseId) {
-      const { error: updateError } = await supabase.rpc('update_warehouse', {
-        p_warehouse_id: editingWarehouseId,
-        p_name: warehouseName.trim(),
-        p_notes: warehouseNotes.trim() || null,
-      });
-      if (updateError) {
-        toast.error(translateDbError(updateError.message));
-        return;
+    try {
+      if (editingWarehouseId) {
+        const { error: updateError } = await supabase.rpc('update_warehouse', {
+          p_warehouse_id: editingWarehouseId,
+          p_name: warehouseName.trim(),
+          p_notes: warehouseNotes.trim() || null,
+        });
+        if (updateError) {
+          toast.error(translateDbError(updateError.message));
+          return;
+        }
+        toast.success(`تم تعديل اسم المخزن إلى «${warehouseName.trim()}»`);
+      } else {
+        const { error: insertError } = await supabase.rpc('create_warehouse', {
+          p_name: warehouseName.trim(),
+          p_notes: warehouseNotes.trim() || null,
+        });
+        if (insertError) {
+          toast.error(translateDbError(insertError.message));
+          return;
+        }
+        toast.success(`تمت إضافة المخزن «${warehouseName.trim()}»`);
       }
-      toast.success(`تم تعديل اسم المخزن إلى «${warehouseName.trim()}»`);
-    } else {
-      const { error: insertError } = await supabase.rpc('create_warehouse', {
-        p_name: warehouseName.trim(),
-        p_notes: warehouseNotes.trim() || null,
-      });
-      if (insertError) {
-        toast.error(translateDbError(insertError.message));
-        return;
-      }
-      toast.success(`تمت إضافة المخزن «${warehouseName.trim()}»`);
+
+      setEditingWarehouseId(null);
+      setIsModalOpen(false);
+      setSelectedWarehouse(null);
+      setVersion((v) => v + 1);
+      void refresh(['warehouses', 'stock']);
+    } catch (err: unknown) {
+      toast.error(translateDbError(errorMessage(err)));
+    } finally {
+      saveInProgress.current = false;
+      setSavingWarehouse(false);
     }
-
-    cancelEdit();
-    setSelectedWarehouse(null);
-    setVersion((v) => v + 1);
-    void refresh(['warehouses', 'stock']);
   }
 
   async function toggleWarehouse(warehouse: WarehouseRecord) {
+    const nextState = !warehouse.is_active;
+    const actionLabel = nextState ? 'تفعيل' : 'إيقاف';
+    const confirmed = await askConfirmation(
+      `هل تريد ${actionLabel} المخزن «${warehouse.name}»؟`,
+      actionLabel,
+      nextState ? undefined : { danger: true },
+    );
+    if (!confirmed) return;
+
     const { error: updateError } = await supabase.rpc('toggle_warehouse_active', {
       p_warehouse_id: warehouse.id,
     });
@@ -211,7 +234,8 @@ export default function WarehousesTab() {
       toast.error(translateDbError(updateError.message));
       return;
     }
-    toast.success(`تم ${warehouse.is_active ? 'إيقاف' : 'تفعيل'} المخزن «${warehouse.name}»`);
+    toast.success(`تم ${actionLabel} المخزن «${warehouse.name}»`);
+    setSelectedWarehouse((cur) => (cur?.id === warehouse.id ? { ...cur, is_active: nextState } : cur));
     setVersion((v) => v + 1);
     void refresh(['warehouses', 'stock']);
   }
@@ -455,11 +479,13 @@ export default function WarehousesTab() {
           title={editingWarehouseId ? 'تعديل مخزن' : 'إضافة مخزن'}
           className="master-data-modal"
           backdropClassName="master-data-backdrop"
+          dismissible={!savingWarehouse}
           onClose={cancelEdit}
           isDirty={isWarehouseDirty}
         >
-          <form className="stack" onSubmit={saveWarehouse}>
-            <div className="account-header-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <form className="stack" onSubmit={saveWarehouse} aria-busy={savingWarehouse}>
+            <fieldset className="stack form-fields" disabled={savingWarehouse}>
+              <div className="account-header-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <label>
                 اسم المخزن
                 <input
@@ -479,11 +505,12 @@ export default function WarehousesTab() {
                 />
               </label>
             </div>
+            </fieldset>
             <div className="form-modal-actions">
-              <button type="submit" className="btn primary">
-                {editingWarehouseId ? 'حفظ التعديلات' : 'إضافة مخزن'}
+              <button type="submit" className="btn primary" disabled={savingWarehouse}>
+                {savingWarehouse ? 'جارٍ الحفظ…' : editingWarehouseId ? 'حفظ التعديلات' : 'إضافة مخزن'}
               </button>
-              <button type="button" className="btn" onClick={cancelEdit}>
+              <button type="button" className="btn" onClick={cancelEdit} disabled={savingWarehouse}>
                 إلغاء
               </button>
             </div>

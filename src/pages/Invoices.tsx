@@ -104,6 +104,7 @@ export default function Invoices() {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const openedFromViewRef = useRef(false);
   const openedTransferFromViewRef = useRef(false);
+  const pendingDeepLinkIdRef = useRef<string | null>(null);
   const modalRequestRef = useRef(0);
   const [editing, setEditing] = useState<EditingInvoice | null>(null);
   const [editingTransfer, setEditingTransfer] = useState<
@@ -173,25 +174,28 @@ export default function Invoices() {
         const nextParams = new URLSearchParams(searchParams);
         nextParams.delete('action');
         setSearchParams(nextParams, { replace: true });
-      } else {
+      } else if (pendingDeepLinkIdRef.current === null) {
         setFormOpen(false);
       }
-    } else if (action === 'new') {
-      const canCreate =
-        kind === 'warehouse_transfer'
-          ? can('goods.warehouse_transfer.create')
-          : can(`goods.${kind}.create`);
-      if (canCreate) {
-        setEditing(null);
-        setEditingTransfer(null);
-        openedFromViewRef.current = false;
-        openedTransferFromViewRef.current = false;
-        setModalMode('create');
-        setFormOpen(true);
+    } else {
+      pendingDeepLinkIdRef.current = null;
+      if (action === 'new') {
+        const canCreate =
+          kind === 'warehouse_transfer'
+            ? can('goods.warehouse_transfer.create')
+            : can(`goods.${kind}.create`);
+        if (canCreate) {
+          setEditing(null);
+          setEditingTransfer(null);
+          openedFromViewRef.current = false;
+          openedTransferFromViewRef.current = false;
+          setModalMode('create');
+          setFormOpen(true);
+        }
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('action');
+        setSearchParams(nextParams, { replace: true });
       }
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete('action');
-      setSearchParams(nextParams, { replace: true });
     }
   }, [tabParam, kind, searchParams, can, setSearchParams]);
 
@@ -241,7 +245,115 @@ export default function Invoices() {
   const columns = useColumnFilters(kind + String(canViewProfit), () => {
     setDateFrom(periodDates().from); setDateTo(periodDates().to); setShowDeleted(false); setPage(1);
   });
+  const setColumnFieldImmediate = columns.setFieldImmediate;
   const { page, setPage } = useDocumentPageNumber([columns.filters, dateFrom, dateTo, sortOrder, kind, showDeleted]);
+
+  useEffect(() => {
+    const targetKind = tabParam && VALID_INVOICE_TABS.includes(tabParam) ? tabParam : 'sale';
+    if (targetKind !== kind) return;
+
+    const searchParam = searchParams.get('search')?.trim();
+    const docParam = searchParams.get('doc')?.trim();
+    if (!searchParam && !docParam) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (searchParam) nextParams.delete('search');
+    if (docParam) nextParams.delete('doc');
+    setSearchParams(nextParams, { replace: true });
+
+    if (searchParam) {
+      setColumnFieldImmediate('number', searchParam);
+      setDateFrom('');
+      setDateTo('');
+    }
+
+    if (docParam) {
+      const reqId = ++modalRequestRef.current;
+      void (async () => {
+        try {
+          if (targetKind === 'warehouse_transfer') {
+            const { data, error } = await supabase
+              .from('v_warehouse_transfer_list')
+              .select('*')
+              .eq('id', docParam)
+              .maybeSingle();
+            if (modalRequestRef.current !== reqId) return;
+            if (error || !data) {
+              toast.warning('المستند المطلوب غير موجود أو لا تملك صلاحية عرضه');
+              return;
+            }
+            const transfer = data as WarehouseTransferRow;
+            if (!can('goods.warehouse_transfer.view')) {
+              toast.warning('لا تملك صلاحية عرض هذا المستند');
+              return;
+            }
+            if (transfer.deleted_at) {
+              if (!can('goods.warehouse_transfer.delete')) {
+                toast.warning('هذا المستند محذوف ولا تملك صلاحية عرضه أو استعادته');
+                return;
+              }
+              setShowDeleted(true);
+              toast.info('تم فتح مستند محذوف للمعاينة');
+            }
+            const lines = await loadTransferLines(transfer.id);
+            if (modalRequestRef.current !== reqId) return;
+            openedTransferFromViewRef.current = true;
+            setEditingTransfer({ ...transfer, lines });
+            setEditing(null);
+            setModalMode('view');
+            setFormOpen(true);
+            return;
+          }
+
+          const { data, error } = await supabase
+            .from('v_invoice_list')
+            .select('*')
+            .eq('id', docParam)
+            .maybeSingle();
+          if (modalRequestRef.current !== reqId) return;
+          if (error || !data) {
+            toast.warning('المستند المطلوب غير موجود أو لا تملك صلاحية عرضه');
+            return;
+          }
+          const invoice = data as InvoiceRow;
+          const docKind = invoice.kind;
+          if (!can(`goods.${docKind}.view`)) {
+            toast.warning('لا تملك صلاحية عرض هذا المستند');
+            return;
+          }
+          if (invoice.deleted_at) {
+            if (!can(`goods.${docKind}.delete`)) {
+              toast.warning('هذا المستند محذوف ولا تملك صلاحية عرضه أو استعادته');
+              return;
+            }
+            setShowDeleted(true);
+            toast.info('تم فتح مستند محذوف للمعاينة');
+          }
+          const lines = await loadInvoiceLines(invoice.id);
+          if (modalRequestRef.current !== reqId) return;
+          openedFromViewRef.current = true;
+          if (docKind !== kind) {
+            pendingDeepLinkIdRef.current = invoice.id;
+            setKind(docKind);
+            setSearchParams((prev) => {
+              const synced = new URLSearchParams(prev);
+              synced.set('tab', docKind);
+              synced.delete('doc');
+              return synced;
+            }, { replace: true });
+          }
+          setEditing({ invoice, lines });
+          setEditingTransfer(null);
+          setModalMode('view');
+          setFormOpen(true);
+        } catch (err) {
+          if (modalRequestRef.current === reqId) {
+            toast.error(errorMessage(err));
+          }
+        }
+      })();
+    }
+  }, [tabParam, kind, searchParams, can, setSearchParams, setColumnFieldImmediate]);
   const columnFilter = <ColumnFilterRow scope={isWarehouseTransfer ? 'warehouse_transfer' : 'invoice'} kind={kind}
     owner={canViewProfit} values={columns.values} onChange={columns.setField} onReset={columns.reset}
     options={{ warehouses: warehouses.map((w) => ({ value: w.id, label: w.name })), }} />;

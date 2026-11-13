@@ -140,4 +140,31 @@ describe('complete data loading', () => {
     expect(result.current.rows).toEqual([]);
     expect(result.current.loading).toBe(false);
   });
+
+  it('T-10: preserves existing rows while reloading with preserveRows option', async () => {
+    const { result } = renderHook(useCompleteStatement<(typeof rows)[number]>);
+    await act(async () => {
+      await result.current.load(async () => ({ data: [rows[0]], count: 1, error: null }));
+    });
+    expect(result.current.rows).toEqual([rows[0]]);
+
+    let finishSecond!: (page: CountedPage<(typeof rows)[number]>) => void;
+    const secondPage = new Promise<CountedPage<(typeof rows)[number]>>((resolve) => {
+      finishSecond = resolve;
+    });
+    let secondLoad!: Promise<void>;
+    await act(async () => {
+      secondLoad = result.current.load(async () => secondPage, { preserveRows: true });
+    });
+    expect(result.current.loading).toBe(true);
+    expect(result.current.rows).toEqual([rows[0]]);
+
+    const updatedRow = { ...rows[0], name: 'Updated Client' };
+    await act(async () => {
+      finishSecond({ data: [updatedRow], count: 1, error: null });
+      await secondLoad;
+    });
+    expect(result.current.rows).toEqual([updatedRow]);
+    expect(result.current.loading).toBe(false);
+  });
 });

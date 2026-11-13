@@ -470,7 +470,11 @@ export default function ReceiptForm({
         <div className="linked-receipt-box">
           <span className="linked-receipt-label">هذا الإيصال مُنشأ تلقائيًا ومربوط بـ:</span>
           <Link
-            to={`/invoices?tab=${editing.invoice_kind ?? 'sale'}&search=${encodeURIComponent(editing.invoice_number ?? '')}`}
+            to={
+              editing.invoice_id
+                ? `/invoices?tab=${editing.invoice_kind ?? 'sale'}&doc=${encodeURIComponent(editing.invoice_id)}`
+                : `/invoices?tab=${editing.invoice_kind ?? 'sale'}&search=${encodeURIComponent(editing.invoice_number ?? '')}`
+            }
             className="receipt-linked-link"
             onClick={onCancel}
           >

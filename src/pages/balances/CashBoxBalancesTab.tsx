@@ -116,22 +116,45 @@ export default function CashBoxBalancesTab() {
     return itemsList;
   }, [filteredCashBoxes]);
 
+  useEffect(() => {
+    if (!cashStatementBox || !statementFrom || !statementTo || statementFrom > statementTo) return;
+    void loadCompleteStatement(
+      (from, to, signal) =>
+        supabase.rpc(
+          'get_cash_box_statement',
+          {
+            p_cash_box_id: cashStatementBox.id,
+            p_from: statementFrom,
+            p_to: statementTo,
+          },
+          { count: 'exact' },
+        ).range(from, to).abortSignal(signal),
+      { preserveRows: true },
+    );
+  }, [cashStatementBox, statementFrom, statementTo, loadCompleteStatement]);
+
   function openCashBoxStatement(box: CashBoxRow) {
-    setCashStatementBox(box);
+    resetStatement();
     setStatementFrom(periodDates().from);
     setStatementTo(periodDates().to);
-    resetStatement();
+    setCashStatementBox(box);
   }
 
   async function loadCashBoxStatement(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!cashStatementBox) return;
-    await loadCompleteStatement((from, to, signal) =>
-      supabase.rpc('get_cash_box_statement', {
-        p_cash_box_id: cashStatementBox.id,
-        p_from: statementFrom,
-        p_to: statementTo,
-      }, { count: 'exact' }).range(from, to).abortSignal(signal),
+    if (!cashStatementBox || !statementFrom || !statementTo || statementFrom > statementTo) return;
+    await loadCompleteStatement(
+      (from, to, signal) =>
+        supabase.rpc(
+          'get_cash_box_statement',
+          {
+            p_cash_box_id: cashStatementBox.id,
+            p_from: statementFrom,
+            p_to: statementTo,
+          },
+          { count: 'exact' },
+        ).range(from, to).abortSignal(signal),
+      { preserveRows: true },
     );
   }
 
@@ -339,7 +362,7 @@ export default function CashBoxBalancesTab() {
               </div>
               <div className="account-statement-period">
                 <PeriodFilter from={statementFrom} to={statementTo} required disabled={cashStatementLoading}
-                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); resetStatement(); }} />
+                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); }} />
               </div>
             </div>
 

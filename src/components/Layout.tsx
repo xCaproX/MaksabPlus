@@ -1,10 +1,11 @@
 import { getCurrentUserIdentity } from '../lib/company';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, Wallet, Database, Scale, ShieldCheck, LogOut, ChevronDown, ChevronUp, KeyRound, UserRound, type LucideIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAccess } from '../lib/access';
 import ChangePasswordModal from './ChangePasswordModal';
+import { useNavigationGuard } from './NavigationGuardContext';
 import RowActions from './RowActions';
 
 type NavSection = 'goods' | 'money' | 'balances' | 'data' | 'management';
@@ -74,19 +75,21 @@ interface NavGroupSectionProps {
   pathname: string;
   onOpen: (section: NavSection) => void;
   onToggle: (section: NavSection) => void;
+  onNavigate: (event: MouseEvent<HTMLAnchorElement>, to: string, after?: () => void) => void;
 }
 
 /** مجموعة قسم واحد في الشريط: رابط القسم + سهم الطي + قائمة التبويبات الفرعية. */
-function NavGroupSection({ group, tabs, open, currentTab, pathname, onOpen, onToggle }: NavGroupSectionProps) {
+function NavGroupSection({ group, tabs, open, currentTab, pathname, onOpen, onToggle, onNavigate }: NavGroupSectionProps) {
   if (tabs.length === 0) return null;
   const Icon = group.icon;
+  const sectionDefaultTarget = `${group.basePath}?tab=${tabs[0].id}`;
 
   return (
     <div className="nav-group">
       <NavLink
-        to={`${group.basePath}?tab=${tabs[0].id}`}
+        to={sectionDefaultTarget}
         className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-        onClick={() => onOpen(group.section)}
+        onClick={(e) => onNavigate(e, sectionDefaultTarget, () => onOpen(group.section))}
       >
         <span className="nav-link-main">
           <Icon size={17} className="nav-icon" />
@@ -122,6 +125,7 @@ function NavGroupSection({ group, tabs, open, currentTab, pathname, onOpen, onTo
                 key={item.id}
                 to={`${group.basePath}?tab=${item.id}`}
                 className={`subnav-link ${isActive ? 'active' : ''}`}
+                onClick={(e) => onNavigate(e, `${group.basePath}?tab=${item.id}`)}
               >
                 <span className="subnav-dot" />
                 <span>{item.label}</span>
@@ -138,6 +142,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { can, access } = useAccess();
+  const navGuard = useNavigationGuard();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
@@ -194,7 +199,20 @@ export default function Layout() {
     });
   }
 
+  const guardNavigate = useCallback(async (e: MouseEvent, targetPath: string) => {
+    if (!navGuard?.isDirty) return;
+    e.preventDefault();
+    const ok = await navGuard.confirmNavigationIfDirty();
+    if (ok) {
+      navigate(targetPath);
+    }
+  }, [navGuard, navigate]);
+
   async function signOut() {
+    if (navGuard?.isDirty) {
+      const ok = await navGuard.confirmNavigationIfDirty();
+      if (!ok) return;
+    }
     await supabase.auth.signOut();
     navigate('/login', { replace: true });
   }
@@ -249,7 +267,15 @@ export default function Layout() {
   return (
     <div className="app">
       <header className="topbar">
-        <Link className="brand" to="/" aria-label="مكسب بلس — الصفحة الرئيسية" onClick={() => ensureSectionOpen(null)}>
+        <Link
+          className="brand"
+          to="/"
+          aria-label="مكسب بلس — الصفحة الرئيسية"
+          onClick={(e) => {
+            ensureSectionOpen(null);
+            void guardNavigate(e, '/');
+          }}
+        >
           <img src="/maksab-sidebar-logo.png" alt="مكسب بلس" />
         </Link>
 
@@ -258,7 +284,10 @@ export default function Layout() {
             <NavLink
               to="/"
               end
-              onClick={() => ensureSectionOpen(null)}
+              onClick={(e) => {
+                ensureSectionOpen(null);
+                void guardNavigate(e, '/');
+              }}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
               <span className="nav-link-main">
@@ -285,6 +314,7 @@ export default function Layout() {
                 pathname={location.pathname}
                 onOpen={ensureSectionOpen}
                 onToggle={toggleSection}
+                onNavigate={guardNavigate}
               />
             );
           })}

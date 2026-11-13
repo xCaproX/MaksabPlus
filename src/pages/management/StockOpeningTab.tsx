@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase';
 import { entityNumber, qty as formatQty, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import { matchesSearchQuery } from '../../lib/search';
+import { resolveDefaultWarehouse } from '../../lib/defaults';
 import { toast } from '../../components/Toast';
 import type { StockOpeningRow, WarehouseOption } from '../../lib/types';
 import type { ManagementSort } from './AccountOpeningTab';
@@ -26,6 +27,7 @@ interface StockOpeningTabProps {
   saving: boolean;
   setSaving: (saving: boolean) => void;
   saveTrigger?: number;
+  onDirtyCountChange?: (count: number) => void;
 }
 
 export default function StockOpeningTab({
@@ -36,6 +38,7 @@ export default function StockOpeningTab({
   saving,
   setSaving,
   saveTrigger,
+  onDirtyCountChange,
 }: StockOpeningTabProps) {
   const { canViewProfit } = useAccess();
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
@@ -44,13 +47,15 @@ export default function StockOpeningTab({
   const [sortOrder, setSortOrder] = useState<ManagementSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("opening_items" + String(canViewProfit), () => {
-    setSearchTerm(''); setSelectedWarehouseId(warehouses.find((w) => w.is_primary)?.id ?? warehouses[0]?.id ?? ''); setPage(1);
+    setSearchTerm('');
+    setSelectedWarehouseId(resolveDefaultWarehouse(warehouses)?.id ?? '');
+    setPage(1);
   });
   const [selectedItemRow, setSelectedItemRow] = useState<StockOpeningRow | null>(null);
 
   useEffect(() => {
     if (!selectedWarehouseId && warehouses.length > 0) {
-      setSelectedWarehouseId(warehouses[0].id);
+      setSelectedWarehouseId(resolveDefaultWarehouse(warehouses)?.id ?? '');
     }
   }, [selectedWarehouseId, warehouses]);
 
@@ -154,8 +159,8 @@ export default function StockOpeningTab({
     return canViewProfit ? items : items.filter((item) => item.id !== 'mgmt-items-val');
   }, [filteredStockRows, stockValues, canViewProfit]);
 
-  async function handleSave() {
-    const changedRows = stockRows.filter((row) => {
+  const dirtyRows = useMemo(() => {
+    return stockRows.filter((row) => {
       const value = stockValues[`${row.warehouse_id}:${row.item_id}`];
       if (!value) return false;
       const nextQty = Number(value.qty);
@@ -168,6 +173,14 @@ export default function StockOpeningTab({
       }
       return false;
     });
+  }, [stockRows, stockValues, canViewProfit]);
+
+  useEffect(() => {
+    onDirtyCountChange?.(dirtyRows.length);
+  }, [dirtyRows.length, onDirtyCountChange]);
+
+  async function handleSave() {
+    const changedRows = dirtyRows;
 
     if (changedRows.length === 0) {
       toast.info('لم يتم تعديل أي رصيد أو تكلفة للمخزون.');

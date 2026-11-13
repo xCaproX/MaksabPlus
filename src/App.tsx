@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import Layout from './components/Layout';
+import { NavigationGuardProvider } from './components/NavigationGuardContext';
 import { AccessProvider, AccessRoute } from './lib/access';
 import { MasterDataProvider } from './context/MasterDataContext';
 import { ToastContainer } from './components/Toast';
@@ -75,7 +76,7 @@ export default function App() {
           element={session ? <Navigate to="/" replace /> : <PageSuspense fullScreen><Login /></PageSuspense>}
         />
         <Route path="/set-password" element={session ? <PageSuspense fullScreen><SetPassword /></PageSuspense> : <Navigate to="/login" replace />} />
-        <Route element={session ? <AccessProvider key={session.user.id}><MasterDataProvider><Layout /></MasterDataProvider></AccessProvider> : <Navigate to="/login" replace />}>
+        <Route element={session ? <AccessProvider key={session.user.id}><MasterDataProvider><NavigationGuardProvider><Layout /></NavigationGuardProvider></MasterDataProvider></AccessProvider> : <Navigate to="/login" replace />}>
           <Route path="/" element={<PageSuspense dashboard><Home /></PageSuspense>} />
           <Route path="/invoices" element={<AccessRoute permissions={['goods.view','goods.sale.view','goods.purchase.view','goods.sale_return.view','goods.purchase_return.view','goods.waste.view','goods.warehouse_transfer.view']}><PageSuspense><Invoices /></PageSuspense></AccessRoute>} />
           <Route path="/receipts" element={<AccessRoute permissions={['money.view','money.in.view','money.out.view','money.cash_box_transfer.view']}><PageSuspense><Receipts /></PageSuspense></AccessRoute>} />

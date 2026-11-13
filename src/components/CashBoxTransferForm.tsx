@@ -339,7 +339,7 @@ export default function CashBoxTransferForm({
         isReadOnly={isReadOnly}
         isEditing={Boolean(editing)}
         busy={busy}
-        saveDisabled={isOverdraft}
+        saveDisabled={isOverdraft || isDestOverdraft}
         containerClassName="form-modal-actions"
         saveLabel={editing ? 'حفظ التعديلات' : 'حفظ التحويل بين الخزن'}
         restoreLabel="استعادة التحويل"

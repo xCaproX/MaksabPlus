@@ -15,6 +15,7 @@ import {
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, money, qty as formatQty } from '../../lib/format';
+import { resolveDefaultWarehouse } from '../../lib/defaults';
 import DateDisplay from '../../components/DateDisplay';
 import { translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
@@ -99,7 +100,7 @@ export default function ItemBalancesTab() {
 
   useEffect(() => {
     if (!selectedWarehouseId && warehouses.length > 0) {
-      setSelectedWarehouseId(warehouses[0].id);
+      setSelectedWarehouseId(resolveDefaultWarehouse(warehouses)?.id ?? '');
     }
   }, [selectedWarehouseId, warehouses]);
 
@@ -244,23 +245,47 @@ export default function ItemBalancesTab() {
     return canViewProfit ? items : items.filter((item) => item.id !== 'items-val');
   }, [summary, canViewProfit]);
 
+  useEffect(() => {
+    if (!itemStatementRow || !statementFrom || !statementTo || statementFrom > statementTo) return;
+    void loadCompleteStatement(
+      (from, to, signal) =>
+        supabase.rpc(
+          'get_item_movement_statement',
+          {
+            p_item_id: itemStatementRow.item_id,
+            p_warehouse_id: itemStatementRow.warehouse_id,
+            p_from: statementFrom,
+            p_to: statementTo,
+          },
+          { count: 'exact' },
+        ).range(from, to).abortSignal(signal),
+      { preserveRows: true },
+    );
+  }, [itemStatementRow, statementFrom, statementTo, loadCompleteStatement]);
+
   function openItemStatement(row: WarehouseItemRow) {
-    setItemStatementRow(row);
+    resetStatement();
     setStatementFrom(periodDates().from);
     setStatementTo(periodDates().to);
-    resetStatement();
+    setItemStatementRow(row);
   }
 
   async function loadItemStatement(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!itemStatementRow) return;
-    await loadCompleteStatement((from, to, signal) =>
-      supabase.rpc('get_item_movement_statement', {
-        p_item_id: itemStatementRow.item_id,
-        p_warehouse_id: itemStatementRow.warehouse_id,
-        p_from: statementFrom,
-        p_to: statementTo,
-      }, { count: 'exact' }).range(from, to).abortSignal(signal),
+    if (!itemStatementRow || !statementFrom || !statementTo || statementFrom > statementTo) return;
+    await loadCompleteStatement(
+      (from, to, signal) =>
+        supabase.rpc(
+          'get_item_movement_statement',
+          {
+            p_item_id: itemStatementRow.item_id,
+            p_warehouse_id: itemStatementRow.warehouse_id,
+            p_from: statementFrom,
+            p_to: statementTo,
+          },
+          { count: 'exact' },
+        ).range(from, to).abortSignal(signal),
+      { preserveRows: true },
     );
   }
 
@@ -496,7 +521,7 @@ export default function ItemBalancesTab() {
               </div>
               <div className="account-statement-period">
                 <PeriodFilter from={statementFrom} to={statementTo} required disabled={itemStatementLoading}
-                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); resetStatement(); }} />
+                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); }} />
               </div>
             </div>
 

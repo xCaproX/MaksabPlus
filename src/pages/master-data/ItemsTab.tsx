@@ -3,7 +3,7 @@ import { loadAllWarehouses } from '../../lib/masterDataQueries';
 import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   X,
@@ -102,6 +102,8 @@ export default function ItemsTab() {
   const [itemOpeningWarehouseId, setItemOpeningWarehouseId] = useState('');
   const [itemOpeningQty, setItemOpeningQty] = useState('0');
   const [itemOpeningCost, setItemOpeningCost] = useState('0');
+  const [savingItem, setSavingItem] = useState(false);
+  const saveInProgress = useRef(false);
 
   const startAdd = useCallback(() => {
     setEditingItem(null);
@@ -291,74 +293,122 @@ export default function ItemsTab() {
   }
 
   function cancelEdit() {
+    if (saveInProgress.current) return;
     setEditingItem(null);
     setIsModalOpen(false);
   }
 
   async function saveItem(event: FormEvent) {
     event.preventDefault();
+    if (saveInProgress.current) return;
 
-    if (editingItem) {
-      const updatePayload: {
-        name: string;
-        code: string;
-        unit: string;
-        sale_price: number;
-        purchase_price?: number;
-        is_active: boolean;
-        notes: string | null;
-      } = {
-        name: itemName.trim(),
-        code: itemCode.trim() || editingItem.code,
-        unit: itemUnit.trim() || 'قطعة',
-        sale_price: Number(salePrice),
-        is_active: itemActive,
-        notes: itemNotes.trim() || null,
-      };
-      if (canViewPurchasePrice) {
-        updatePayload.purchase_price = Number(purchasePrice);
-      }
-
-      const { error: updateError } = await supabase
-        .from('items')
-        .update(updatePayload)
-        .eq('id', editingItem.id);
-
-      if (updateError) {
-        toast.error(translateDbError(updateError.message));
-        return;
-      }
-      toast.success(`تم تعديل الصنف «${itemName.trim()}»`);
-    } else {
-      const { error: rpcError } = await supabase.rpc(
-        'create_item_with_opening_stock_and_notes_and_code',
-        {
-          p_name: itemName.trim(),
-          p_unit: itemUnit.trim() || 'قطعة',
-          p_sale_price: Number(salePrice),
-          p_purchase_price: canViewPurchasePrice ? Number(purchasePrice) : 0,
-          p_is_active: itemActive,
-          p_warehouse_id: itemOpeningWarehouseId || null,
-          p_opening_qty: Number(itemOpeningQty) || 0,
-          p_unit_cost: canViewProfit
-            ? Number(itemOpeningCost) || 0
-            : canViewPurchasePrice
-              ? Number(purchasePrice) || 0
-              : 0,
-          p_notes: itemNotes.trim() || null,
-          p_code: itemCode.trim() || null,
-        },
+    if (editingItem && editingItem.is_active && !itemActive) {
+      const confirmed = await askConfirmation(
+        `هل تريد إيقاف الصنف «${itemName.trim() || editingItem.name}»؟`,
+        'إيقاف',
+        { danger: true },
       );
-
-      if (rpcError) {
-        toast.error(translateDbError(rpcError.message));
-        return;
-      }
-      toast.success(`تمت إضافة الصنف «${itemName.trim()}»`);
+      if (!confirmed) return;
     }
 
-    cancelEdit();
-    setSelectedItem(null);
+    saveInProgress.current = true;
+    setSavingItem(true);
+
+    try {
+      if (editingItem) {
+        const updatePayload: {
+          name: string;
+          code: string;
+          unit: string;
+          sale_price: number;
+          purchase_price?: number;
+          is_active: boolean;
+          notes: string | null;
+        } = {
+          name: itemName.trim(),
+          code: itemCode.trim() || editingItem.code,
+          unit: itemUnit.trim() || 'قطعة',
+          sale_price: Number(salePrice),
+          is_active: itemActive,
+          notes: itemNotes.trim() || null,
+        };
+        if (canViewPurchasePrice) {
+          updatePayload.purchase_price = Number(purchasePrice);
+        }
+
+        const { error: updateError } = await supabase
+          .from('items')
+          .update(updatePayload)
+          .eq('id', editingItem.id);
+
+        if (updateError) {
+          toast.error(translateDbError(updateError.message));
+          return;
+        }
+        toast.success(`تم تعديل الصنف «${itemName.trim()}»`);
+      } else {
+        const { error: rpcError } = await supabase.rpc(
+          'create_item_with_opening_stock_and_notes_and_code',
+          {
+            p_name: itemName.trim(),
+            p_unit: itemUnit.trim() || 'قطعة',
+            p_sale_price: Number(salePrice),
+            p_purchase_price: canViewPurchasePrice ? Number(purchasePrice) : 0,
+            p_is_active: itemActive,
+            p_warehouse_id: itemOpeningWarehouseId || null,
+            p_opening_qty: Number(itemOpeningQty) || 0,
+            p_unit_cost: canViewProfit
+              ? Number(itemOpeningCost) || 0
+              : canViewPurchasePrice
+                ? Number(purchasePrice) || 0
+                : 0,
+            p_notes: itemNotes.trim() || null,
+            p_code: itemCode.trim() || null,
+          },
+        );
+
+        if (rpcError) {
+          toast.error(translateDbError(rpcError.message));
+          return;
+        }
+        toast.success(`تمت إضافة الصنف «${itemName.trim()}»`);
+      }
+
+      setEditingItem(null);
+      setIsModalOpen(false);
+      setSelectedItem(null);
+      setVersion((v) => v + 1);
+      void refresh(['items', 'stock']);
+    } catch (err: unknown) {
+      toast.error(translateDbError(errorMessage(err)));
+    } finally {
+      saveInProgress.current = false;
+      setSavingItem(false);
+    }
+  }
+
+  async function toggleItemActive(item: MasterItemRecord) {
+    const nextState = !item.is_active;
+    const actionLabel = nextState ? 'تنشيط' : 'إيقاف';
+    const confirmed = await askConfirmation(
+      `هل تريد ${actionLabel} الصنف «${item.name}»؟`,
+      actionLabel,
+      nextState ? undefined : { danger: true },
+    );
+    if (!confirmed) return;
+
+    const { error: updateError } = await supabase
+      .from('items')
+      .update({ is_active: nextState })
+      .eq('id', item.id);
+
+    if (updateError) {
+      toast.error(translateDbError(updateError.message));
+      return;
+    }
+
+    toast.success(`تم ${actionLabel} الصنف «${item.name}» بنجاح`);
+    setSelectedItem((cur) => (cur?.id === item.id ? { ...cur, is_active: nextState } : cur));
     setVersion((v) => v + 1);
     void refresh(['items', 'stock']);
   }
@@ -582,9 +632,18 @@ export default function ItemsTab() {
 
               <div className="erp-detail-actions">
                 {can('data.items.edit') && (
-                  <button type="button" className="btn" onClick={() => startEdit(selectedItem)}>
-                    تعديل الصنف
-                  </button>
+                  <>
+                    <button type="button" className="btn" onClick={() => startEdit(selectedItem)}>
+                      تعديل الصنف
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => void toggleItemActive(selectedItem)}
+                    >
+                      {selectedItem.is_active ? 'إيقاف الصنف' : 'تنشيط الصنف'}
+                    </button>
+                  </>
                 )}
                 {can('data.items.delete') && (
                   <button type="button" className="btn danger" onClick={() => void removeItem(selectedItem)}>
@@ -610,6 +669,7 @@ export default function ItemsTab() {
           title={editingItem ? 'تعديل صنف' : 'إضافة صنف'}
           className="master-data-modal"
           backdropClassName="master-data-backdrop"
+          dismissible={!savingItem}
           onClose={cancelEdit}
           isDirty={
             editingItem
@@ -631,8 +691,9 @@ export default function ItemsTab() {
                 Number(itemOpeningCost || 0) !== 0
           }
         >
-          <form className="stack" onSubmit={saveItem}>
-            <div className="account-header-card">
+          <form className="stack" onSubmit={saveItem} aria-busy={savingItem}>
+            <fieldset className="stack form-fields" disabled={savingItem}>
+              <div className="account-header-card">
               <div className="form-grid">
                 <label>
                   اسم الصنف
@@ -790,12 +851,13 @@ export default function ItemsTab() {
                 )}
               </div>
             </div>
+            </fieldset>
 
             <div className="form-modal-actions">
-              <button type="submit" className="btn primary">
-                {editingItem ? 'حفظ التعديلات' : 'إضافة صنف'}
+              <button type="submit" className="btn primary" disabled={savingItem}>
+                {savingItem ? 'جارٍ الحفظ…' : editingItem ? 'حفظ التعديلات' : 'إضافة صنف'}
               </button>
-              <button type="button" className="btn" onClick={cancelEdit}>
+              <button type="button" className="btn" onClick={cancelEdit} disabled={savingItem}>
                 إلغاء
               </button>
             </div>

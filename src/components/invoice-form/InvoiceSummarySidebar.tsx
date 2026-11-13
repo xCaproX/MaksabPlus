@@ -1,4 +1,5 @@
-import { Check, X } from 'lucide-react';
+import { Link, useInRouterContext } from 'react-router-dom';
+import { Check, ExternalLink, X } from 'lucide-react';
 import { money } from '../../lib/format';
 import SearchableSelect from '../SearchableSelect';
 import MoneyDisplay from '../MoneyDisplay';
@@ -65,6 +66,7 @@ export default function InvoiceSummarySidebar({
   onRestore,
   onPrint,
 }: InvoiceSummarySidebarProps) {
+  const inRouter = useInRouterContext();
   const saveLabel = editing
     ? 'حفظ التعديلات'
     : isReturn
@@ -75,16 +77,50 @@ export default function InvoiceSummarySidebar({
 
   const restoreLabel = `استعادة ${isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}`;
 
+  const linkedReceiptDirection =
+    editing?.invoice.kind === 'purchase' || editing?.invoice.kind === 'sale_return'
+      ? 'out'
+      : 'in';
+  const linkedReceiptUrl = editing?.invoice.receipt_id
+    ? `/receipts?tab=${linkedReceiptDirection}&doc=${encodeURIComponent(editing.invoice.receipt_id)}`
+    : `/receipts?tab=${linkedReceiptDirection}&search=${encodeURIComponent(editing?.invoice.receipt_number ?? '')}`;
+
+  const linkedReceiptContent = editing?.invoice.receipt_number ? (
+    <>
+      <span>إيصال</span>
+      <bdi className="num" dir="ltr">
+        {editing.invoice.receipt_number}
+      </bdi>
+      <MoneyDisplay value={editing.invoice.receipt_amount ?? 0} currency />
+      <ExternalLink size={13} className="link-ext-icon" aria-hidden="true" />
+    </>
+  ) : null;
+
   const linkedReceiptNode = editing?.invoice.receipt_number ? (
     <div className="left-field-box linked-receipt-box">
       <span className="linked-receipt-title">السند المالي المرتبط</span>
-      <div className="linked-receipt-badge">
-        <span>إيصال</span>
-        <bdi className="num" dir="ltr">
-          {editing.invoice.receipt_number}
-        </bdi>
-        <MoneyDisplay value={editing.invoice.receipt_amount ?? 0} currency />
-      </div>
+      {inRouter ? (
+        <Link
+          to={linkedReceiptUrl}
+          className="linked-receipt-badge receipt-linked-link"
+          onClick={onCancel}
+          title={`فتح الإيصال ${editing.invoice.receipt_number}`}
+        >
+          {linkedReceiptContent}
+        </Link>
+      ) : (
+        <a
+          href={linkedReceiptUrl}
+          className="linked-receipt-badge receipt-linked-link"
+          onClick={(e) => {
+            e.preventDefault();
+            onCancel();
+          }}
+          title={`فتح الإيصال ${editing.invoice.receipt_number}`}
+        >
+          {linkedReceiptContent}
+        </a>
+      )}
     </div>
   ) : null;
 

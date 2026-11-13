@@ -9,7 +9,7 @@ import DateDisplay from './DateDisplay';
 import DateInput from './DateInput';
 import SearchableSelect from './SearchableSelect';
 import DocumentSummarySidebar from './invoice-form/DocumentSummarySidebar';
-import { searchWarehouseItemsAsync, lookupBarcodeItem } from '../lib/masterDataQueries';
+import { searchWarehouseItemsAsync, lookupBarcodeItem, type WarehouseItemOption } from '../lib/masterDataQueries';
 import { resolveDefaultWarehouse } from '../lib/defaults';
 import { clampDocQty, clampDocQtyOnBlur, DOC_LINE_CLAMP_WARNING, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
 import { useModalDirtyGuard } from './Modal';
@@ -83,18 +83,54 @@ export default function WarehouseTransferForm({
     (warehouse) => warehouse.is_active !== false || warehouse.id === sourceId || warehouse.id === destinationId,
   );
 
-  function getAvailableStock(itemId: string, targetWarehouseId: string): number {
+  function getAvailableStock(
+    itemId: string,
+    targetWarehouseId: string,
+    rawWarehouseStock?: number,
+  ): number {
     return calculateAvailableStock({
       itemId,
       warehouseId: targetWarehouseId,
-      stockRows,
+      stockRows:
+        rawWarehouseStock !== undefined
+          ? ([
+              {
+                item_id: itemId,
+                warehouse_id: targetWarehouseId,
+                current_qty: rawWarehouseStock,
+              } as StockOpeningRow,
+            ])
+          : stockRows,
       editingWarehouseId: editing?.source_warehouse_id,
       editingLines: editing?.lines,
     });
   }
 
-  const entrySelectedItem = items.find((entry) => entry.id === entryItemId);
-  const entryAvailableStock = entryItemId ? getAvailableStock(entryItemId, sourceId) : 0;
+  const [entryAsyncOption, setEntryAsyncOption] = useState<WarehouseItemOption | null>(null);
+
+  const entrySelectedItem =
+    items.find((entry) => entry.id === entryItemId) ||
+    (entryAsyncOption && entryAsyncOption.value === entryItemId
+      ? ({
+          id: entryAsyncOption.value,
+          name: entryAsyncOption.name ?? entryAsyncOption.label.split(' — ')[1] ?? entryAsyncOption.label,
+          code: entryAsyncOption.code,
+          unit: entryAsyncOption.unit,
+          is_active: true,
+          company_id: '',
+          created_at: '',
+          updated_at: '',
+          notes: null,
+          serial_number: null,
+        } as unknown as ItemRow)
+      : undefined);
+  const entryAvailableStock = entryItemId
+    ? getAvailableStock(
+        entryItemId,
+        sourceId,
+        entryAsyncOption && entryAsyncOption.value === entryItemId ? entryAsyncOption.stock : undefined,
+      )
+    : 0;
   const totalTransferQty = lines.reduce((sum, line) => sum + Number(line.qty || 0), 0);
 
   const [initialSnapshot] = useState(() => ({
@@ -131,14 +167,20 @@ export default function WarehouseTransferForm({
     (item) => item.is_active !== false || lines.some((l) => l.item_id === item.id)
   );
 
-  function handleEntryItemSelect(itemId: string) {
+  function handleEntryItemSelect(itemId: string, selectedOption?: WarehouseItemOption) {
     if (!itemId) {
       setEntryItemId('');
+      setEntryAsyncOption(null);
       setEntryQty('1');
       return;
     }
 
-    const available = getAvailableStock(itemId, sourceId);
+    const hasMetadata = Boolean(selectedOption && 'code' in selectedOption && selectedOption.code !== undefined);
+    if (hasMetadata && selectedOption) {
+      setEntryAsyncOption(selectedOption);
+    }
+
+    const available = getAvailableStock(itemId, sourceId, hasMetadata ? selectedOption?.stock : undefined);
     if (available <= 0) {
       toast.warning('الصنف غير متوفر في مخزن المصدر');
       return;
@@ -197,6 +239,7 @@ export default function WarehouseTransferForm({
       setAdjustedHighlightItemId(null);
       setClampWarning(null);
       setEntryItemId('');
+      setEntryAsyncOption(null);
       setEntryQty('1');
       setTimeout(() => {
         entryItemSearchRef.current?.focus();
@@ -206,6 +249,7 @@ export default function WarehouseTransferForm({
 
   function handleSourceWarehouseChange(nextSourceId: string) {
     setSourceId(nextSourceId);
+    setEntryAsyncOption(null);
     if (nextSourceId === destinationId) {
       setDestinationId(activeWarehouses.find((warehouse) => warehouse.id !== nextSourceId)?.id ?? '');
     }
@@ -215,6 +259,7 @@ export default function WarehouseTransferForm({
       if (available <= 0) {
         toast.warning('الصنف قيد الإدخال غير متوفر في مخزن المصدر الجديد');
         setEntryItemId('');
+        setEntryAsyncOption(null);
         setEntryQty('1');
       } else if (Number(entryQty) > available) {
         toast.warning(`تم تعديل كمية الصنف قيد الإدخال إلى المتاح بمخزن المصدر (${formatQty(available)})`);
@@ -268,6 +313,7 @@ export default function WarehouseTransferForm({
     setAdjustedHighlightItemId(null);
     setClampWarning(null);
     setEntryItemId('');
+    setEntryAsyncOption(null);
     setEntryQty('1');
     setNotes('');
     toast.info('تم تفريغ التحويل للبدء من جديد');
@@ -492,9 +538,10 @@ export default function WarehouseTransferForm({
                           toast.warning(`لم يتم العثور على صنف بالباركود: ${barcode}`);
                           return;
                         }
-                        handleEntryItemSelect(found.value);
+                        handleEntryItemSelect(found.value, found);
                       }}
-                      onChange={handleEntryItemSelect}
+                      onSelectOption={(opt) => handleEntryItemSelect(opt.value, opt as unknown as WarehouseItemOption)}
+                      onChange={(id) => handleEntryItemSelect(id)}
                       placeholder="اختر صنفاً للتحويل أو امسح الباركود…"
                       searchPlaceholder="ابحث باسم أو كود أو باركود الصنف…"
                       emptyMessage="لا توجد أصناف مطابقة"

@@ -40,9 +40,14 @@ type UserFilterStatus = 'all' | 'active' | 'suspended' | 'owner';
 interface UserPermissionsProps {
   inviteOpen?: boolean;
   onInviteOpenChange?: (open: boolean) => void;
+  onDirtyCountChange?: (count: number) => void;
 }
 
-export default function UserPermissions({ inviteOpen, onInviteOpenChange }: UserPermissionsProps = {}) {
+export default function UserPermissions({
+  inviteOpen,
+  onInviteOpenChange,
+  onDirtyCountChange,
+}: UserPermissionsProps = {}) {
   const [users, setUsers] = useState<CompanyUser[]>([]);
   const [drafts, setDrafts] = useState<Record<string, PermissionKey[]>>({});
   const [loading, setLoading] = useState(true);
@@ -142,6 +147,22 @@ export default function UserPermissions({ inviteOpen, onInviteOpenChange }: User
   const currentDraftKeys = selectedUser
     ? drafts[selectedUser.user_id] ?? selectedUser.permission_keys ?? []
     : [];
+
+  const dirtyUsersCount = useMemo(() => {
+    return users.filter((u) => {
+      if (u.access_role === 'owner') return false;
+      const saved = u.permission_keys ?? [];
+      const draft = drafts[u.user_id];
+      if (!draft) return false;
+      if (draft.length !== saved.length) return true;
+      const savedSet = new Set(saved);
+      return draft.some((key) => !savedSet.has(key));
+    }).length;
+  }, [users, drafts]);
+
+  useEffect(() => {
+    onDirtyCountChange?.(dirtyUsersCount);
+  }, [dirtyUsersCount, onDirtyCountChange]);
 
   function toggleSectionCollapse(sectionId: string) {
     setExpandedSections((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));

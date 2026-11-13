@@ -9,6 +9,14 @@ import SortableHeader from '../../components/SortableHeader';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, getBalanceStatus, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
+import {
+  accountOpeningBalance,
+  accountOpeningDirectionLabel,
+  isAccountOpeningEntryDirty,
+  splitAccountOpeningBalance,
+  type AccountOpeningDirection,
+  type AccountOpeningEntry,
+} from '../../lib/accountOpeningBalance';
 import { matchesSearchQuery } from '../../lib/search';
 import { toast } from '../../components/Toast';
 import type { AccountRow } from '../../lib/types';
@@ -24,6 +32,7 @@ interface AccountOpeningTabProps {
   saving: boolean;
   setSaving: (saving: boolean) => void;
   saveTrigger?: number;
+  onDirtyCountChange?: (count: number) => void;
 }
 
 export default function AccountOpeningTab({
@@ -34,11 +43,12 @@ export default function AccountOpeningTab({
   saving,
   setSaving,
   saveTrigger,
+  onDirtyCountChange,
 }: AccountOpeningTabProps) {
   const isCustomer = kind === 'customer';
   const entityPrefix = isCustomer ? 'CUS' : 'SUP';
 
-  const [accountValues, setAccountValues] = useState<Record<string, string>>({});
+  const [accountValues, setAccountValues] = useState<Record<string, AccountOpeningEntry>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<ManagementSort>('name-asc');
   const [page, setPage] = useState(1);
@@ -55,10 +65,19 @@ export default function AccountOpeningTab({
   useEffect(() => {
     setAccountValues(
       Object.fromEntries(
-        visibleAccounts.map((account) => [account.id, String(Number(account.opening_balance))])
+        visibleAccounts.map((account) => [account.id, splitAccountOpeningBalance(kind, account.opening_balance)])
       )
     );
-  }, [visibleAccounts]);
+  }, [visibleAccounts, kind]);
+
+  const dirtyCount = useMemo(
+    () => visibleAccounts.filter((a) => isAccountOpeningEntryDirty(kind, accountValues[a.id], a.opening_balance)).length,
+    [visibleAccounts, accountValues, kind],
+  );
+
+  useEffect(() => {
+    onDirtyCountChange?.(dirtyCount);
+  }, [dirtyCount, onDirtyCountChange]);
 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
@@ -92,23 +111,27 @@ export default function AccountOpeningTab({
     if (page > pageCount) setPage(pageCount);
   }, [page, pageCount]);
 
+  const signedEntryValue = (account: AccountRow): number => {
+    const entry = accountValues[account.id];
+    if (!entry) return Number(account.opening_balance ?? 0);
+    const amt = Number(entry.amount || 0);
+    if (!Number.isFinite(amt) || amt < 0) return Number(account.opening_balance ?? 0);
+    return accountOpeningBalance(kind, entry.amount, entry.direction);
+  };
+
   const kpiItems = useMemo<KpiItem[]>(() => {
+    const signedValues = filteredAccounts.map((a) => {
+      const entry = accountValues[a.id];
+      if (!entry) return Number(a.opening_balance ?? 0);
+      const amt = Number(entry.amount || 0);
+      if (!Number.isFinite(amt) || amt < 0) return Number(a.opening_balance ?? 0);
+      return accountOpeningBalance(kind, entry.amount, entry.direction);
+    });
     if (isCustomer) {
-      const totalOpening = filteredAccounts.reduce(
-        (sum, a) => sum + Number(accountValues[a.id] ?? a.opening_balance ?? 0),
-        0
-      );
-      const debitTotal = filteredAccounts.reduce((sum, a) => {
-        const val = Number(accountValues[a.id] ?? a.opening_balance ?? 0);
-        return val > 0 ? sum + val : sum;
-      }, 0);
-      const creditTotal = filteredAccounts.reduce((sum, a) => {
-        const val = Number(accountValues[a.id] ?? a.opening_balance ?? 0);
-        return val < 0 ? sum + Math.abs(val) : sum;
-      }, 0);
-      const withOpening = filteredAccounts.filter(
-        (a) => Number(accountValues[a.id] ?? a.opening_balance ?? 0) !== 0
-      ).length;
+      const totalOpening = signedValues.reduce((sum, val) => sum + val, 0);
+      const debitTotal = signedValues.reduce((sum, val) => (val > 0 ? sum + val : sum), 0);
+      const creditTotal = signedValues.reduce((sum, val) => (val < 0 ? sum + Math.abs(val) : sum), 0);
+      const withOpening = signedValues.filter((val) => val !== 0).length;
 
       return [
         {
@@ -121,7 +144,7 @@ export default function AccountOpeningTab({
         },
         {
           id: 'mgmt-cus-debit',
-          label: 'إجمالي مدين لنا',
+          label: 'إجمالي لنا عندهم',
           value: money(debitTotal),
           unit: 'ج.م',
           variant: debitTotal > 0 ? 'warning' : 'neutral',
@@ -129,7 +152,7 @@ export default function AccountOpeningTab({
         },
         {
           id: 'mgmt-cus-credit',
-          label: 'إجمالي دائن علينا',
+          label: 'إجمالي لهم عندنا',
           value: money(creditTotal),
           unit: 'ج.م',
           variant: creditTotal > 0 ? 'info' : 'neutral',
@@ -146,21 +169,10 @@ export default function AccountOpeningTab({
         },
       ];
     } else {
-      const totalOpening = filteredAccounts.reduce(
-        (sum, a) => sum + Number(accountValues[a.id] ?? a.opening_balance ?? 0),
-        0
-      );
-      const payableTotal = filteredAccounts.reduce((sum, a) => {
-        const val = Number(accountValues[a.id] ?? a.opening_balance ?? 0);
-        return val > 0 ? sum + val : sum;
-      }, 0);
-      const advanceTotal = filteredAccounts.reduce((sum, a) => {
-        const val = Number(accountValues[a.id] ?? a.opening_balance ?? 0);
-        return val < 0 ? sum + Math.abs(val) : sum;
-      }, 0);
-      const withOpening = filteredAccounts.filter(
-        (a) => Number(accountValues[a.id] ?? a.opening_balance ?? 0) !== 0
-      ).length;
+      const totalOpening = signedValues.reduce((sum, val) => sum + val, 0);
+      const payableTotal = signedValues.reduce((sum, val) => (val > 0 ? sum + val : sum), 0);
+      const advanceTotal = signedValues.reduce((sum, val) => (val < 0 ? sum + Math.abs(val) : sum), 0);
+      const withOpening = signedValues.filter((val) => val !== 0).length;
 
       return [
         {
@@ -173,7 +185,7 @@ export default function AccountOpeningTab({
         },
         {
           id: 'mgmt-sup-payable',
-          label: 'مستحق للموردين (علينا)',
+          label: 'إجمالي لهم عندنا',
           value: money(payableTotal),
           unit: 'ج.م',
           variant: payableTotal > 0 ? 'danger' : 'neutral',
@@ -181,7 +193,7 @@ export default function AccountOpeningTab({
         },
         {
           id: 'mgmt-sup-advance',
-          label: 'مدفوع مقدمًا (لنا)',
+          label: 'إجمالي لنا عندهم',
           value: money(advanceTotal),
           unit: 'ج.م',
           variant: advanceTotal > 0 ? 'info' : 'neutral',
@@ -198,11 +210,11 @@ export default function AccountOpeningTab({
         },
       ];
     }
-  }, [isCustomer, filteredAccounts, accountValues]);
+  }, [isCustomer, kind, filteredAccounts, accountValues]);
 
   async function handleSave() {
-    const changed = visibleAccounts.filter(
-      (a) => Number(accountValues[a.id] ?? 0) !== Number(a.opening_balance)
+    const changed = visibleAccounts.filter((a) =>
+      isAccountOpeningEntryDirty(kind, accountValues[a.id], a.opening_balance),
     );
     if (changed.length === 0) {
       toast.info(`لم يتم تعديل أي رصيد افتتاحي لـ ${isCustomer ? 'العملاء' : 'الموردين'}.`);
@@ -212,9 +224,12 @@ export default function AccountOpeningTab({
     try {
       const payload: { account_id: string; opening_balance: number }[] = [];
       for (const account of changed) {
-        const opening = Number(accountValues[account.id] ?? 0);
-        if (!Number.isFinite(opening)) {
-          toast.error(`الرصيد الافتتاحي لحساب «${account.name}» غير صحيح.`);
+        const entry = accountValues[account.id] ?? splitAccountOpeningBalance(kind, account.opening_balance);
+        let opening: number;
+        try {
+          opening = accountOpeningBalance(kind, entry.amount, entry.direction);
+        } catch (validationErr) {
+          toast.error(`الرصيد الافتتاحي لحساب «${account.name}»: ${errorMessage(validationErr)}`);
           setSaving(false);
           return;
         }
@@ -271,7 +286,7 @@ export default function AccountOpeningTab({
                     defaultDirection="asc"
                   />
                   <th className="col-hide-on-detail" style={{ width: '90px' }}>النوع</th>
-                  <th className="num" style={{ width: '160px' }}>الرصيد الافتتاحي</th>
+                  <th className="num" style={{ width: '250px' }}>الرصيد الافتتاحي</th>
                   <th className="num" style={{ width: '170px' }}>الرصيد الحالي</th>
                 </tr>
                 <ColumnFilterRow scope="opening_accounts" kind={kind} values={columns.values} onChange={columns.setField} onReset={columns.reset} />
@@ -286,6 +301,7 @@ export default function AccountOpeningTab({
                 )}
                 {pageAccounts.map((account) => {
                   const isSelected = selectedAccount?.id === account.id;
+                  const entry = accountValues[account.id] ?? splitAccountOpeningBalance(kind, account.opening_balance);
                   return (
                     <tr
                       key={account.id}
@@ -302,22 +318,44 @@ export default function AccountOpeningTab({
                       <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber(entityPrefix, account.serial_number)}</bdi></td>
                       <td className="strong">{account.name}</td>
                       <td className="muted col-hide-on-detail" style={{ width: '90px' }}>{isCustomer ? 'عميل' : 'مورد'}</td>
-                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '160px' }}>
-                        <div className="input-with-suffix">
-                          <input
-                            className="table-input num no-spinner"
-                            style={{ width: '100%', maxWidth: '140px' }}
-                            type="number"
-                            inputMode="decimal"
-                            step="0.0001"
+                      <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '250px' }}>
+                        <div className="opening-entry-cell">
+                          <div className="input-with-suffix">
+                            <input
+                              className="table-input num no-spinner"
+                              style={{ width: '100%', maxWidth: '120px' }}
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              step="0.0001"
+                              aria-label={`مبلغ الرصيد الافتتاحي لـ ${account.name}`}
+                              disabled={!canEditOpening || saving}
+                              value={entry.amount}
+                              onFocus={(event) => event.target.select()}
+                              onChange={(event) =>
+                                setAccountValues((values) => ({
+                                  ...values,
+                                  [account.id]: { ...entry, amount: event.target.value },
+                                }))
+                              }
+                            />
+                            <span className="input-suffix">ج.م</span>
+                          </div>
+                          <select
+                            className="opening-direction-select"
+                            aria-label={`اتجاه الرصيد الافتتاحي لـ ${account.name}`}
                             disabled={!canEditOpening || saving}
-                            value={accountValues[account.id] ?? '0'}
-                            onFocus={(event) => event.target.select()}
+                            value={entry.direction}
                             onChange={(event) =>
-                              setAccountValues((values) => ({ ...values, [account.id]: event.target.value }))
+                              setAccountValues((values) => ({
+                                ...values,
+                                [account.id]: { ...entry, direction: event.target.value as AccountOpeningDirection },
+                              }))
                             }
-                          />
-                          <span className="input-suffix">ج.م</span>
+                          >
+                            <option value="receivable">{accountOpeningDirectionLabel('receivable')}</option>
+                            <option value="payable">{accountOpeningDirectionLabel('payable')}</option>
+                          </select>
                         </div>
                       </td>
                       <td className="num" style={{ width: '170px' }}>
@@ -375,7 +413,7 @@ export default function AccountOpeningTab({
                 <span>الرصيد الافتتاحي</span>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                   {(() => {
-                    const openingVal = Number(accountValues[selectedAccount.id] ?? selectedAccount.opening_balance);
+                    const openingVal = signedEntryValue(selectedAccount);
                     const status = getBalanceStatus(openingVal, selectedAccount.kind);
                     return (
                       <span className={`status-badge-mini status-${status.type}`}>
@@ -384,7 +422,7 @@ export default function AccountOpeningTab({
                     );
                   })()}
                   <strong dir="ltr" className="num tabular-nums remaining">
-                    {money(Math.abs(Number(accountValues[selectedAccount.id] ?? selectedAccount.opening_balance)))}
+                    {money(Math.abs(signedEntryValue(selectedAccount)))}
                   </strong>
                 </div>
               </div>

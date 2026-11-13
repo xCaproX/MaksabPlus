@@ -23,6 +23,7 @@ interface CashBoxOpeningTabProps {
   saving: boolean;
   setSaving: (saving: boolean) => void;
   saveTrigger?: number;
+  onDirtyCountChange?: (count: number) => void;
 }
 
 export default function CashBoxOpeningTab({
@@ -32,6 +33,7 @@ export default function CashBoxOpeningTab({
   saving,
   setSaving,
   saveTrigger,
+  onDirtyCountChange,
 }: CashBoxOpeningTabProps) {
   const [cashValues, setCashValues] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -106,6 +108,19 @@ export default function CashBoxOpeningTab({
       },
     ];
   }, [filteredCashBoxes, cashValues]);
+
+  const dirtyCount = useMemo(() => {
+    return cashBoxes.filter((box) => {
+      const val = cashValues[box.id];
+      if (val === undefined) return false;
+      const nextVal = Number(val);
+      return !Number.isFinite(nextVal) || nextVal !== Number(box.opening_balance);
+    }).length;
+  }, [cashBoxes, cashValues]);
+
+  useEffect(() => {
+    onDirtyCountChange?.(dirtyCount);
+  }, [dirtyCount, onDirtyCountChange]);
 
   async function handleSave() {
     const cash = cashBoxes.map((box) => ({

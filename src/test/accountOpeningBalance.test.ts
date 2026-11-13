@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { accountOpeningBalance, defaultAccountOpeningDirection } from '../lib/accountOpeningBalance';
+import {
+  accountOpeningBalance,
+  accountOpeningDirectionLabel,
+  defaultAccountOpeningDirection,
+  isAccountOpeningEntryDirty,
+  splitAccountOpeningBalance,
+} from '../lib/accountOpeningBalance';
 
 describe('account opening direction', () => {
   it('defaults to a customer owing us and us owing a supplier', () => {
@@ -18,5 +24,22 @@ describe('account opening direction', () => {
   });
   it.each(['-1','not-a-number','Infinity'])('rejects invalid amount %s', value => {
     expect(() => accountOpeningBalance('customer', value, 'receivable')).toThrow();
+  });
+
+  it('T-11: splits signed opening balances cleanly and uses plain Arabic direction labels', () => {
+    expect(accountOpeningDirectionLabel('receivable')).toBe('لنا عنده');
+    expect(accountOpeningDirectionLabel('payable')).toBe('له عندنا');
+    expect(splitAccountOpeningBalance('customer', 350)).toEqual({ amount: '350', direction: 'receivable' });
+    expect(splitAccountOpeningBalance('customer', -200)).toEqual({ amount: '200', direction: 'payable' });
+    expect(splitAccountOpeningBalance('supplier', 400)).toEqual({ amount: '400', direction: 'payable' });
+    expect(splitAccountOpeningBalance('supplier', -150)).toEqual({ amount: '150', direction: 'receivable' });
+    expect(splitAccountOpeningBalance('customer', 0)).toEqual({ amount: '0', direction: 'receivable' });
+  });
+
+  it('T-11: ignores direction toggles on zero amount when computing dirty state', () => {
+    expect(isAccountOpeningEntryDirty('customer', { amount: '0', direction: 'payable' }, 0)).toBe(false);
+    expect(isAccountOpeningEntryDirty('supplier', { amount: '', direction: 'receivable' }, 0)).toBe(false);
+    expect(isAccountOpeningEntryDirty('customer', { amount: '100', direction: 'payable' }, 100)).toBe(true);
+    expect(isAccountOpeningEntryDirty('customer', { amount: '100', direction: 'receivable' }, 100)).toBe(false);
   });
 });

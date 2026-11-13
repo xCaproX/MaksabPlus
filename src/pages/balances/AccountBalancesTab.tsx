@@ -298,23 +298,46 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
     ];
   }, [summary, isCustomer]);
 
+  useEffect(() => {
+    if (!statementAccount || !statementFrom || !statementTo || statementFrom > statementTo) return;
+    void loadCompleteStatement(
+      (from, to, signal) =>
+        supabase.rpc(
+          'get_account_statement',
+          {
+            p_account_id: statementAccount.id,
+            p_from: statementFrom,
+            p_to: statementTo,
+          },
+          { count: 'exact' },
+        ).range(from, to).abortSignal(signal),
+      { preserveRows: true },
+    );
+  }, [statementAccount, statementFrom, statementTo, loadCompleteStatement]);
+
   function openStatement(account: AccountRow) {
-    setStatementAccount(account);
     resetStatement();
     setStatementFrom(periodDates().from);
     setStatementTo(periodDates().to);
+    setStatementAccount(account);
   }
 
   async function loadStatement(event?: FormEvent) {
     if (event) event.preventDefault();
-    if (!statementAccount || !statementFrom || !statementTo) return;
+    if (!statementAccount || !statementFrom || !statementTo || statementFrom > statementTo) return;
 
-    await loadCompleteStatement((from, to, signal) =>
-      supabase.rpc('get_account_statement', {
-        p_account_id: statementAccount.id,
-        p_from: statementFrom,
-        p_to: statementTo,
-      }, { count: 'exact' }).range(from, to).abortSignal(signal),
+    await loadCompleteStatement(
+      (from, to, signal) =>
+        supabase.rpc(
+          'get_account_statement',
+          {
+            p_account_id: statementAccount.id,
+            p_from: statementFrom,
+            p_to: statementTo,
+          },
+          { count: 'exact' },
+        ).range(from, to).abortSignal(signal),
+      { preserveRows: true },
     );
   }
 
@@ -551,7 +574,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
               </div>
               <div className="account-statement-period">
                 <PeriodFilter from={statementFrom} to={statementTo} required disabled={statementLoading}
-                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); resetStatement(); }} />
+                  onChange={(from, to) => { setStatementFrom(from); setStatementTo(to); }} />
               </div>
             </div>
 
