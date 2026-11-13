@@ -150,6 +150,9 @@ function prepareDocLine<T extends DocLineBase>({
   return { lines: [...lines, newLine], adjusted };
 }
 
+export const DOC_LINE_CLAMP_WARNING =
+  'تم إدراج الصنف وتعديل الكمية تلقائيًا لتوافق الرصيد المتاح. راجع السطر المميز ثم اضغط حفظ لتأكيد العملية.';
+
 /**
  * إدراج الصنف المعلق في شريط الإدخال الثابت تلقائياً قبل الحفظ:
  */

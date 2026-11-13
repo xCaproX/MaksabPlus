@@ -129,7 +129,9 @@
 }
 
 .modal-head .icon-btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+  outline: 2px solid rgba(255, 255, 255, 0.92);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
 }
 
 .modal-body {
@@ -260,7 +262,8 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--card);
+    background: var(--primary, #0f172a);
+    color: #ffffff;
   }
 
   .account-statement-modal .modal-body {

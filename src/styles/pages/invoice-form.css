@@ -51,7 +51,9 @@
 }
 
 .transaction-entry-modal .modal-head .icon-btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+  outline: 2px solid rgba(255, 255, 255, 0.92);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
 }
 
 .transaction-entry-modal .modal-body {
@@ -1580,4 +1582,18 @@
   color: #0369a1;
   font-size: 12px;
   font-weight: 650;
+}
+
+.form-clamp-alert {
+  flex-shrink: 0;
+  padding: 9px 12px;
+  font-size: 12.5px;
+}
+
+.lines-table tbody tr.inserted-line-row.is-adjusted-highlight td {
+  background-color: #fffbeb;
+}
+
+.lines-table tbody tr.inserted-line-row.is-adjusted-highlight td:first-child {
+  border-inline-start: 3px solid var(--warning, #d97706);
 }

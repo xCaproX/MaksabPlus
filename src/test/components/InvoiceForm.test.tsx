@@ -288,4 +288,38 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     const beforePill = screen.getByText('المديونية قبل:').closest('.stat-pill')!;
     expect(beforePill).toHaveTextContent('1,000.00');
   });
+
+  it('T-04: عند ضبط كمية بند معلق أثناء الحفظ يعرض تنبيهًا تحذيريًا ويميز السطر المعدل قبل الحفظ النهائي', async () => {
+    // في فاتورة جديدة: المتاح بالمخزن 50؛ ندرج 45 أولاً ثم نحاول إرسال 10 معلقة في الشريط (45 + 10 > 50 فتُضبط إلى 5)
+    const { container } = render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={null}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    const itemInput = screen.getByPlaceholderText('اختر صنفاً للإدراج أو امسح الباركود…');
+    fireEvent.focus(itemInput);
+    fireEvent.click(await screen.findByRole('option', { name: /سكر أبيض 1 كجم/ }));
+    fireEvent.change(screen.getByLabelText(/كمية الصنف/), { target: { value: '45' } });
+    fireEvent.click(screen.getByRole('button', { name: 'إدراج' }));
+
+    fireEvent.focus(itemInput);
+    fireEvent.click(await screen.findByRole('option', { name: /سكر أبيض 1 كجم/ }));
+    fireEvent.change(screen.getByLabelText(/كمية الصنف/), { target: { value: '10' } });
+
+    fireEvent.submit(container.querySelector('form')!);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('تم إدراج الصنف وتعديل الكمية تلقائيًا');
+    const highlightedRow = container.querySelector('tr[data-adjusted-row="itm-1"]');
+    expect(highlightedRow).toHaveClass('is-adjusted-highlight');
+  });
 });

@@ -1,0 +1,181 @@
+/* ---------- Unified Static-Flow Print Architecture (T-05) ---------- */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  /* When a modal document is open, suppress surrounding workspace chrome via display: none
+     (works both before and after T-03a body portals without reserving blank pages). */
+  body:has(> .modal-backdrop) > #root {
+    display: none !important;
+  }
+
+  body:has(.modal-backdrop) .app > .topbar,
+  body:has(.modal-backdrop) .toast-container,
+  body:has(.modal-backdrop) .page-head,
+  body:has(.modal-backdrop) .tabs,
+  body:has(.modal-backdrop) .erp-kpi-bar,
+  body:has(.modal-backdrop) .document-list-toolbar,
+  body:has(.modal-backdrop) .erp-sales-workspace,
+  body:has(.modal-backdrop) .erp-list-panel,
+  body:has(.modal-backdrop) .erp-workspace > :not(.modal-backdrop),
+  body:has(.modal-backdrop) .stack > :not(.modal-backdrop):not(:has(.modal-backdrop)) {
+    display: none !important;
+  }
+
+  body:has(.modal-backdrop) html,
+  body:has(.modal-backdrop),
+  body:has(.modal-backdrop) #root,
+  body:has(.modal-backdrop) .app,
+  body:has(.modal-backdrop) .content,
+  body:has(.modal-backdrop) .stack,
+  body:has(.modal-backdrop) .erp-workspace {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  .modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    padding: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .modal,
+  .modal.transaction-entry-modal,
+  .modal.receipt-entry-modal,
+  .modal.account-statement-modal {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    animation: none !important;
+  }
+
+  .modal-body,
+  .transaction-entry-modal .modal-body,
+  .receipt-entry-modal .modal-body,
+  .account-statement-modal .modal-body {
+    display: block !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    background: #ffffff !important;
+  }
+
+  /* Statements carry their own .account-statement-heading, so hide .modal-head only there.
+     Invoices, Receipts, and Transfers keep .modal-head rendered cleanly in black ink. */
+  .account-statement-modal .modal-head {
+    display: none !important;
+  }
+
+  .modal:not(.account-statement-modal) .modal-head {
+    display: flex !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 0 !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 0 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .modal:not(.account-statement-modal) .modal-head h2 {
+    color: #0f172a !important;
+    font-size: 18px !important;
+  }
+
+  /* Hide interactive & screen-only controls inside printable documents */
+  .modal-head .icon-btn,
+  .entry-line-row,
+  .line-remove,
+  .lines-table th.w-action,
+  .lines-table td:has(.line-delete-btn),
+  .paid-quick-actions,
+  .left-actions-group,
+  .row-actions-group,
+  .readonly-actions-group,
+  .form-modal-actions,
+  .overdraft-warning-badge,
+  .cashbox-balance-hint,
+  .form-clamp-alert,
+  .print-hidden,
+  .linked-receipt-box .link-ext-icon {
+    display: none !important;
+  }
+
+  /* Invoices & Transfers stack into full-width A4 single column above summary totals */
+  .invoice-two-parts-layout {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .invoice-part-right,
+  .invoice-part-left,
+  .items-table-card,
+  .lines-wrap,
+  .table-wrap,
+  .responsive-table {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .invoice-part-left {
+    width: 100% !important;
+    margin-top: 14px !important;
+  }
+
+  .account-statement-modal .account-statement-heading {
+    border: 1px solid #222222;
+    padding: 16px;
+  }
+
+  .account-statement-modal .table,
+  .lines-table {
+    font-size: 12px;
+  }
+
+  /* Prevent sticky header overlaps and mid-row splits across print pages */
+  .table thead,
+  .lines-table thead {
+    position: static !important;
+    display: table-header-group;
+  }
+
+  .table th,
+  .lines-table th {
+    position: static !important;
+  }
+
+  .table tr,
+  .lines-table tr,
+  .totals-box,
+  .account-statement-totals,
+  .account-header-card,
+  .left-field-box {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

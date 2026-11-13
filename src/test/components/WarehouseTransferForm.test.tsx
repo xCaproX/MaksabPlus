@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import WarehouseTransferForm from '../../components/WarehouseTransferForm';
 
 vi.mock('../../components/Toast', () => ({
@@ -218,6 +218,68 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
     expect(screen.getByText('طباعة')).toBeInTheDocument();
     expect(screen.getByText('حذف')).toBeInTheDocument();
     expect(screen.getByText('إغلاق')).toBeInTheDocument();
+  });
+
+  it('T-04 & T-05: يعرض تنبيه الضبط ويميز السطر عند تجاوز الإدراج المعلق، ويخفي عمود المتاح بالمصدر في الطباعة عند القراءة فقط', async () => {
+    const editingWithPartialStock = {
+      id: 'wtr-2',
+      serial_number: 2,
+      number: 'WTR-0002',
+      transfer_date: '2026-11-01',
+      source_warehouse_id: 'wh-1',
+      source_warehouse_name: 'المخزن الرئيسي',
+      destination_warehouse_id: 'wh-2',
+      destination_warehouse_name: 'مخزن المعرض',
+      notes: '',
+      deleted_at: null,
+      created_at: '2026-11-01T00:00:00Z',
+      updated_at: '2026-11-01T00:00:00Z',
+      line_count: 1,
+      total_qty: 3,
+      total_value: 180,
+      items_summary: 'زيت عباد الشمس x 3',
+      lines: [{ transfer_id: 'wtr-2', item_id: 'itm-2', qty: 3, unit_cost: 60 }],
+    };
+
+    const { container, rerender } = render(
+      <WarehouseTransferForm
+        warehouses={mockWarehouses}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={editingWithPartialStock}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    const itemInput = screen.getByPlaceholderText('اختر صنفاً للتحويل أو امسح الباركود…');
+    fireEvent.focus(itemInput);
+    fireEvent.click(await screen.findByRole('option', { name: /زيت عباد الشمس/ }));
+
+    const entryQtyInput = screen.getByLabelText('الكمية المنقولة');
+    // المتاح الفعلي في التعديل = 5 (بالمخزن) + 3 (المحوّل سابقاً) = 8؛ إدخال 7 يتجاوز الحد فيُضبط إلى 5
+    fireEvent.change(entryQtyInput, { target: { value: '7' } });
+
+    fireEvent.submit(container.querySelector('form')!);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('تم إدراج الصنف وتعديل الكمية تلقائيًا');
+    const highlightedRow = container.querySelector('tr[data-adjusted-row="itm-2"]');
+    expect(highlightedRow).toHaveClass('is-adjusted-highlight');
+
+    rerender(
+      <WarehouseTransferForm
+        warehouses={mockWarehouses}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={editingWithPartialStock}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('المتاح بالمصدر').closest('th')).toHaveClass('print-hidden');
   });
 });
 

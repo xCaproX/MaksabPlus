@@ -35,6 +35,7 @@ interface InvoiceItemsTableProps {
   onEntryPriceChange: (val: string) => void;
   onInsertLine: () => void;
   getItemAvailableStock: (itemId: string, targetWarehouseId?: string) => number;
+  adjustedHighlightItemId?: string | null;
 }
 
 export default function InvoiceItemsTable({
@@ -60,6 +61,7 @@ export default function InvoiceItemsTable({
   onEntryPriceChange,
   onInsertLine,
   getItemAvailableStock,
+  adjustedHighlightItemId,
 }: InvoiceItemsTableProps) {
   return (
     <div className="right-card items-table-card">
@@ -233,8 +235,14 @@ export default function InvoiceItemsTable({
                   (kind === 'sale' || kind === 'waste' || kind === 'purchase_return') &&
                   Number(line.qty) > availableStock;
 
+                const isHighlighted = Boolean(adjustedHighlightItemId && line.item_id === adjustedHighlightItemId);
+
                 return (
-                  <tr key={line.key} className="inserted-line-row">
+                  <tr
+                    key={line.key}
+                    data-adjusted-row={isHighlighted ? line.item_id : undefined}
+                    className={isHighlighted ? 'inserted-line-row is-adjusted-highlight' : 'inserted-line-row'}
+                  >
                     <td className="w-num center line-index-cell" data-label="#">
                       <bdi dir="ltr" className="tabular-nums">{index + 1}</bdi>
                     </td>

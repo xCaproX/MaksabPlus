@@ -4,7 +4,7 @@ import { FOCUS_SETTLE_DELAY_MS } from '../lib/ui';
 import { money, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { resolveDefaultAccount, resolveDefaultWarehouse, resolveDefaultCashBox } from '../lib/defaults';
-import { clampDocQty, clampDocQtyOnBlur, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
+import { clampDocQty, clampDocQtyOnBlur, DOC_LINE_CLAMP_WARNING, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
 import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
 import type { WarehouseItemOption } from '../lib/masterDataQueries';
@@ -101,6 +101,8 @@ export default function InvoiceForm({
   });
   const [busy, setBusy] = useState(false);
   const [confirmZeroPriceOpen, setConfirmZeroPriceOpen] = useState(false);
+  const [adjustedHighlightItemId, setAdjustedHighlightItemId] = useState<string | null>(null);
+  const [clampWarning, setClampWarning] = useState<string | null>(null);
 
   // حالة شريط الإدخال الثابت أعلى الجدول
   const [entryItemId, setEntryItemId] = useState('');
@@ -355,6 +357,8 @@ export default function InvoiceForm({
 
     if (updated) {
       setLines(updated);
+      setAdjustedHighlightItemId(null);
+      setClampWarning(null);
       setEntryItemId('');
       setEntryAsyncOption(null);
       setEntryQty('1');
@@ -366,15 +370,21 @@ export default function InvoiceForm({
   }
 
   function updateLine(key: string, patch: Partial<LineDraft>) {
+    setAdjustedHighlightItemId(null);
+    setClampWarning(null);
     setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
   }
 
   function removeLine(key: string) {
+    setAdjustedHighlightItemId(null);
+    setClampWarning(null);
     setLines((current) => current.filter((line) => line.key !== key));
   }
 
   function handleResetNew() {
     setLines([]);
+    setAdjustedHighlightItemId(null);
+    setClampWarning(null);
     setEntryItemId('');
     setEntryAsyncOption(null);
     setEntryQty('1');
@@ -434,6 +444,9 @@ export default function InvoiceForm({
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isReadOnly) return;
+    setAdjustedHighlightItemId(null);
+    setClampWarning(null);
+    const pendingItemId = entryItemId;
     const priceNum = Number(entryUnitPrice || 0);
     const pending = flushPendingDocLine(
       lines,
@@ -452,7 +465,16 @@ export default function InvoiceForm({
       setEntryQty('1');
       setEntryUnitPrice('');
     }
-    if (adjusted) return;
+    if (adjusted) {
+      setAdjustedHighlightItemId(pendingItemId || null);
+      setClampWarning(DOC_LINE_CLAMP_WARNING);
+      setTimeout(() => {
+        document
+          .querySelector<HTMLTableRowElement>(`[data-adjusted-row="${pendingItemId}"]`)
+          ?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+      }, 0);
+      return;
+    }
 
     pendingSaveLines.current = activeLines;
 
@@ -538,6 +560,12 @@ export default function InvoiceForm({
             balanceAfter={balanceAfter}
           />
 
+          {clampWarning && (
+            <div className="alert warning form-clamp-alert" role="status">
+              {clampWarning}
+            </div>
+          )}
+
           <InvoiceItemsTable
             isReadOnly={isReadOnly}
             isWaste={isWaste}
@@ -561,6 +589,7 @@ export default function InvoiceForm({
             onEntryPriceChange={setEntryUnitPrice}
             onInsertLine={handleInsertLine}
             getItemAvailableStock={getItemAvailableStock}
+            adjustedHighlightItemId={adjustedHighlightItemId}
           />
         </div>
 

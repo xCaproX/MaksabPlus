@@ -11,7 +11,7 @@ import SearchableSelect from './SearchableSelect';
 import DocumentSummarySidebar from './invoice-form/DocumentSummarySidebar';
 import { searchWarehouseItemsAsync, lookupBarcodeItem } from '../lib/masterDataQueries';
 import { resolveDefaultWarehouse } from '../lib/defaults';
-import { clampDocQty, clampDocQtyOnBlur, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
+import { clampDocQty, clampDocQtyOnBlur, DOC_LINE_CLAMP_WARNING, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
 import { toast } from './Toast';
 import type { ItemRow, StockOpeningRow, WarehouseOption, WarehouseTransferLine, WarehouseTransferRow } from '../lib/types';
 
@@ -68,6 +68,8 @@ export default function WarehouseTransferForm({
     return [];
   });
   const [busy, setBusy] = useState(false);
+  const [adjustedHighlightItemId, setAdjustedHighlightItemId] = useState<string | null>(null);
+  const [clampWarning, setClampWarning] = useState<string | null>(null);
 
   // شريط الإدخال الثابت أعلى الجدول
   const [entryItemId, setEntryItemId] = useState('');
@@ -161,6 +163,8 @@ export default function WarehouseTransferForm({
 
     if (updated) {
       setLines(updated);
+      setAdjustedHighlightItemId(null);
+      setClampWarning(null);
       setEntryItemId('');
       setEntryQty('1');
       setTimeout(() => {
@@ -217,15 +221,21 @@ export default function WarehouseTransferForm({
   }
 
   function updateLine(key: string, patch: Partial<DraftLine>) {
+    setAdjustedHighlightItemId(null);
+    setClampWarning(null);
     setLines((current) => current.map((line) => (line.key === key ? { ...line, ...patch } : line)));
   }
 
   function removeLine(key: string) {
+    setAdjustedHighlightItemId(null);
+    setClampWarning(null);
     setLines((current) => current.filter((line) => line.key !== key));
   }
 
   function handleReset() {
     setLines([]);
+    setAdjustedHighlightItemId(null);
+    setClampWarning(null);
     setEntryItemId('');
     setEntryQty('1');
     setNotes('');
@@ -258,6 +268,9 @@ export default function WarehouseTransferForm({
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (readOnly) return;
+    setAdjustedHighlightItemId(null);
+    setClampWarning(null);
+    const pendingItemId = entryItemId;
     if (!sourceId || !destinationId || sourceId === destinationId) {
       return toast.error('اختر مخزنين مختلفين (مخزن المصدر ومخزن الوجهة)');
     }
@@ -277,7 +290,16 @@ export default function WarehouseTransferForm({
       setEntryItemId('');
       setEntryQty('1');
     }
-    if (adjusted) return;
+    if (adjusted) {
+      setAdjustedHighlightItemId(pendingItemId || null);
+      setClampWarning(DOC_LINE_CLAMP_WARNING);
+      setTimeout(() => {
+        document
+          .querySelector<HTMLTableRowElement>(`[data-adjusted-row="${pendingItemId}"]`)
+          ?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+      }, 0);
+      return;
+    }
 
     pendingSaveLines.current = activeLines;
 
@@ -366,6 +388,12 @@ export default function WarehouseTransferForm({
           </div>
         </div>
 
+        {clampWarning && (
+          <div className="alert warning form-clamp-alert" role="status">
+            {clampWarning}
+          </div>
+        )}
+
         {/* جدول الأصناف وشريط الإدخال الثابت */}
         <div className="right-card items-table-card transfer-lines-card">
         <div className="lines-wrap">
@@ -374,7 +402,7 @@ export default function WarehouseTransferForm({
               <tr>
                 <th className="w-num center">#</th>
                 <th>الصنف</th>
-                <th className="w-qty">المتاح بالمصدر</th>
+                <th className={readOnly ? 'w-qty print-hidden' : 'w-qty'}>المتاح بالمصدر</th>
                 <th className="w-qty">الكمية المنقولة</th>
                 {!readOnly && <th className="w-action center">إجراء</th>}
               </tr>
@@ -494,8 +522,14 @@ export default function WarehouseTransferForm({
                   const itemNameDisplay = item?.name ?? line.item_name ?? '—';
                   const itemUnitDisplay = item?.unit ?? line.unit ?? 'قطعة';
 
+                  const isHighlighted = Boolean(adjustedHighlightItemId && line.item_id === adjustedHighlightItemId);
+
                   return (
-                    <tr key={line.key} className="inserted-line-row">
+                    <tr
+                      key={line.key}
+                      data-adjusted-row={isHighlighted ? line.item_id : undefined}
+                      className={isHighlighted ? 'inserted-line-row is-adjusted-highlight' : 'inserted-line-row'}
+                    >
                       <td className="w-num center line-index-cell" data-label="#">
                         <bdi dir="ltr" className="tabular-nums">{index + 1}</bdi>
                       </td>
@@ -505,7 +539,7 @@ export default function WarehouseTransferForm({
                           {item?.code && <span className="item-code-tag">{item.code}</span>}
                         </div>
                       </td>
-                      <td className="num" data-label="المتاح بالمصدر">
+                      <td className={readOnly ? 'num print-hidden' : 'num'} data-label="المتاح بالمصدر">
                         <bdi dir="ltr" className="num tabular-nums">
                           <strong>{formatQty(available)}</strong>
                         </bdi>{' '}
