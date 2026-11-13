@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { NavLink, Navigate } from 'react-router-dom';
 import {
   Ban,
   Building2,
@@ -224,16 +224,17 @@ export default function PlatformAdmin() {
 
         <nav className="nav" aria-label="تنقل لوحة المنصة">
           <div className="nav-group">
-            <button type="button" className="nav-link active">
+            <NavLink to="/platform" className="nav-link active">
               <span className="nav-link-main">
                 <Building2 className="nav-icon" size={18} aria-hidden="true" />
                 <span>إدارة الشركات</span>
               </span>
-            </button>
+            </NavLink>
           </div>
         </nav>
 
         <RowActions
+          portal={false}
           className="sidebar-footer"
           triggerClassName="sidebar-user-block"
           triggerLabel={`خيارات حساب ${adminIdentity?.full_name || 'مطور المنصة'}`}
@@ -261,7 +262,7 @@ export default function PlatformAdmin() {
         />
       </header>
 
-      <main className="main">
+      <main className="content">
         <div className="stack">
           <div className="page-head">
             <div>

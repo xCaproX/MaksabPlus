@@ -35,6 +35,8 @@
 }
 .erp-filters select {
   width: auto;
+  padding-inline-start: 10px;
+  padding-inline-end: 34px;
 }
 .erp-filters .searchable-select {
   width: 145px;

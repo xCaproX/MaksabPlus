@@ -120,6 +120,7 @@ describe('PlatformAdmin page', () => {
       expect(screen.getByText('شركة الأمل')).toBeInTheDocument();
       expect(screen.getByText('شركة البدر')).toBeInTheDocument();
     });
+    expect(screen.getByRole('main')).toHaveClass('content');
     expect(screen.getByText('عميل باقة سنوية')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('الحالة'), { target: { value: 'suspended' } });

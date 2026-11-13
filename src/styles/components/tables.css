@@ -446,6 +446,7 @@ td.row-actions > * + * {
 .table-record-link {
   display: inline-flex;
   align-items: center;
+  text-align: start;
   padding: 2px 4px;
   margin: -2px -4px;
   border: 0;
