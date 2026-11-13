@@ -292,22 +292,19 @@ export default function ReceiptForm({
               <SearchableSelect
                 value={accountId}
                 selectedLabel={selectedAccount?.name ?? editing?.account_name}
-                options={selectableAccounts.map((account) => ({
-                  value: account.id,
-                  label: account.phone ? `${account.name} — ${account.phone}` : account.name,
-                }))}
-                loadOptions={async (q) => {
-                  if (selectableAccounts.length > 0 && selectableAccounts.length <= 50) {
-                    const term = q.trim().toLowerCase();
-                    return selectableAccounts
-                      .filter((a) => !term || a.name.toLowerCase().includes(term) || (a.phone && a.phone.includes(term)))
-                      .map((a) => ({
-                        value: a.id,
-                        label: a.phone ? `${a.name} — ${a.phone}` : a.name,
-                      }));
-                  }
-                  return searchAccountsAsync(accountKind, q);
-                }}
+                options={
+                  selectableAccounts.length <= 50
+                    ? selectableAccounts.map((account) => ({
+                        value: account.id,
+                        label: account.phone ? `${account.name} — ${account.phone}` : account.name,
+                      }))
+                    : undefined
+                }
+                loadOptions={
+                  selectableAccounts.length > 50
+                    ? async (q) => searchAccountsAsync(accountKind, q)
+                    : undefined
+                }
                 onChange={setAccountId}
                 placeholder="ابحث باسم أو هاتف الحساب…"
                 searchPlaceholder="اكتب اسم أو هاتف الحساب…"

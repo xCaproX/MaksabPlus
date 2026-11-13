@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { LogIn, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
+import PasswordInput from '../components/PasswordInput';
 import { toast } from '../components/Toast';
 
 export default function Login() {
@@ -45,14 +46,14 @@ export default function Login() {
 
         <label>
           كلمة المرور
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
             dir="ltr"
             placeholder="••••••••"
+            disabled={busy}
           />
         </label>
 

@@ -276,6 +276,13 @@ input[type="number"] {
   background: rgba(46, 66, 92, 0.04);
 }
 
+.searchable-select-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: transparent;
+  color: var(--muted);
+}
+
 .searchable-select-check {
   color: var(--primary);
   flex-shrink: 0;

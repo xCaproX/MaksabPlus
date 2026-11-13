@@ -44,11 +44,19 @@ export default function SortableHeader({
   return (
     <th
       className={`sortable-th ${isActive ? 'active' : ''} ${className}`.trim()}
-      onClick={handleClick}
       aria-sort={isActive ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}
-      title={`ترتيب حسب ${label}`}
+      onClick={(e) => {
+        if (!(e.target as HTMLElement).closest('button')) {
+          handleClick();
+        }
+      }}
     >
-      <div className={`sortable-header-content ${align ? `align-${align}` : ''}`}>
+      <button
+        type="button"
+        className={`sortable-header-btn sortable-header-content ${align ? `align-${align}` : ''}`.trim()}
+        onClick={handleClick}
+        title={`ترتيب حسب ${label}`}
+      >
         <span>{children ?? label}</span>
         <span className={`sort-icon-box ${isActive ? 'active' : ''}`} aria-hidden="true">
           {isActive ? (
@@ -61,7 +69,7 @@ export default function SortableHeader({
             <ArrowUpDown size={12} className="sort-icon inactive" />
           )}
         </span>
-      </div>
+      </button>
     </th>
   );
 }

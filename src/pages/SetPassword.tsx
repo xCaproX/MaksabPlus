@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
+import PasswordInput from '../components/PasswordInput';
 import { toast } from '../components/Toast';
 
 export default function SetPassword() {
@@ -24,8 +25,8 @@ export default function SetPassword() {
   return <div className="config-screen">
     <form className="card login-card" onSubmit={submit}>
       <h1>تفعيل حساب الموظف</h1>
-      <label>كلمة المرور<input type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
-      <label>تأكيد كلمة المرور<input type="password" autoComplete="new-password" minLength={8} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required /></label>
+      <label>كلمة المرور<PasswordInput autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required dir="ltr" placeholder="••••••••" disabled={busy} /></label>
+      <label>تأكيد كلمة المرور<PasswordInput autoComplete="new-password" minLength={8} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required dir="ltr" placeholder="••••••••" disabled={busy} /></label>
       <button type="submit" className="btn primary block" disabled={busy}>{busy ? 'جارٍ الحفظ…' : 'حفظ كلمة المرور'}</button>
     </form>
   </div>;

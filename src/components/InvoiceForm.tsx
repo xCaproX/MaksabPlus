@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { FOCUS_SETTLE_DELAY_MS } from '../lib/ui';
-import { money, qty as formatQty, round2, today } from '../lib/format';
+import { money, normalizeDigits, qty as formatQty, round2, today } from '../lib/format';
 import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview } from '../lib/invoiceMath';
 import { resolveDefaultAccount, resolveDefaultWarehouse, resolveDefaultCashBox } from '../lib/defaults';
 import { clampDocQty, clampDocQtyOnBlur, DOC_LINE_CLAMP_WARNING, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
@@ -647,14 +647,15 @@ export default function InvoiceForm({
           busy={busy}
           editing={editing}
           onPaidChange={(val) => {
-            if (!/^\d*\.?\d*$/.test(val)) return;
-            const num = parseFloat(val);
+            const normalized = normalizeDigits(val);
+            if (!/^\d*\.?\d*$/.test(normalized)) return;
+            const num = parseFloat(normalized);
             if (!isNaN(num) && num > total) {
               setPaid(Number(total).toFixed(2));
               toast.warning('المدفوع لا يمكن أن يتجاوز إجمالي الفاتورة');
               return;
             }
-            setPaid(val);
+            setPaid(normalized);
           }}
           onPaidBlur={() => {
             let num = parseFloat(paid);

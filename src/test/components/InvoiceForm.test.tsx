@@ -322,4 +322,39 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     const highlightedRow = container.querySelector('tr[data-adjusted-row="itm-1"]');
     expect(highlightedRow).toHaveClass('is-adjusted-highlight');
   });
+
+  it('T-06 & T-18: keeps zero-stock edit line item selectable via held qty and normalizes Arabic digits in paid input to ASCII', () => {
+    const zeroStockRows = [
+      { item_id: 'itm-1', warehouse_id: 'wh-1', current_qty: 0 },
+      { item_id: 'itm-2', warehouse_id: 'wh-1', current_qty: 20 },
+    ] as any;
+    const heldEditInvoice = {
+      ...mockEditingInvoice,
+      lines: [{ key: 'l-1', item_id: 'itm-1', qty: '5', unit_price: '35' }],
+    };
+
+    render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={zeroStockRows}
+        editing={heldEditInvoice}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    const itemInput = screen.getByPlaceholderText('اختر صنفاً للإدراج أو امسح الباركود…');
+    fireEvent.focus(itemInput);
+    const heldOption = screen.getByRole('option', { name: /سكر أبيض 1 كجم/ });
+    expect(heldOption).not.toBeDisabled();
+
+    const paidInput = screen.getByLabelText('المدفوع') as HTMLInputElement;
+    fireEvent.change(paidInput, { target: { value: '١٢٥٫٥٠' } });
+    expect(paidInput.value).toBe('125.50');
+  });
 });

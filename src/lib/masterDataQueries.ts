@@ -1,6 +1,6 @@
 import { collectAllRows } from './exportRows';
 import { supabase } from './supabase';
-import { qty as formatQty } from './format';
+import { qty as formatQty, normalizeDigits } from './format';
 import { buildPostgrestOrFilter, escapeLikePattern } from './search';
 import type { AccountKind, WarehouseOption } from './types';
 import type { SearchOption } from '../components/SearchableSelect';
@@ -28,6 +28,7 @@ interface WarehouseItemQueryResult {
 export interface WarehouseItemOption extends SearchOption {
   value: string;
   label: string;
+  name?: string;
   stock: number;
   salePrice: number;
   purchasePrice: number;
@@ -44,7 +45,7 @@ export async function searchAccountsAsync(
   query: string = '',
   limit: number = 25,
 ): Promise<SearchOption[]> {
-  const trimmed = query.trim();
+  const trimmed = normalizeDigits(query).trim();
 
   let req = supabase
     .from('v_account_balances')
@@ -82,7 +83,7 @@ export async function searchWarehouseItemsAsync(
   limit: number = 25,
 ): Promise<WarehouseItemOption[]> {
   if (!warehouseId) return [];
-  const trimmed = query.trim();
+  const trimmed = normalizeDigits(query).trim();
 
   let req = supabase
     .from('v_warehouse_items')
@@ -103,6 +104,7 @@ export async function searchWarehouseItemsAsync(
     const isOut = isStockLimited && stock <= 0;
     return {
       value: row.item_id,
+      name: row.item_name,
       label: `${row.item_code} — ${row.item_name} — متاح: ${formatQty(stock)} ${row.unit}${isOut ? ' (غير متوفر)' : ''}`,
       stock,
       salePrice: Number(row.sale_price || 0),
@@ -122,7 +124,7 @@ export async function lookupBarcodeItem(
   warehouseId: string,
   isStockLimited: boolean = false,
 ): Promise<WarehouseItemOption | null> {
-  const trimmed = barcode.trim();
+  const trimmed = normalizeDigits(barcode).trim();
   if (!trimmed || !warehouseId) return null;
 
   const escapedBarcode = escapeLikePattern(trimmed);

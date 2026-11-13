@@ -323,11 +323,12 @@ export default function CashBoxTransferForm({
             {notes || 'لا توجد ملاحظات على التحويل'}
           </div>
         ) : (
-          <input
+          <textarea
+            rows={2}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="ملاحظات اختيارية على عملية التحويل…"
-            className="account-notes-input"
+            className="left-notes-textarea account-notes-input"
             aria-label="ملاحظات التحويل"
           />
         )}

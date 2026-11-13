@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
-import { Eye, EyeOff, KeyRound } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
 import Modal from './Modal';
+import PasswordInput from './PasswordInput';
 import { toast } from './Toast';
 
 export interface ChangePasswordModalProps {
@@ -112,31 +113,19 @@ export default function ChangePasswordModal({
           <div className="pwd-fields-stack">
             <label className="pwd-field-label">
               <span>كلمة المرور الجديدة</span>
-              <div className="pwd-input-wrap">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  dir="ltr"
-                  placeholder="••••••••"
-                  disabled={busy}
-                  className="pwd-input pwd-password-input"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  className="icon-btn pwd-eye-btn"
-                  tabIndex={-1}
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  title={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
-                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+              <PasswordInput
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                minLength={8}
+                required
+                dir="ltr"
+                placeholder="••••••••"
+                disabled={busy}
+                autoFocus
+                revealed={showPassword}
+                onToggleReveal={() => setShowPassword((prev) => !prev)}
+              />
               <span className="pwd-min-length-hint">
                 يجب ألا تقل عن 8 أحرف أو أرقام.
               </span>
@@ -144,8 +133,7 @@ export default function ChangePasswordModal({
 
             <label className="pwd-field-label">
               <span>تأكيد كلمة المرور الجديدة</span>
-              <input
-                type={showPassword ? 'text' : 'password'}
+              <PasswordInput
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"
@@ -154,7 +142,8 @@ export default function ChangePasswordModal({
                 dir="ltr"
                 placeholder="••••••••"
                 disabled={busy}
-                className="pwd-input"
+                revealed={showPassword}
+                onToggleReveal={() => setShowPassword((prev) => !prev)}
               />
             </label>
           </div>

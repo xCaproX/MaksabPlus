@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { normalizeDigits } from '../lib/format';
 
 export interface PickerInputProps {
   kind: 'date' | 'time';
@@ -24,7 +25,7 @@ function toDisplay(iso: string): string {
 
 /** Convert display 'DD/MM/YYYY' or typed input to ISO 'YYYY-MM-DD' */
 function toIso(display: string): string | null {
-  const clean = display.replace(/\u200f/g, '').trim();
+  const clean = normalizeDigits(display.replace(/\u200f/g, '').trim());
   const parts = clean.split('/');
   if (parts.length === 3) {
     const d = parseInt(parts[0], 10);
@@ -59,7 +60,9 @@ export default function PickerInput({
   }, [value, kind]);
 
   function handleTextChange(e: ChangeEvent<HTMLInputElement>) {
-    let raw = e.target.value.replace(/\u200f/g, '').replace(kind === 'date' ? /[^\d/]/g : /[^\d:]/g, '');
+    let raw = normalizeDigits(e.target.value)
+      .replace(/\u200f/g, '')
+      .replace(kind === 'date' ? /[^\d/]/g : /[^\d:]/g, '');
     const separator = kind === 'date' ? '/' : ':';
     if (raw.length === 2 && !raw.includes(separator)) raw += separator;
     else if (kind === 'date' && raw.length === 5 && raw.split('/').length === 2) raw += '/';
@@ -121,7 +124,6 @@ export default function PickerInput({
       />
       {showPicker && <button
         type="button"
-        tabIndex={-1}
         className="date-picker-trigger"
         onClick={handlePickerClick}
         disabled={disabled}

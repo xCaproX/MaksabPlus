@@ -34,7 +34,7 @@ interface InvoiceItemsTableProps {
   onEntryQtyBlur: () => void;
   onEntryPriceChange: (val: string) => void;
   onInsertLine: () => void;
-  getItemAvailableStock: (itemId: string, targetWarehouseId?: string) => number;
+  getItemAvailableStock: (itemId: string, targetWarehouseId?: string, rawWarehouseStock?: number) => number;
   adjustedHighlightItemId?: string | null;
 }
 
@@ -100,33 +100,29 @@ export default function InvoiceItemsTable({
                             return {
                               value: item.id,
                               label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                              disabled: isOut,
                             };
                           })
                         : undefined
                     }
-                    loadOptions={async (query) => {
-                      const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                      if (items.length > 0 && items.length <= 50) {
-                        const q = query.trim().toLowerCase();
-                        return items
-                          .filter((item) => !q || item.name.toLowerCase().includes(q) || item.code.toLowerCase().includes(q))
-                          .map((item) => {
-                            const stock = getItemAvailableStock(item.id, warehouseId);
-                            const isOut = isStockLimited && Number(stock) <= 0;
-                            return {
-                              value: item.id,
-                              label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
-                              stock,
-                              salePrice: Number(item.sale_price),
-                              purchasePrice: Number(item.purchase_price),
-                              unit: item.unit,
-                              code: item.code,
-                              costLocked: false,
-                            };
-                          });
-                      }
-                      return searchWarehouseItemsAsync(warehouseId, query, isStockLimited);
-                    }}
+                    loadOptions={
+                      items.length > 50
+                        ? async (query) => {
+                            const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+                            const results = await searchWarehouseItemsAsync(warehouseId, query, isStockLimited);
+                            return results.map((opt) => {
+                              const effectiveStock = getItemAvailableStock(opt.value, warehouseId, opt.stock);
+                              const isOut = isStockLimited && Number(effectiveStock) <= 0;
+                              const itemName = opt.name ?? opt.label;
+                              return {
+                                ...opt,
+                                disabled: isOut,
+                                label: `${opt.code} — ${itemName} — متاح: ${formatQty(effectiveStock)} ${opt.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                              };
+                            });
+                          }
+                        : undefined
+                    }
                     onBarcodeScan={async (barcode) => {
                       const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
                       const found = await lookupBarcodeItem(barcode, warehouseId, isStockLimited);

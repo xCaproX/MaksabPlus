@@ -450,30 +450,42 @@ export default function WarehouseTransferForm({
                       inputRef={entryItemSearchRef}
                       value={entryItemId}
                       selectedLabel={entrySelectedItem ? `${entrySelectedItem.code ? `${entrySelectedItem.code} — ` : ''}${entrySelectedItem.name}` : undefined}
-                      options={selectableItems.map((entry) => {
-                        const available = getAvailableStock(entry.id, sourceId);
-                        const isOut = available <= 0;
-                        return {
-                          value: entry.id,
-                          label: `${entry.code ? `${entry.code} — ` : ''}${entry.name} — متاح: ${formatQty(available)} ${entry.unit}${isOut ? ' (غير متوفر)' : ''}`,
-                        };
-                      })}
-                      loadOptions={async (query) => {
-                        if (selectableItems.length > 0 && selectableItems.length <= 50) {
-                          const q = query.trim().toLowerCase();
-                          return selectableItems
-                            .filter((entry) => !q || entry.name.toLowerCase().includes(q) || (entry.code && entry.code.toLowerCase().includes(q)))
-                            .map((entry) => {
+                      options={
+                        selectableItems.length <= 50
+                          ? selectableItems.map((entry) => {
                               const available = getAvailableStock(entry.id, sourceId);
                               const isOut = available <= 0;
                               return {
                                 value: entry.id,
                                 label: `${entry.code ? `${entry.code} — ` : ''}${entry.name} — متاح: ${formatQty(available)} ${entry.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                                disabled: isOut,
                               };
-                            });
-                        }
-                        return searchWarehouseItemsAsync(sourceId, query, true);
-                      }}
+                            })
+                          : undefined
+                      }
+                      loadOptions={
+                        selectableItems.length > 50
+                          ? async (query) => {
+                              const results = await searchWarehouseItemsAsync(sourceId, query, true);
+                              return results.map((opt) => {
+                                const effectiveStock = calculateAvailableStock({
+                                  itemId: opt.value,
+                                  warehouseId: sourceId,
+                                  stockRows: [{ item_id: opt.value, warehouse_id: sourceId, current_qty: opt.stock } as StockOpeningRow],
+                                  editingWarehouseId: editing?.source_warehouse_id,
+                                  editingLines: editing?.lines,
+                                });
+                                const isOut = effectiveStock <= 0;
+                                const itemName = opt.name ?? opt.label;
+                                return {
+                                  ...opt,
+                                  disabled: isOut,
+                                  label: `${opt.code ? `${opt.code} — ` : ''}${itemName} — متاح: ${formatQty(effectiveStock)} ${opt.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                                };
+                              });
+                            }
+                          : undefined
+                      }
                       onBarcodeScan={async (barcode) => {
                         const found = await lookupBarcodeItem(barcode, sourceId, true);
                         if (!found) {

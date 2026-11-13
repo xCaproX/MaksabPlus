@@ -38,6 +38,25 @@ function isTopModal(token: symbol): boolean {
   return top.token === token;
 }
 
+function getFocusableElements(root: HTMLElement): HTMLElement[] {
+  const selector =
+    'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+  return Array.from(root.querySelectorAll<HTMLElement>(selector))
+    .filter(
+      (el) =>
+        !el.hasAttribute('disabled') &&
+        el.getAttribute('aria-hidden') !== 'true' &&
+        !el.closest('[hidden], [aria-hidden="true"]'),
+    )
+    .sort((a, b) => {
+      if (a === b) return 0;
+      const pos = a.compareDocumentPosition(b);
+      if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+      if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+      return 0;
+    });
+}
+
 interface ModalDirtyRegistration {
   dirty: boolean;
   message?: string;
@@ -104,6 +123,9 @@ export default function Modal({
   dirtyConfirmMessage,
 }: ModalProps) {
   const depth = useContext(ModalDepthContext);
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const modalTokenRef = useRef<symbol | null>(null);
   if (!modalTokenRef.current) {
     modalTokenRef.current = Symbol('modal');
@@ -156,6 +178,22 @@ export default function Modal({
   }, [dismissible, requestClose, onClose]);
 
   useEffect(() => {
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    if (dialogRef.current && !dialogRef.current.contains(document.activeElement)) {
+      dialogRef.current.focus({ preventScroll: true });
+    }
+
+    return () => {
+      const prev = previousFocusRef.current;
+      if (prev && prev.isConnected) {
+        prev.focus({ preventScroll: true });
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const token = modalTokenRef.current!;
     modalOrderCounter += 1;
     modalStack.push({ token, depth, order: modalOrderCounter });
@@ -169,9 +207,38 @@ export default function Modal({
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
-      if (event.key !== 'Escape' || !dismissible) return;
       if (!isTopModal(modalTokenRef.current!)) return;
-      attemptDismiss();
+
+      if (event.key === 'Escape') {
+        if (dismissible) attemptDismiss();
+        return;
+      }
+
+      if (event.key === 'Tab' && dialogRef.current) {
+        const activeEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        if (activeEl?.closest('.searchable-select-options')) {
+          return;
+        }
+
+        const focusables = getFocusableElements(dialogRef.current);
+        if (focusables.length === 0) {
+          event.preventDefault();
+          dialogRef.current.focus();
+          return;
+        }
+
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (event.shiftKey) {
+          if (!activeEl || !dialogRef.current.contains(activeEl) || activeEl === first || activeEl === dialogRef.current) {
+            event.preventDefault();
+            last.focus();
+          }
+        } else if (!activeEl || !dialogRef.current.contains(activeEl) || activeEl === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     }
 
     document.addEventListener('keydown', handleKey);
@@ -197,14 +264,17 @@ export default function Modal({
           }}
         >
           <div
+            ref={dialogRef}
+            tabIndex={-1}
             className={className ? `modal ${className}` : 'modal'}
             role="dialog"
             aria-modal="true"
+            aria-labelledby={titleId}
             aria-label={title}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="modal-head">
-              <h2>{title}</h2>
+              <h2 id={titleId}>{title}</h2>
               <button
                 type="button"
                 className="icon-btn"

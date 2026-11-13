@@ -1,3 +1,5 @@
+import { normalizeDigits } from './format';
+
 export const DOCUMENT_SEARCH_FIELDS = {
   invoice: ['number', 'account_name', 'account_phone', 'warehouse_name', 'notes', 'created_by_name'],
   receipt: ['number', 'account_name', 'account_phone', 'cash_box_name', 'statement', 'notes', 'created_by_name'],
@@ -6,17 +8,17 @@ export const DOCUMENT_SEARCH_FIELDS = {
 };
 export const DOCUMENT_SEARCH_PLACEHOLDER = 'بحث في بيانات المستند أو بواسطة…';
 
-/** مطابقة نصوص البحث العربية في الحقول المعروضة. */
+/** مطابقة نصوص البحث العربية في الحقول المعروضة مع توحيد الأرقام القياسية. */
 export function matchesSearchQuery(
   fields: (string | number | null | undefined)[],
   query: string,
 ): boolean {
-  const normalizedQuery = query.trim().toLocaleLowerCase('ar');
+  const normalizedQuery = normalizeDigits(query).trim().toLocaleLowerCase('ar');
   if (!normalizedQuery) return true;
 
   return fields.some((field) => {
     if (field === null || field === undefined) return false;
-    return String(field).toLocaleLowerCase('ar').includes(normalizedQuery);
+    return normalizeDigits(String(field)).toLocaleLowerCase('ar').includes(normalizedQuery);
   });
 }
 

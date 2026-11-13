@@ -126,18 +126,11 @@ export default function InvoiceAccountHeader({
                       }))
                     : undefined
                 }
-                loadOptions={async (q) => {
-                  if (selectableAccounts.length > 0 && selectableAccounts.length <= 50) {
-                    const term = q.trim().toLowerCase();
-                    return selectableAccounts
-                      .filter((a) => !term || a.name.toLowerCase().includes(term) || (a.phone && a.phone.includes(term)))
-                      .map((a) => ({
-                        value: a.id,
-                        label: a.phone ? `${a.name} — ${a.phone}` : a.name,
-                      }));
-                  }
-                  return searchAccountsAsync(accountKind, q);
-                }}
+                loadOptions={
+                  selectableAccounts.length > 50
+                    ? async (q) => searchAccountsAsync(accountKind, q)
+                    : undefined
+                }
                 onChange={onAccountChange}
                 placeholder="اختر الحساب…"
                 searchPlaceholder="اكتب للبحث عن حساب…"

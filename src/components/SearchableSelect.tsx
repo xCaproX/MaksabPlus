@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Loader2 } from 'lucide-react';
+import { normalizeDigits } from '../lib/format';
 
 export interface SearchOption {
   value: string;
@@ -61,11 +62,16 @@ export default function SearchableSelect({
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const isAsync = Boolean(loadOptions);
+  const loadOptionsRef = useRef(loadOptions);
+  loadOptionsRef.current = loadOptions;
+  const requestIdRef = useRef(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [asyncOptions, setAsyncOptions] = useState<SearchOption[]>([]);
+  const [resolvedQuery, setResolvedQuery] = useState<string | null>(null);
   const [loadingAsync, setLoadingAsync] = useState(false);
   const [savedOption, setSavedOption] = useState<SearchOption | null>(null);
 
-  const trimmedQuery = query.trim();
+  const trimmedQuery = normalizeDigits(query).trim();
 
   // الخيارات الفعالة
   const effectiveOptions = useMemo(() => {
@@ -96,8 +102,9 @@ export default function SearchableSelect({
   // تصفية الخيارات في النمط المتزامن
   const filteredOptions = useMemo(() => {
     if (isAsync) return effectiveOptions;
+    const lowered = trimmedQuery.toLocaleLowerCase();
     return effectiveOptions.filter((option) =>
-      option.label.toLocaleLowerCase().includes(trimmedQuery.toLocaleLowerCase()),
+      normalizeDigits(option.label).toLocaleLowerCase().includes(lowered),
     );
   }, [isAsync, effectiveOptions, trimmedQuery]);
 
@@ -138,26 +145,35 @@ export default function SearchableSelect({
     };
   }, [portal, open]);
 
-  // جلب البيانات لحظيًا مع تأخير (Debounce 250ms) في النمط غير المتزامن
+  // جلب البيانات لحظيًا مع تأخير (Debounce 250ms) في النمط غير المتزامن وحفظ ترتيب الطلبات
   useEffect(() => {
     if (!isAsync || !open) {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
       setLoadingAsync(false);
+      setResolvedQuery(null);
       return;
     }
 
     let active = true;
+    const activeQuery = query;
+    const requestId = ++requestIdRef.current;
     setLoadingAsync(true);
 
-    const timer = setTimeout(async () => {
+    debounceTimerRef.current = setTimeout(async () => {
       try {
-        const results = await loadOptions!(query);
-        if (active) {
+        const loader = loadOptionsRef.current;
+        const results = loader ? await loader(activeQuery) : [];
+        if (active && requestId === requestIdRef.current) {
           setAsyncOptions(results || []);
+          setResolvedQuery(activeQuery);
         }
       } catch (err) {
         console.error('Failed to load async options in SearchableSelect:', err);
       } finally {
-        if (active) {
+        if (active && requestId === requestIdRef.current) {
           setLoadingAsync(false);
         }
       }
@@ -165,11 +181,30 @@ export default function SearchableSelect({
 
     return () => {
       active = false;
-      clearTimeout(timer);
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
     };
-  }, [isAsync, open, query, loadOptions]);
+  }, [isAsync, open, query]);
+
+  function findNextEnabledIndex(startIndex: number, step: 1 | -1): number {
+    if (filteredOptions.length === 0) return -1;
+    let idx = startIndex;
+    for (let tried = 0; tried < filteredOptions.length; tried += 1) {
+      idx += step;
+      if (idx < 0) idx = 0;
+      if (idx >= filteredOptions.length) idx = filteredOptions.length - 1;
+      if (!filteredOptions[idx]?.disabled) return idx;
+      if ((step === -1 && idx === 0) || (step === 1 && idx === filteredOptions.length - 1)) {
+        break;
+      }
+    }
+    return startIndex >= 0 && !filteredOptions[startIndex]?.disabled ? startIndex : -1;
+  }
 
   function choose(option: SearchOption) {
+    if (option.disabled) return;
     setSavedOption(option);
     onChange(option.value);
     onSelectOption?.(option);
@@ -182,22 +217,39 @@ export default function SearchableSelect({
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       setOpen(true);
-      setActiveIndex((current) => Math.min(current + 1, filteredOptions.length - 1));
+      setActiveIndex((current) => findNextEnabledIndex(current, 1));
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       setOpen(true);
-      setActiveIndex((current) => Math.max(current - 1, 0));
+      setActiveIndex((current) => findNextEnabledIndex(current < 0 ? filteredOptions.length : current, -1));
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      const currentQuery = query.trim();
+      const currentQuery = normalizeDigits(query.trim());
 
-      if (open && activeIndex >= 0 && filteredOptions[activeIndex]) {
+      if (open && activeIndex >= 0 && filteredOptions[activeIndex] && !filteredOptions[activeIndex].disabled) {
         choose(filteredOptions[activeIndex]);
         return;
       }
 
-      if (open && !loadingAsync && filteredOptions.length > 0) {
-        choose(filteredOptions[0]);
+      if (isAsync && query !== resolvedQuery) {
+        if (onBarcodeScan && currentQuery) {
+          if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
+          }
+          requestIdRef.current += 1;
+          setLoadingAsync(false);
+          onBarcodeScan(currentQuery);
+          setQuery('');
+          setActiveIndex(-1);
+          setOpen(false);
+        }
+        return;
+      }
+
+      const firstEnabled = filteredOptions.find((option) => !option.disabled);
+      if (open && !loadingAsync && firstEnabled) {
+        choose(firstEnabled);
         return;
       }
 
@@ -205,6 +257,7 @@ export default function SearchableSelect({
       if (onBarcodeScan && currentQuery) {
         onBarcodeScan(currentQuery);
         setQuery('');
+        setActiveIndex(-1);
         setOpen(false);
       }
     } else if (event.key === 'Escape') {

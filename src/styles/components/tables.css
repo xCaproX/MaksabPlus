@@ -96,6 +96,27 @@ td.row-actions > * + * {
   background-color: var(--surface-highlight);
 }
 
+.sortable-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  inline-size: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.sortable-header-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .sortable-header-content {
   display: inline-flex;
   align-items: center;
@@ -420,6 +441,30 @@ td.row-actions > * + * {
   .erp-table-wrap { max-height: 52dvh; }
   .erp-pagination { padding: 8px 10px; }
   .erp-row-actions { opacity: 1; }
+}
+
+@media (hover: none) {
+  .erp-row-actions {
+    opacity: 1;
+  }
+}
+
+@media (pointer: coarse) {
+  .row-actions-trigger-btn {
+    position: relative;
+    width: 36px;
+    height: 36px;
+  }
+
+  .row-actions-trigger-btn::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+
+  .row-actions-dropdown button {
+    min-block-size: 40px;
+  }
 }
 
 /* A real table row keeps every filter aligned with its heading and records. */

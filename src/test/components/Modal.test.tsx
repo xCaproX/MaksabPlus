@@ -182,4 +182,46 @@ describe('shared modal dismissal & T-03a dirty/portal stack', () => {
     expect(cancelChild).not.toHaveBeenCalled();
     expect(screen.getByText('تغييرات غير محفوظة')).toBeInTheDocument();
   });
+
+  it('T-03b: wires aria-labelledby, traps Tab/Shift+Tab inside top dialog, and restores focus to connected trigger', () => {
+    function TriggerHarness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <div>
+          <button type="button" onClick={() => setOpen(true)}>
+            فتح النافذة
+          </button>
+          {open && (
+            <Modal title="عنوان الوصول" onClose={() => setOpen(false)}>
+              <input aria-label="الحقل الأول" />
+              <button type="button">زر أخير</button>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    render(<TriggerHarness />);
+    const triggerBtn = screen.getByRole('button', { name: 'فتح النافذة' });
+    triggerBtn.focus();
+    fireEvent.click(triggerBtn);
+
+    const dialog = screen.getByRole('dialog');
+    const heading = screen.getByRole('heading', { level: 2, name: 'عنوان الوصول' });
+    expect(dialog.getAttribute('aria-labelledby')).toBe(heading.id);
+
+    const closeBtn = screen.getByRole('button', { name: 'إغلاق' });
+    const lastBtn = screen.getByRole('button', { name: 'زر أخير' });
+
+    lastBtn.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(closeBtn);
+
+    closeBtn.focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(lastBtn);
+
+    fireEvent.click(closeBtn);
+    expect(document.activeElement).toBe(triggerBtn);
+  });
 });
