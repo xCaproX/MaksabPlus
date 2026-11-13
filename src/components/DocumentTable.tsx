@@ -88,9 +88,9 @@ export default function DocumentTable<T extends { id: string }>({
           rows.map((row) => (
             <tr
               key={row.id}
-              tabIndex={0}
               onClick={() => onView(row)}
               onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return;
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
                   onView(row);
@@ -105,9 +105,23 @@ export default function DocumentTable<T extends { id: string }>({
                   typeof col.cellClassName === 'function'
                     ? col.cellClassName(row)
                     : col.cellClassName;
+                const cellContent = col.render ? col.render(row) : null;
                 return (
                   <td key={col.key} className={cellClass}>
-                    {col.render ? col.render(row) : null}
+                    {col.key === 'number' ? (
+                      <button
+                        type="button"
+                        className="table-record-link"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onView(row);
+                        }}
+                      >
+                        {cellContent}
+                      </button>
+                    ) : (
+                      cellContent
+                    )}
                   </td>
                 );
               })}

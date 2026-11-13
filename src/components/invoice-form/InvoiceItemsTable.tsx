@@ -6,6 +6,7 @@ import SearchableSelect from '../SearchableSelect';
 import MoneyDisplay from '../MoneyDisplay';
 import { toast } from '../Toast';
 import {
+  formatItemAvailabilitySublabel,
   searchWarehouseItemsAsync,
   lookupBarcodeItem,
   type WarehouseItemOption,
@@ -99,7 +100,8 @@ export default function InvoiceItemsTable({
                             const isOut = isStockLimited && Number(stock) <= 0;
                             return {
                               value: item.id,
-                              label: `${item.code} — ${item.name} — متاح: ${formatQty(stock)} ${item.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                              label: `${item.code} — ${item.name}`,
+                              sublabel: formatItemAvailabilitySublabel(Number(stock), item.unit, isOut),
                               disabled: isOut,
                             };
                           })
@@ -117,7 +119,8 @@ export default function InvoiceItemsTable({
                               return {
                                 ...opt,
                                 disabled: isOut,
-                                label: `${opt.code} — ${itemName} — متاح: ${formatQty(effectiveStock)} ${opt.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                                label: `${opt.code} — ${itemName}`,
+                                sublabel: formatItemAvailabilitySublabel(Number(effectiveStock), opt.unit, isOut),
                               };
                             });
                           }

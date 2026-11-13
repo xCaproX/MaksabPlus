@@ -26,7 +26,6 @@ interface InvoiceTableProps {
   loading: boolean;
   pageInvoices: InvoiceRow[];
   kind: InvoiceTab;
-  partyHeader: string;
   sortOrder: SaleSort;
   onSort: (s: SaleSort) => void;
   showDeleted: boolean;
@@ -45,7 +44,6 @@ export default function InvoiceTable({
   loading,
   pageInvoices,
   kind,
-  partyHeader: _partyHeader,
   sortOrder,
   onSort,
   showDeleted,

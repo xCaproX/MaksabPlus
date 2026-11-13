@@ -224,13 +224,6 @@ export default function Invoices() {
             ? 'مرتجعات المبيعات'
             : 'مرتجعات المشتريات';
 
-  const partyHeader =
-    kind === 'sale' || kind === 'sale_return'
-      ? 'العميل'
-      : kind === 'purchase' || kind === 'purchase_return'
-        ? 'المورد'
-        : 'الحساب';
-
   const formTitle = editingTransfer
     ? modalMode === 'view'
       ? `${showDeleted ? 'محذوف — ' : ''}تحويل بين مخازن — ${editingTransfer.number}`
@@ -847,7 +840,6 @@ export default function Invoices() {
             loading={loading}
             pageInvoices={pageInvoices}
             kind={kind}
-            partyHeader={partyHeader}
             sortOrder={sortOrder}
             onSort={setSortOrder}
             showDeleted={showDeleted}

@@ -14,7 +14,7 @@ const summary = { totalAmount: 100, paidAmount: 40, remainingAmount: 60, profitT
 
 describe('document list presentation', () => {
   it('shows the requested invoice columns, separate paid/credit values, Cairo time and notes', () => {
-    const { container } = render(<InvoiceTable loading={false} pageInvoices={[invoice]} kind="sale" partyHeader="العميل"
+    const { container } = render(<InvoiceTable loading={false} pageInvoices={[invoice]} kind="sale"
       sortOrder="date-desc" onSort={vi.fn()} showDeleted={false}
       newLabel="فاتورة" isReturn={false} onView={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()}
       onRestore={vi.fn()} canEdit={false} canDelete={false} />);

@@ -539,26 +539,6 @@
   background: #ffffff;
 }
 
-.line-delete-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  color: #ef4444;
-  background: transparent;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.line-delete-btn:hover {
-  background: #fee2e2;
-  border-color: #fecaca;
-  color: #b91c1c;
-}
-
 .lines-table tbody tr.empty-line-row {
   opacity: 0.58;
   background: #fafbfc;

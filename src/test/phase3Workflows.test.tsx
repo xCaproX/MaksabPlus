@@ -60,11 +60,15 @@ vi.mock('../context/MasterDataContext', () => ({
   useMasterData: () => mockMasterData,
 }));
 
-vi.mock('../lib/masterDataQueries', () => ({
-  loadAllWarehouses: vi.fn().mockResolvedValue([
-    { id: 'wh-1', name: 'المخزن الرئيسي', serial_number: 1, is_active: true, is_primary: true },
-  ]),
-}));
+vi.mock('../lib/masterDataQueries', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/masterDataQueries')>();
+  return {
+    ...actual,
+    loadAllWarehouses: vi.fn().mockResolvedValue([
+      { id: 'wh-1', name: 'المخزن الرئيسي', serial_number: 1, is_active: true, is_primary: true },
+    ]),
+  };
+});
 
 vi.mock('../components/Toast', () => ({
   toast: {

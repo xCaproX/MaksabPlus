@@ -37,6 +37,11 @@ export interface WarehouseItemOption extends SearchOption {
   costLocked: boolean;
 }
 
+/** تنسيق سطر توفر الصنف الفرعي الموحّد داخل القوائم المنسدلة. */
+export function formatItemAvailabilitySublabel(qty: number, unit: string, isOut: boolean): string {
+  return `متاح: ${formatQty(qty)} ${unit}${isOut ? ' (غير متوفر)' : ''}`;
+}
+
 /**
  * بحث لحظي في الحسابات (عملاء / موردين) مع حد أقصى للنتائج
  */
@@ -105,7 +110,8 @@ export async function searchWarehouseItemsAsync(
     return {
       value: row.item_id,
       name: row.item_name,
-      label: `${row.item_code} — ${row.item_name} — متاح: ${formatQty(stock)} ${row.unit}${isOut ? ' (غير متوفر)' : ''}`,
+      label: `${row.item_code} — ${row.item_name}`,
+      sublabel: formatItemAvailabilitySublabel(stock, row.unit, isOut),
       stock,
       salePrice: Number(row.sale_price || 0),
       purchasePrice: Number(row.purchase_price || 0),
@@ -142,7 +148,9 @@ export async function lookupBarcodeItem(
     const isOut = isStockLimited && stock <= 0;
     return {
       value: stockRow.item_id,
-      label: `${stockRow.item_code} — ${stockRow.item_name} — متاح: ${formatQty(stock)} ${stockRow.unit}${isOut ? ' (غير متوفر)' : ''}`,
+      name: stockRow.item_name,
+      label: `${stockRow.item_code} — ${stockRow.item_name}`,
+      sublabel: formatItemAvailabilitySublabel(stock, stockRow.unit, isOut),
       stock,
       salePrice: Number(stockRow.sale_price || 0),
       purchasePrice: Number(stockRow.purchase_price || 0),
@@ -163,7 +171,9 @@ export async function lookupBarcodeItem(
   if (item) {
     return {
       value: item.id,
-      label: `${item.code} — ${item.name} — متاح: 0 ${item.unit} (غير متوفر)`,
+      name: item.name,
+      label: `${item.code} — ${item.name}`,
+      sublabel: formatItemAvailabilitySublabel(0, item.unit, true),
       stock: 0,
       salePrice: Number(item.sale_price || 0),
       purchasePrice: Number(item.purchase_price || 0),

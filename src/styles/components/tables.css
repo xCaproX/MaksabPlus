@@ -443,6 +443,30 @@ td.row-actions > * + * {
   .erp-row-actions { opacity: 1; }
 }
 
+.table-record-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.table-record-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.table-record-link:focus-visible {
+  outline: 2px solid var(--accent, #0284c7);
+  outline-offset: 2px;
+}
+
 @media (hover: none) {
   .erp-row-actions {
     opacity: 1;

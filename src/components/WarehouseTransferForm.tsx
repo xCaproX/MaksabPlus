@@ -9,7 +9,7 @@ import DateDisplay from './DateDisplay';
 import DateInput from './DateInput';
 import SearchableSelect from './SearchableSelect';
 import DocumentSummarySidebar from './invoice-form/DocumentSummarySidebar';
-import { searchWarehouseItemsAsync, lookupBarcodeItem, type WarehouseItemOption } from '../lib/masterDataQueries';
+import { formatItemAvailabilitySublabel, searchWarehouseItemsAsync, lookupBarcodeItem, type WarehouseItemOption } from '../lib/masterDataQueries';
 import { resolveDefaultWarehouse } from '../lib/defaults';
 import { clampDocQty, clampDocQtyOnBlur, DOC_LINE_CLAMP_WARNING, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
 import { useModalDirtyGuard } from './Modal';
@@ -503,7 +503,8 @@ export default function WarehouseTransferForm({
                               const isOut = available <= 0;
                               return {
                                 value: entry.id,
-                                label: `${entry.code ? `${entry.code} — ` : ''}${entry.name} — متاح: ${formatQty(available)} ${entry.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                                label: `${entry.code ? `${entry.code} — ` : ''}${entry.name}`,
+                                sublabel: formatItemAvailabilitySublabel(available, entry.unit, isOut),
                                 disabled: isOut,
                               };
                             })
@@ -526,7 +527,8 @@ export default function WarehouseTransferForm({
                                 return {
                                   ...opt,
                                   disabled: isOut,
-                                  label: `${opt.code ? `${opt.code} — ` : ''}${itemName} — متاح: ${formatQty(effectiveStock)} ${opt.unit}${isOut ? ' (غير متوفر)' : ''}`,
+                                  label: `${opt.code ? `${opt.code} — ` : ''}${itemName}`,
+                                  sublabel: formatItemAvailabilitySublabel(effectiveStock, opt.unit, isOut),
                                 };
                               });
                             }
