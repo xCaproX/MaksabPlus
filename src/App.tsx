@@ -5,7 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import Layout from './components/Layout';
 import { NavigationGuardProvider } from './components/NavigationGuardContext';
-import { AccessProvider, AccessRoute, useAccess } from './lib/access';
+import { AccessProvider, AccessRoute, useAccess, type InactiveAccessStatus } from './lib/access';
 import { MasterDataProvider } from './context/MasterDataContext';
 import { ToastContainer } from './components/Toast';
 
@@ -27,8 +27,63 @@ function PageSuspense({ children, fullScreen = false, dashboard = false }: { chi
   );
 }
 
+function InactiveAccountScreen({
+  status,
+  onRefresh,
+}: {
+  status: InactiveAccessStatus | null;
+  onRefresh?: () => Promise<void>;
+}) {
+  const isSuspended = status?.reasonCode === 'company_suspended';
+  const isDeactivated = status?.reasonCode === 'user_deactivated';
+
+  const heading = isSuspended
+    ? 'تم إيقاف حساب الشركة مؤقتًا'
+    : isDeactivated
+      ? 'تم تعطيل هذا الحساب'
+      : 'تعذر فتح الحساب';
+
+  const summary = isSuspended
+    ? status?.companyName
+      ? `تم إيقاف دخول مستخدمي شركة «${status.companyName}» مؤقتًا من قِبل إدارة المنصة.`
+      : 'تم إيقاف دخول مستخدمي هذه الشركة مؤقتًا من قِبل إدارة المنصة.'
+    : isDeactivated
+      ? status?.companyName
+        ? `حسابك معطّل حاليًا في شركة «${status.companyName}». برجاء التواصل مع مدير الشركة لإعادة التفعيل.`
+        : 'حسابك معطّل حاليًا. برجاء التواصل مع مدير الشركة لإعادة التفعيل.'
+      : 'هذا الحساب غير مرتبط بشركة نشطة حاليًا أو تعذر التحقق من الصلاحيات.';
+
+  return (
+    <div className="config-screen">
+      <div className="card config-card stack" role="alert">
+        <h1>{heading}</h1>
+        <p>{summary}</p>
+        {isSuspended && status?.suspensionReason && (
+          <div className="alert warning">
+            <strong>سبب الإيقاف:</strong>
+            <p>{status.suspensionReason}</p>
+          </div>
+        )}
+        {isSuspended && (
+          <p className="hint">للاستفسار أو إعادة التفعيل، يرجى التواصل مع إدارة المنصة أو الدعم الفني.</p>
+        )}
+        <div className="actions">
+          {onRefresh && (
+            <button type="button" className="btn outline" onClick={() => void onRefresh()}>
+              تحديث الحالة
+            </button>
+          )}
+          <button type="button" className="btn primary" onClick={() => void supabase.auth.signOut()}>
+            تسجيل الخروج
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AuthenticatedRoutes() {
-  const { access, loading } = useAccess();
+  const { access, inactiveStatus = null, loading, refreshAccess } = useAccess();
 
   if (loading) {
     return (
@@ -47,6 +102,10 @@ export function AuthenticatedRoutes() {
     );
   }
 
+  if (!access) {
+    return <InactiveAccountScreen status={inactiveStatus} onRefresh={refreshAccess} />;
+  }
+
   return (
     <MasterDataProvider>
       <NavigationGuardProvider>
@@ -58,7 +117,7 @@ export function AuthenticatedRoutes() {
             <Route path="/data" element={<AccessRoute permissions={['data.view','data.customers.view','data.suppliers.view','data.items.view','data.warehouses.view','data.cashBoxes.view','data.create','data.edit','data.delete']}><PageSuspense><MasterData /></PageSuspense></AccessRoute>} />
             <Route path="/balances" element={<AccessRoute permissions={['balances.view','balances.customers.view','balances.suppliers.view','balances.items.view','balances.cashBoxes.view']}><PageSuspense><Balances /></PageSuspense></AccessRoute>} />
             <Route path="/management" element={<AccessRoute permissions={['management.view','management.customers.view','management.suppliers.view','management.items.view','management.cashBoxes.view','management.edit']}><PageSuspense><Management /></PageSuspense></AccessRoute>} />
-            <Route path="/access-denied" element={<div className="card empty">هذا المستخدم غير نشط أو الشركة موقوفة مؤقتاً أو لا يملك صلاحية دخول أي صفحة. تواصل مع مدير الشركة.</div>} />
+            <Route path="/access-denied" element={<div className="card empty">هذا الحساب نشط لكنه لا يملك صلاحية دخول أي صفحة حاليًا. تواصل مع مدير الشركة لضبط الصلاحيات.</div>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

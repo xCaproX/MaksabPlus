@@ -43,7 +43,7 @@ begin
      or has_function_privilege('anon', 'public.get_platform_admin_identity()', 'execute')
      or has_function_privilege('anon', 'public.platform_list_companies()', 'execute')
      or has_function_privilege('anon', 'public.platform_list_company_users(uuid)', 'execute')
-     or has_function_privilege('anon', 'public.platform_update_company(uuid, text, text, boolean)', 'execute')
+     or has_function_privilege('anon', 'public.platform_update_company(uuid, text, text, boolean, text)', 'execute')
      or has_function_privilege('anon', 'public.platform_set_company_user_active(uuid, uuid, boolean)', 'execute')
      or has_function_privilege('anon', 'public.platform_set_company_user_password(uuid, uuid, text)', 'execute')
      or has_function_privilege('anon', 'public.platform_provision_company_records(text, text, uuid, text)', 'execute')

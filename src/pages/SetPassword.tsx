@@ -24,7 +24,7 @@ export default function SetPassword() {
 
   return <div className="config-screen">
     <form className="card login-card" onSubmit={submit}>
-      <h1>تفعيل حساب الموظف</h1>
+      <h1>تعيين كلمة المرور وتفعيل الحساب</h1>
       <label>كلمة المرور<PasswordInput autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required dir="ltr" placeholder="••••••••" disabled={busy} /></label>
       <label>تأكيد كلمة المرور<PasswordInput autoComplete="new-password" minLength={8} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required dir="ltr" placeholder="••••••••" disabled={busy} /></label>
       <button type="submit" className="btn primary block" disabled={busy}>{busy ? 'جارٍ الحفظ…' : 'حفظ كلمة المرور'}</button>

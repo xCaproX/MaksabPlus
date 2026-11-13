@@ -8,13 +8,16 @@ import {
   hasPermission,
   type AccessState,
 } from '../lib/accessCheck';
+import type { InactiveAccessStatus } from '../lib/access';
 import { AuthenticatedRoutes } from '../App';
 
 const mockAccessState: {
   access: AccessState | null;
+  inactiveStatus: InactiveAccessStatus | null;
   loading: boolean;
 } = {
   access: null,
+  inactiveStatus: null,
   loading: false,
 };
 
@@ -27,10 +30,12 @@ vi.mock('../lib/access', async () => {
     ...actual,
     useAccess: () => ({
       access: mockAccessState.access,
+      inactiveStatus: mockAccessState.inactiveStatus,
       loading: mockAccessState.loading,
       can: (...keys: string[]) => hasPermission(mockAccessState.access, ...keys),
       canViewProfit: canViewProfit(mockAccessState.access),
       canViewPurchasePrice: canViewPurchasePrice(mockAccessState.access),
+      refreshAccess: vi.fn(async () => undefined),
     }),
   };
 });
@@ -68,6 +73,7 @@ describe('platform_admin accessCheck & shell routing', () => {
   beforeEach(() => {
     masterDataSpy.mockClear();
     layoutSpy.mockClear();
+    mockAccessState.inactiveStatus = null;
     mockAccessState.loading = false;
   });
 
@@ -111,5 +117,48 @@ describe('platform_admin accessCheck & shell routing', () => {
     expect(masterDataSpy).toHaveBeenCalledTimes(1);
     expect(layoutSpy).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('heading', { name: 'لوحة إدارة الشركات للمطور' })).not.toBeInTheDocument();
+  });
+
+  it('shows suspended company notice with optional reason without mounting MasterDataProvider or Layout', () => {
+    mockAccessState.access = null;
+    mockAccessState.inactiveStatus = {
+      reasonCode: 'company_suspended',
+      companyName: 'شركة النور',
+      suspensionReason: 'يرجى تجديد الاشتراك الشهري',
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <AuthenticatedRoutes />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'تم إيقاف حساب الشركة مؤقتًا' })).toBeInTheDocument();
+    expect(screen.getByText(/شركة النور/)).toBeInTheDocument();
+    expect(screen.getByText('يرجى تجديد الاشتراك الشهري')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'تسجيل الخروج' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'تحديث الحالة' })).toBeInTheDocument();
+    expect(masterDataSpy).not.toHaveBeenCalled();
+    expect(layoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('shows user deactivated message cleanly without mounting ERP shell', () => {
+    mockAccessState.access = null;
+    mockAccessState.inactiveStatus = {
+      reasonCode: 'user_deactivated',
+      companyName: 'شركة النور',
+      suspensionReason: '',
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/invoices']}>
+        <AuthenticatedRoutes />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'تم تعطيل هذا الحساب' })).toBeInTheDocument();
+    expect(screen.getByText(/تواصل مع مدير الشركة/)).toBeInTheDocument();
+    expect(masterDataSpy).not.toHaveBeenCalled();
+    expect(layoutSpy).not.toHaveBeenCalled();
   });
 });

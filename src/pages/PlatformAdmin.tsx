@@ -10,6 +10,7 @@ import {
   Plus,
   RefreshCw,
   UserRound,
+  Users,
 } from 'lucide-react';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -22,6 +23,10 @@ import PlatformAddUserModal from '../components/platform/PlatformAddUserModal';
 import PlatformCompanyDetailPanel from '../components/platform/PlatformCompanyDetailPanel';
 import PlatformCompanyFormModal from '../components/platform/PlatformCompanyFormModal';
 import PlatformDeleteCompanyModal from '../components/platform/PlatformDeleteCompanyModal';
+import PlatformDeleteUserModal from '../components/platform/PlatformDeleteUserModal';
+import PlatformEditUserModal from '../components/platform/PlatformEditUserModal';
+import PlatformSuspendCompanyModal from '../components/platform/PlatformSuspendCompanyModal';
+import PlatformUserActivationModal from '../components/platform/PlatformUserActivationModal';
 import { useAccess } from '../lib/access';
 import {
   fetchPlatformAdminIdentity,
@@ -59,6 +64,9 @@ export default function PlatformAdmin() {
   const [deleteTargetCompany, setDeleteTargetCompany] = useState<PlatformCompany | null>(null);
   const [toggleCompanyTarget, setToggleCompanyTarget] = useState<PlatformCompany | null>(null);
   const [toggleUserTarget, setToggleUserTarget] = useState<PlatformCompanyUser | null>(null);
+  const [editUserTarget, setEditUserTarget] = useState<PlatformCompanyUser | null>(null);
+  const [activationUserTarget, setActivationUserTarget] = useState<PlatformCompanyUser | null>(null);
+  const [deleteUserTarget, setDeleteUserTarget] = useState<PlatformCompanyUser | null>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<PlatformCompanyUser | null>(null);
 
   const loadCompanies = useCallback(async () => {
@@ -129,6 +137,11 @@ export default function PlatformAdmin() {
     });
   }, [companies, search, statusFilter]);
 
+  const activeOwnersCount = useMemo(
+    () => companyUsers.filter((u) => u.access_role === 'owner' && u.is_active).length,
+    [companyUsers],
+  );
+
   const kpiItems: KpiItem[] = useMemo(() => {
     const totalCompanies = companies.length;
     const activeCompanies = companies.filter((c) => c.is_active).length;
@@ -136,15 +149,16 @@ export default function PlatformAdmin() {
     const totalUsers = companies.reduce((sum, c) => sum + c.users_count, 0);
 
     return [
-      { id: 'total-companies', label: 'إجمالي الشركات', value: totalCompanies },
-      { id: 'active-companies', label: 'الشركات النشطة', value: activeCompanies, statusVariant: 'ok' },
+      { id: 'total-companies', label: 'إجمالي الشركات', value: totalCompanies, variant: 'primary', icon: Building2 },
+      { id: 'active-companies', label: 'الشركات النشطة', value: activeCompanies, variant: 'success', icon: CheckCircle2 },
       {
         id: 'suspended-companies',
         label: 'الشركات الموقوفة',
         value: suspendedCompanies,
-        statusVariant: suspendedCompanies > 0 ? 'danger' : 'neutral',
+        variant: suspendedCompanies > 0 ? 'danger' : 'neutral',
+        icon: Ban,
       },
-      { id: 'total-users', label: 'إجمالي المستخدمين', value: totalUsers },
+      { id: 'total-users', label: 'إجمالي المستخدمين', value: totalUsers, variant: 'info', icon: Users },
     ];
   }, [companies]);
 
@@ -161,33 +175,50 @@ export default function PlatformAdmin() {
     name: string;
     adminNotes: string;
     isActive: boolean;
+    suspensionReason?: string;
   }) {
     await updatePlatformCompany(params);
     toast.success(`تم حفظ تعديلات شركة «${params.name}».`);
     await loadCompanies();
   }
 
-  async function handleConfirmToggleCompany() {
-    if (!toggleCompanyTarget) return;
+  async function handleSuspendCompany(target: PlatformCompany, suspensionReason: string) {
+    await updatePlatformCompany({
+      companyId: target.id,
+      name: target.name,
+      adminNotes: target.admin_notes,
+      isActive: false,
+      suspensionReason,
+    });
+    toast.success(`تم إيقاف شركة «${target.name}» مؤقتًا.`);
+    await loadCompanies();
+  }
+
+  async function handleConfirmReactivateCompany() {
+    if (!toggleCompanyTarget || toggleCompanyTarget.is_active) return;
     const target = toggleCompanyTarget;
-    const nextActive = !target.is_active;
     try {
       await updatePlatformCompany({
         companyId: target.id,
         name: target.name,
         adminNotes: target.admin_notes,
-        isActive: nextActive,
+        isActive: true,
+        suspensionReason: '',
       });
-      toast.success(
-        nextActive
-          ? `تمت إعادة تفعيل شركة «${target.name}» بنجاح.`
-          : `تم إيقاف شركة «${target.name}» مؤقتًا.`,
-      );
+      toast.success(`تمت إعادة تفعيل شركة «${target.name}» بنجاح.`);
       setToggleCompanyTarget(null);
       await loadCompanies();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'تعذر تحديث حالة الشركة.');
     }
+  }
+
+  function handleRequestToggleUserActive(user: PlatformCompanyUser) {
+    if (user.is_active && user.access_role === 'owner' && activeOwnersCount <= 1) {
+      toast.error('لا يمكن تعطيل آخر مالك نشط للشركة. أضف مالكًا نشطًا آخر أولًا.');
+      return;
+    }
+    setToggleUserTarget(user);
   }
 
   async function handleConfirmToggleUser() {
@@ -224,7 +255,7 @@ export default function PlatformAdmin() {
 
         <nav className="nav" aria-label="تنقل لوحة المنصة">
           <div className="nav-group">
-            <NavLink to="/platform" className="nav-link active">
+            <NavLink to="/" className="nav-link active">
               <span className="nav-link-main">
                 <Building2 className="nav-icon" size={18} aria-hidden="true" />
                 <span>إدارة الشركات</span>
@@ -436,7 +467,7 @@ export default function PlatformAdmin() {
                   onClick={() => setSelectedCompanyId(null)}
                 />
                 <PlatformCompanyDetailPanel
-                  key={`${selectedCompany.id}:${selectedCompany.updated_at}`}
+                  key={`${selectedCompany.id}:${selectedCompany.updated_at}:${selectedCompany.suspension_reason}`}
                   company={selectedCompany}
                   users={companyUsers}
                   usersLoading={usersLoading}
@@ -445,8 +476,11 @@ export default function PlatformAdmin() {
                   onRequestToggleCompanyStatus={(company) => setToggleCompanyTarget(company)}
                   onRequestDeleteCompany={(company) => setDeleteTargetCompany(company)}
                   onOpenAddUser={(company) => setAddUserCompany(company)}
-                  onRequestToggleUserActive={(user) => setToggleUserTarget(user)}
+                  onRequestEditUser={(user) => setEditUserTarget(user)}
+                  onRequestUserActivation={(user) => setActivationUserTarget(user)}
+                  onRequestToggleUserActive={handleRequestToggleUserActive}
                   onRequestResetUserPassword={(user) => setResetPasswordUser(user)}
+                  onRequestDeleteUser={(user) => setDeleteUserTarget(user)}
                 />
               </>
             )}
@@ -491,22 +525,67 @@ export default function PlatformAdmin() {
         />
       )}
 
-      {toggleCompanyTarget && (
+      {toggleCompanyTarget && toggleCompanyTarget.is_active && (
+        <PlatformSuspendCompanyModal
+          company={toggleCompanyTarget}
+          onClose={() => setToggleCompanyTarget(null)}
+          onConfirmSuspend={(reason) => handleSuspendCompany(toggleCompanyTarget, reason)}
+        />
+      )}
+
+      {toggleCompanyTarget && !toggleCompanyTarget.is_active && (
         <ConfirmDialog
-          title={
-            toggleCompanyTarget.is_active
-              ? `إيقاف شركة «${toggleCompanyTarget.name}»`
-              : `تفعيل شركة «${toggleCompanyTarget.name}»`
-          }
-          message={
-            toggleCompanyTarget.is_active
-              ? `هل تريد إيقاف شركة «${toggleCompanyTarget.name}» مؤقتًا؟ سيتم حجب الدخول والعمليات فورًا عن جميع مستخدمي الشركة لحين إعادة التفعيل.`
-              : `هل تريد إعادة تفعيل شركة «${toggleCompanyTarget.name}»؟ سيستعيد المستخدمون النشطون داخل الشركة صلاحياتهم فورًا.`
-          }
-          confirmLabel={toggleCompanyTarget.is_active ? 'إيقاف مؤقت' : 'تفعيل الشركة'}
-          danger={toggleCompanyTarget.is_active}
-          onConfirm={() => void handleConfirmToggleCompany()}
+          title={`تفعيل شركة «${toggleCompanyTarget.name}»`}
+          message={`هل تريد إعادة تفعيل شركة «${toggleCompanyTarget.name}»؟ سيستعيد المستخدمون النشطون داخل الشركة صلاحياتهم فورًا ويُمسح سبب الإيقاف.`}
+          confirmLabel="تفعيل الشركة"
+          danger={false}
+          onConfirm={() => void handleConfirmReactivateCompany()}
           onCancel={() => setToggleCompanyTarget(null)}
+        />
+      )}
+
+      {editUserTarget && selectedCompany && (
+        <PlatformEditUserModal
+          companyId={selectedCompany.id}
+          companyName={selectedCompany.name}
+          user={editUserTarget}
+          isLastActiveOwner={
+            editUserTarget.access_role === 'owner' && editUserTarget.is_active && activeOwnersCount <= 1
+          }
+          onClose={() => setEditUserTarget(null)}
+          onUpdated={async () => {
+            await Promise.all([
+              loadCompanies(),
+              loadSelectedCompanyUsers(selectedCompany.id),
+            ]);
+          }}
+        />
+      )}
+
+      {activationUserTarget && selectedCompany && (
+        <PlatformUserActivationModal
+          companyId={selectedCompany.id}
+          companyName={selectedCompany.name}
+          user={activationUserTarget}
+          onClose={() => setActivationUserTarget(null)}
+        />
+      )}
+
+      {deleteUserTarget && selectedCompany && (
+        <PlatformDeleteUserModal
+          companyId={selectedCompany.id}
+          companyName={selectedCompany.name}
+          user={deleteUserTarget}
+          isLastActiveOwner={
+            deleteUserTarget.access_role === 'owner' && deleteUserTarget.is_active && activeOwnersCount <= 1
+          }
+          onClose={() => setDeleteUserTarget(null)}
+          onDeleted={async () => {
+            await Promise.all([
+              loadCompanies(),
+              loadSelectedCompanyUsers(selectedCompany.id),
+            ]);
+          }}
         />
       )}
 

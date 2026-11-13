@@ -1,5 +1,16 @@
 import { useState, type FormEvent } from 'react';
-import { Ban, CheckCircle2, KeyRound, Plus, ShieldCheck, ShieldOff, Trash2, X } from 'lucide-react';
+import {
+  Ban,
+  CheckCircle2,
+  KeyRound,
+  Link2,
+  Pencil,
+  Plus,
+  ShieldCheck,
+  ShieldOff,
+  Trash2,
+  X,
+} from 'lucide-react';
 import DateDisplay from '../DateDisplay';
 import RowActions from '../RowActions';
 import StatusBadge from '../StatusBadge';
@@ -15,12 +26,16 @@ interface PlatformCompanyDetailPanelProps {
     name: string;
     adminNotes: string;
     isActive: boolean;
+    suspensionReason?: string;
   }) => Promise<void>;
   onRequestToggleCompanyStatus: (company: PlatformCompany) => void;
   onRequestDeleteCompany: (company: PlatformCompany) => void;
   onOpenAddUser: (company: PlatformCompany) => void;
+  onRequestEditUser: (user: PlatformCompanyUser) => void;
+  onRequestUserActivation: (user: PlatformCompanyUser) => void;
   onRequestToggleUserActive: (user: PlatformCompanyUser) => void;
   onRequestResetUserPassword: (user: PlatformCompanyUser) => void;
+  onRequestDeleteUser: (user: PlatformCompanyUser) => void;
 }
 
 export default function PlatformCompanyDetailPanel({
@@ -32,11 +47,15 @@ export default function PlatformCompanyDetailPanel({
   onRequestToggleCompanyStatus,
   onRequestDeleteCompany,
   onOpenAddUser,
+  onRequestEditUser,
+  onRequestUserActivation,
   onRequestToggleUserActive,
   onRequestResetUserPassword,
+  onRequestDeleteUser,
 }: PlatformCompanyDetailPanelProps) {
   const [name, setName] = useState(company?.name ?? '');
   const [adminNotes, setAdminNotes] = useState(company?.admin_notes ?? '');
+  const [suspensionReason, setSuspensionReason] = useState(company?.suspension_reason ?? '');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
@@ -44,9 +63,12 @@ export default function PlatformCompanyDetailPanel({
     return null;
   }
 
+  const activeOwnersCount = users.filter((u) => u.access_role === 'owner' && u.is_active).length;
+
   const hasChanges =
     name.trim() !== company.name.trim() ||
-    adminNotes.trim() !== company.admin_notes.trim();
+    adminNotes.trim() !== company.admin_notes.trim() ||
+    (!company.is_active && suspensionReason.trim() !== company.suspension_reason.trim());
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,6 +88,7 @@ export default function PlatformCompanyDetailPanel({
         name: trimmedName,
         adminNotes: adminNotes.trim(),
         isActive: company.is_active,
+        suspensionReason: company.is_active ? '' : suspensionReason.trim(),
       });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'تعذر حفظ تعديلات الشركة.');
@@ -156,6 +179,18 @@ export default function PlatformCompanyDetailPanel({
             />
           </label>
 
+          {!company.is_active && (
+            <label>
+              <span>سبب الإيقاف الظاهر لمستخدمي الشركة</span>
+              <textarea
+                rows={2}
+                value={suspensionReason}
+                onChange={(e) => setSuspensionReason(e.target.value)}
+                placeholder="مثال: برجاء تجديد الاشتراك الشهري والتواصل مع الدعم الفني..."
+              />
+            </label>
+          )}
+
           {saveError && <div className="alert error" role="alert">{saveError}</div>}
 
           <div className="platform-inline-actions">
@@ -217,6 +252,9 @@ export default function PlatformCompanyDetailPanel({
                         {!user.email_confirmed_at && (
                           <StatusBadge variant="partial">بانتظار التفعيل</StatusBadge>
                         )}
+                        {user.access_role === 'owner' && user.is_active && activeOwnersCount <= 1 && (
+                          <StatusBadge variant="neutral">آخر مالك نشط</StatusBadge>
+                        )}
                       </div>
                     </div>
 
@@ -224,6 +262,20 @@ export default function PlatformCompanyDetailPanel({
                       triggerLabel={`خيارات ${user.full_name || user.email}`}
                       portal
                       customActions={[
+                        {
+                          label: 'تعديل البيانات والدور',
+                          icon: Pencil,
+                          onClick: () => onRequestEditUser(user),
+                        },
+                        ...(!user.email_confirmed_at
+                          ? [
+                              {
+                                label: 'رابط التفعيل / إعادة الإرسال',
+                                icon: Link2,
+                                onClick: () => onRequestUserActivation(user),
+                              },
+                            ]
+                          : []),
                         {
                           label: 'تغيير كلمة المرور',
                           icon: KeyRound,
@@ -233,6 +285,12 @@ export default function PlatformCompanyDetailPanel({
                           label: user.is_active ? 'تعطيل الحساب' : 'تفعيل الحساب',
                           icon: user.is_active ? ShieldOff : ShieldCheck,
                           onClick: () => onRequestToggleUserActive(user),
+                        },
+                        {
+                          label: 'حذف المستخدم…',
+                          icon: Trash2,
+                          danger: true,
+                          onClick: () => onRequestDeleteUser(user),
                         },
                       ]}
                     />

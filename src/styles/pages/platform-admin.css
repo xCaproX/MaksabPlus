@@ -113,3 +113,20 @@
 .platform-confirm-target {
   color: var(--danger, #b91c1c);
 }
+
+.platform-copy-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.platform-copy-row input {
+  flex: 1;
+  min-inline-size: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.platform-copy-row .btn {
+  flex-shrink: 0;
+}

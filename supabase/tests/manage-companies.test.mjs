@@ -8,15 +8,28 @@ function setup({
   hasAuth = true,
   isPlatformAdmin = true,
   companiesById = { 'comp-1': { id: 'comp-1', name: 'شركة النور' } },
+  profilesByKey = {
+    'comp-1:u-1': { id: 'u-1', company_id: 'comp-1', full_name: 'أحمد المالك', access_role: 'owner', is_active: true },
+    'comp-1:u-pending': { id: 'u-pending', company_id: 'comp-1', full_name: 'سعيد الموظف', access_role: 'employee', is_active: true },
+  },
+  authUsersById = {
+    'u-1': { id: 'u-1', email: 'owner@noor.test', email_confirmed_at: '2026-10-01T10:00:00Z', user_metadata: { full_name: 'أحمد المالك' } },
+    'u-pending': { id: 'u-pending', email: 'pending@noor.test', email_confirmed_at: null, user_metadata: { full_name: 'سعيد الموظف' } },
+  },
   adminRpcError = null,
+  adminRpcErrorByFn = {},
   adminRpcResult = null,
   deleteUserFailures = new Set(),
+  inviteError = null,
+  generateLinkInviteError = null,
   allowedOrigins = null,
 } = {}) {
   let handler;
   const adminRpcCalls = [];
   const createUserCalls = [];
   const inviteCalls = [];
+  const generateLinkCalls = [];
+  const updateUserCalls = [];
   const deleteUserCalls = [];
 
   const caller = {
@@ -32,21 +45,32 @@ function setup({
     },
   };
 
+  function makeQueryBuilder(table) {
+    const filters = {};
+    const builder = {
+      select: () => builder,
+      eq: (col, val) => {
+        filters[col] = val;
+        return builder;
+      },
+      maybeSingle: async () => {
+        if (table === 'companies' && filters.id) {
+          return { data: companiesById[filters.id] ?? null, error: null };
+        }
+        if (table === 'profiles' && filters.id && filters.company_id) {
+          return { data: profilesByKey[`${filters.company_id}:${filters.id}`] ?? null, error: null };
+        }
+        return { data: null, error: null };
+      },
+    };
+    return builder;
+  }
+
   const admin = {
-    from: (table) => ({
-      select: () => ({
-        eq: (col, val) => ({
-          maybeSingle: async () => {
-            if (table === 'companies' && col === 'id') {
-              return { data: companiesById[val] ?? null, error: null };
-            }
-            return { data: null, error: null };
-          },
-        }),
-      }),
-    }),
+    from: (table) => makeQueryBuilder(table),
     rpc: async (fn, params) => {
       adminRpcCalls.push({ fn, params });
+      if (adminRpcErrorByFn[fn]) return { data: null, error: adminRpcErrorByFn[fn] };
       if (adminRpcError) return { data: null, error: adminRpcError };
       if (fn === 'platform_provision_company_records') {
         return { data: adminRpcResult ?? 'new-comp-id', error: null };
@@ -58,13 +82,37 @@ function setup({
     },
     auth: {
       admin: {
+        getUserById: async (id) => {
+          const user = authUsersById[id] ?? null;
+          return user ? { data: { user }, error: null } : { data: { user: null }, error: new Error('user_not_found') };
+        },
         createUser: async (payload) => {
           createUserCalls.push(payload);
           return { data: { user: { id: 'created-user-id' } }, error: null };
         },
         inviteUserByEmail: async (email, options) => {
           inviteCalls.push({ email, options });
+          if (inviteError) return { data: { user: null }, error: inviteError };
           return { data: { user: { id: 'invited-user-id' } }, error: null };
+        },
+        generateLink: async (params) => {
+          generateLinkCalls.push(params);
+          if (params.type === 'invite' && generateLinkInviteError) {
+            return { data: null, error: generateLinkInviteError };
+          }
+          return {
+            data: {
+              properties: {
+                action_link: `https://example.invalid/auth/v1/verify?type=${params.type}&token=tok`,
+              },
+              user: authUsersById['u-pending'] ?? { id: 'u-pending' },
+            },
+            error: null,
+          };
+        },
+        updateUserById: async (id, attrs) => {
+          updateUserCalls.push({ id, attrs });
+          return { data: { user: { ...(authUsersById[id] ?? { id }), ...attrs } }, error: null };
         },
         deleteUser: async (id) => {
           deleteUserCalls.push(id);
@@ -101,7 +149,15 @@ function setup({
     URL,
   });
 
-  return { handler, adminRpcCalls, createUserCalls, inviteCalls, deleteUserCalls };
+  return {
+    handler,
+    adminRpcCalls,
+    createUserCalls,
+    inviteCalls,
+    generateLinkCalls,
+    updateUserCalls,
+    deleteUserCalls,
+  };
 }
 
 function makeRequest(body, { auth = 'Bearer jwt', origin = 'https://app.example.com' } = {}) {
@@ -244,4 +300,116 @@ test('deletes company only when exact company name matches and reports partial A
     failed_user_ids: ['u-2'],
   });
   assert.deepEqual(ctxOk.deleteUserCalls, ['u-1', 'u-2']);
+});
+
+test('handles activation_link for pending users (email and link with magiclink fallback) and blocks confirmed users', async () => {
+  const ctxConfirmed = setup();
+  const rConfirmed = await ctxConfirmed.handler(makeRequest({
+    action: 'activation_link',
+    company_id: 'comp-1',
+    user_id: 'u-1',
+    delivery: 'link',
+  }));
+  assert.equal(rConfirmed.status, 400);
+  assert.deepEqual(await rConfirmed.json(), { error: 'user_already_confirmed' });
+
+  const ctxEmailFallback = setup({ inviteError: new Error('A user with this email address has already been registered') });
+  const rEmailErr = await ctxEmailFallback.handler(makeRequest({
+    action: 'activation_link',
+    company_id: 'comp-1',
+    user_id: 'u-pending',
+    delivery: 'email',
+  }));
+  assert.equal(rEmailErr.status, 400);
+  assert.deepEqual(await rEmailErr.json(), { error: 'invite_resend_email_unavailable' });
+
+  const ctxLink = setup({
+    allowedOrigins: 'https://maksab.example.com',
+    generateLinkInviteError: new Error('already registered'),
+  });
+  const rLink = await ctxLink.handler(makeRequest({
+    action: 'activation_link',
+    company_id: 'comp-1',
+    user_id: 'u-pending',
+    delivery: 'link',
+  }, { origin: 'https://maksab.example.com' }));
+  assert.equal(rLink.status, 200);
+  const json = await rLink.json();
+  assert.equal(json.ok, true);
+  assert.equal(json.delivery, 'link');
+  assert.match(json.action_link, /type=magiclink/);
+  assert.equal(ctxLink.generateLinkCalls.length, 2);
+  assert.equal(ctxLink.generateLinkCalls[1].options.redirectTo, 'https://maksab.example.com/set-password');
+});
+
+test('updates user auth email + profile and rolls back auth changes when RPC enforces last-owner guard', async () => {
+  const ctxOk = setup();
+  const resOk = await ctxOk.handler(makeRequest({
+    action: 'update_user',
+    company_id: 'comp-1',
+    user_id: 'u-pending',
+    full_name: 'سعيد المعدل',
+    email: 'Saeed.New@Noor.test',
+    access_role: 'owner',
+  }));
+  assert.equal(resOk.status, 200);
+  assert.equal(ctxOk.updateUserCalls.length, 1);
+  assert.equal(ctxOk.updateUserCalls[0].attrs.email, 'saeed.new@noor.test');
+  assert.equal(ctxOk.updateUserCalls[0].attrs.email_confirm, false);
+  assert.equal(ctxOk.adminRpcCalls[0].fn, 'platform_update_company_user_profile');
+  assert.equal(ctxOk.adminRpcCalls[0].params.p_access_role, 'owner');
+
+  const ctxRollback = setup({
+    adminRpcErrorByFn: { platform_update_company_user_profile: { message: 'cannot_remove_last_active_owner' } },
+  });
+  const resFail = await ctxRollback.handler(makeRequest({
+    action: 'update_user',
+    company_id: 'comp-1',
+    user_id: 'u-1',
+    full_name: 'أحمد جديد',
+    email: 'changed@noor.test',
+    access_role: 'employee',
+  }));
+  assert.equal(resFail.status, 400);
+  assert.deepEqual(await resFail.json(), { error: 'cannot_remove_last_active_owner' });
+  assert.equal(ctxRollback.updateUserCalls.length, 2);
+  assert.equal(ctxRollback.updateUserCalls[1].attrs.email, 'owner@noor.test');
+  assert.equal(ctxRollback.updateUserCalls[1].attrs.user_metadata.full_name, 'أحمد المالك');
+});
+
+test('deletes a single user only when confirmation matches email or name and prevents auth delete if RPC blocks', async () => {
+  const ctxMismatch = setup();
+  const rMismatch = await ctxMismatch.handler(makeRequest({
+    action: 'delete_user',
+    company_id: 'comp-1',
+    user_id: 'u-pending',
+    confirm_identifier: 'غلط',
+  }));
+  assert.equal(rMismatch.status, 400);
+  assert.deepEqual(await rMismatch.json(), { error: 'confirm_user_mismatch' });
+  assert.equal(ctxMismatch.adminRpcCalls.length, 0);
+
+  const ctxGuard = setup({
+    adminRpcErrorByFn: { platform_delete_company_user_data: { message: 'cannot_remove_last_active_owner' } },
+  });
+  const rGuard = await ctxGuard.handler(makeRequest({
+    action: 'delete_user',
+    company_id: 'comp-1',
+    user_id: 'u-1',
+    confirm_identifier: 'OWNER@NOOR.TEST',
+  }));
+  assert.equal(rGuard.status, 400);
+  assert.deepEqual(await rGuard.json(), { error: 'cannot_remove_last_active_owner' });
+  assert.equal(ctxGuard.deleteUserCalls.length, 0);
+
+  const ctxOk = setup();
+  const rOk = await ctxOk.handler(makeRequest({
+    action: 'delete_user',
+    company_id: 'comp-1',
+    user_id: 'u-pending',
+    confirm_identifier: 'سعيد الموظف',
+  }));
+  assert.equal(rOk.status, 200);
+  assert.deepEqual(await rOk.json(), { ok: true, auth_delete_failed: false });
+  assert.deepEqual(ctxOk.deleteUserCalls, ['u-pending']);
 });

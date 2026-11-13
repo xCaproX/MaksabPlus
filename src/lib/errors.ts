@@ -91,6 +91,12 @@ const MESSAGES: Record<string, string> = {
   invalid_auth_mode: 'طريقة إنشاء الحساب غير صالحة',
   password_too_short: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
   user_not_found: 'المستخدم غير موجود ضمن هذه الشركة',
+  cannot_remove_last_active_owner: 'لا يمكن تعطيل أو حذف آخر مالك نشط للشركة أو تحويله لموظف. أضف مالكًا نشطًا آخر أولًا.',
+  user_already_confirmed: 'تم تفعيل البريد الإلكتروني لهذا المستخدم بالفعل.',
+  invite_resend_email_unavailable: 'تعذر إعادة إرسال الدعوة بالبريد لهذا الحساب المسجل مسبقًا. استخدم «إنشاء رابط تفعيل للنسخ» وأرسله للمستخدم مباشرة.',
+  confirm_user_mismatch: 'الاسم أو البريد المدخل للتأكيد غير مطابق لبيانات المستخدم.',
+  invalid_delivery_mode: 'طريقة إرسال رابط التفعيل غير صالحة.',
+  activation_link_failed: 'تعذر إنشاء رابط التفعيل حاليًا.',
 };
 
 export function translateDbError(message: string | undefined | null): string {

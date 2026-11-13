@@ -9,6 +9,7 @@ const companiesFixture = [
     name: 'شركة الأمل',
     currency: 'EGP',
     is_active: true,
+    suspension_reason: '',
     created_at: '2026-10-01T10:00:00Z',
     updated_at: '2026-11-10T10:00:00Z',
     users_count: 3,
@@ -22,6 +23,7 @@ const companiesFixture = [
     name: 'شركة البدر',
     currency: 'EGP',
     is_active: false,
+    suspension_reason: 'بانتظار التجديد',
     created_at: '2026-09-15T10:00:00Z',
     updated_at: '2026-11-01T10:00:00Z',
     users_count: 1,
@@ -121,6 +123,11 @@ describe('PlatformAdmin page', () => {
       expect(screen.getByText('شركة البدر')).toBeInTheDocument();
     });
     expect(screen.getByRole('main')).toHaveClass('content');
+    expect(screen.getByRole('link', { name: 'إدارة الشركات' })).toHaveAttribute('href', '/');
+    expect(document.querySelector('.metric-card-primary')).toBeInTheDocument();
+    expect(document.querySelector('.metric-card-success')).toBeInTheDocument();
+    expect(document.querySelector('.metric-card-danger')).toBeInTheDocument();
+    expect(document.querySelector('.metric-card-info')).toBeInTheDocument();
     expect(screen.getByText('عميل باقة سنوية')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('الحالة'), { target: { value: 'suspended' } });
@@ -202,6 +209,75 @@ describe('PlatformAdmin page', () => {
         p_name: 'شركة الأمل',
         p_admin_notes: 'تم التواصل وتمديد الاشتراك',
         p_is_active: true,
+        p_suspension_reason: '',
+      });
+    });
+
+    // Guard last active owner on deactivate / role edit / user delete
+    expect(within(drawer).getByText('آخر مالك نشط')).toBeInTheDocument();
+    fireEvent.click(within(drawer).getByRole('button', { name: 'خيارات أحمد المالك' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'تعطيل الحساب' }));
+    expect(rpcSpy).not.toHaveBeenCalledWith('platform_set_company_user_active', expect.anything());
+
+    fireEvent.click(within(drawer).getByRole('button', { name: 'خيارات أحمد المالك' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'تعديل البيانات والدور' }));
+    const editUserDialog = screen.getByRole('dialog');
+    expect(within(editUserDialog).getByLabelText('الدور داخل الشركة')).toBeDisabled();
+    fireEvent.change(within(editUserDialog).getByLabelText('الاسم الكامل'), {
+      target: { value: 'أحمد المالك المعدل' },
+    });
+    fireEvent.click(within(editUserDialog).getByRole('button', { name: 'حفظ التعديلات' }));
+    await waitFor(() => {
+      expect(invokeSpy).toHaveBeenCalledWith('manage-companies', {
+        body: {
+          action: 'update_user',
+          company_id: 'comp-1',
+          user_id: 'user-owner-1',
+          full_name: 'أحمد المالك المعدل',
+          email: 'owner@alamal.test',
+          access_role: 'owner',
+        },
+      });
+    });
+
+    // Generate copyable activation link for unconfirmed employee
+    invokeSpy.mockResolvedValueOnce({
+      data: { ok: true, delivery: 'link', action_link: 'https://auth.example.test/verify?tok=abc' },
+      error: null,
+    });
+    fireEvent.click(within(drawer).getByRole('button', { name: 'خيارات سعيد الموظف' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'رابط التفعيل / إعادة الإرسال' }));
+    const activationDialog = screen.getByRole('dialog');
+    fireEvent.click(within(activationDialog).getByRole('button', { name: 'إنشاء رابط تفعيل للنسخ' }));
+    await waitFor(() => {
+      expect(within(activationDialog).getByDisplayValue('https://auth.example.test/verify?tok=abc')).toBeInTheDocument();
+    });
+    const closeActivationButtons = within(activationDialog).getAllByRole('button', { name: 'إغلاق' });
+    fireEvent.click(closeActivationButtons[closeActivationButtons.length - 1]);
+
+    // Delete single pending employee with confirmation
+    invokeSpy.mockResolvedValueOnce({
+      data: { ok: true, auth_delete_failed: false },
+      error: null,
+    });
+    fireEvent.click(within(drawer).getByRole('button', { name: 'خيارات سعيد الموظف' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'حذف المستخدم…' }));
+    const deleteUserDialog = screen.getByRole('dialog');
+    const confirmDeleteUserBtn = within(deleteUserDialog).getByRole('button', { name: 'حذف المستخدم نهائيًا' });
+    expect(confirmDeleteUserBtn).toBeDisabled();
+    fireEvent.change(within(deleteUserDialog).getByPlaceholderText('emp@alamal.test'), {
+      target: { value: 'emp@alamal.test' },
+    });
+    expect(confirmDeleteUserBtn).toBeEnabled();
+    fireEvent.click(confirmDeleteUserBtn);
+    await waitFor(() => {
+      expect(invokeSpy).toHaveBeenCalledWith('manage-companies', {
+        body: {
+          action: 'delete_user',
+          company_id: 'comp-1',
+          user_id: 'user-emp-1',
+          confirm_identifier: 'emp@alamal.test',
+        },
       });
     });
 
@@ -226,9 +302,12 @@ describe('PlatformAdmin page', () => {
       });
     });
 
-    // Suspend company via ConfirmDialog
+    // Suspend company with optional customer-facing suspension reason
     fireEvent.click(within(drawer).getByRole('button', { name: 'إيقاف الشركة مؤقتًا' }));
     const suspendDialog = screen.getByRole('dialog');
+    fireEvent.change(within(suspendDialog).getByLabelText('سبب الإيقاف الظاهر لمستخدمي الشركة (اختياري)'), {
+      target: { value: 'برجاء تجديد الاشتراك الشهري' },
+    });
     fireEvent.click(within(suspendDialog).getByRole('button', { name: 'إيقاف مؤقت' }));
 
     await waitFor(() => {
@@ -237,6 +316,7 @@ describe('PlatformAdmin page', () => {
         p_name: 'شركة الأمل',
         p_admin_notes: 'عميل باقة سنوية',
         p_is_active: false,
+        p_suspension_reason: 'برجاء تجديد الاشتراك الشهري',
       });
     });
 

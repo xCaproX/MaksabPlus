@@ -260,6 +260,196 @@ Deno.serve(async (request) => {
       });
     }
 
+    if (body.action === 'activation_link') {
+      const companyId = typeof body.company_id === 'string' ? body.company_id.trim() : '';
+      const userId = typeof body.user_id === 'string' ? body.user_id.trim() : '';
+      const delivery = body.delivery === 'email' || body.delivery === 'link' ? body.delivery : '';
+
+      if (!companyId) return json({ error: 'company_not_found' }, 400);
+      if (!userId) return json({ error: 'user_not_found' }, 400);
+      if (!delivery) return json({ error: 'invalid_delivery_mode' }, 400);
+
+      const { data: profileRow, error: profileError } = await admin
+        .from('profiles')
+        .select('id, full_name')
+        .eq('id', userId)
+        .eq('company_id', companyId)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profileRow) return json({ error: 'user_not_found' }, 404);
+
+      const { data: authDataUser, error: getUserError } = await admin.auth.admin.getUserById(userId);
+      if (getUserError || !authDataUser?.user?.email) {
+        return json({ error: 'user_not_found' }, 404);
+      }
+
+      const authUser = authDataUser.user;
+      if (authUser.email_confirmed_at) {
+        return json({ error: 'user_already_confirmed' }, 400);
+      }
+
+      const redirectTo = safeOrigin ? `${safeOrigin}/set-password` : undefined;
+      const fullName = String(profileRow.full_name ?? authUser.user_metadata?.full_name ?? '');
+
+      if (delivery === 'email') {
+        const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(authUser.email, {
+          ...(redirectTo ? { redirectTo } : {}),
+          data: { full_name: fullName },
+        });
+        if (inviteError) {
+          const normalized = normalizeAuthError(inviteError);
+          if (normalized.message === 'email_already_registered') {
+            return json({ error: 'invite_resend_email_unavailable' }, 400);
+          }
+          throw normalized;
+        }
+        return json({ ok: true, delivery: 'email' });
+      }
+
+      let linkRes = await admin.auth.admin.generateLink({
+        type: 'invite',
+        email: authUser.email,
+        options: {
+          ...(redirectTo ? { redirectTo } : {}),
+          data: { full_name: fullName },
+        },
+      });
+      if (linkRes.error || !linkRes.data?.properties?.action_link) {
+        linkRes = await admin.auth.admin.generateLink({
+          type: 'magiclink',
+          email: authUser.email,
+          options: {
+            ...(redirectTo ? { redirectTo } : {}),
+            data: { full_name: fullName },
+          },
+        });
+      }
+      if (linkRes.error || !linkRes.data?.properties?.action_link) {
+        throw normalizeAuthError(linkRes.error ?? new Error('activation_link_failed'));
+      }
+
+      return json({
+        ok: true,
+        delivery: 'link',
+        action_link: linkRes.data.properties.action_link,
+      });
+    }
+
+    if (body.action === 'update_user') {
+      const companyId = typeof body.company_id === 'string' ? body.company_id.trim() : '';
+      const userId = typeof body.user_id === 'string' ? body.user_id.trim() : '';
+      const fullName = typeof body.full_name === 'string' ? body.full_name.trim() : '';
+      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+      const accessRole = body.access_role === 'owner' || body.access_role === 'employee' ? body.access_role : '';
+
+      if (!companyId) return json({ error: 'company_not_found' }, 400);
+      if (!userId) return json({ error: 'user_not_found' }, 400);
+      if (!fullName) return json({ error: 'full_name_required' }, 400);
+      if (!email || !email.includes('@')) return json({ error: 'invalid_email' }, 400);
+      if (!accessRole) return json({ error: 'invalid_access_role' }, 400);
+
+      const { data: profileRow, error: profileError } = await admin
+        .from('profiles')
+        .select('id, full_name, access_role, is_active')
+        .eq('id', userId)
+        .eq('company_id', companyId)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profileRow) return json({ error: 'user_not_found' }, 404);
+
+      const { data: authDataUser, error: getUserError } = await admin.auth.admin.getUserById(userId);
+      if (getUserError || !authDataUser?.user) {
+        return json({ error: 'user_not_found' }, 404);
+      }
+
+      const authUser = authDataUser.user;
+      const prevEmail = String(authUser.email ?? '').trim().toLowerCase();
+      const prevFullName = String(profileRow.full_name ?? '');
+      const emailChanged = email !== prevEmail;
+      const nameChanged = fullName !== prevFullName;
+
+      if (emailChanged || nameChanged) {
+        const updateAttrs: Record<string, unknown> = {
+          user_metadata: { ...(authUser.user_metadata ?? {}), full_name: fullName },
+        };
+        if (emailChanged) {
+          updateAttrs.email = email;
+          updateAttrs.email_confirm = Boolean(authUser.email_confirmed_at);
+        }
+        const { error: authUpdateError } = await admin.auth.admin.updateUserById(userId, updateAttrs);
+        if (authUpdateError) {
+          throw normalizeAuthError(authUpdateError);
+        }
+      }
+
+      const { error: profileRpcError } = await admin.rpc('platform_update_company_user_profile', {
+        p_company_id: companyId,
+        p_user_id: userId,
+        p_full_name: fullName,
+        p_access_role: accessRole,
+      });
+
+      if (profileRpcError) {
+        if (emailChanged || nameChanged) {
+          const rollbackAttrs: Record<string, unknown> = {
+            user_metadata: { ...(authUser.user_metadata ?? {}), full_name: prevFullName },
+          };
+          if (emailChanged && prevEmail) {
+            rollbackAttrs.email = prevEmail;
+            rollbackAttrs.email_confirm = Boolean(authUser.email_confirmed_at);
+          }
+          await admin.auth.admin.updateUserById(userId, rollbackAttrs);
+        }
+        throw profileRpcError;
+      }
+
+      return json({ ok: true });
+    }
+
+    if (body.action === 'delete_user') {
+      const companyId = typeof body.company_id === 'string' ? body.company_id.trim() : '';
+      const userId = typeof body.user_id === 'string' ? body.user_id.trim() : '';
+      const confirmIdentifier = typeof body.confirm_identifier === 'string' ? body.confirm_identifier.trim() : '';
+
+      if (!companyId) return json({ error: 'company_not_found' }, 400);
+      if (!userId) return json({ error: 'user_not_found' }, 400);
+      if (!confirmIdentifier) return json({ error: 'confirm_user_mismatch' }, 400);
+
+      const { data: profileRow, error: profileError } = await admin
+        .from('profiles')
+        .select('id, full_name')
+        .eq('id', userId)
+        .eq('company_id', companyId)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profileRow) return json({ error: 'user_not_found' }, 404);
+
+      const { data: authDataUser, error: getUserError } = await admin.auth.admin.getUserById(userId);
+      if (getUserError || !authDataUser?.user) {
+        return json({ error: 'user_not_found' }, 404);
+      }
+
+      const authEmail = String(authDataUser.user.email ?? '').trim().toLowerCase();
+      const profileName = String(profileRow.full_name ?? '').trim();
+      const matchesEmail = authEmail.length > 0 && confirmIdentifier.toLowerCase() === authEmail;
+      const matchesName = profileName.length > 0 && confirmIdentifier === profileName;
+      if (!matchesEmail && !matchesName) {
+        return json({ error: 'confirm_user_mismatch' }, 400);
+      }
+
+      const { error: deleteRpcError } = await admin.rpc('platform_delete_company_user_data', {
+        p_company_id: companyId,
+        p_user_id: userId,
+      });
+      if (deleteRpcError) throw deleteRpcError;
+
+      const { error: authDeleteError } = await admin.auth.admin.deleteUser(userId);
+      return json({
+        ok: true,
+        auth_delete_failed: Boolean(authDeleteError),
+      });
+    }
+
     return json({ error: 'unknown_action' }, 400);
   } catch (error) {
     return json({ error: extractErrorMessage(error) }, 400);

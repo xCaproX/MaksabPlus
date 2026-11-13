@@ -15,6 +15,7 @@ export interface PlatformCompany {
   name: string;
   currency: string;
   is_active: boolean;
+  suspension_reason: string;
   created_at: string;
   updated_at: string;
   users_count: number;
@@ -38,6 +39,17 @@ export interface DeleteCompanyResult {
   ok: boolean;
   deleted_user_count: number;
   failed_user_ids: string[];
+}
+
+export interface ActivationLinkResult {
+  ok: boolean;
+  delivery: 'email' | 'link';
+  action_link?: string;
+}
+
+export interface DeleteCompanyUserResult {
+  ok: boolean;
+  auth_delete_failed: boolean;
 }
 
 async function invokeManageCompanies<T = Record<string, unknown>>(
@@ -84,6 +96,7 @@ export async function listPlatformCompanies(): Promise<PlatformCompany[]> {
     name: String(row.name ?? ''),
     currency: String(row.currency ?? 'EGP'),
     is_active: Boolean(row.is_active),
+    suspension_reason: String(row.suspension_reason ?? ''),
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
     users_count: Number(row.users_count ?? 0),
@@ -135,12 +148,14 @@ export async function updatePlatformCompany(params: {
   name: string;
   adminNotes: string;
   isActive: boolean;
+  suspensionReason?: string;
 }): Promise<void> {
   const { error } = await supabase.rpc('platform_update_company', {
     p_company_id: params.companyId,
     p_name: params.name,
     p_admin_notes: params.adminNotes,
     p_is_active: params.isActive,
+    p_suspension_reason: params.isActive ? '' : (params.suspensionReason ?? ''),
   });
   if (error) throw new Error(errorMessage(error));
 }
@@ -161,6 +176,49 @@ export async function addPlatformCompanyUser(params: {
     access_role: params.accessRole,
     auth_mode: params.authMode,
     ...(params.authMode === 'password' ? { password: params.password ?? '' } : {}),
+  });
+}
+
+export async function updatePlatformCompanyUser(params: {
+  companyId: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  accessRole: CompanyUserRole;
+}): Promise<void> {
+  await invokeManageCompanies({
+    action: 'update_user',
+    company_id: params.companyId,
+    user_id: params.userId,
+    full_name: params.fullName,
+    email: params.email,
+    access_role: params.accessRole,
+  });
+}
+
+export async function requestPlatformUserActivation(params: {
+  companyId: string;
+  userId: string;
+  delivery: 'email' | 'link';
+}): Promise<ActivationLinkResult> {
+  return invokeManageCompanies<ActivationLinkResult>({
+    action: 'activation_link',
+    company_id: params.companyId,
+    user_id: params.userId,
+    delivery: params.delivery,
+  });
+}
+
+export async function deletePlatformCompanyUser(params: {
+  companyId: string;
+  userId: string;
+  confirmIdentifier: string;
+}): Promise<DeleteCompanyUserResult> {
+  return invokeManageCompanies<DeleteCompanyUserResult>({
+    action: 'delete_user',
+    company_id: params.companyId,
+    user_id: params.userId,
+    confirm_identifier: params.confirmIdentifier,
   });
 }
 
