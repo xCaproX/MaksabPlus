@@ -5,7 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import Layout from './components/Layout';
 import { NavigationGuardProvider } from './components/NavigationGuardContext';
-import { AccessProvider, AccessRoute } from './lib/access';
+import { AccessProvider, AccessRoute, useAccess } from './lib/access';
 import { MasterDataProvider } from './context/MasterDataContext';
 import { ToastContainer } from './components/Toast';
 
@@ -17,12 +17,53 @@ const MasterData = lazy(() => import('./pages/MasterData'));
 const Balances = lazy(() => import('./pages/Balances'));
 const Management = lazy(() => import('./pages/Management'));
 const SetPassword = lazy(() => import('./pages/SetPassword'));
+const PlatformAdmin = lazy(() => import('./pages/PlatformAdmin'));
 
 function PageSuspense({ children, fullScreen = false, dashboard = false }: { children: ReactNode; fullScreen?: boolean; dashboard?: boolean }) {
   return (
     <Suspense fallback={fullScreen ? <div className="config-screen">جارٍ تحميل الصفحة…</div> : <LoadingSkeleton layout={dashboard ? "dashboard" : "page"} label="جارٍ تحميل الصفحة…" />}>
       {children}
     </Suspense>
+  );
+}
+
+export function AuthenticatedRoutes() {
+  const { access, loading } = useAccess();
+
+  if (loading) {
+    return (
+      <div className="config-screen">
+        <LoadingSkeleton layout="dashboard" label="جارٍ التحقق من الصلاحيات…" />
+      </div>
+    );
+  }
+
+  if (access?.role === 'platform_admin') {
+    return (
+      <Routes>
+        <Route path="/" element={<PageSuspense fullScreen><PlatformAdmin /></PageSuspense>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <MasterDataProvider>
+      <NavigationGuardProvider>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<PageSuspense dashboard><Home /></PageSuspense>} />
+            <Route path="/invoices" element={<AccessRoute permissions={['goods.view','goods.sale.view','goods.purchase.view','goods.sale_return.view','goods.purchase_return.view','goods.waste.view','goods.warehouse_transfer.view']}><PageSuspense><Invoices /></PageSuspense></AccessRoute>} />
+            <Route path="/receipts" element={<AccessRoute permissions={['money.view','money.in.view','money.out.view','money.cash_box_transfer.view']}><PageSuspense><Receipts /></PageSuspense></AccessRoute>} />
+            <Route path="/data" element={<AccessRoute permissions={['data.view','data.customers.view','data.suppliers.view','data.items.view','data.warehouses.view','data.cashBoxes.view','data.create','data.edit','data.delete']}><PageSuspense><MasterData /></PageSuspense></AccessRoute>} />
+            <Route path="/balances" element={<AccessRoute permissions={['balances.view','balances.customers.view','balances.suppliers.view','balances.items.view','balances.cashBoxes.view']}><PageSuspense><Balances /></PageSuspense></AccessRoute>} />
+            <Route path="/management" element={<AccessRoute permissions={['management.view','management.customers.view','management.suppliers.view','management.items.view','management.cashBoxes.view','management.edit']}><PageSuspense><Management /></PageSuspense></AccessRoute>} />
+            <Route path="/access-denied" element={<div className="card empty">هذا المستخدم غير نشط أو الشركة موقوفة مؤقتاً أو لا يملك صلاحية دخول أي صفحة. تواصل مع مدير الشركة.</div>} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </NavigationGuardProvider>
+    </MasterDataProvider>
   );
 }
 
@@ -76,16 +117,18 @@ export default function App() {
           element={session ? <Navigate to="/" replace /> : <PageSuspense fullScreen><Login /></PageSuspense>}
         />
         <Route path="/set-password" element={session ? <PageSuspense fullScreen><SetPassword /></PageSuspense> : <Navigate to="/login" replace />} />
-        <Route element={session ? <AccessProvider key={session.user.id}><MasterDataProvider><NavigationGuardProvider><Layout /></NavigationGuardProvider></MasterDataProvider></AccessProvider> : <Navigate to="/login" replace />}>
-          <Route path="/" element={<PageSuspense dashboard><Home /></PageSuspense>} />
-          <Route path="/invoices" element={<AccessRoute permissions={['goods.view','goods.sale.view','goods.purchase.view','goods.sale_return.view','goods.purchase_return.view','goods.waste.view','goods.warehouse_transfer.view']}><PageSuspense><Invoices /></PageSuspense></AccessRoute>} />
-          <Route path="/receipts" element={<AccessRoute permissions={['money.view','money.in.view','money.out.view','money.cash_box_transfer.view']}><PageSuspense><Receipts /></PageSuspense></AccessRoute>} />
-          <Route path="/data" element={<AccessRoute permissions={['data.view','data.customers.view','data.suppliers.view','data.items.view','data.warehouses.view','data.cashBoxes.view','data.create','data.edit','data.delete']}><PageSuspense><MasterData /></PageSuspense></AccessRoute>} />
-          <Route path="/balances" element={<AccessRoute permissions={['balances.view','balances.customers.view','balances.suppliers.view','balances.items.view','balances.cashBoxes.view']}><PageSuspense><Balances /></PageSuspense></AccessRoute>} />
-          <Route path="/management" element={<AccessRoute permissions={['management.view','management.customers.view','management.suppliers.view','management.items.view','management.cashBoxes.view','management.edit']}><PageSuspense><Management /></PageSuspense></AccessRoute>} />
-          <Route path="/access-denied" element={<div className="card empty">هذا المستخدم غير نشط أو لا يملك صلاحية دخول أي صفحة. تواصل مع مدير الشركة.</div>} />
-        </Route>
-        <Route path="*" element={<Navigate to={session ? '/' : '/login'} replace />} />
+        <Route
+          path="/*"
+          element={
+            session ? (
+              <AccessProvider key={session.user.id}>
+                <AuthenticatedRoutes />
+              </AccessProvider>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

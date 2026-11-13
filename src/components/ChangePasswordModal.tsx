@@ -14,6 +14,8 @@ export interface ChangePasswordModalProps {
     name?: string | null;
     email: string;
   } | null;
+  onSubmitPassword?: (newPassword: string) => Promise<void>;
+  targetDescription?: string;
   onSuccess?: () => void;
 }
 
@@ -21,6 +23,8 @@ export default function ChangePasswordModal({
   isOpen,
   onClose,
   targetUser,
+  onSubmitPassword,
+  targetDescription,
   onSuccess,
 }: ChangePasswordModalProps) {
   const [password, setPassword] = useState('');
@@ -51,7 +55,10 @@ export default function ChangePasswordModal({
 
     setBusy(true);
     try {
-      if (isTargetMode && targetUser) {
+      if (isTargetMode && targetUser && onSubmitPassword) {
+        await onSubmitPassword(trimmedPassword);
+        toast.success(`تم تغيير كلمة مرور «${targetUser.name || targetUser.email}» بنجاح.`);
+      } else if (isTargetMode && targetUser) {
         const { error: rpcError } = await supabase.rpc('set_company_user_password', {
           p_user_id: targetUser.id,
           p_password: trimmedPassword,
@@ -106,7 +113,7 @@ export default function ChangePasswordModal({
         <div className="account-header-card">
           <p className="hint change-password-hint">
             {isTargetMode
-              ? `أدخل كلمة المرور الجديدة للموظف (${targetUser?.email}). سيتمكن من تسجيل الدخول بها فورًا.`
+              ? (targetDescription ?? `أدخل كلمة المرور الجديدة للموظف (${targetUser?.email}). سيتمكن من تسجيل الدخول بها فورًا.`)
               : 'أدخل كلمة المرور الجديدة لتسجيل الدخول إلى حسابك في مكسب بلس.'}
           </p>
 

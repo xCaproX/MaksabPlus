@@ -1,0 +1,115 @@
+/* Platform Admin Dashboard styles (strictly logical RTL properties) */
+.platform-fieldset-legend {
+  padding-inline: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.platform-mode-tabs {
+  margin-block: 4px;
+}
+
+.platform-field-caption {
+  display: block;
+  margin-block-end: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.platform-row-selected td {
+  background: var(--erp-row-selected, rgba(15, 118, 110, 0.06));
+}
+
+.platform-notes-cell {
+  max-inline-size: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.platform-detail-drawer {
+  z-index: 100;
+}
+
+.platform-edit-form h3,
+.platform-users-section h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.platform-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.platform-users-section {
+  padding-block-start: 12px;
+  border-block-start: 1px solid var(--erp-border);
+}
+
+.platform-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.platform-users-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.platform-user-card {
+  padding: 10px 12px;
+  border: 1px solid var(--erp-border);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.platform-user-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.platform-user-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-inline-size: 0;
+}
+
+.platform-user-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.platform-user-meta {
+  font-size: 12px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.platform-danger-zone {
+  border-block-start: 1px solid var(--erp-border);
+  padding-block-start: 10px;
+}
+
+.platform-confirm-target {
+  color: var(--danger, #b91c1c);
+}

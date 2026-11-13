@@ -78,6 +78,19 @@ const MESSAGES: Record<string, string> = {
   cannot_modify_purchase_items_with_subsequent_sales:
     'لا يمكن تعديل أصناف أو كميات أو أسعار فاتورة الشراء لوجود حركات صرف أو بيع لاحقة عليها',
   invalid_statement_period: 'اختر فترة صحيحة لكشف الحساب',
+  company_name_required: 'أدخل اسم الشركة',
+  company_not_found: 'الشركة غير موجودة أو تم حذفها بالفعل',
+  owner_name_required: 'أدخل اسم مالك الشركة',
+  full_name_required: 'أدخل الاسم الكامل للمستخدم',
+  invalid_email: 'أدخل بريدًا إلكترونيًا صحيحًا',
+  email_already_registered: 'البريد الإلكتروني مسجل بالفعل في النظام',
+  user_already_has_company: 'هذا المستخدم مرتبط بالفعل بشركة أخرى',
+  platform_admin_cannot_belong_to_company: 'حساب مطور المنصة لا يمكن ربطه بشركة',
+  confirm_name_mismatch: 'اسم الشركة المدخل للتأكيد غير مطابق لاسم الشركة',
+  invalid_access_role: 'نوع الصلاحية غير صالح',
+  invalid_auth_mode: 'طريقة إنشاء الحساب غير صالحة',
+  password_too_short: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
+  user_not_found: 'المستخدم غير موجود ضمن هذه الشركة',
 };
 
 export function translateDbError(message: string | undefined | null): string {

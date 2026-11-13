@@ -1,5 +1,5 @@
 export type AccessState = {
-  role: 'owner' | 'employee';
+  role: 'owner' | 'employee' | 'platform_admin';
   permissions: string[];
 };
 
@@ -17,7 +17,7 @@ export function hasPermission(
   access: AccessState | null | undefined,
   ...requiredKeys: string[]
 ): boolean {
-  if (!access) return false;
+  if (!access || access.role === 'platform_admin') return false;
   if (access.role === 'owner' || access.permissions.includes('*')) return true;
 
   return requiredKeys.some((key) => {

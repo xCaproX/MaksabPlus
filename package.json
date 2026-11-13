@@ -10,7 +10,7 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test:frontend": "vitest run",
-    "test": "vitest run && node --test supabase/tests/manage-users.test.mjs && node supabase/tests/verify-remote-db.test.mjs",
+    "test": "vitest run && node --test supabase/tests/manage-users.test.mjs supabase/tests/manage-companies.test.mjs && node supabase/tests/verify-remote-db.test.mjs",
     "test:db": "node supabase/tests/run-local.mjs",
     "test:concurrency": "node scripts/test-concurrency.mjs",
     "test:verify-db": "node supabase/tests/verify-remote-db.test.mjs",
