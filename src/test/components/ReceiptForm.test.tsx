@@ -519,7 +519,8 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     const cashboxInput = metaRow.querySelector('.field-cashbox-select input') as HTMLInputElement;
     expect(cashboxInput.value).toBe('الخزنة الرئيسية');
     const balanceField = metaRow.querySelector('.field-cashbox-balance')!;
-    expect(balanceField).toHaveTextContent('الرصيد');
+    expect(balanceField).not.toHaveTextContent('الرصيد');
+    expect(balanceField.querySelector('.cashbox-balance-box')).toHaveAttribute('aria-label', 'الرصيد');
     expect(balanceField).toHaveTextContent('5,000.00');
     expect(balanceField.querySelector('.strong')).toBeNull();
 
@@ -715,8 +716,10 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     fireEvent.change(amountInput, { target: { value: '9000' } });
 
     const outMetaRow = outEditContainer.querySelector('.row-cashbox-balance-notes')!;
-    expect(outMetaRow.querySelector('.field-cashbox-balance')).toHaveTextContent('الرصيد المتاح');
-    expect(outMetaRow.querySelector('.cashbox-balance-box')).toHaveClass('is-danger');
+    const outBalanceField = outMetaRow.querySelector('.field-cashbox-balance')!;
+    expect(outBalanceField).not.toHaveTextContent('الرصيد');
+    expect(outBalanceField.querySelector('.cashbox-balance-box')).toHaveAttribute('aria-label', 'الرصيد المتاح');
+    expect(outBalanceField.querySelector('.cashbox-balance-box')).toHaveClass('is-danger');
     expect(outEditContainer.querySelector('.overdraft-warning-badge')).toBeInTheDocument();
   });
 

@@ -431,13 +431,7 @@ input.receipt-amount-input {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.field-cashbox-balance .field-label-text {
-  font-size: 12px;
-  font-weight: 700;
-  color: #334155;
-  white-space: nowrap;
+  min-width: 0;
 }
 
 .readonly-val-box.cashbox-balance-box {

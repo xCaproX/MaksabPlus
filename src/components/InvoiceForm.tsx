@@ -90,7 +90,7 @@ export default function InvoiceForm({
     editing?.invoice.warehouse_id ?? defaultWarehouse?.id ?? '',
   );
   const [cashBoxId, setCashBoxId] = useState(
-    editing?.invoice.cash_box_id ?? defaultCashBox?.id ?? '',
+    editing?.invoice.cash_box_id ?? '',
   );
   const [paid, setPaid] = useState(editing ? Number(editing.invoice.paid).toFixed(2) : '0.00');
   const [notes, setNotes] = useState(editing?.invoice.notes ?? '');
@@ -150,8 +150,13 @@ export default function InvoiceForm({
   const selectableCashBoxes = cashBoxes.filter(
     (box) => box.is_active || box.id === editing?.invoice.cash_box_id,
   );
-  const effectiveCashBoxId =
-    cashBoxId || editing?.invoice.cash_box_id || cashBoxes.find((box) => box.is_active)?.id || '';
+  const resolvedCashBoxId =
+    cashBoxId ||
+    editing?.invoice.cash_box_id ||
+    defaultCashBox?.id ||
+    cashBoxes.find((box) => box.is_active)?.id ||
+    '';
+  const effectiveCashBoxId = paidNumber > 0 ? resolvedCashBoxId : '';
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId);
@@ -451,6 +456,7 @@ export default function InvoiceForm({
           : 'manual';
       setAccountId(defaultAccountId);
       setAccountKind(defaultAccountKind);
+      setCashBoxId('');
     }
     toast.info('تم مسح الفاتورة وبدء فاتورة جديدة');
     setTimeout(() => {

@@ -297,13 +297,16 @@
 
 @media (max-width: 680px) {
   .receipt-account-row1,
-  .receipt-form .row-amount-tafqeet,
-  .row-cashbox-balance-notes {
+  .receipt-form .row-amount-tafqeet {
     grid-template-columns: 1fr;
   }
 
+  .row-cashbox-balance-notes {
+    grid-template-columns: minmax(0, 1fr) 110px;
+  }
+
   .row-cashbox-balance-notes .field-receipt-notes {
-    grid-column: auto;
+    grid-column: 1 / -1;
     margin-inline-start: 0;
   }
 

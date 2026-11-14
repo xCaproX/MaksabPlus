@@ -457,9 +457,9 @@ export default function ReceiptForm({
           </label>
 
           <CashBoxBalanceBox
-            label={!isIn && !isReadOnly ? 'الرصيد المتاح' : 'الرصيد'}
             balance={cashBoxDisplayBalance}
             danger={isOverdraft}
+            ariaLabel={!isIn && !isReadOnly ? 'الرصيد المتاح' : 'الرصيد'}
           />
 
           <label className="field-receipt-notes">

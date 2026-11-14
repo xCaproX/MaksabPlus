@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import InvoiceForm from '../../components/InvoiceForm';
 import * as masterDataQueries from '../../lib/masterDataQueries';
+import { supabase } from '../../lib/supabase';
 import type { AccountKind, AccountRow } from '../../lib/types';
 
 vi.mock('../../components/Toast', () => ({
@@ -676,9 +677,10 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     );
     expect(insertedStockCells.map((el) => el.textContent?.trim())).toEqual(['60', '30']);
 
-    // 2. رصيد الخزنة ظاهر بجانب حقل الخزنة في الشريط الجانبي حتى والقائمة مقفولة
+    // 2. رصيد الخزنة ظاهر بجانب حقل الخزنة في الشريط الجانبي حتى والقائمة مقفولة بدون كلمة "الرصيد"
     const cashBalanceField = container.querySelector('.field-cashbox-balance')!;
-    expect(cashBalanceField).toHaveTextContent('الرصيد');
+    expect(cashBalanceField).not.toHaveTextContent('الرصيد');
+    expect(cashBalanceField.querySelector('.cashbox-balance-box')).toHaveAttribute('aria-label', 'الرصيد');
     expect(cashBalanceField).toHaveTextContent('10,000.00');
     expect(cashBalanceField.querySelector('.cashbox-balance-box')).not.toHaveClass('is-danger');
 
@@ -761,10 +763,112 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
       />,
     );
 
-    // المورد نقدي فيسدد كامل 1000.00، بينما الرصيد المتاح بالخزنة = 100 + 200 (المدفوع سابقاً) = 300.00
+    // المورد نقدي فيسدد كامل 1000.00، بينما الرصيد المتاح بالخزنة = 100 + 200 (المدفوع سابقاً) = 300.00 بدون كلمة "الرصيد المتاح" ظاهرة
     const cashBalanceField = container.querySelector('.field-cashbox-balance')!;
-    expect(cashBalanceField).toHaveTextContent('الرصيد المتاح');
+    expect(cashBalanceField).not.toHaveTextContent('الرصيد');
+    expect(cashBalanceField.querySelector('.cashbox-balance-box')).toHaveAttribute('aria-label', 'الرصيد المتاح');
     expect(cashBalanceField).toHaveTextContent('300.00');
     expect(cashBalanceField.querySelector('.cashbox-balance-box')).toHaveClass('is-danger');
+  });
+
+  it('عند عدم وجود مدفوع (0.00): يفرغ الخزنة ويعطلها ويعرض شرطة في الرصيد، ويفعّل الافتراضية تلقائياً عند وجود مدفوع', async () => {
+    vi.mocked(supabase.rpc).mockClear();
+    const creditOnlyAccounts = [mockAccounts[1]];
+    const unpaidEditingInvoice = {
+      invoice: {
+        ...mockEditingInvoice.invoice,
+        paid: 0,
+        remaining: 1050,
+        cash_box_id: null,
+        cash_box_name: null,
+      },
+      lines: mockEditingInvoice.lines,
+    };
+
+    // 1. فاتورة جديدة بدون مدفوع: لا خزنة مختارة ولا نص "اختر الخزنة" وهي مقفولة، والرصيد "—"
+    const { container: newContainer, unmount: unmountNew } = render(
+      <InvoiceForm
+        kind="sale"
+        accounts={creditOnlyAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={null}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(within(newContainer).getByText('لا يوجد مدفوع')).toBeInTheDocument();
+    const newCashBoxInput = within(newContainer).getByRole('combobox', { name: 'الخزنة' }) as HTMLInputElement;
+    expect(newCashBoxInput).toBeDisabled();
+    expect(newCashBoxInput.value).toBe('');
+    expect(newCashBoxInput.placeholder).toBe('');
+    expect(newContainer.querySelector('.field-cashbox-balance')).toHaveTextContent('—');
+    unmountNew();
+
+    // 2. تعديل فاتورة آجلة (المدفوع 0): يبدأ بلا خزنة، وعند السداد يختار الافتراضية، وعند التصفير يعود بلا خزنة ويرسل null
+    const { container, rerender } = render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={unpaidEditingInvoice}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    const cashBoxInput = within(container).getByRole('combobox', { name: 'الخزنة' }) as HTMLInputElement;
+    expect(cashBoxInput).toBeDisabled();
+    expect(cashBoxInput.value).toBe('');
+    expect(container.querySelector('.field-cashbox-balance')).toHaveTextContent('—');
+
+    fireEvent.click(within(container).getByRole('button', { name: 'دفع بالكامل' }));
+    expect(cashBoxInput).not.toBeDisabled();
+    expect(cashBoxInput.value).toBe('الخزينة الرئيسية');
+    expect(container.querySelector('.field-cashbox-balance')).toHaveTextContent('10,000.00');
+    expect(within(container).queryByText('لا يوجد مدفوع')).toBeNull();
+
+    fireEvent.click(within(container).getByRole('button', { name: 'عدم دفع شيء (تصفير)' }));
+    expect(cashBoxInput).toBeDisabled();
+    expect(cashBoxInput.value).toBe('');
+    expect(cashBoxInput.placeholder).toBe('');
+    expect(container.querySelector('.field-cashbox-balance')).toHaveTextContent('—');
+    expect(within(container).getByText('لا يوجد مدفوع')).toBeInTheDocument();
+
+    fireEvent.click(within(container).getByRole('button', { name: 'حفظ التعديلات' }));
+    await waitFor(() => {
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'update_invoice_with_cash_box',
+        expect.objectContaining({ p_paid: 0, p_cash_box_id: null }),
+      );
+    });
+
+    // 3. عرض فقط (readOnly) لفاتورة آجلة غير مسددة: يعرض "—" بدلاً من الخزنة الافتراضية
+    rerender(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={unpaidEditingInvoice}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    const readonlyCashBoxBox = container.querySelectorAll('.readonly-val-box');
+    expect(Array.from(readonlyCashBoxBox).some((el) => el.textContent?.trim() === 'الخزينة الرئيسية')).toBe(false);
+    expect(Array.from(readonlyCashBoxBox).some((el) => el.textContent?.trim() === '—')).toBe(true);
   });
 });

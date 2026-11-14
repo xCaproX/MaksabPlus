@@ -257,30 +257,31 @@ export default function InvoiceSummarySidebar({
               </div>
             </label>
           ) : (
-            <div className="left-cashbox-balance-row">
-              <label className="left-cashbox-select-col">
-                <div className="left-field-label-row">
-                  <span>{isCashOut ? 'الخزنة المنصرف منها' : 'الخزنة'}</span>
-                  {paidNumber <= 0 && (
-                    <StatusBadge variant="neutral">لا يوجد مدفوع</StatusBadge>
-                  )}
-                </div>
+            <div className="left-cashbox-group">
+              <div className="left-field-label-row">
+                <span>{isCashOut ? 'الخزنة المنصرف منها' : 'الخزنة'}</span>
+                {paidNumber <= 0 && (
+                  <StatusBadge variant="neutral">لا يوجد مدفوع</StatusBadge>
+                )}
+              </div>
+              <div className="left-cashbox-balance-row">
                 <SearchableSelect
+                  ariaLabel={isCashOut ? 'الخزنة المنصرف منها' : 'الخزنة'}
                   value={effectiveCashBoxId}
                   options={selectableCashBoxes.map(toCashBoxOption)}
                   onChange={onCashBoxChange}
-                  placeholder="اختر الخزنة…"
+                  placeholder={paidNumber <= 0 ? '' : 'اختر الخزنة…'}
                   searchPlaceholder="اكتب للبحث عن خزنة…"
                   emptyMessage="لا توجد خزنة مطابقة"
                   disabled={paidNumber <= 0}
                   required={paidNumber > 0}
                 />
-              </label>
-              <CashBoxBalanceBox
-                label={isCashOut ? 'الرصيد المتاح' : 'الرصيد'}
-                balance={cashBoxDisplayBalance}
-                danger={isCashBoxOverdraft}
-              />
+                <CashBoxBalanceBox
+                  balance={cashBoxDisplayBalance}
+                  danger={isCashBoxOverdraft}
+                  ariaLabel={isCashOut ? 'الرصيد المتاح' : 'الرصيد'}
+                />
+              </div>
             </div>
           )}
         </div>
