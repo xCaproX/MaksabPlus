@@ -10,6 +10,7 @@ import { tafqeet } from '../lib/tafqeet';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
 import { searchAccountsAsync, toCashBoxOption } from '../lib/masterDataQueries';
+import CashBoxBalanceBox from './CashBoxBalanceBox';
 import { resolveDefaultCashBox, sortCashBoxesWithPrimaryFirst } from '../lib/defaults';
 import DateInput from './DateInput';
 import MoneyDisplay from './MoneyDisplay';
@@ -455,27 +456,11 @@ export default function ReceiptForm({
             )}
           </label>
 
-          <div className="field-cashbox-balance">
-            <span className="field-label-text">
-              {!isIn && !isReadOnly ? 'الرصيد المتاح' : 'الرصيد'}
-            </span>
-            <div
-              className={`readonly-val-box cashbox-balance-box ${
-                isOverdraft || (cashBoxDisplayBalance !== null && cashBoxDisplayBalance < 0)
-                  ? 'is-danger'
-                  : ''
-              }`.trim()}
-            >
-              {cashBoxDisplayBalance !== null ? (
-                <MoneyDisplay
-                  value={cashBoxDisplayBalance}
-                  tone={isOverdraft || cashBoxDisplayBalance < 0 ? 'danger' : 'default'}
-                />
-              ) : (
-                '—'
-              )}
-            </div>
-          </div>
+          <CashBoxBalanceBox
+            label={!isIn && !isReadOnly ? 'الرصيد المتاح' : 'الرصيد'}
+            balance={cashBoxDisplayBalance}
+            danger={isOverdraft}
+          />
 
           <label className="field-receipt-notes">
             <span>ملاحظات</span>

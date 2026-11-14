@@ -93,13 +93,21 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
       />
     );
 
-    // الرصيد المتاح المعروض في السطر يجب أن يكون 10 وليس 0، مع عزل الرقم بـ bdi dir="ltr" وإبقاء الوحدة خارجه
+    // الرصيد المتاح المعروض في السطر يكون 10 رقماً صافياً بدون وحدة، بينما تظهر الوحدة بجانب اسم الصنف (كود، اسم، وحدة)
     const availableCells = screen.getAllByText('10');
     expect(availableCells.length).toBeGreaterThan(0);
-    const availableCell = availableCells[0].closest('td');
-    expect(availableCell?.querySelector('bdi[dir="ltr"]')).toHaveTextContent('10');
-    expect(availableCell?.querySelector('bdi[dir="ltr"]')?.textContent).not.toContain('كجم');
-    expect(availableCell).toHaveTextContent('كجم');
+    const availableCell = availableCells[0].closest('td')!;
+    expect(availableCell.querySelector('bdi[dir="ltr"]')).toHaveTextContent('10');
+    expect(availableCell.textContent?.trim()).toBe('10');
+
+    const row = availableCell.closest('tr')!;
+    const itemInfo = row.querySelector('.inserted-item-info')!;
+    expect(Array.from(itemInfo.children).map((el) => el.textContent?.trim())).toEqual([
+      'ITM-001',
+      'سكر أبيض 1 كجم',
+      'كجم',
+    ]);
+    expect(row.querySelector('.line-unit-suffix')).toBeNull();
   });
 
   it('في وضع العرض readOnly لمستند محذوف: يظهر زر "استعادة أمر التحويل" عند تمرير onRestore', () => {

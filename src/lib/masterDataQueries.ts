@@ -40,9 +40,22 @@ export interface WarehouseItemOption extends SearchOption {
   costLocked: boolean;
 }
 
-/** تنسيق سطر توفر الصنف الفرعي الموحّد داخل القوائم المنسدلة. */
-export function formatItemAvailabilitySublabel(qty: number, unit: string, isOut: boolean): string {
-  return `متاح: ${formatQty(qty)} ${unit}${isOut ? ' (غير متوفر)' : ''}`;
+/** تنسيق تسمية الصنف الموحدة في القوائم: الكود، الاسم، الوحدة */
+export function formatItemOptionLabel(
+  name: string,
+  code?: string | null,
+  unit?: string | null,
+): string {
+  const parts: string[] = [];
+  if (code?.trim()) parts.push(code.trim());
+  parts.push(name.trim() || '—');
+  if (unit?.trim()) parts.push(unit.trim());
+  return parts.join(' — ');
+}
+
+/** تنسيق سطر توفر الصنف الفرعي الموحّد داخل القوائم المنسدلة بدون تكرار الوحدة */
+export function formatItemAvailabilitySublabel(qty: number, isOut: boolean): string {
+  return `متاح: ${formatQty(qty)}${isOut ? ' (غير متوفر)' : ''}`;
 }
 
 export interface SearchAccountsOptions {
@@ -153,8 +166,8 @@ export async function searchWarehouseItemsAsync(
     return {
       value: row.item_id,
       name: row.item_name,
-      label: `${row.item_code} — ${row.item_name}`,
-      sublabel: formatItemAvailabilitySublabel(stock, row.unit, isOut),
+      label: formatItemOptionLabel(row.item_name, row.item_code, row.unit),
+      sublabel: formatItemAvailabilitySublabel(stock, isOut),
       stock,
       salePrice: Number(row.sale_price || 0),
       purchasePrice: Number(row.purchase_price || 0),
@@ -192,8 +205,8 @@ export async function lookupBarcodeItem(
     return {
       value: stockRow.item_id,
       name: stockRow.item_name,
-      label: `${stockRow.item_code} — ${stockRow.item_name}`,
-      sublabel: formatItemAvailabilitySublabel(stock, stockRow.unit, isOut),
+      label: formatItemOptionLabel(stockRow.item_name, stockRow.item_code, stockRow.unit),
+      sublabel: formatItemAvailabilitySublabel(stock, isOut),
       stock,
       salePrice: Number(stockRow.sale_price || 0),
       purchasePrice: Number(stockRow.purchase_price || 0),
@@ -215,8 +228,8 @@ export async function lookupBarcodeItem(
     return {
       value: item.id,
       name: item.name,
-      label: `${item.code} — ${item.name}`,
-      sublabel: formatItemAvailabilitySublabel(0, item.unit, true),
+      label: formatItemOptionLabel(item.name, item.code, item.unit),
+      sublabel: formatItemAvailabilitySublabel(0, true),
       stock: 0,
       salePrice: Number(item.sale_price || 0),
       purchasePrice: Number(item.purchase_price || 0),

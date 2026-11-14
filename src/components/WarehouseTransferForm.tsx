@@ -7,9 +7,16 @@ import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
 import DateDisplay from './DateDisplay';
 import DateInput from './DateInput';
+import ItemNameDisplay from './ItemNameDisplay';
 import SearchableSelect from './SearchableSelect';
 import DocumentSummarySidebar from './invoice-form/DocumentSummarySidebar';
-import { formatItemAvailabilitySublabel, searchWarehouseItemsAsync, lookupBarcodeItem, type WarehouseItemOption } from '../lib/masterDataQueries';
+import {
+  formatItemAvailabilitySublabel,
+  formatItemOptionLabel,
+  searchWarehouseItemsAsync,
+  lookupBarcodeItem,
+  type WarehouseItemOption,
+} from '../lib/masterDataQueries';
 import { resolveDefaultWarehouse } from '../lib/defaults';
 import { clampDocQty, clampDocQtyOnBlur, DOC_LINE_CLAMP_WARNING, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
 import { useModalDirtyGuard } from './Modal';
@@ -495,7 +502,11 @@ export default function WarehouseTransferForm({
                     <SearchableSelect
                       inputRef={entryItemSearchRef}
                       value={entryItemId}
-                      selectedLabel={entrySelectedItem ? `${entrySelectedItem.code ? `${entrySelectedItem.code} — ` : ''}${entrySelectedItem.name}` : undefined}
+                      selectedLabel={
+                        entrySelectedItem
+                          ? formatItemOptionLabel(entrySelectedItem.name, entrySelectedItem.code, entrySelectedItem.unit)
+                          : undefined
+                      }
                       options={
                         selectableItems.length <= 50
                           ? selectableItems.map((entry) => {
@@ -503,8 +514,8 @@ export default function WarehouseTransferForm({
                               const isOut = available <= 0;
                               return {
                                 value: entry.id,
-                                label: `${entry.code ? `${entry.code} — ` : ''}${entry.name}`,
-                                sublabel: formatItemAvailabilitySublabel(available, entry.unit, isOut),
+                                label: formatItemOptionLabel(entry.name, entry.code, entry.unit),
+                                sublabel: formatItemAvailabilitySublabel(available, isOut),
                                 disabled: isOut,
                               };
                             })
@@ -527,8 +538,8 @@ export default function WarehouseTransferForm({
                                 return {
                                   ...opt,
                                   disabled: isOut,
-                                  label: `${opt.code ? `${opt.code} — ` : ''}${itemName}`,
-                                  sublabel: formatItemAvailabilitySublabel(effectiveStock, opt.unit, isOut),
+                                  label: formatItemOptionLabel(itemName, opt.code, opt.unit),
+                                  sublabel: formatItemAvailabilitySublabel(effectiveStock, isOut),
                                 };
                               });
                             }
@@ -551,39 +562,33 @@ export default function WarehouseTransferForm({
                   </td>
                   <td className="num" data-label="المتاح بالمصدر">
                     {entrySelectedItem ? (
-                      <>
-                        <bdi dir="ltr" className="num tabular-nums">
-                          <strong>{formatQty(entryAvailableStock)}</strong>
-                        </bdi>{' '}
-                        {entrySelectedItem.unit}
-                      </>
+                      <bdi dir="ltr" className="num tabular-nums">
+                        <strong>{formatQty(entryAvailableStock)}</strong>
+                      </bdi>
                     ) : (
                       '—'
                     )}
                   </td>
-                  <td data-label={entrySelectedItem ? `الكمية (${entrySelectedItem.unit})` : 'الكمية المنقولة'}>
-                    <div className="line-qty-group">
-                      <input
-                        ref={entryQtyInputRef}
-                        aria-label="الكمية المنقولة"
-                        type="number"
-                        inputMode="decimal"
-                        min="0.0001"
-                        step="0.0001"
-                        value={entryQty}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => handleEntryQtyChange(e.target.value)}
-                        onBlur={handleEntryQtyBlur}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleInsertLine();
-                          }
-                        }}
-                        className="no-spinner num"
-                      />
-                      <span className="line-unit-suffix">{entrySelectedItem?.unit ?? 'قطعة'}</span>
-                    </div>
+                  <td data-label="الكمية المنقولة">
+                    <input
+                      ref={entryQtyInputRef}
+                      aria-label="الكمية المنقولة"
+                      type="number"
+                      inputMode="decimal"
+                      min="0.0001"
+                      step="0.0001"
+                      value={entryQty}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => handleEntryQtyChange(e.target.value)}
+                      onBlur={handleEntryQtyBlur}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleInsertLine();
+                        }
+                      }}
+                      className="no-spinner num"
+                    />
                   </td>
                   <td className="center" data-label="إجراء">
                     <button
@@ -626,50 +631,46 @@ export default function WarehouseTransferForm({
                         <bdi dir="ltr" className="tabular-nums">{index + 1}</bdi>
                       </td>
                       <td data-label="الصنف">
-                        <div className="inserted-item-info">
-                          <span className="item-name">{itemNameDisplay}</span>
-                          {item?.code && <span className="item-code-tag">{item.code}</span>}
-                        </div>
+                        <ItemNameDisplay
+                          code={item?.code}
+                          name={itemNameDisplay}
+                          unit={itemUnitDisplay}
+                        />
                       </td>
                       <td className={readOnly ? 'num print-hidden' : 'num'} data-label="المتاح بالمصدر">
                         <bdi dir="ltr" className="num tabular-nums">
                           <strong>{formatQty(available)}</strong>
-                        </bdi>{' '}
-                        {itemUnitDisplay}
+                        </bdi>
                       </td>
-                      <td data-label={`الكمية (${itemUnitDisplay})`}>
+                      <td data-label="الكمية المنقولة">
                         {readOnly ? (
-                          <div className="readonly-line-qty-box">
-                            <bdi className="num" dir="ltr">{formatQty(line.qty)}</bdi>
-                            <span className="readonly-unit-text">{itemUnitDisplay}</span>
-                          </div>
+                          <bdi className="num readonly-line-qty" dir="ltr">
+                            {formatQty(line.qty)}
+                          </bdi>
                         ) : (
-                          <div className="line-qty-group">
-                            <input
-                              aria-label={`الكمية المنقولة — ${itemNameDisplay}`}
-                              type="number"
-                              inputMode="decimal"
-                              min="0.0001"
-                              step="0.0001"
-                              value={line.qty}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => {
-                                const val = clampDocQty(
-                                  e.target.value,
-                                  available,
-                                  true,
-                                  `الكمية المتاحة بالمصدر (${formatQty(available)}) هي الحد الأقصى`,
-                                );
-                                updateLine(line.key, { qty: val });
-                              }}
-                              onBlur={() => {
-                                const val = clampDocQtyOnBlur(line.qty, available, true);
-                                updateLine(line.key, { qty: val });
-                              }}
-                              className="no-spinner num"
-                            />
-                            <span className="line-unit-suffix">{itemUnitDisplay}</span>
-                          </div>
+                          <input
+                            aria-label={`الكمية المنقولة — ${itemNameDisplay}`}
+                            type="number"
+                            inputMode="decimal"
+                            min="0.0001"
+                            step="0.0001"
+                            value={line.qty}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => {
+                              const val = clampDocQty(
+                                e.target.value,
+                                available,
+                                true,
+                                `الكمية المتاحة بالمصدر (${formatQty(available)}) هي الحد الأقصى`,
+                              );
+                              updateLine(line.key, { qty: val });
+                            }}
+                            onBlur={() => {
+                              const val = clampDocQtyOnBlur(line.qty, available, true);
+                              updateLine(line.key, { qty: val });
+                            }}
+                            className="no-spinner num"
+                          />
                         )}
                       </td>
                       {!readOnly && (

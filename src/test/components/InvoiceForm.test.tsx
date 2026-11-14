@@ -425,7 +425,7 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     },
   );
 
-  it('يزيل لاحقة العملة "ج.م" من حقول السعر والمدفوع مع الإبقاء على وحدة الكمية للصنف', () => {
+  it('يزيل لاحقة العملة والوحدات من حقول الأرقام ويعرض الصنف بالترتيب (كود، اسم، وحدة)', () => {
     const { container } = render(
       <InvoiceForm
         kind="sale"
@@ -441,12 +441,20 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
       />,
     );
 
-    const suffixes = Array.from(container.querySelectorAll('.line-unit-suffix')).map((el) =>
-      el.textContent?.trim(),
-    );
-    expect(suffixes).not.toContain('ج.م');
-    expect(suffixes).toContain('قطعة');
-    expect(suffixes).toContain('كجم');
+    expect(container.querySelectorAll('.line-unit-suffix')).toHaveLength(0);
+    expect(container.querySelectorAll('.readonly-unit-text')).toHaveLength(0);
+
+    const firstInsertedInfo = container.querySelector('.inserted-line-row .inserted-item-info')!;
+    expect(Array.from(firstInsertedInfo.children).map((el) => el.textContent?.trim())).toEqual([
+      'ITM-001',
+      'سكر أبيض 1 كجم',
+      'كجم',
+    ]);
+
+    const itemInput = screen.getByPlaceholderText('اختر صنفاً للإدراج أو امسح الباركود…');
+    fireEvent.focus(itemInput);
+    const option = screen.getByRole('option', { name: /ITM-001 — سكر أبيض 1 كجم — كجم/ });
+    expect(option.querySelector('.searchable-select-sublabel')).toHaveTextContent('متاح: 60');
   });
 
   const makeAccount = (
@@ -633,5 +641,130 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     const cashOption = screen.getByRole('option', { name: /الخزينة الرئيسية/ });
     expect(within(cashOption).getByText(/10,000\.00/).closest('[dir="ltr"]')).toHaveClass('tabular-nums');
     expect(cashOption.querySelector('.searchable-select-sublabel')).toHaveTextContent('الرصيد: 10,000.00');
+  });
+
+  it('يعرض عمود المتاح لصنف الإدخال والسطور المدرجة ورصيد الخزنة في الشريط الجانبي عند الإنشاء والتعديل ويخفيهما في العرض فقط', async () => {
+    const { container, rerender } = render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={mockEditingInvoice}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    // 1. عمود المتاح ظاهر في الإنشاء/التعديل: يظهر "—" في سطر الإدخال قبل الاختيار ثم يتحدث فور اختيار الصنف
+    expect(screen.getByRole('columnheader', { name: 'المتاح' })).toBeInTheDocument();
+    const entryStockCell = container.querySelector('.entry-line-row .stock-available-cell')!;
+    expect(entryStockCell).toHaveTextContent('—');
+
+    const itemInput = screen.getByPlaceholderText('اختر صنفاً للإدراج أو امسح الباركود…');
+    fireEvent.focus(itemInput);
+    fireEvent.click(await screen.findByRole('option', { name: /ITM-001 — سكر أبيض 1 كجم — كجم/ }));
+    expect(entryStockCell).toHaveTextContent('60');
+    expect(entryStockCell.textContent?.trim()).toBe('60');
+
+    // السطور المدرجة تعرض المتاح رقماً صافياً بدون وحدة
+    const insertedStockCells = Array.from(
+      container.querySelectorAll('.inserted-line-row .stock-available-cell'),
+    );
+    expect(insertedStockCells.map((el) => el.textContent?.trim())).toEqual(['60', '30']);
+
+    // 2. رصيد الخزنة ظاهر بجانب حقل الخزنة في الشريط الجانبي حتى والقائمة مقفولة
+    const cashBalanceField = container.querySelector('.field-cashbox-balance')!;
+    expect(cashBalanceField).toHaveTextContent('الرصيد');
+    expect(cashBalanceField).toHaveTextContent('10,000.00');
+    expect(cashBalanceField.querySelector('.cashbox-balance-box')).not.toHaveClass('is-danger');
+
+    // 3. عند التبديل لوضع القراءة فقط readOnly: يختفي عمود المتاح وخانة رصيد الخزنة
+    rerender(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={mockEditingInvoice}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('columnheader', { name: 'المتاح' })).not.toBeInTheDocument();
+    expect(container.querySelector('.field-cashbox-balance')).toBeNull();
+    expect(container.querySelectorAll('.readonly-unit-text')).toHaveLength(0);
+  });
+
+  it('في فواتير الصرف (مشتريات / مرتجع مبيعات): يحسب الرصيد المتاح للخزنة ويميز التجاوز باللون الأحمر', () => {
+    const supplierAccounts = [
+      {
+        id: 'sup-cash',
+        name: 'مورد نقدي عام',
+        kind: 'supplier',
+        balance: 0,
+        is_active: true,
+        notes: '',
+        phone: '',
+        serial_number: 1,
+        opening_balance: 0,
+        invoiced: 0,
+        paid: 0,
+        has_documents: false,
+        system_key: 'cash_supplier',
+      },
+    ] as any;
+    const lowBalanceBoxes = [
+      {
+        id: 'cb-1',
+        name: 'الخزينة الرئيسية',
+        balance: 100,
+        is_active: true,
+        is_primary: true,
+        serial_number: 1,
+        opening_balance: 0,
+        notes: null,
+      },
+    ] as any;
+    const purchaseEditing = {
+      invoice: {
+        ...mockEditingInvoice.invoice,
+        kind: 'purchase' as const,
+        account_id: 'sup-cash',
+        account_kind: 'supplier' as const,
+        total: 1000,
+        paid: 200,
+        remaining: 800,
+      },
+      lines: [{ key: 'l-1', item_id: 'itm-1', qty: '10', unit_price: '100' }],
+    };
+
+    const { container } = render(
+      <InvoiceForm
+        kind="purchase"
+        accounts={supplierAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={lowBalanceBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={purchaseEditing}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    // المورد نقدي فيسدد كامل 1000.00، بينما الرصيد المتاح بالخزنة = 100 + 200 (المدفوع سابقاً) = 300.00
+    const cashBalanceField = container.querySelector('.field-cashbox-balance')!;
+    expect(cashBalanceField).toHaveTextContent('الرصيد المتاح');
+    expect(cashBalanceField).toHaveTextContent('300.00');
+    expect(cashBalanceField.querySelector('.cashbox-balance-box')).toHaveClass('is-danger');
   });
 });

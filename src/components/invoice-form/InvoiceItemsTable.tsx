@@ -2,11 +2,13 @@ import { type RefObject } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { qty as formatQty, round2 } from '../../lib/format';
 import { clampDocQty, clampDocQtyOnBlur } from '../../lib/docLineEntry';
+import ItemNameDisplay from '../ItemNameDisplay';
 import SearchableSelect from '../SearchableSelect';
 import MoneyDisplay from '../MoneyDisplay';
 import { toast } from '../Toast';
 import {
   formatItemAvailabilitySublabel,
+  formatItemOptionLabel,
   searchWarehouseItemsAsync,
   lookupBarcodeItem,
   type WarehouseItemOption,
@@ -26,6 +28,7 @@ interface InvoiceItemsTableProps {
   entryQty: string;
   entryUnitPrice: string;
   entrySelectedItem?: ItemRow;
+  entryAvailableStock: number;
   entryLineTotal: number;
   entryItemSearchRef: RefObject<HTMLInputElement>;
   entryQtyInputRef: RefObject<HTMLInputElement>;
@@ -52,6 +55,7 @@ export default function InvoiceItemsTable({
   entryQty,
   entryUnitPrice,
   entrySelectedItem,
+  entryAvailableStock,
   entryLineTotal,
   entryItemSearchRef,
   entryQtyInputRef,
@@ -64,14 +68,19 @@ export default function InvoiceItemsTable({
   getItemAvailableStock,
   adjustedHighlightItemId,
 }: InvoiceItemsTableProps) {
+  const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
+  const isStockDanger = (stock: number, qtyVal: number) =>
+    stock < 0 || (isStockLimited && (stock <= 0 || qtyVal > stock));
+
   return (
     <div className="right-card items-table-card">
       <div className="lines-wrap">
-        <table className="lines-table">
+        <table className="lines-table invoice-items-table">
           <thead>
             <tr>
               <th className="w-num center">#</th>
               <th>الصنف</th>
+              {!isReadOnly && <th className="w-stock center">المتاح</th>}
               <th className="w-qty">الكمية</th>
               <th className="w-price">{isWaste ? 'سعر البيع' : 'السعر'}</th>
               <th className="w-total">الإجمالي</th>
@@ -91,17 +100,20 @@ export default function InvoiceItemsTable({
                   <SearchableSelect
                     inputRef={entryItemSearchRef}
                     value={entryItemId}
-                    selectedLabel={entrySelectedItem ? `${entrySelectedItem.code} — ${entrySelectedItem.name}` : undefined}
+                    selectedLabel={
+                      entrySelectedItem
+                        ? formatItemOptionLabel(entrySelectedItem.name, entrySelectedItem.code, entrySelectedItem.unit)
+                        : undefined
+                    }
                     options={
                       items.length <= 50
                         ? items.map((item) => {
                             const stock = getItemAvailableStock(item.id, warehouseId);
-                            const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
                             const isOut = isStockLimited && Number(stock) <= 0;
                             return {
                               value: item.id,
-                              label: `${item.code} — ${item.name}`,
-                              sublabel: formatItemAvailabilitySublabel(Number(stock), item.unit, isOut),
+                              label: formatItemOptionLabel(item.name, item.code, item.unit),
+                              sublabel: formatItemAvailabilitySublabel(Number(stock), isOut),
                               disabled: isOut,
                             };
                           })
@@ -110,7 +122,6 @@ export default function InvoiceItemsTable({
                     loadOptions={
                       items.length > 50
                         ? async (query) => {
-                            const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
                             const results = await searchWarehouseItemsAsync(warehouseId, query, isStockLimited);
                             return results.map((opt) => {
                               const effectiveStock = getItemAvailableStock(opt.value, warehouseId, opt.stock);
@@ -119,15 +130,14 @@ export default function InvoiceItemsTable({
                               return {
                                 ...opt,
                                 disabled: isOut,
-                                label: `${opt.code} — ${itemName}`,
-                                sublabel: formatItemAvailabilitySublabel(Number(effectiveStock), opt.unit, isOut),
+                                label: formatItemOptionLabel(itemName, opt.code, opt.unit),
+                                sublabel: formatItemAvailabilitySublabel(Number(effectiveStock), isOut),
                               };
                             });
                           }
                         : undefined
                     }
                     onBarcodeScan={async (barcode) => {
-                      const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
                       const found = await lookupBarcodeItem(barcode, warehouseId, isStockLimited);
                       if (!found) {
                         toast.warning(`لم يتم العثور على صنف بالباركود: ${barcode}`);
@@ -142,32 +152,41 @@ export default function InvoiceItemsTable({
                     emptyMessage="لا توجد أصناف مطابقة"
                   />
                 </td>
-                <td data-label={entrySelectedItem ? `الكمية (${entrySelectedItem.unit})` : 'الكمية'}>
-                  <div className="line-qty-group">
-                    <input
-                      ref={entryQtyInputRef}
-                      aria-label={`كمية الصنف${entrySelectedItem ? ` — ${entrySelectedItem.name} (${entrySelectedItem.unit})` : ''}`}
-                      type="number"
-                      inputMode="decimal"
-                      min="0.0001"
-                      step="0.0001"
-                      value={entryQty}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => onEntryQtyChange(e.target.value)}
-                      onBlur={onEntryQtyBlur}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          entryPriceInputRef.current?.focus();
-                          entryPriceInputRef.current?.select();
-                        }
-                      }}
-                      className="no-spinner num"
-                    />
-                    <span className="line-unit-suffix">
-                      {entrySelectedItem ? entrySelectedItem.unit : 'قطعة'}
-                    </span>
-                  </div>
+                <td className="num center stock-available-cell" data-label="المتاح">
+                  {entrySelectedItem ? (
+                    <bdi
+                      dir="ltr"
+                      className={`tabular-nums stock-available-val ${
+                        isStockDanger(entryAvailableStock, Number(entryQty || 0)) ? 'is-danger' : ''
+                      }`.trim()}
+                    >
+                      {formatQty(entryAvailableStock)}
+                    </bdi>
+                  ) : (
+                    '—'
+                  )}
+                </td>
+                <td data-label="الكمية">
+                  <input
+                    ref={entryQtyInputRef}
+                    aria-label={`كمية الصنف${entrySelectedItem ? ` — ${entrySelectedItem.name} (${entrySelectedItem.unit})` : ''}`}
+                    type="number"
+                    inputMode="decimal"
+                    min="0.0001"
+                    step="0.0001"
+                    value={entryQty}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => onEntryQtyChange(e.target.value)}
+                    onBlur={onEntryQtyBlur}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        entryPriceInputRef.current?.focus();
+                        entryPriceInputRef.current?.select();
+                      }
+                    }}
+                    className="no-spinner num"
+                  />
                 </td>
                 <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
                   <input
@@ -212,7 +231,7 @@ export default function InvoiceItemsTable({
             {/* قائمة الأصناف المدرجة أسفل شريط الإدخال */}
             {lines.length === 0 ? (
               <tr className="empty-lines-placeholder-row">
-                <td colSpan={isReadOnly ? 5 : 6}>
+                <td colSpan={isReadOnly ? 5 : 7}>
                   {isReadOnly
                     ? 'لا توجد بنود في هذه الفاتورة.'
                     : 'لم يتم إدراج أصناف بعد. اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.'}
@@ -228,7 +247,7 @@ export default function InvoiceItemsTable({
                 const availableStock = getItemAvailableStock(line.item_id, warehouseId);
                 const isStockExceeded =
                   Boolean(line.item_id) &&
-                  (kind === 'sale' || kind === 'waste' || kind === 'purchase_return') &&
+                  isStockLimited &&
                   Number(line.qty) > availableStock;
 
                 const isHighlighted = Boolean(adjustedHighlightItemId && line.item_id === adjustedHighlightItemId);
@@ -243,59 +262,56 @@ export default function InvoiceItemsTable({
                       <bdi dir="ltr" className="tabular-nums">{index + 1}</bdi>
                     </td>
                     <td data-label="الصنف">
-                      <div className="inserted-item-info">
-                        <span className="item-name">{itemNameDisplay}</span>
-                        {selectedItem?.code && (
-                          <span className="item-code-tag">{selectedItem.code}</span>
-                        )}
-                      </div>
+                      <ItemNameDisplay
+                        code={selectedItem?.code}
+                        name={itemNameDisplay}
+                        unit={itemUnitDisplay}
+                      />
                     </td>
-                    <td data-label={`الكمية (${itemUnitDisplay})`}>
+                    {!isReadOnly && (
+                      <td className="num center stock-available-cell" data-label="المتاح">
+                        <bdi
+                          dir="ltr"
+                          className={`tabular-nums stock-available-val ${
+                            isStockDanger(availableStock, Number(line.qty || 0)) ? 'is-danger' : ''
+                          }`.trim()}
+                        >
+                          {formatQty(availableStock)}
+                        </bdi>
+                      </td>
+                    )}
+                    <td data-label="الكمية">
                       {isReadOnly ? (
-                        <div className="readonly-line-qty-box">
-                          <bdi className="num" dir="ltr">
-                            {formatQty(line.qty)}
-                          </bdi>
-                          <span className="readonly-unit-text">
-                            {itemUnitDisplay}
-                          </span>
-                        </div>
+                        <bdi className="num readonly-line-qty" dir="ltr">
+                          {formatQty(line.qty)}
+                        </bdi>
                       ) : (
-                        <div className="line-qty-group">
-                          <input
-                            aria-label={`الكمية — ${itemNameDisplay} (${itemUnitDisplay})`}
-                            type="number"
-                            inputMode="decimal"
-                            min="0.0001"
-                            step="0.0001"
-                            value={line.qty}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) => {
-                              const isStockLimited =
-                                kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                              const val = clampDocQty(
-                                e.target.value,
-                                availableStock,
-                                isStockLimited && Boolean(line.item_id),
-                              );
-                              onUpdateLine(line.key, { qty: val });
-                            }}
-                            onBlur={() => {
-                              const isStockLimited =
-                                kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
-                              const val = clampDocQtyOnBlur(
-                                line.qty,
-                                availableStock,
-                                isStockLimited && Boolean(line.item_id),
-                              );
-                              onUpdateLine(line.key, { qty: val });
-                            }}
-                            className="no-spinner num"
-                          />
-                          <span className="line-unit-suffix">
-                            {itemUnitDisplay}
-                          </span>
-                        </div>
+                        <input
+                          aria-label={`الكمية — ${itemNameDisplay} (${itemUnitDisplay})`}
+                          type="number"
+                          inputMode="decimal"
+                          min="0.0001"
+                          step="0.0001"
+                          value={line.qty}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = clampDocQty(
+                              e.target.value,
+                              availableStock,
+                              isStockLimited && Boolean(line.item_id),
+                            );
+                            onUpdateLine(line.key, { qty: val });
+                          }}
+                          onBlur={() => {
+                            const val = clampDocQtyOnBlur(
+                              line.qty,
+                              availableStock,
+                              isStockLimited && Boolean(line.item_id),
+                            );
+                            onUpdateLine(line.key, { qty: val });
+                          }}
+                          className="no-spinner num"
+                        />
                       )}
                       {!isReadOnly && isStockExceeded && (
                         <span className="stock-warning-text" role="alert">

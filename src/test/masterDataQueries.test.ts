@@ -1,7 +1,12 @@
 import { createElement } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { searchAccountsAsync, toCashBoxOption } from '../lib/masterDataQueries';
+import {
+  formatItemAvailabilitySublabel,
+  formatItemOptionLabel,
+  searchAccountsAsync,
+  toCashBoxOption,
+} from '../lib/masterDataQueries';
 import { supabase } from '../lib/supabase';
 
 const mockState = vi.hoisted(() => ({
@@ -99,5 +104,16 @@ describe('toCashBoxOption', () => {
     expect(negOpt.label).toBe('خزنة السحب');
     render(createElement('div', null, negOpt.sublabel));
     expect(screen.getByText('-190,732.32').closest('[dir="ltr"]')).toHaveClass('money-danger', 'tabular-nums');
+  });
+});
+
+describe('formatItemOptionLabel & formatItemAvailabilitySublabel', () => {
+  it('يرتب الصنف (كود، اسم، وحدة) ويُبقي المتاح رقماً صافياً بدون وحدة', () => {
+    expect(formatItemOptionLabel('صنف تجريبي 0003', 'PERF-0003', 'قطعة')).toBe(
+      'PERF-0003 — صنف تجريبي 0003 — قطعة',
+    );
+    expect(formatItemOptionLabel('صنف بدون كود', null, 'كجم')).toBe('صنف بدون كود — كجم');
+    expect(formatItemAvailabilitySublabel(50, false)).toBe('متاح: 50');
+    expect(formatItemAvailabilitySublabel(0, true)).toBe('متاح: 0 (غير متوفر)');
   });
 });

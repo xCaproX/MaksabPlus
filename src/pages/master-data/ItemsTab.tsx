@@ -796,19 +796,16 @@ export default function ItemsTab() {
                       <>
                         <label>
                           الكمية الافتتاحية
-                          <div className="input-with-suffix">
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              step="0.0001"
-                              min="0"
-                              className="num no-spinner"
-                              value={itemOpeningQty}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => setItemOpeningQty(e.target.value)}
-                            />
-                            <span className="input-suffix">{itemUnit.trim() || 'قطعة'}</span>
-                          </div>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.0001"
+                            min="0"
+                            className="num no-spinner"
+                            value={itemOpeningQty}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => setItemOpeningQty(e.target.value)}
+                          />
                         </label>
                         {canViewProfit && (
                           <label>

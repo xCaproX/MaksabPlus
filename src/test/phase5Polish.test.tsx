@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import DocumentTable, { type DocumentTableColumn } from '../components/DocumentTable';
 import SearchableSelect from '../components/SearchableSelect';
-import { formatItemAvailabilitySublabel } from '../lib/masterDataQueries';
+import { formatItemAvailabilitySublabel, formatItemOptionLabel } from '../lib/masterDataQueries';
 
 interface Row {
   id: string;
@@ -38,20 +38,21 @@ describe('Phase 5 Polish (T-20 & T-21b)', () => {
     expect(onView).toHaveBeenCalledWith(rows[0]);
   });
 
-  it('T-21b: formats item availability sublabel cleanly and renders SearchableSelect sublabel separately', () => {
-    expect(formatItemAvailabilitySublabel(12.5, 'كجم', false)).toBe('متاح: 12.5 كجم');
-    expect(formatItemAvailabilitySublabel(0, 'قطعة', true)).toBe('متاح: 0 قطعة (غير متوفر)');
+  it('T-21b: formats item option label (code, name, unit) and numeric-only availability sublabel cleanly', () => {
+    expect(formatItemOptionLabel('سكر', 'ITM-001', 'كجم')).toBe('ITM-001 — سكر — كجم');
+    expect(formatItemAvailabilitySublabel(12.5, false)).toBe('متاح: 12.5');
+    expect(formatItemAvailabilitySublabel(0, true)).toBe('متاح: 0 (غير متوفر)');
 
     const options = [
       {
         value: 'itm-1',
-        label: 'ITM-001 — سكر',
-        sublabel: formatItemAvailabilitySublabel(12.5, 'كجم', false),
+        label: formatItemOptionLabel('سكر', 'ITM-001', 'كجم'),
+        sublabel: formatItemAvailabilitySublabel(12.5, false),
       },
       {
         value: 'itm-2',
-        label: 'ITM-002 — زيت',
-        sublabel: formatItemAvailabilitySublabel(0, 'زجاجة', true),
+        label: formatItemOptionLabel('زيت', 'ITM-002', 'زجاجة'),
+        sublabel: formatItemAvailabilitySublabel(0, true),
         disabled: true,
       },
     ];
@@ -66,10 +67,10 @@ describe('Phase 5 Polish (T-20 & T-21b)', () => {
     );
 
     const combo = screen.getByRole('combobox', { name: 'اختر الصنف' });
-    expect(combo).toHaveValue('ITM-001 — سكر');
+    expect(combo).toHaveValue('ITM-001 — سكر — كجم');
 
     fireEvent.focus(combo);
-    expect(screen.getByText('متاح: 12.5 كجم')).toHaveClass('searchable-select-sublabel');
-    expect(screen.getByText('متاح: 0 زجاجة (غير متوفر)')).toHaveClass('searchable-select-sublabel');
+    expect(screen.getByText('متاح: 12.5')).toHaveClass('searchable-select-sublabel');
+    expect(screen.getByText('متاح: 0 (غير متوفر)')).toHaveClass('searchable-select-sublabel');
   });
 });

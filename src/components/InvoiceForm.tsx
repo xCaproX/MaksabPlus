@@ -305,7 +305,7 @@ export default function InvoiceForm({
     (entryAsyncOption && entryAsyncOption.value === entryItemId
       ? ({
           id: entryAsyncOption.value,
-          name: entryAsyncOption.label.split(' — ')[1] || entryAsyncOption.label,
+          name: entryAsyncOption.name ?? (entryAsyncOption.label.split(' — ')[1] || entryAsyncOption.label),
           code: entryAsyncOption.code,
           unit: entryAsyncOption.unit,
           sale_price: entryAsyncOption.salePrice,
@@ -635,6 +635,7 @@ export default function InvoiceForm({
             entryQty={entryQty}
             entryUnitPrice={entryUnitPrice}
             entrySelectedItem={entrySelectedItem}
+            entryAvailableStock={entryAvailableStock}
             entryLineTotal={entryLineTotal}
             entryItemSearchRef={entryItemSearchRef}
             entryQtyInputRef={entryQtyInputRef}
@@ -650,6 +651,7 @@ export default function InvoiceForm({
         </div>
 
         <InvoiceSummarySidebar
+          kind={kind}
           isReadOnly={isReadOnly}
           isWaste={isWaste}
           isReturn={isReturn}

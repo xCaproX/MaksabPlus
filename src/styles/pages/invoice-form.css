@@ -419,10 +419,17 @@
 }
 
 .lines-table thead th.w-num { width: 44px; text-align: center; }
-.lines-table thead th.w-qty { width: 140px; }
+.lines-table thead th.w-stock { width: 78px; text-align: center; }
+.lines-table thead th.w-qty { width: 120px; }
 .lines-table thead th.w-price { width: 130px; }
 .lines-table thead th.w-total { width: 120px; text-align: start; padding-inline-start: 12px; }
 .lines-table thead th.w-action { width: 88px; text-align: center; }
+
+.invoice-items-table thead th.w-stock { width: 78px; text-align: center; }
+.invoice-items-table thead th.w-qty { width: 92px; }
+.invoice-items-table thead th.w-price { width: 102px; }
+.invoice-items-table thead th.w-total { width: 96px; }
+.invoice-items-table thead th.w-action { width: 82px; }
 
 .lines-table select,
 .lines-table input {
@@ -507,29 +514,6 @@
   background: #fafbfc;
 }
 
-.inserted-item-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.inserted-item-info .item-name {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.inserted-item-info .item-code-tag {
-  font-size: 11px;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 2px 7px;
-  border-radius: 4px;
-  border: 1px solid #e2e8f0;
-  font-weight: 600;
-}
-
 .empty-lines-placeholder-row td {
   padding: 32px 16px;
   text-align: center;
@@ -591,50 +575,19 @@
   white-space: nowrap;
 }
 
-.line-qty-group {
-  display: flex;
-  align-items: center;
-  border: 1px solid var(--erp-border, #cbd5e1);
-  border-radius: 6px;
-  background: #fff;
-  overflow: hidden;
-  height: 38px;
-  min-height: 38px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+.stock-available-cell {
+  white-space: nowrap;
 }
 
-.line-qty-group:focus-within {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(46, 66, 92, 0.12);
-}
-
-.line-qty-group input {
-  border: 0 !important;
-  outline: none !important;
-  box-shadow: none !important;
-  height: 100% !important;
-  min-height: 100% !important;
-  flex: 1;
-  min-width: 0;
-  padding: 0 8px !important;
-  text-align: start;
-  font-variant-numeric: tabular-nums;
-  border-radius: 0 !important;
-}
-
-.line-unit-suffix {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 8px;
-  font-size: 11px;
+.stock-available-val {
+  font-size: 13px;
   font-weight: 600;
-  color: var(--muted);
-  background: #f8fafc;
-  border-inline-start: 1px solid var(--line);
-  height: 100%;
-  flex-shrink: 0;
-  user-select: none;
+  color: #475569;
+}
+
+.stock-available-val.is-danger {
+  color: #b91c1c;
+  font-weight: 700;
 }
 
 .stock-warning-text {
@@ -1381,6 +1334,37 @@
   gap: 6px;
 }
 
+.left-cashbox-balance-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 115px;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.left-cashbox-balance-row .left-cashbox-select-col,
+.left-cashbox-balance-row .field-cashbox-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.left-cashbox-balance-row .left-field-label-row,
+.left-cashbox-balance-row .field-cashbox-balance .field-label-text {
+  min-height: 20px;
+  line-height: 20px;
+}
+
+.left-field-label-row .status-badge {
+  font-size: 10.5px;
+  padding: 1px 5px;
+  line-height: 1.3;
+}
+
+.left-field-box.disabled .field-cashbox-balance {
+  opacity: 0.6;
+}
+
 /* شارة الحالة داخل شريط المتبقي: أصغر من الشارة القياسية لإتاحة المساحة */
 .left-remaining-strip .status-badge {
   font-size: var(--font-xs, 11.5px);
@@ -1489,6 +1473,9 @@
     min-width: 118px;
     max-width: 118px;
   }
+  .left-cashbox-balance-row {
+    grid-template-columns: minmax(0, 1fr) 104px;
+  }
 }
 
 /* ReadOnly View Mode for InvoiceForm & WarehouseTransferForm */
@@ -1515,29 +1502,6 @@
   white-space: pre-wrap;
   align-items: flex-start;
   padding: 8px 12px;
-}
-.readonly-line-qty-box {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  background: #f8fafc;
-  border: 1px solid var(--erp-border, #cbd5e1);
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.4;
-  white-space: nowrap;
-}
-.readonly-line-qty-box .num {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  color: var(--ink, #0f172a);
-}
-.readonly-line-qty-box .readonly-unit-text {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--muted, #64748b);
-  user-select: none;
 }
 .readonly-line-qty,
 .readonly-line-price {

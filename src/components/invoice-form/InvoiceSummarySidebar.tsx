@@ -1,11 +1,13 @@
 import { Link, useInRouterContext } from 'react-router-dom';
 import { Check, ExternalLink, X } from 'lucide-react';
+import { round2 } from '../../lib/format';
 import { toCashBoxOption } from '../../lib/masterDataQueries';
+import CashBoxBalanceBox from '../CashBoxBalanceBox';
 import SearchableSelect from '../SearchableSelect';
 import MoneyDisplay from '../MoneyDisplay';
 import StatusBadge from '../StatusBadge';
 import DocumentSummarySidebar from './DocumentSummarySidebar';
-import type { CashBoxRow, InvoiceRow, LineDraft } from '../../lib/types';
+import type { CashBoxRow, InvoiceKind, InvoiceRow, LineDraft } from '../../lib/types';
 
 export interface EditingInvoice {
   invoice: InvoiceRow;
@@ -13,6 +15,7 @@ export interface EditingInvoice {
 }
 
 interface InvoiceSummarySidebarProps {
+  kind: InvoiceKind;
   isReadOnly: boolean;
   isWaste: boolean;
   isReturn: boolean;
@@ -41,6 +44,7 @@ interface InvoiceSummarySidebarProps {
 }
 
 export default function InvoiceSummarySidebar({
+  kind,
   isReadOnly,
   isWaste,
   isReturn,
@@ -67,6 +71,26 @@ export default function InvoiceSummarySidebar({
   onPrint,
 }: InvoiceSummarySidebarProps) {
   const inRouter = useInRouterContext();
+  const isCashOut = kind === 'purchase' || kind === 'sale_return';
+  const selectedCashBox = selectableCashBoxes.find((b) => b.id === effectiveCashBoxId);
+  const prevOutOnSameBox =
+    editing &&
+    isCashOut &&
+    editing.invoice.cash_box_id === effectiveCashBoxId &&
+    Number(editing.invoice.paid || 0) > 0
+      ? Number(editing.invoice.paid || 0)
+      : 0;
+  const cashBoxDisplayBalance = selectedCashBox
+    ? !isReadOnly && isCashOut
+      ? round2(Number(selectedCashBox.balance || 0) + prevOutOnSameBox)
+      : Number(selectedCashBox.balance || 0)
+    : null;
+  const isCashBoxOverdraft =
+    !isReadOnly &&
+    isCashOut &&
+    cashBoxDisplayBalance !== null &&
+    paidNumber > 0 &&
+    round2(paidNumber) > round2(cashBoxDisplayBalance);
   const saveLabel = editing
     ? 'حفظ التعديلات'
     : isReturn
@@ -220,33 +244,45 @@ export default function InvoiceSummarySidebar({
         </div>
       )}
 
-      {/* 4. الخزنة */}
+      {/* 4. الخزنة ورصيدها */}
       {!isWaste && (
         <div className={`left-field-box ${paidNumber <= 0 ? 'disabled' : ''}`}>
-          <label>
-            <div className="left-field-label-row">
-              <span>{isReturn ? 'الخزنة المنصرف منها' : 'الخزنة'}</span>
-              {paidNumber <= 0 && (
-                <StatusBadge variant="neutral">لا يوجد مدفوع</StatusBadge>
-              )}
-            </div>
-            {isReadOnly ? (
-              <div className="readonly-val-box">
-                {selectableCashBoxes.find((b) => b.id === effectiveCashBoxId)?.name ?? '—'}
+          {isReadOnly ? (
+            <label>
+              <div className="left-field-label-row">
+                <span>{isCashOut ? 'الخزنة المنصرف منها' : 'الخزنة'}</span>
               </div>
-            ) : (
-              <SearchableSelect
-                value={effectiveCashBoxId}
-                options={selectableCashBoxes.map(toCashBoxOption)}
-                onChange={onCashBoxChange}
-                placeholder="اختر الخزنة…"
-                searchPlaceholder="اكتب للبحث عن خزنة…"
-                emptyMessage="لا توجد خزنة مطابقة"
-                disabled={paidNumber <= 0}
-                required={paidNumber > 0}
+              <div className="readonly-val-box">
+                {selectedCashBox?.name ?? '—'}
+              </div>
+            </label>
+          ) : (
+            <div className="left-cashbox-balance-row">
+              <label className="left-cashbox-select-col">
+                <div className="left-field-label-row">
+                  <span>{isCashOut ? 'الخزنة المنصرف منها' : 'الخزنة'}</span>
+                  {paidNumber <= 0 && (
+                    <StatusBadge variant="neutral">لا يوجد مدفوع</StatusBadge>
+                  )}
+                </div>
+                <SearchableSelect
+                  value={effectiveCashBoxId}
+                  options={selectableCashBoxes.map(toCashBoxOption)}
+                  onChange={onCashBoxChange}
+                  placeholder="اختر الخزنة…"
+                  searchPlaceholder="اكتب للبحث عن خزنة…"
+                  emptyMessage="لا توجد خزنة مطابقة"
+                  disabled={paidNumber <= 0}
+                  required={paidNumber > 0}
+                />
+              </label>
+              <CashBoxBalanceBox
+                label={isCashOut ? 'الرصيد المتاح' : 'الرصيد'}
+                balance={cashBoxDisplayBalance}
+                danger={isCashBoxOverdraft}
               />
-            )}
-          </label>
+            </div>
+          )}
         </div>
       )}
     </DocumentSummarySidebar>
