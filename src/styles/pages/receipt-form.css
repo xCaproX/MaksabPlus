@@ -5,7 +5,7 @@
 
 /* Modal Container & Viewport Behavior */
 .modal.receipt-entry-modal {
-  width: min(780px, 96vw);
+  width: min(920px, 96vw);
   border-radius: 14px;
   overflow: hidden;
   display: flex;
