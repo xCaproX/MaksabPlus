@@ -511,4 +511,55 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     );
     expect(actionButtons).toEqual(['مسح / جديد', 'حفظ إيصال الاستلام']);
   });
+
+  it('ينسق شريط ربط الإيصال التلقائي بالفاتورة كسطر موحد يضم الرابط والملاحظة', () => {
+    const linkedEditing = {
+      id: 'rec-linked-1',
+      number: 'RCP-000010',
+      receipt_date: '2026-11-14',
+      amount: 500,
+      account_id: 'acc-1',
+      account_name: 'عميل تجريبي',
+      account_kind: 'customer',
+      cash_box_id: 'cb-main',
+      cash_box_name: 'الخزنة الرئيسية',
+      is_free: false,
+      notes: '',
+      statement: null,
+      description: null,
+      invoice_id: 'inv-8003',
+      invoice_number: 'SAL-008003',
+      invoice_kind: 'sale',
+      direction: 'in',
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+    } as any;
+
+    const { container } = render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={linkedEditing}
+          readOnly
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const banner = container.querySelector('.linked-receipt-box')!;
+    expect(banner).toBeInTheDocument();
+    expect(Array.from(banner.children).map((el) => el.className)).toEqual([
+      'linked-receipt-main',
+      'linked-receipt-note',
+    ]);
+    expect(banner.querySelector('.linked-receipt-main .receipt-linked-link')).toHaveTextContent(
+      'فاتورة مبيعات SAL-008003',
+    );
+    expect(banner.querySelector('.linked-receipt-note')).toHaveTextContent(
+      'يتم تعديله أو حذفه من داخل الفاتورة نفسها',
+    );
+  });
 });

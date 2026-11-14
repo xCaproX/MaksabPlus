@@ -465,21 +465,23 @@ export default function ReceiptForm({
       {/* بطاقة الربط بفاتورة إن كان الإيصال مرتبطاً */}
       {editing && !editing.is_free && (
         <div className="linked-receipt-box">
-          <span className="linked-receipt-label">هذا الإيصال مُنشأ تلقائيًا ومربوط بـ:</span>
-          <Link
-            to={
-              editing.invoice_id
-                ? `/invoices?tab=${editing.invoice_kind ?? 'sale'}&doc=${encodeURIComponent(editing.invoice_id)}`
-                : `/invoices?tab=${editing.invoice_kind ?? 'sale'}&search=${encodeURIComponent(editing.invoice_number ?? '')}`
-            }
-            className="receipt-linked-link"
-            onClick={onCancel}
-          >
-            <FileText size={15} />
-            <span>{linkKind(editing.invoice_kind)} {editing.invoice_number}</span>
-            <ExternalLink size={13} className="link-ext-icon" />
-          </Link>
-          <span className="muted" style={{ fontSize: '12px', marginInlineStart: 'auto' }}>
+          <div className="linked-receipt-main">
+            <span className="linked-receipt-label">هذا الإيصال مُنشأ تلقائيًا ومربوط بـ:</span>
+            <Link
+              to={
+                editing.invoice_id
+                  ? `/invoices?tab=${editing.invoice_kind ?? 'sale'}&doc=${encodeURIComponent(editing.invoice_id)}`
+                  : `/invoices?tab=${editing.invoice_kind ?? 'sale'}&search=${encodeURIComponent(editing.invoice_number ?? '')}`
+              }
+              className="receipt-linked-link"
+              onClick={onCancel}
+            >
+              <FileText size={15} />
+              <span>{linkKind(editing.invoice_kind)} {editing.invoice_number}</span>
+              <ExternalLink size={13} className="link-ext-icon" />
+            </Link>
+          </div>
+          <span className="linked-receipt-note">
             يتم تعديله أو حذفه من داخل الفاتورة نفسها
           </span>
         </div>
