@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  findPinnedCashAccount,
   resolveDefaultAccount,
   resolveDefaultWarehouse,
   resolveDefaultCashBox,
+  sortAccountsWithCashFirst,
   sortCashBoxesWithPrimaryFirst,
 } from '../lib/defaults';
 import type { AccountRow, CashBoxRow, WarehouseOption } from '../lib/types';
@@ -71,5 +73,46 @@ describe('defaults resolver - استخراج الافتراضيات بشكل م�
 
     const sorted = sortCashBoxesWithPrimaryFirst(cashBoxes);
     expect(sorted[0].id).toBe('cb-2');
+  });
+
+  it('يستخرج العميل النقدي والمورد النقدي فقط ولا يعيد حساباً عشوائياً عند غيابهما', () => {
+    const accounts = [
+      { id: 'c1', name: 'أحمد سمير', kind: 'customer', system_key: null, is_active: true },
+      { id: 'c2', name: 'عميل نقدي', kind: 'customer', system_key: 'cash_customer', is_active: true },
+      { id: 's1', name: 'توريدات النور', kind: 'supplier', system_key: null, is_active: true },
+      { id: 's2', name: 'حساب نقدي للموردين', kind: 'supplier', system_key: 'cash_supplier', is_active: true },
+      { id: 'w1', name: 'حساب الهالك', kind: 'waste', system_key: 'waste', is_active: true },
+    ] as unknown as AccountRow[];
+
+    expect(findPinnedCashAccount(accounts, 'customer')?.id).toBe('c2');
+    expect(findPinnedCashAccount(accounts, 'supplier')?.id).toBe('s2');
+    expect(findPinnedCashAccount(accounts, 'waste')).toBeUndefined();
+    expect(findPinnedCashAccount([accounts[0], accounts[2]], 'customer')).toBeUndefined();
+
+    const inactiveCash = { ...accounts[1], is_active: false };
+    expect(findPinnedCashAccount([accounts[0], inactiveCash], 'customer')).toBeUndefined();
+  });
+
+  it('يرتب العملاء والموردين مع تثبيت العميل/المورد النقدي كأول خيار دائماً', () => {
+    const customers = [
+      { id: 'c1', name: 'أحمد', kind: 'customer', system_key: null, is_active: true },
+      { id: 'c2', name: 'سمير', kind: 'customer', system_key: null, is_active: true },
+      { id: 'c-cash', name: 'عميل نقدي', kind: 'customer', system_key: 'cash_customer', is_active: true },
+    ] as unknown as AccountRow[];
+
+    const suppliers = [
+      { id: 's1', name: 'المتحدة', kind: 'supplier', system_key: null, is_active: true },
+      { id: 's-cash', name: 'مورد نقدي', kind: 'supplier', system_key: 'cash_supplier', is_active: true },
+    ] as unknown as AccountRow[];
+
+    expect(sortAccountsWithCashFirst(customers, 'customer').map((a) => a.id)).toEqual([
+      'c-cash',
+      'c1',
+      'c2',
+    ]);
+    expect(sortAccountsWithCashFirst(suppliers, 'supplier').map((a) => a.id)).toEqual([
+      's-cash',
+      's1',
+    ]);
   });
 });

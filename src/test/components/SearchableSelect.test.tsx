@@ -218,4 +218,76 @@ describe('SearchableSelect component', () => {
     expect(onBarcodeScan).toHaveBeenCalledWith('622123');
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it('T-07: pins pinnedOptions at index 0 in async mode even when another option is selected, without blocking search Enter selection', async () => {
+    const pinned: SearchOption[] = [{ value: 'cash-1', label: 'عميل نقدي' }];
+    const loadOptions = vi.fn().mockImplementation(async (q: string) => {
+      if (!q.trim()) {
+        return [
+          { value: 'cash-1', label: 'عميل نقدي', sublabel: '#1' },
+          { value: 'c-1', label: 'أحمد' },
+          { value: 'c-2', label: 'بدر' },
+        ];
+      }
+      if (q.includes('سمير')) {
+        return [{ value: 'c-samir', label: 'سمير' }];
+      }
+      return [];
+    });
+
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <SearchableSelect
+        value="c-other"
+        selectedLabel="يوسف"
+        pinnedOptions={pinned}
+        loadOptions={loadOptions}
+        onChange={onChange}
+      />,
+    );
+
+    const input = screen.getByRole('combobox');
+    fireEvent.focus(input);
+
+    // قبل اكتمال الجلب، يظهر الخيار المثبت أولاً متبوعاً بالمحدد حالياً
+    const initialOptions = screen.getAllByRole('option');
+    expect(initialOptions[0]).toHaveTextContent('عميل نقدي');
+    expect(initialOptions[1]).toHaveTextContent('يوسف');
+
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith(''));
+
+    // بعد اكتمال الجلب، يبقى الخيار المثبت أولاً ويُدمج بدون تكرار مع حفظ المحدد حالياً
+    await waitFor(() => {
+      const optionsAfterLoad = screen.getAllByRole('option');
+      expect(optionsAfterLoad[0]).toHaveTextContent('عميل نقدي');
+      expect(optionsAfterLoad[0]).toHaveTextContent('#1');
+      expect(optionsAfterLoad.filter((o) => o.textContent?.includes('عميل نقدي'))).toHaveLength(1);
+      expect(optionsAfterLoad[1]).toHaveTextContent('يوسف');
+    });
+
+    // أثناء البحث بالاسم، لا يتدخل الخيار المثبت أمام نتائج البحث فيكون أول خيار هو نتيجة البحث
+    fireEvent.change(input, { target: { value: 'سمير' } });
+    await waitFor(() => {
+      const filtered = screen.getAllByRole('option');
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0]).toHaveTextContent('سمير');
+    });
+
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('c-samir');
+
+    // إعادة فتح القائمة مع تحديد "سمير" تُبقي "عميل نقدي" أول خيار في القائمة
+    rerender(
+      <SearchableSelect
+        value="c-samir"
+        selectedLabel="سمير"
+        pinnedOptions={pinned}
+        loadOptions={loadOptions}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.focus(input);
+    const reopenedOptions = screen.getAllByRole('option');
+    expect(reopenedOptions[0]).toHaveTextContent('عميل نقدي');
+  });
 });

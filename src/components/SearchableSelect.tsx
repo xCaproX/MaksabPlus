@@ -13,6 +13,7 @@ export interface SearchOption {
 interface SearchableSelectProps {
   value: string;
   options?: SearchOption[];
+  pinnedOptions?: SearchOption[];
   loadOptions?: (query: string) => Promise<SearchOption[]>;
   onChange: (value: string) => void;
   onSelectOption?: (option: SearchOption) => void;
@@ -35,6 +36,7 @@ interface SearchableSelectProps {
 export default function SearchableSelect({
   value,
   options,
+  pinnedOptions,
   loadOptions,
   onChange,
   onSelectOption,
@@ -75,29 +77,57 @@ export default function SearchableSelect({
 
   // الخيارات الفعالة
   const effectiveOptions = useMemo(() => {
-    if (!isAsync) return options ?? [];
-
-    // في النمط غير المتزامن، نحرص على عدم فقدان الخيار المحدد حاليًا عند فتح القائمة بدون بحث
-    if (!trimmedQuery && value && !asyncOptions.some((o) => o.value === value)) {
-      if (savedOption && savedOption.value === value) {
-        return [savedOption, ...asyncOptions];
+    const baseOptions = isAsync ? asyncOptions : (options ?? []);
+    const result: SearchOption[] = [];
+    const seen = new Set<string>();
+    const addUnique = (option: SearchOption) => {
+      if (!seen.has(option.value)) {
+        result.push(option);
+        seen.add(option.value);
       }
-      if (selectedLabel) {
-        return [{ value, label: selectedLabel }, ...asyncOptions];
+    };
+
+    if (!trimmedQuery && pinnedOptions?.length) {
+      for (const pinned of pinnedOptions) {
+        // عند توفر النتيجة الكاملة من القائمة (مثل السريال)، نُبقيها مع الحفاظ على التثبيت في البداية
+        const hydrated = baseOptions.find((option) => option.value === pinned.value);
+        addUnique(hydrated ?? pinned);
       }
     }
-    return asyncOptions;
-  }, [isAsync, options, asyncOptions, trimmedQuery, value, savedOption, selectedLabel]);
+
+    // في النمط غير المتزامن، نحرص على عدم فقدان الخيار المحدد حاليًا عند فتح القائمة بدون بحث
+    if (
+      isAsync &&
+      !trimmedQuery &&
+      value &&
+      !seen.has(value) &&
+      !asyncOptions.some((o) => o.value === value)
+    ) {
+      if (savedOption && savedOption.value === value) {
+        addUnique(savedOption);
+      } else if (selectedLabel) {
+        addUnique({ value, label: selectedLabel });
+      }
+    }
+
+    for (const option of baseOptions) {
+      addUnique(option);
+    }
+
+    return result;
+  }, [isAsync, options, pinnedOptions, asyncOptions, trimmedQuery, value, savedOption, selectedLabel]);
 
   const selected = useMemo(() => {
     const fromEffective = effectiveOptions.find((option) => option.value === value);
     if (fromEffective) return fromEffective;
+    const fromPinned = pinnedOptions?.find((option) => option.value === value);
+    if (fromPinned) return fromPinned;
     if (savedOption && savedOption.value === value) return savedOption;
     const fromStatic = options?.find((option) => option.value === value);
     if (fromStatic) return fromStatic;
     if (value && selectedLabel) return { value, label: selectedLabel };
     return undefined;
-  }, [effectiveOptions, savedOption, options, value, selectedLabel]);
+  }, [effectiveOptions, pinnedOptions, savedOption, options, value, selectedLabel]);
 
   // تصفية الخيارات في النمط المتزامن
   const filteredOptions = useMemo(() => {

@@ -1,4 +1,5 @@
 import { collectAllRows } from './exportRows';
+import { sortAccountsWithCashFirst } from './defaults';
 import { supabase } from './supabase';
 import { qty as formatQty, normalizeDigits } from './format';
 import { buildPostgrestOrFilter, escapeLikePattern } from './search';
@@ -42,6 +43,15 @@ export function formatItemAvailabilitySublabel(qty: number, unit: string, isOut:
   return `متاح: ${formatQty(qty)} ${unit}${isOut ? ' (غير متوفر)' : ''}`;
 }
 
+export interface SearchAccountsOptions {
+  includeCashAccount?: boolean;
+}
+
+/** تنسيق اسم الحساب في القوائم المنسدلة بشكل موحد */
+export function formatAccountOptionLabel(name: string, phone?: string | null): string {
+  return phone ? `${name} — ${phone}` : name;
+}
+
 /**
  * بحث لحظي في الحسابات (عملاء / موردين) مع حد أقصى للنتائج
  */
@@ -49,6 +59,7 @@ export async function searchAccountsAsync(
   kind: AccountKind,
   query: string = '',
   limit: number = 25,
+  options?: SearchAccountsOptions,
 ): Promise<SearchOption[]> {
   const trimmed = normalizeDigits(query).trim();
 
@@ -56,10 +67,13 @@ export async function searchAccountsAsync(
     .from('v_account_balances')
     .select('id, name, phone, serial_number, kind, balance, system_key')
     .eq('kind', kind)
-    .eq('is_active', true)
-    .is('system_key', null)
-    .order('name')
-    .limit(limit);
+    .eq('is_active', true);
+
+  if (!options?.includeCashAccount) {
+    req = req.is('system_key', null);
+  }
+
+  req = req.order('name').limit(limit);
 
   if (trimmed) {
     const baseFilter = buildPostgrestOrFilter(['name', 'phone'], trimmed);
@@ -71,9 +85,14 @@ export async function searchAccountsAsync(
   const { data, error } = await req;
   if (error || !data) return [];
 
-  return (data as unknown as AccountQueryResult[]).map((acc) => ({
+  const rows = data as unknown as AccountQueryResult[];
+  const ordered = options?.includeCashAccount
+    ? sortAccountsWithCashFirst(rows, kind)
+    : rows;
+
+  return ordered.map((acc) => ({
     value: acc.id,
-    label: acc.phone ? `${acc.name} — ${acc.phone}` : acc.name,
+    label: formatAccountOptionLabel(acc.name, acc.phone),
     sublabel: acc.serial_number ? `#${acc.serial_number}` : undefined,
   }));
 }

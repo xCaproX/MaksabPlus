@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import InvoiceForm from '../../components/InvoiceForm';
+import * as masterDataQueries from '../../lib/masterDataQueries';
+import type { AccountKind, AccountRow } from '../../lib/types';
 
 vi.mock('../../components/Toast', () => ({
   toast: {
@@ -446,4 +448,165 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     expect(suffixes).toContain('قطعة');
     expect(suffixes).toContain('كجم');
   });
+
+  const makeAccount = (
+    id: string,
+    name: string,
+    kind: AccountKind,
+    systemKey: AccountRow['system_key'] = null,
+    serialNumber: number | null = null,
+  ): AccountRow => ({
+    id,
+    serial_number: serialNumber,
+    name,
+    kind,
+    phone: null,
+    notes: null,
+    is_active: true,
+    opening_balance: 0,
+    invoiced: 0,
+    paid: 0,
+    balance: 0,
+    has_documents: false,
+    system_key: systemKey,
+  });
+
+  it.each([
+    { kind: 'sale' as const, cashName: 'عميل نقدي', cashId: 'cash-c', otherName: 'أحمد سمير', accountKind: 'customer' as const, cashKey: 'cash_customer' as const },
+    { kind: 'sale_return' as const, cashName: 'عميل نقدي', cashId: 'cash-c', otherName: 'أحمد سمير', accountKind: 'customer' as const, cashKey: 'cash_customer' as const },
+    { kind: 'purchase' as const, cashName: 'مورد نقدي', cashId: 'cash-s', otherName: 'الشركة المتحدة', accountKind: 'supplier' as const, cashKey: 'cash_supplier' as const },
+    { kind: 'purchase_return' as const, cashName: 'مورد نقدي', cashId: 'cash-s', otherName: 'الشركة المتحدة', accountKind: 'supplier' as const, cashKey: 'cash_supplier' as const },
+  ])(
+    'يثبت "$cashName" كأول خيار في القائمة بعد اختيار حساب آخر في $kind (أقل من 50 حساب)',
+    ({ kind, cashName, cashId, otherName, accountKind, cashKey }) => {
+      const accounts: AccountRow[] = [
+        makeAccount('other-1', otherName, accountKind),
+        makeAccount('other-2', 'بدر محمود', accountKind),
+        makeAccount(cashId, cashName, accountKind, cashKey),
+      ];
+
+      const { container } = render(
+        <InvoiceForm
+          kind={kind}
+          accounts={accounts}
+          warehouses={mockWarehouses}
+          cashBoxes={mockCashBoxes}
+          items={mockItems}
+          stockRows={mockStockRows}
+          editing={null}
+          readOnly={false}
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+
+      const accountField = container.querySelector('.field-account-select') as HTMLElement;
+      const combobox = within(accountField).getByRole('combobox');
+
+      fireEvent.focus(combobox);
+      let options = within(accountField).getAllByRole('option');
+      expect(options[0]).toHaveTextContent(cashName);
+
+      // اختيار حساب غير نقدي
+      const otherOption = options.find((opt) => opt.textContent?.includes(otherName));
+      expect(otherOption).toBeDefined();
+      fireEvent.click(otherOption!);
+      expect(combobox).toHaveAttribute('placeholder', otherName);
+
+      // إعادة فتح القائمة: يجب أن يظل العميل/المورد النقدي ظاهراً وكأول خيار
+      fireEvent.focus(combobox);
+      options = within(accountField).getAllByRole('option');
+      expect(options[0]).toHaveTextContent(cashName);
+      expect(options.some((opt) => opt.textContent?.includes(otherName))).toBe(true);
+    },
+  );
+
+  it.each([
+    { kind: 'sale' as const, cashName: 'عميل نقدي', cashId: 'cash-c', otherName: 'يوسف الزعيم', accountKind: 'customer' as const, cashKey: 'cash_customer' as const },
+    { kind: 'sale_return' as const, cashName: 'عميل نقدي', cashId: 'cash-c', otherName: 'يوسف الزعيم', accountKind: 'customer' as const, cashKey: 'cash_customer' as const },
+    { kind: 'purchase' as const, cashName: 'مورد نقدي', cashId: 'cash-s', otherName: 'ياسين للتوريدات', accountKind: 'supplier' as const, cashKey: 'cash_supplier' as const },
+    { kind: 'purchase_return' as const, cashName: 'مورد نقدي', cashId: 'cash-s', otherName: 'ياسين للتوريدات', accountKind: 'supplier' as const, cashKey: 'cash_supplier' as const },
+  ])(
+    'يثبت "$cashName" كأول خيار في البحث غير المتزامن (>50 حساب) بعد اختيار حساب آخر في $kind',
+    async ({ kind, cashName, cashId, otherName, accountKind, cashKey }) => {
+      const top25 = Array.from({ length: 25 }, (_, i) =>
+        makeAccount(`acc-top-${i}`, `أحمد ${String(i + 1).padStart(2, '0')}`, accountKind),
+      );
+      const midAccounts = Array.from({ length: 30 }, (_, i) =>
+        makeAccount(`acc-mid-${i}`, `باسم ${i + 1}`, accountKind),
+      );
+      const selectedTarget = makeAccount('acc-target', otherName, accountKind);
+      const cashAccount = makeAccount(cashId, cashName, accountKind, cashKey, 1);
+      const manyAccounts: AccountRow[] = [...top25, ...midAccounts, cashAccount, selectedTarget];
+
+      const searchSpy = vi
+        .spyOn(masterDataQueries, 'searchAccountsAsync')
+        .mockImplementation(async (_k, query = '') => {
+          const q = query.trim();
+          if (!q) {
+            // محاكاة عودة أول 25 حساباً أبجدياً فقط دون الحساب النقدي أو المختار المتأخر أبجدياً
+            return top25.map((a) => ({ value: a.id, label: a.name }));
+          }
+          if (q.includes(otherName.slice(0, 4))) {
+            return [{ value: selectedTarget.id, label: selectedTarget.name }];
+          }
+          if (q.includes('نقدي')) {
+            // محاكاة عودة 25 حساباً آخر تبدأ بـ"نقدي" دون الحساب النقدي الرسمي
+            return [{ value: 'acc-top-0', label: 'أحمد نقدي تجاري' }];
+          }
+          return [];
+        });
+
+      try {
+        const { container } = render(
+          <InvoiceForm
+            kind={kind}
+            accounts={manyAccounts}
+            warehouses={mockWarehouses}
+            cashBoxes={mockCashBoxes}
+            items={mockItems}
+            stockRows={mockStockRows}
+            editing={null}
+            readOnly={false}
+            onSaved={vi.fn()}
+            onCancel={vi.fn()}
+          />,
+        );
+
+        const accountField = container.querySelector('.field-account-select') as HTMLElement;
+        const combobox = within(accountField).getByRole('combobox');
+
+        // البحث واختيار حساب غير نقدي
+        fireEvent.focus(combobox);
+        fireEvent.change(combobox, { target: { value: otherName.slice(0, 4) } });
+
+        await waitFor(() => {
+          expect(within(accountField).getAllByRole('option')[0]).toHaveTextContent(otherName);
+        });
+        fireEvent.click(within(accountField).getAllByRole('option')[0]);
+        expect(combobox).toHaveAttribute('placeholder', otherName);
+
+        // إعادة فتح القائمة بدون نص بحث: يظل الحساب النقدي أول خيار قبل وأثناء وبعد الجلب
+        fireEvent.focus(combobox);
+        expect(within(accountField).getAllByRole('option')[0]).toHaveTextContent(cashName);
+
+        await waitFor(() => {
+          expect(searchSpy).toHaveBeenCalledWith(accountKind, '', 25, { includeCashAccount: true });
+        });
+
+        const optionsAfterLoad = within(accountField).getAllByRole('option');
+        expect(optionsAfterLoad[0]).toHaveTextContent(cashName);
+        expect(optionsAfterLoad[1]).toHaveTextContent(otherName);
+
+        // عند البحث بكلمة "نقدي" يظهر الحساب النقدي كأول خيار حتى لو لم يُرجع في أعلى 25 نتيجة
+        fireEvent.change(combobox, { target: { value: 'نقدي' } });
+        await waitFor(() => {
+          const cashSearchOptions = within(accountField).getAllByRole('option');
+          expect(cashSearchOptions[0]).toHaveTextContent(cashName);
+        });
+      } finally {
+        searchSpy.mockRestore();
+      }
+    },
+  );
 });

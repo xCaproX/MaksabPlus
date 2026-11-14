@@ -1,5 +1,43 @@
 import type { AccountRow, CashBoxRow, WarehouseOption, AccountKind } from './types';
 
+const CASH_ACCOUNT_CONFIG = {
+  customer: { systemKey: 'cash_customer', fallbackName: 'عميل نقدي' },
+  supplier: { systemKey: 'cash_supplier', fallbackName: 'مورد نقدي' },
+} as const;
+
+type CashAccountCandidate = Pick<AccountRow, 'id' | 'name' | 'kind'> & {
+  system_key?: string | null;
+  is_active?: boolean;
+};
+
+/**
+ * استخراج الحساب النقدي المثبت (عميل نقدي / مورد نقدي) فقط دون الرجوع لأي حساب عشوائي
+ */
+export function findPinnedCashAccount<T extends CashAccountCandidate>(
+  accounts: readonly T[],
+  kind: AccountKind,
+): T | undefined {
+  if (kind !== 'customer' && kind !== 'supplier') return undefined;
+  const { systemKey, fallbackName } = CASH_ACCOUNT_CONFIG[kind];
+  const active = accounts.filter((a) => a.is_active !== false && a.kind === kind);
+  return (
+    active.find((a) => a.system_key === systemKey) ??
+    active.find((a) => a.name.includes(fallbackName))
+  );
+}
+
+/**
+ * ترتيب الحسابات بحيث يظهر العميل النقدي أو المورد النقدي كأول خيار دائماً
+ */
+export function sortAccountsWithCashFirst<T extends CashAccountCandidate>(
+  accounts: readonly T[],
+  kind: AccountKind,
+): T[] {
+  const pinned = findPinnedCashAccount(accounts, kind);
+  if (!pinned) return [...accounts];
+  return [pinned, ...accounts.filter((a) => a.id !== pinned.id)];
+}
+
 /**
  * دالة استخراج الحساب الافتراضي:
  * الأولوية 1: الحساب النشط المطابق لـ system_key (مثل 'cash_customer' أو 'cash_supplier' أو 'waste')
@@ -12,11 +50,21 @@ export function resolveDefaultAccount(
   systemKey: 'cash_customer' | 'cash_supplier' | 'waste' | null = null,
 ): AccountRow | undefined {
   const active = accounts.filter((a) => a.is_active !== false && a.kind === kind);
+  if (kind === 'customer' || kind === 'supplier') {
+    const config = CASH_ACCOUNT_CONFIG[kind];
+    if (systemKey === config.systemKey) {
+      return findPinnedCashAccount(active, kind) ?? active[0];
+    }
+    if (!systemKey) {
+      return active.find((a) => a.name.includes(config.fallbackName)) ?? active[0];
+    }
+  }
   if (systemKey) {
     const byKey = active.find((a) => a.system_key === systemKey);
     if (byKey) return byKey;
   }
-  const fallbackText = kind === 'customer' ? 'عميل نقدي' : kind === 'supplier' ? 'مورد نقدي' : 'هالك';
+  const fallbackText =
+    kind === 'waste' ? 'هالك' : CASH_ACCOUNT_CONFIG[kind].fallbackName;
   const byName = active.find((a) => a.name.includes(fallbackText));
   if (byName) return byName;
   return active[0];

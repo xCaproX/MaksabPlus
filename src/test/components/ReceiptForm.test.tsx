@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ReceiptForm from '../../components/ReceiptForm';
+import * as masterDataQueries from '../../lib/masterDataQueries';
 import { supabase } from '../../lib/supabase';
 
 vi.mock('../../components/Toast', () => ({
@@ -398,5 +399,62 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     const form = screen.getByRole('button', { name: 'حفظ التعديلات' }).closest('form')!;
     fireEvent.submit(form);
     expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it('يحافظ على استبعاد العميل النقدي والمورد النقدي في السندات الحرة (>50 حساب)', async () => {
+    const manyCustomers = Array.from({ length: 55 }, (_, i) => ({
+      id: `cust-${i}`,
+      name: `عميل ${i + 1}`,
+      kind: 'customer',
+      balance: 0,
+      opening_balance: 0,
+      is_active: true,
+      notes: null,
+      serial_number: i + 2,
+      phone: null,
+      system_key: null,
+    })) as any;
+    manyCustomers.push({
+      id: 'cash-c',
+      name: 'عميل نقدي',
+      kind: 'customer',
+      balance: 0,
+      opening_balance: 0,
+      is_active: true,
+      notes: null,
+      serial_number: 1,
+      phone: null,
+      system_key: 'cash_customer',
+    });
+
+    const searchSpy = vi
+      .spyOn(masterDataQueries, 'searchAccountsAsync')
+      .mockResolvedValue([{ value: 'cust-0', label: 'عميل 1' }]);
+
+    try {
+      render(
+        <MemoryRouter>
+          <ReceiptForm
+            direction="in"
+            accounts={manyCustomers}
+            cashBoxes={mockCashBoxes}
+            editing={null}
+            onSaved={vi.fn()}
+            onCancel={vi.fn()}
+          />
+        </MemoryRouter>,
+      );
+
+      const combobox = screen.getByPlaceholderText('ابحث باسم أو هاتف الحساب…');
+      fireEvent.focus(combobox);
+
+      await waitFor(() => {
+        expect(searchSpy).toHaveBeenCalledWith('customer', '');
+      });
+      expect(searchSpy.mock.calls[0]?.[3]).toBeUndefined();
+      expect(screen.queryByRole('option', { name: /عميل نقدي/ })).toBeNull();
+    } finally {
+      searchSpy.mockRestore();
+    }
   });
 });

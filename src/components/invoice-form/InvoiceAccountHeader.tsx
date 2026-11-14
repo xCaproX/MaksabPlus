@@ -1,9 +1,31 @@
+import { useMemo } from 'react';
 import AccountBalancePills from '../AccountBalancePills';
 import DateDisplay from '../DateDisplay';
 import DateInput from '../DateInput';
-import SearchableSelect from '../SearchableSelect';
-import { searchAccountsAsync } from '../../lib/masterDataQueries';
+import SearchableSelect, { type SearchOption } from '../SearchableSelect';
+import { findPinnedCashAccount, sortAccountsWithCashFirst } from '../../lib/defaults';
+import { normalizeDigits } from '../../lib/format';
+import { formatAccountOptionLabel, searchAccountsAsync } from '../../lib/masterDataQueries';
 import type { AccountKind, AccountRow, WarehouseOption } from '../../lib/types';
+
+function toAccountOption(account: AccountRow): SearchOption {
+  return {
+    value: account.id,
+    label: formatAccountOptionLabel(account.name, account.phone),
+  };
+}
+
+function matchesAccountQuery(account: AccountRow, rawQuery: string): boolean {
+  const trimmed = normalizeDigits(rawQuery).trim();
+  if (!trimmed) return false;
+  const lowered = trimmed.toLocaleLowerCase();
+  const digits = trimmed.replace(/^#/, '');
+  return (
+    normalizeDigits(account.name).toLocaleLowerCase().includes(lowered) ||
+    Boolean(account.phone && normalizeDigits(account.phone).toLocaleLowerCase().includes(lowered)) ||
+    Boolean(account.serial_number && /^\d+$/.test(digits) && String(account.serial_number) === digits)
+  );
+}
 
 interface InvoiceAccountHeaderProps {
   isReadOnly: boolean;
@@ -48,6 +70,22 @@ export default function InvoiceAccountHeader({
   netInvoiceDebt,
   balanceAfter,
 }: InvoiceAccountHeaderProps) {
+  const pinnedCashAccount = useMemo(
+    () => findPinnedCashAccount(selectableAccounts, accountKind),
+    [selectableAccounts, accountKind],
+  );
+  const pinnedAccountOptions = useMemo(
+    () => (pinnedCashAccount ? [toAccountOption(pinnedCashAccount)] : undefined),
+    [pinnedCashAccount],
+  );
+  const orderedAccountOptions = useMemo(
+    () =>
+      selectableAccounts.length <= 50
+        ? sortAccountsWithCashFirst(selectableAccounts, accountKind).map(toAccountOption)
+        : undefined,
+    [selectableAccounts, accountKind],
+  );
+
   return (
     <div className="right-card account-header-card">
       {/* الصف الأول: التاريخ - المخزن - نوع الحساب - الحساب */}
@@ -116,19 +154,27 @@ export default function InvoiceAccountHeader({
               <div className="readonly-val-box strong">{selectedAccount?.name ?? accountNameFallback ?? '—'}</div>
             ) : (
               <SearchableSelect
+                key={accountKind}
                 value={accountId}
                 selectedLabel={selectedAccount?.name ?? accountNameFallback}
-                options={
-                  selectableAccounts.length <= 50
-                    ? selectableAccounts.map((account) => ({
-                        value: account.id,
-                        label: account.phone ? `${account.name} — ${account.phone}` : account.name,
-                      }))
-                    : undefined
-                }
+                pinnedOptions={pinnedAccountOptions}
+                options={orderedAccountOptions}
                 loadOptions={
                   selectableAccounts.length > 50
-                    ? async (q) => searchAccountsAsync(accountKind, q)
+                    ? async (q) => {
+                        const results = await searchAccountsAsync(accountKind, q, 25, {
+                          includeCashAccount: true,
+                        });
+                        if (
+                          pinnedCashAccount &&
+                          pinnedAccountOptions?.[0] &&
+                          matchesAccountQuery(pinnedCashAccount, q) &&
+                          !results.some((opt) => opt.value === pinnedCashAccount.id)
+                        ) {
+                          return [pinnedAccountOptions[0], ...results];
+                        }
+                        return results;
+                      }
                     : undefined
                 }
                 onChange={onAccountChange}
