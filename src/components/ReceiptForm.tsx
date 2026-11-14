@@ -340,10 +340,10 @@ export default function ReceiptForm({
       </div>
 
       {/* -------------------------------------------------------------------
-          السطر الثالث: المبلغ - زرار استلام كامل المديونية - تفقيط المبلغ بالعربي
+          البطاقة الثانية: السطر الثالث (المبلغ - كامل المديونية - الخزنة) + السطر الرابع (تفقيط المبلغ)
           ------------------------------------------------------------------- */}
       <div className="receipt-amount-card">
-        <div className="row-amount-tafqeet">
+        <div className="row-amount-cashbox">
           <div className="field-amount-slot">
             <label>
               <span>{isIn ? 'المبلغ المستلم' : 'المبلغ المصروف'}</span>
@@ -385,19 +385,6 @@ export default function ReceiptForm({
             </label>
           </div>
 
-          <div className="field-tafqeet-card" title={tafqeetText || 'المبلغ بالحروف'}>
-            <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
-              {tafqeetText || '—'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* -------------------------------------------------------------------
-          السطر الرابع: الخزنة المستلمة - ملاحظات
-          ------------------------------------------------------------------- */}
-      <div className="receipt-meta-card">
-        <div className="row-cashbox-notes">
           <label className="field-cashbox-select">
             <span>الخزنة {isIn ? 'المستلمة' : 'المنصرف منها'}</span>
             {isReadOnly ? (
@@ -418,24 +405,35 @@ export default function ReceiptForm({
               />
             )}
           </label>
-
-          <label className="field-receipt-notes">
-            <span>ملاحظات</span>
-            {isReadOnly ? (
-              <div className="readonly-val-box readonly-notes">
-                {notes || 'لا توجد ملاحظات'}
-              </div>
-            ) : (
-              <textarea
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="ملاحظات اختيارية على الإيصال…"
-                className="receipt-notes-input receipt-notes-textarea"
-              />
-            )}
-          </label>
         </div>
+
+        <div className="field-tafqeet-card receipt-tafqeet-row" title={tafqeetText || 'المبلغ بالحروف'}>
+          <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
+            {tafqeetText || '—'}
+          </span>
+        </div>
+      </div>
+
+      {/* -------------------------------------------------------------------
+          السطر الخامس: ملاحظات
+          ------------------------------------------------------------------- */}
+      <div className="receipt-meta-card">
+        <label className="field-receipt-notes">
+          <span>ملاحظات</span>
+          {isReadOnly ? (
+            <div className="readonly-val-box readonly-notes">
+              {notes || 'لا توجد ملاحظات'}
+            </div>
+          ) : (
+            <textarea
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="ملاحظات اختيارية على الإيصال…"
+              className="receipt-notes-input receipt-notes-textarea"
+            />
+          )}
+        </label>
       </div>
 
       {/* تنبيه الرصيد المتاح عند الصرف أو عجز الخزنة السابقة عند نقل إيصال استلام */}
@@ -504,6 +502,7 @@ export default function ReceiptForm({
         cancelTitle="إلغاء التعديل والعودة"
         resetTitle="مسح الحقول والبدء من جديد"
         showCancelIcon={false}
+        primaryLast
         saveClassName="btn-receipt-save-full"
         restoreClassName="btn-receipt-restore"
         editClassName="btn-receipt-edit"

@@ -61,4 +61,43 @@ describe('DocumentActionsBar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'مسح / جديد' }));
     expect(onResetNew).toHaveBeenCalledTimes(1);
   });
+
+  it('orders secondary action before primary save when primaryLast is true', () => {
+    const { rerender } = render(
+      <DocumentActionsBar
+        isReadOnly={false}
+        isEditing={false}
+        busy={false}
+        primaryLast
+        saveLabel="حفظ إيصال الاستلام"
+        restoreLabel="استعادة"
+        editLabel="تعديل"
+        onCancel={vi.fn()}
+        onResetNew={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByRole('button').map((btn) => btn.textContent?.trim())).toEqual([
+      'مسح / جديد',
+      'حفظ إيصال الاستلام',
+    ]);
+
+    rerender(
+      <DocumentActionsBar
+        isReadOnly={false}
+        isEditing
+        busy={false}
+        primaryLast
+        saveLabel="حفظ التعديلات"
+        restoreLabel="استعادة"
+        editLabel="تعديل"
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByRole('button').map((btn) => btn.textContent?.trim())).toEqual([
+      'إلغاء',
+      'حفظ التعديلات',
+    ]);
+  });
 });

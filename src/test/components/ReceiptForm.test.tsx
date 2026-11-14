@@ -457,4 +457,58 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
       searchSpy.mockRestore();
     }
   });
+
+  it('يرتب بطاقات وحقول الإيصال وأزرار الإجراءات بالترتيب المعتمد (مع مسح/جديد قبل حفظ الإيصال)', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={null}
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const form = container.querySelector('form.receipt-form') as HTMLElement;
+    const directCards = Array.from(form.children);
+    expect(directCards.map((el) => el.className)).toEqual([
+      'account-header-card',
+      'receipt-amount-card',
+      'receipt-meta-card',
+      'row-actions-group',
+    ]);
+
+    const row1 = form.querySelector('.account-header-row1')!;
+    expect(Array.from(row1.children).map((el) => el.className)).toEqual([
+      'field-receipt-date',
+      'field-account-kind',
+      'field-account-main',
+    ]);
+
+    const row2 = form.querySelector('.account-header-row2')!;
+    expect(Array.from(row2.children).map((el) => el.className)).toEqual([
+      'field-account-notes',
+      'account-balance-pills',
+    ]);
+
+    const amountCard = form.querySelector('.receipt-amount-card')!;
+    const amountCashboxRow = amountCard.querySelector('.row-amount-cashbox')!;
+    expect(Array.from(amountCashboxRow.children).map((el) => el.className)).toEqual([
+      'field-amount-slot',
+      'field-cashbox-select',
+    ]);
+    expect(amountCashboxRow.querySelector('.field-amount-slot .btn-settle-all-action')).toBeInTheDocument();
+    expect(amountCard.lastElementChild).toHaveClass('field-tafqeet-card', 'receipt-tafqeet-row');
+
+    const metaCard = form.querySelector('.receipt-meta-card')!;
+    expect(metaCard.querySelector('.field-receipt-notes')).toBeInTheDocument();
+
+    const actionButtons = Array.from(form.querySelectorAll('.row-actions-group button')).map((b) =>
+      b.textContent?.trim(),
+    );
+    expect(actionButtons).toEqual(['مسح / جديد', 'حفظ إيصال الاستلام']);
+  });
 });

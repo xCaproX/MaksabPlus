@@ -18,6 +18,7 @@ interface DocumentActionsBarProps {
   cancelTitle?: string;
   resetTitle?: string;
   showCancelIcon?: boolean;
+  primaryLast?: boolean;
   saveClassName?: string;
   restoreClassName?: string;
   editClassName?: string;
@@ -55,6 +56,7 @@ export default function DocumentActionsBar({
   cancelTitle,
   resetTitle,
   showCancelIcon = true,
+  primaryLast = false,
   saveClassName = '',
   restoreClassName = '',
   editClassName = '',
@@ -123,41 +125,53 @@ export default function DocumentActionsBar({
     );
   }
 
+  const primaryButton = (
+    <button
+      type="submit"
+      className={`btn primary ${saveClassName}`.trim()}
+      disabled={busy || saveDisabled}
+    >
+      <Save size={16} />
+      <span>{busy ? 'جارٍ الحفظ…' : saveLabel}</span>
+    </button>
+  );
+
+  const secondaryButton = isEditing ? (
+    <button
+      type="button"
+      className={`btn ${cancelClassName}`.trim()}
+      onClick={onCancel}
+      disabled={busy}
+      title={cancelTitle}
+    >
+      {showCancelIcon && <X size={15} />}
+      <span>{cancelLabel}</span>
+    </button>
+  ) : onResetNew ? (
+    <button
+      type="button"
+      className={`btn ${resetClassName}`.trim()}
+      onClick={onResetNew}
+      disabled={busy}
+      title={resetTitle}
+    >
+      <RotateCcw size={14} />
+      <span>{resetLabel}</span>
+    </button>
+  ) : null;
+
   return (
     <div className={containerClassName}>
-      <button
-        type="submit"
-        className={`btn primary ${saveClassName}`.trim()}
-        disabled={busy || saveDisabled}
-      >
-        <Save size={16} />
-        <span>{busy ? 'جارٍ الحفظ…' : saveLabel}</span>
-      </button>
-
-      {isEditing ? (
-        <button
-          type="button"
-          className={`btn ${cancelClassName}`.trim()}
-          onClick={onCancel}
-          disabled={busy}
-          title={cancelTitle}
-        >
-          {showCancelIcon && <X size={15} />}
-          <span>{cancelLabel}</span>
-        </button>
+      {primaryLast ? (
+        <>
+          {secondaryButton}
+          {primaryButton}
+        </>
       ) : (
-        onResetNew && (
-          <button
-            type="button"
-            className={`btn ${resetClassName}`.trim()}
-            onClick={onResetNew}
-            disabled={busy}
-            title={resetTitle}
-          >
-            <RotateCcw size={14} />
-            <span>{resetLabel}</span>
-          </button>
-        )
+        <>
+          {primaryButton}
+          {secondaryButton}
+        </>
       )}
     </div>
   );
