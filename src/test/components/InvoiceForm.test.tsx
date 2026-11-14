@@ -357,4 +357,69 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     fireEvent.change(paidInput, { target: { value: '١٢٥٫٥٠' } });
     expect(paidInput.value).toBe('125.50');
   });
+
+  it.each(['sale_return', 'purchase_return'] as const)(
+    'يعرض شريط المتبقي في %s بعنوان "المتبقي" وشارة "خالص" أو "آجل" مثل فواتير المبيعات',
+    (returnKind) => {
+      const accountKind = returnKind === 'sale_return' ? ('customer' as const) : ('supplier' as const);
+      const returnAccounts = [
+        {
+          id: 'acc-ret',
+          name: 'حساب مرتجع تجريبي',
+          kind: accountKind,
+          balance: 0,
+          is_active: true,
+          notes: '',
+          phone: '',
+          serial_number: 10,
+          opening_balance: 0,
+          invoiced: 0,
+          paid: 0,
+          has_documents: false,
+          system_key: null,
+        },
+      ] as any;
+      const returnEditing = {
+        invoice: {
+          ...mockEditingInvoice.invoice,
+          kind: returnKind,
+          account_id: 'acc-ret',
+          account_kind: accountKind,
+          account_name: 'حساب مرتجع تجريبي',
+          total: 350,
+          paid: 350,
+          remaining: 0,
+        },
+        lines: [{ key: 'l-r1', item_id: 'itm-1', qty: '10', unit_price: '35' }],
+      };
+
+      const { container } = render(
+        <InvoiceForm
+          kind={returnKind}
+          accounts={returnAccounts}
+          warehouses={mockWarehouses}
+          cashBoxes={mockCashBoxes}
+          items={mockItems}
+          stockRows={mockStockRows}
+          editing={returnEditing}
+          readOnly={false}
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+
+      const remainingStrip = container.querySelector('.left-remaining-strip')!;
+      expect(remainingStrip).toBeInTheDocument();
+      expect(remainingStrip.querySelector('.strip-label')).toHaveTextContent('المتبقي');
+      expect(remainingStrip.querySelector('.status-badge')).toHaveTextContent('خالص');
+      expect(remainingStrip).not.toHaveTextContent('حالة الاسترداد');
+      expect(remainingStrip).not.toHaveTextContent('مسترد بالكامل');
+
+      const paidInput = screen.getByLabelText('المبلغ المسترد') as HTMLInputElement;
+      fireEvent.change(paidInput, { target: { value: '100' } });
+
+      expect(remainingStrip.querySelector('.status-badge')).toHaveTextContent('آجل');
+      expect(remainingStrip).not.toHaveTextContent('غير مسترد');
+    },
+  );
 });

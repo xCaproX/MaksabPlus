@@ -211,16 +211,10 @@ export default function InvoiceSummarySidebar({
       {/* 3. المتبقي والخانة على نفس السطر */}
       {!isWaste && (
         <div className={`left-row-strip left-remaining-strip ${remaining === 0 ? 'is-zero' : 'is-due'}`}>
-          <span className="strip-label">{isReturn ? 'حالة الاسترداد' : 'المتبقي'}</span>
+          <span className="strip-label">المتبقي</span>
           <div className="strip-center-slot">
             <StatusBadge variant={remaining === 0 ? 'paid' : 'unpaid'}>
-              {isReturn
-                ? remaining === 0
-                  ? 'مسترد بالكامل'
-                  : 'غير مسترد'
-                : remaining === 0
-                  ? 'خالص'
-                  : 'آجل'}
+              {remaining === 0 ? 'خالص' : 'آجل'}
             </StatusBadge>
           </div>
           <div className="strip-value-box">

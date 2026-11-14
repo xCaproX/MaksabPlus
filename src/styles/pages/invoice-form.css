@@ -1160,18 +1160,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 0 14px;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 14px;
   border-radius: 9px;
   border: 1.5px solid var(--erp-border, #cbd5e1);
   background: #ffffff;
-  height: 56px;
   min-height: 56px;
-  max-height: 56px;
   box-sizing: border-box;
 }
 
 .left-row-strip .strip-label {
+  flex-shrink: 0;
   font-size: 14px;
   font-weight: 750;
   color: #334155;
@@ -1180,6 +1180,8 @@
 
 /* Symmetric container for values across all 3 rows */
 .strip-value-box {
+  flex-shrink: 0;
+  margin-inline-start: auto;
   width: 135px;
   min-width: 135px;
   max-width: 135px;
@@ -1230,12 +1232,12 @@
 
 /* Center slot between label and value box */
 .strip-center-slot {
-  flex: 1;
+  flex: 1 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
-  padding: 0 4px;
+  min-width: max-content;
+  padding: 0;
 }
 
 .paid-quick-actions {
@@ -1474,6 +1476,18 @@
     flex: none;
     min-height: auto;
     overflow-y: visible;
+  }
+}
+
+@media (max-width: 420px) {
+  .left-row-strip {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .strip-value-box {
+    width: 118px;
+    min-width: 118px;
+    max-width: 118px;
   }
 }
 
