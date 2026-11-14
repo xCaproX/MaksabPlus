@@ -150,6 +150,27 @@ describe('Home Dashboard Components', () => {
     expect(screen.queryByText('عرض فواتير المبيعات')).not.toBeInTheDocument();
   });
 
+  it('TopRankedList renders the shared compact EmptyState when items are empty', () => {
+    const { container } = render(
+      <BrowserRouter>
+        <TopRankedList
+          title="أكثر الأصناف طلباً"
+          icon={Package}
+          items={[]}
+          barVariant="items"
+          emptyText="لا توجد مبيعات أصناف مسجلة خلال آخر شهر"
+          linkTo="/invoices?tab=sale"
+          linkText="عرض فواتير المبيعات"
+        />
+      </BrowserRouter>
+    );
+
+    const emptyRoot = container.querySelector('.empty-state.is-compact.chart-empty-state');
+    expect(emptyRoot).toBeInTheDocument();
+    expect(emptyRoot?.querySelector('.empty-state-icon')).toBeInTheDocument();
+    expect(screen.getByText('لا توجد مبيعات أصناف مسجلة خلال آخر شهر')).toBeInTheDocument();
+  });
+
   it('shows the three dashboard sections without rendering low-stock data', async () => {
     vi.mocked(supabase.rpc).mockResolvedValue({
       data: {

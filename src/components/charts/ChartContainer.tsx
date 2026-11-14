@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { RefreshCw, Inbox } from 'lucide-react';
+import EmptyState from '../EmptyState';
 
 interface ChartContainerProps {
   title: string;
@@ -73,10 +74,12 @@ export default function ChartContainer({
             )}
           </div>
         ) : isEmpty ? (
-          <div className="chart-empty-state">
-            <Inbox size={32} className="text-muted" style={{ opacity: 0.6 }} aria-hidden="true" />
-            <p className="chart-empty-text">{emptyMessage}</p>
-          </div>
+          <EmptyState
+            compact
+            icon={Inbox}
+            title={emptyMessage}
+            className="chart-empty-state"
+          />
         ) : (
           children
         )}

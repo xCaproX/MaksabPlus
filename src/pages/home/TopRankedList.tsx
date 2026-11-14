@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
-import { RefreshCw } from 'lucide-react';
+import { Inbox, RefreshCw } from 'lucide-react';
+import EmptyState from '../../components/EmptyState';
 import DashboardCardAction from './DashboardCardAction';
 
 export interface RankedItem {
@@ -59,9 +60,12 @@ export default function TopRankedList({
           <span className="chart-empty-text">جارٍ التحميل…</span>
         </div>
       ) : items.length === 0 ? (
-        <div className="empty-state-card">
-          <p>{emptyText}</p>
-        </div>
+        <EmptyState
+          compact
+          icon={Inbox}
+          title={emptyText}
+          className="chart-empty-state"
+        />
       ) : (
         <div className="ranked-list" role="list">
           {items.map((item, index) => {
