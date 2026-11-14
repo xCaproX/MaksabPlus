@@ -108,9 +108,13 @@
 
 .row-cashbox-balance-notes {
   display: grid;
-  grid-template-columns: minmax(210px, 1.05fr) 150px minmax(220px, 1.35fr);
-  gap: 12px;
+  grid-template-columns: minmax(185px, 215px) 130px minmax(260px, 1fr);
+  gap: 6px;
   align-items: flex-end;
+}
+
+.row-cashbox-balance-notes .field-receipt-notes {
+  margin-inline-start: 8px;
 }
 
 .field-cashbox-balance {
@@ -129,8 +133,11 @@
 .cashbox-balance-box {
   height: 40px;
   min-height: 40px;
-  justify-content: flex-start;
+  padding: 0 8px;
+  justify-content: center;
   font-size: 13px;
+  font-weight: 600;
+  color: #475569;
   box-sizing: border-box;
 }
 
@@ -138,6 +145,7 @@
   background: #fef2f2;
   border-color: #fecaca;
   color: #b91c1c;
+  font-weight: 700;
 }
 
 .receipt-statement-input,
@@ -309,11 +317,12 @@
 
 @media (max-width: 780px) {
   .row-cashbox-balance-notes {
-    grid-template-columns: minmax(0, 1fr) 150px;
+    grid-template-columns: minmax(0, 1fr) 130px;
   }
 
   .row-cashbox-balance-notes .field-receipt-notes {
     grid-column: 1 / -1;
+    margin-inline-start: 0;
   }
 }
 
@@ -326,6 +335,7 @@
 
   .row-cashbox-balance-notes .field-receipt-notes {
     grid-column: auto;
+    margin-inline-start: 0;
   }
 
   .row-actions-group {

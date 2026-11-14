@@ -518,7 +518,10 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     ]);
     const cashboxInput = metaRow.querySelector('.field-cashbox-select input') as HTMLInputElement;
     expect(cashboxInput.value).toBe('الخزنة الرئيسية');
-    expect(metaRow.querySelector('.field-cashbox-balance')).toHaveTextContent('5,000.00');
+    const balanceField = metaRow.querySelector('.field-cashbox-balance')!;
+    expect(balanceField).toHaveTextContent('الرصيد');
+    expect(balanceField).toHaveTextContent('5,000.00');
+    expect(balanceField.querySelector('.strong')).toBeNull();
 
     // فتح قائمة الخزن يعرض الرصيد كسطر فرعي داخل القائمة فقط دون تكراره في الحقل المقفول
     fireEvent.focus(cashboxInput);
@@ -712,7 +715,7 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     fireEvent.change(amountInput, { target: { value: '9000' } });
 
     const outMetaRow = outEditContainer.querySelector('.row-cashbox-balance-notes')!;
-    expect(outMetaRow.querySelector('.field-cashbox-balance')).toHaveTextContent('رصيد الخزنة المتاح');
+    expect(outMetaRow.querySelector('.field-cashbox-balance')).toHaveTextContent('الرصيد المتاح');
     expect(outMetaRow.querySelector('.cashbox-balance-box')).toHaveClass('is-danger');
     expect(outEditContainer.querySelector('.overdraft-warning-badge')).toBeInTheDocument();
   });

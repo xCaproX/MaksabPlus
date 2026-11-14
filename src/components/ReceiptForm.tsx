@@ -457,7 +457,7 @@ export default function ReceiptForm({
 
           <div className="field-cashbox-balance">
             <span className="field-label-text">
-              {!isIn && !isReadOnly ? 'رصيد الخزنة المتاح' : 'رصيد الخزنة'}
+              {!isIn && !isReadOnly ? 'الرصيد المتاح' : 'الرصيد'}
             </span>
             <div
               className={`readonly-val-box cashbox-balance-box ${
@@ -469,7 +469,6 @@ export default function ReceiptForm({
               {cashBoxDisplayBalance !== null ? (
                 <MoneyDisplay
                   value={cashBoxDisplayBalance}
-                  strong
                   tone={isOverdraft || cashBoxDisplayBalance < 0 ? 'danger' : 'default'}
                 />
               ) : (
