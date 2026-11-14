@@ -83,7 +83,13 @@ export default function ReceiptForm({
 
   const [date, setDate] = useState(editing?.receipt_date ?? today());
   const [amount, setAmount] = useState(editing ? String(Number(editing.amount)) : '');
-  const [notes, setNotes] = useState(editing?.notes ?? editing?.statement ?? '');
+  const initialStatement = editing
+    ? editing.is_free
+      ? (editing.description ?? editing.statement ?? '')
+      : (editing.statement ?? editing.description ?? '')
+    : '';
+  const [statement, setStatement] = useState(initialStatement);
+  const [notes, setNotes] = useState(editing?.notes ?? '');
   const [busy, setBusy] = useState(false);
 
   const [initialSnapshot] = useState(() => ({
@@ -91,7 +97,8 @@ export default function ReceiptForm({
     accountId,
     date,
     amount: editing ? round2(Number(editing.amount || 0)).toFixed(2) : '0.00',
-    notes: notes.trim(),
+    statement: initialStatement.trim(),
+    notes: (editing?.notes ?? '').trim(),
   }));
 
   const expectedCashBoxId = editing?.cash_box_id ?? defaultCashBox?.id ?? '';
@@ -102,6 +109,7 @@ export default function ReceiptForm({
       cashBoxId !== expectedCashBoxId ||
       date !== initialSnapshot.date ||
       round2(Number(amount || 0)).toFixed(2) !== initialSnapshot.amount ||
+      statement.trim() !== initialSnapshot.statement ||
       notes.trim() !== initialSnapshot.notes);
 
   const { requestClose } = useModalDirtyGuard(isDirty);
@@ -138,6 +146,11 @@ export default function ReceiptForm({
 
   const selectedCashBox = cashBoxes.find((b) => b.id === cashBoxId);
   const cashBoxAvailableBalance = Number(selectedCashBox?.balance || 0) + (editing && editing.cash_box_id === cashBoxId ? prevAmount : 0);
+  const cashBoxDisplayBalance = selectedCashBox
+    ? !isIn && !isReadOnly
+      ? cashBoxAvailableBalance
+      : Number(selectedCashBox.balance || 0)
+    : null;
   const isOverdraft = !isIn && !isReadOnly && roundedAmount > cashBoxAvailableBalance;
   const editingSourceCashBox =
     editing && isIn && cashBoxId !== editing.cash_box_id
@@ -186,6 +199,7 @@ export default function ReceiptForm({
 
   function handleResetNew() {
     setAmount('');
+    setStatement('');
     setNotes('');
     if (!editing) {
       setAccountId('');
@@ -201,6 +215,9 @@ export default function ReceiptForm({
     if (!accountId) return toast.error('اختر الحساب أولاً');
     if (!cashBoxId) return toast.error('اختر الخزنة');
     if (!(roundedAmount > 0)) return toast.error('أدخل مبلغاً صحيحاً أكبر من صفر');
+
+    const trimmedStatement = statement.trim();
+    if (!trimmedStatement) return toast.error('أدخل البيان أولاً');
 
     if (isOverdraft) {
       return toast.error(`رصيد الخزنة غير كافٍ لصرف هذا المبلغ. الرصيد المتاح هو ${money(cashBoxAvailableBalance)}`);
@@ -219,7 +236,7 @@ export default function ReceiptForm({
       p_cash_box_id: cashBoxId,
       p_receipt_date: date,
       p_amount: roundedAmount,
-      p_description: trimmedNotes,
+      p_description: trimmedStatement,
       p_notes: trimmedNotes,
     };
 
@@ -270,6 +287,7 @@ export default function ReceiptForm({
               </div>
             ) : (
               <SearchableSelect
+                portal
                 value={accountKind}
                 options={[
                   { value: 'customer', label: 'عميل' },
@@ -290,6 +308,7 @@ export default function ReceiptForm({
               </div>
             ) : (
               <SearchableSelect
+                portal
                 value={accountId}
                 selectedLabel={selectedAccount?.name ?? editing?.account_name}
                 options={
@@ -340,10 +359,10 @@ export default function ReceiptForm({
       </div>
 
       {/* -------------------------------------------------------------------
-          البطاقة الثانية: السطر الثالث (المبلغ - كامل المديونية - الخزنة) + السطر الرابع (تفقيط المبلغ)
+          البطاقة الثانية: السطر الثالث (المبلغ + التفقيط) + السطر الرابع (البيان إجباري)
           ------------------------------------------------------------------- */}
       <div className="receipt-amount-card">
-        <div className="row-amount-cashbox">
+        <div className="row-amount-tafqeet">
           <div className="field-amount-slot">
             <label>
               <span>{isIn ? 'المبلغ المستلم' : 'المبلغ المصروف'}</span>
@@ -385,6 +404,40 @@ export default function ReceiptForm({
             </label>
           </div>
 
+          <div className="field-tafqeet-card" title={tafqeetText || 'المبلغ بالحروف'}>
+            <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
+              {tafqeetText || '—'}
+            </span>
+          </div>
+        </div>
+
+        <label className="field-receipt-statement">
+          <span className="field-label-required">
+            <span>البيان</span>
+            {!isReadOnly && <span className="required-asterisk" aria-hidden="true">*</span>}
+          </span>
+          {isReadOnly ? (
+            <div className="readonly-val-box">
+              {statement || '—'}
+            </div>
+          ) : (
+            <input
+              type="text"
+              value={statement}
+              onChange={(e) => setStatement(e.target.value)}
+              placeholder="اكتب بيان الإيصال (إجباري)…"
+              className="receipt-statement-input"
+              required
+            />
+          )}
+        </label>
+      </div>
+
+      {/* -------------------------------------------------------------------
+          البطاقة الثالثة: السطر الخامس (الخزنة + رصيد الخزنة + ملاحظات في سطر واحد)
+          ------------------------------------------------------------------- */}
+      <div className="receipt-meta-card">
+        <div className="row-cashbox-balance-notes">
           <label className="field-cashbox-select">
             <span>الخزنة {isIn ? 'المستلمة' : 'المنصرف منها'}</span>
             {isReadOnly ? (
@@ -393,6 +446,7 @@ export default function ReceiptForm({
               </div>
             ) : (
               <SearchableSelect
+                portal
                 value={cashBoxId}
                 options={sortedCashBoxes.map((box) => ({
                   value: box.id,
@@ -405,44 +459,50 @@ export default function ReceiptForm({
               />
             )}
           </label>
-        </div>
 
-        <div className="field-tafqeet-card receipt-tafqeet-row" title={tafqeetText || 'المبلغ بالحروف'}>
-          <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
-            {tafqeetText || '—'}
-          </span>
-        </div>
-      </div>
-
-      {/* -------------------------------------------------------------------
-          السطر الخامس: ملاحظات
-          ------------------------------------------------------------------- */}
-      <div className="receipt-meta-card">
-        <label className="field-receipt-notes">
-          <span>ملاحظات</span>
-          {isReadOnly ? (
-            <div className="readonly-val-box readonly-notes">
-              {notes || 'لا توجد ملاحظات'}
+          <div className="field-cashbox-balance">
+            <span className="field-label-text">
+              {!isIn && !isReadOnly ? 'رصيد الخزنة المتاح' : 'رصيد الخزنة'}
+            </span>
+            <div
+              className={`readonly-val-box cashbox-balance-box ${
+                isOverdraft || (cashBoxDisplayBalance !== null && cashBoxDisplayBalance < 0)
+                  ? 'is-danger'
+                  : ''
+              }`.trim()}
+            >
+              {cashBoxDisplayBalance !== null ? (
+                <MoneyDisplay
+                  value={cashBoxDisplayBalance}
+                  strong
+                  tone={isOverdraft || cashBoxDisplayBalance < 0 ? 'danger' : 'default'}
+                />
+              ) : (
+                '—'
+              )}
             </div>
-          ) : (
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="ملاحظات اختيارية على الإيصال…"
-              className="receipt-notes-input receipt-notes-textarea"
-            />
-          )}
-        </label>
+          </div>
+
+          <label className="field-receipt-notes">
+            <span>ملاحظات</span>
+            {isReadOnly ? (
+              <div className="readonly-val-box">
+                {notes || 'لا توجد ملاحظات'}
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="ملاحظات اختيارية…"
+                className="receipt-notes-input"
+              />
+            )}
+          </label>
+        </div>
       </div>
 
-      {/* تنبيه الرصيد المتاح عند الصرف أو عجز الخزنة السابقة عند نقل إيصال استلام */}
-      {!isIn && !isReadOnly && (
-        <div className={`cashbox-balance-hint ${isOverdraft ? 'is-danger' : ''}`}>
-          <span>رصيد الخزنة المتاح:</span>
-          <MoneyDisplay value={cashBoxAvailableBalance} strong />
-        </div>
-      )}
+      {/* تنبيه عجز الخزنة السابقة عند نقل إيصال استلام */}
 
       {isPreviousBoxOverdraft && editingSourceCashBox && (
         <div className="cashbox-balance-hint is-danger" role="alert">

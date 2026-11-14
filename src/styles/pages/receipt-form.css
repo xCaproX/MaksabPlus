@@ -6,6 +6,7 @@
 /* Modal Container & Viewport Behavior */
 .modal.receipt-entry-modal {
   width: min(920px, 96vw);
+  max-height: min(94dvh, 920px);
   border-radius: 14px;
   overflow: hidden;
   display: flex;
@@ -13,17 +14,29 @@
 }
 
 .receipt-entry-modal .modal-body {
-  padding: 16px 20px 20px;
+  padding: 12px 18px 14px;
   background: #f8fafc;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Single Unified Layout Structure */
 .receipt-single-layout {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
+  min-width: 0;
+}
+
+.receipt-single-layout > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.receipt-form .account-header-card {
+  padding: 10px 12px;
 }
 
 .receipt-single-layout label {
@@ -33,6 +46,18 @@
   font-size: 12px;
   font-weight: 700;
   color: #334155;
+  min-width: 0;
+}
+
+.receipt-single-layout .field-label-required {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.receipt-single-layout .required-asterisk {
+  color: #dc2626;
+  font-weight: 800;
 }
 
 /* Card 1: Account Header Row 1 (Date + Kind + Account) */
@@ -43,51 +68,111 @@
   align-items: flex-end;
 }
 
-/* Card 2 Amount + Cashbox Row & Tafqeet Row */
-.row-amount-cashbox {
-  display: grid;
+.receipt-account-row1 > *,
+.receipt-form .row-amount-tafqeet > *,
+.row-cashbox-balance-notes > * {
+  min-width: 0;
+}
+
+/* Card 2: Amount + Tafqeet + Statement */
+.receipt-form .receipt-amount-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.receipt-form .row-amount-tafqeet {
   grid-template-columns: minmax(250px, 280px) minmax(0, 1fr);
-  gap: 12px;
-  align-items: flex-end;
 }
 
-.receipt-tafqeet-row {
-  margin-block-start: 10px;
+.receipt-form .amount-input-with-action {
+  height: 40px;
+  min-height: 40px;
+  border-radius: 7px;
+  box-sizing: border-box;
 }
 
-/* Card 3: Notes */
+.receipt-form .amount-input-with-action input.receipt-amount-input {
+  height: 37px;
+  min-height: 37px;
+}
+
+.receipt-form .btn-settle-all-action {
+  height: 37px;
+}
+
+.receipt-form .field-tafqeet-card {
+  height: 40px;
+  min-height: 40px;
+  border-radius: 7px;
+}
+
+/* Card 3: Cashbox + Cashbox Balance + Notes (Single Row) */
 .receipt-meta-card {
   background: #ffffff;
   border: 1px solid var(--erp-border, #e2e8f0);
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px 12px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.receipt-notes-input {
-  height: 38px;
-  min-height: 38px;
-  padding: 0 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border, #cbd5e1);
+.row-cashbox-balance-notes {
+  display: grid;
+  grid-template-columns: minmax(210px, 1.05fr) 150px minmax(220px, 1.35fr);
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.field-cashbox-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-cashbox-balance .field-label-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.cashbox-balance-box {
+  height: 40px;
+  min-height: 40px;
+  justify-content: flex-start;
   font-size: 13px;
-  background: #ffffff;
-  width: 100%;
   box-sizing: border-box;
 }
 
-.receipt-notes-input:focus {
-  border-color: var(--primary, #0f172a);
-  outline: none;
+.cashbox-balance-box.is-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
 }
 
-/* الملاحظات كحقل حر متعدد الأسطور — مطابقة لملاحظات الفاتورة (left-notes-textarea) */
-.receipt-form .receipt-notes-textarea {
-  height: 52px;
-  min-height: 52px;
-  padding: 7px 10px;
-  resize: none;
+.receipt-statement-input,
+.receipt-notes-input {
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: 1px solid var(--erp-border, #cbd5e1);
+  font-size: 13px;
   font-family: inherit;
+  color: var(--erp-text, #1e293b);
+  background: #ffffff;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.receipt-statement-input:focus,
+.receipt-notes-input:focus {
+  border-color: var(--primary, #2e425c);
+  box-shadow: 0 0 0 2px rgba(46, 66, 92, 0.1);
+  outline: none;
 }
 
 /* المبلغ المعروض في وضع القراءة فقط */
@@ -165,8 +250,8 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  margin-block-start: 4px;
-  padding-block-start: 6px;
+  margin-block-start: 0;
+  padding-block-start: 2px;
 }
 
 /* Inherits from buttons.css .btn.action-save / .btn-receipt-save-full (Item 15) */
@@ -200,8 +285,8 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 6px;
-  padding-top: 6px;
+  margin-block-start: 2px;
+  padding-block-start: 2px;
 }
 
 .btn-receipt-edit,
@@ -233,11 +318,25 @@
   color: #1e293b;
 }
 
+@media (max-width: 780px) {
+  .row-cashbox-balance-notes {
+    grid-template-columns: minmax(0, 1fr) 150px;
+  }
+
+  .row-cashbox-balance-notes .field-receipt-notes {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 680px) {
   .receipt-account-row1,
-  .row-amount-tafqeet,
-  .row-amount-cashbox {
+  .receipt-form .row-amount-tafqeet,
+  .row-cashbox-balance-notes {
     grid-template-columns: 1fr;
+  }
+
+  .row-cashbox-balance-notes .field-receipt-notes {
+    grid-column: auto;
   }
 
   .row-actions-group {

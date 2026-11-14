@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ReceiptForm from '../../components/ReceiptForm';
+import { toast } from '../../components/Toast';
 import * as masterDataQueries from '../../lib/masterDataQueries';
 import { supabase } from '../../lib/supabase';
 
@@ -495,21 +496,213 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     ]);
 
     const amountCard = form.querySelector('.receipt-amount-card')!;
-    const amountCashboxRow = amountCard.querySelector('.row-amount-cashbox')!;
-    expect(Array.from(amountCashboxRow.children).map((el) => el.className)).toEqual([
+    const amountTafqeetRow = amountCard.querySelector('.row-amount-tafqeet')!;
+    expect(Array.from(amountTafqeetRow.children).map((el) => el.className)).toEqual([
       'field-amount-slot',
-      'field-cashbox-select',
+      'field-tafqeet-card',
     ]);
-    expect(amountCashboxRow.querySelector('.field-amount-slot .btn-settle-all-action')).toBeInTheDocument();
-    expect(amountCard.lastElementChild).toHaveClass('field-tafqeet-card', 'receipt-tafqeet-row');
+    expect(amountTafqeetRow.querySelector('.field-amount-slot .btn-settle-all-action')).toBeInTheDocument();
+    expect(amountCard.lastElementChild).toHaveClass('field-receipt-statement');
+    const statementInput = amountCard.querySelector('.field-receipt-statement input') as HTMLInputElement;
+    expect(statementInput).toBeRequired();
 
     const metaCard = form.querySelector('.receipt-meta-card')!;
-    expect(metaCard.querySelector('.field-receipt-notes')).toBeInTheDocument();
+    const metaRow = metaCard.querySelector('.row-cashbox-balance-notes')!;
+    expect(Array.from(metaRow.children).map((el) => el.className)).toEqual([
+      'field-cashbox-select',
+      'field-cashbox-balance',
+      'field-receipt-notes',
+    ]);
+    expect(metaRow.querySelector('.field-cashbox-balance')).toHaveTextContent('5,000.00');
 
     const actionButtons = Array.from(form.querySelectorAll('.row-actions-group button')).map((b) =>
       b.textContent?.trim(),
     );
     expect(actionButtons).toEqual(['مسح / جديد', 'حفظ إيصال الاستلام']);
+  });
+
+  it('يشترط إدخال البيان ويرسل البيان والملاحظات كحقلين مستقلين وتقوم إعادة الضبط بتفريغهما', async () => {
+    vi.mocked(supabase.rpc).mockClear();
+    vi.mocked(toast.error).mockClear();
+    const onSaved = vi.fn();
+
+    const { container, unmount } = render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={null}
+          onSaved={onSaved}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const accountCombo = screen.getByPlaceholderText('ابحث باسم أو هاتف الحساب…');
+    fireEvent.focus(accountCombo);
+    fireEvent.click(await screen.findByText(/عميل تجريبي/));
+
+    const amountInput = screen.getByLabelText('مبلغ الإيصال');
+    fireEvent.change(amountInput, { target: { value: '250' } });
+
+    const statementInput = screen.getByPlaceholderText('اكتب بيان الإيصال (إجباري)…') as HTMLInputElement;
+    const notesInput = screen.getByPlaceholderText('ملاحظات اختيارية…') as HTMLInputElement;
+    fireEvent.change(statementInput, { target: { value: '   ' } });
+    fireEvent.change(notesInput, { target: { value: 'ملاحظة اختيارية فقط' } });
+
+    const form = container.querySelector('form.receipt-form') as HTMLFormElement;
+    fireEvent.submit(form);
+
+    expect(toast.error).toHaveBeenCalledWith('أدخل البيان أولاً');
+    expect(supabase.rpc).not.toHaveBeenCalled();
+
+    fireEvent.change(statementInput, { target: { value: 'سداد دفعة نقدية' } });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(supabase.rpc).toHaveBeenCalledWith('create_free_receipt', {
+        p_direction: 'in',
+        p_account_id: 'acc-1',
+        p_cash_box_id: 'cb-main',
+        p_receipt_date: expect.any(String),
+        p_amount: 250,
+        p_description: 'سداد دفعة نقدية',
+        p_notes: 'ملاحظة اختيارية فقط',
+      });
+    });
+    expect(onSaved).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'مسح / جديد' }));
+    expect(statementInput.value).toBe('');
+    expect(notesInput.value).toBe('');
+
+    unmount();
+
+    // التحقق في وضع التعديل من تحميل البيان والملاحظات منفصلين وتمريرهما منفصلين عند التحديث
+    vi.mocked(supabase.rpc).mockClear();
+    const editingReceipt = {
+      id: 'rec-edit-1',
+      number: 'RCP-000050',
+      receipt_date: '2026-11-14',
+      amount: 300,
+      account_id: 'acc-1',
+      account_name: 'عميل تجريبي',
+      account_kind: 'customer',
+      cash_box_id: 'cb-main',
+      cash_box_name: 'الخزنة الرئيسية',
+      is_free: true,
+      description: 'دفعة أولى',
+      statement: 'دفعة أولى',
+      notes: 'تحويل بنكي',
+      invoice_id: null,
+      invoice_number: null,
+      invoice_kind: null,
+      direction: 'in',
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+    } as any;
+
+    const { container: editContainer } = render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="in"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={editingReceipt}
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const editStatement = screen.getByDisplayValue('دفعة أولى') as HTMLInputElement;
+    const editNotes = screen.getByDisplayValue('تحويل بنكي') as HTMLInputElement;
+    fireEvent.change(editStatement, { target: { value: 'دفعة معدلة' } });
+    fireEvent.change(editNotes, { target: { value: '' } });
+
+    fireEvent.submit(editContainer.querySelector('form.receipt-form') as HTMLFormElement);
+
+    await waitFor(() => {
+      expect(supabase.rpc).toHaveBeenCalledWith('update_free_receipt', {
+        p_receipt_id: 'rec-edit-1',
+        p_account_id: 'acc-1',
+        p_cash_box_id: 'cb-main',
+        p_receipt_date: '2026-11-14',
+        p_amount: 300,
+        p_description: 'دفعة معدلة',
+        p_notes: null,
+      });
+    });
+  });
+
+  it('يعرض البيان والخزنة ورصيدها والملاحظات في وضع القراءة فقط وفي إيصال الصرف بنفس السطر', () => {
+    const outEditing = {
+      id: 'rec-ro-1',
+      number: 'RCP-000070',
+      receipt_date: '2026-11-14',
+      amount: 400,
+      account_id: 'acc-1',
+      account_name: 'عميل تجريبي',
+      account_kind: 'customer',
+      cash_box_id: 'cb-main',
+      cash_box_name: 'الخزنة الرئيسية',
+      is_free: true,
+      description: 'بيان محفوظ للإيصال',
+      statement: 'بيان محفوظ للإيصال',
+      notes: 'ملاحظة محفوظة',
+      invoice_id: null,
+      invoice_number: null,
+      invoice_kind: null,
+      direction: 'out',
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+    } as any;
+
+    const { container, unmount } = render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="out"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={outEditing}
+          readOnly
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelector('.field-receipt-statement')).toHaveTextContent('بيان محفوظ للإيصال');
+    const metaRow = container.querySelector('.row-cashbox-balance-notes')!;
+    expect(metaRow.querySelector('.field-cashbox-select')).toHaveTextContent('الخزنة الرئيسية');
+    expect(metaRow.querySelector('.field-cashbox-balance')).toHaveTextContent('5,000.00');
+    expect(metaRow.querySelector('.field-receipt-notes')).toHaveTextContent('ملاحظة محفوظة');
+    expect(container.querySelector('.cashbox-balance-hint')).toBeNull();
+
+    unmount();
+
+    // في وضع التحرير لإيصال صرف يتجاوز الرصيد، يبرز صندوق رصيد الخزنة بالخطر داخل السطر الخامس نفسه
+    const { container: outEditContainer } = render(
+      <MemoryRouter>
+        <ReceiptForm
+          direction="out"
+          accounts={mockAccounts}
+          cashBoxes={mockCashBoxes}
+          editing={null}
+          onSaved={vi.fn()}
+          onCancel={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const amountInput = screen.getByLabelText('مبلغ الإيصال');
+    fireEvent.change(amountInput, { target: { value: '9000' } });
+
+    const outMetaRow = outEditContainer.querySelector('.row-cashbox-balance-notes')!;
+    expect(outMetaRow.querySelector('.field-cashbox-balance')).toHaveTextContent('رصيد الخزنة المتاح');
+    expect(outMetaRow.querySelector('.cashbox-balance-box')).toHaveClass('is-danger');
+    expect(outEditContainer.querySelector('.overdraft-warning-badge')).toBeInTheDocument();
   });
 
   it('ينسق شريط ربط الإيصال التلقائي بالفاتورة كسطر موحد يضم الرابط والملاحظة', () => {
