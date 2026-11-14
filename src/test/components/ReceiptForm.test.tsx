@@ -503,8 +503,11 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     ]);
     expect(amountTafqeetRow.querySelector('.field-amount-slot .btn-settle-all-action')).toBeInTheDocument();
     expect(amountCard.lastElementChild).toHaveClass('field-receipt-statement');
+    expect(amountCard.querySelector('.field-receipt-statement .required-asterisk')).toBeNull();
+    expect(amountCard.querySelector('.field-receipt-statement')).not.toHaveTextContent('*');
     const statementInput = amountCard.querySelector('.field-receipt-statement input') as HTMLInputElement;
     expect(statementInput).toBeRequired();
+    expect(statementInput.placeholder).toBe('اكتب بيان الإيصال…');
 
     const metaCard = form.querySelector('.receipt-meta-card')!;
     const metaRow = metaCard.querySelector('.row-cashbox-balance-notes')!;
@@ -513,7 +516,16 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
       'field-cashbox-balance',
       'field-receipt-notes',
     ]);
+    const cashboxInput = metaRow.querySelector('.field-cashbox-select input') as HTMLInputElement;
+    expect(cashboxInput.value).toBe('الخزنة الرئيسية');
     expect(metaRow.querySelector('.field-cashbox-balance')).toHaveTextContent('5,000.00');
+
+    // فتح قائمة الخزن يعرض الرصيد كسطر فرعي داخل القائمة فقط دون تكراره في الحقل المقفول
+    fireEvent.focus(cashboxInput);
+    const optionSublabels = Array.from(document.body.querySelectorAll('.searchable-select-sublabel')).map(
+      (el) => el.textContent?.trim(),
+    );
+    expect(optionSublabels).toEqual(['الرصيد: 5,000.00', 'الرصيد: 1,000.00']);
 
     const actionButtons = Array.from(form.querySelectorAll('.row-actions-group button')).map((b) =>
       b.textContent?.trim(),
@@ -546,7 +558,7 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     const amountInput = screen.getByLabelText('مبلغ الإيصال');
     fireEvent.change(amountInput, { target: { value: '250' } });
 
-    const statementInput = screen.getByPlaceholderText('اكتب بيان الإيصال (إجباري)…') as HTMLInputElement;
+    const statementInput = screen.getByPlaceholderText('اكتب بيان الإيصال…') as HTMLInputElement;
     const notesInput = screen.getByPlaceholderText('ملاحظات اختيارية…') as HTMLInputElement;
     fireEvent.change(statementInput, { target: { value: '   ' } });
     fireEvent.change(notesInput, { target: { value: 'ملاحظة اختيارية فقط' } });

@@ -9,7 +9,7 @@ import { money, round2, today } from '../lib/format';
 import { tafqeet } from '../lib/tafqeet';
 import { translateDbError } from '../lib/errors';
 import SearchableSelect from './SearchableSelect';
-import { searchAccountsAsync } from '../lib/masterDataQueries';
+import { searchAccountsAsync, toCashBoxOption } from '../lib/masterDataQueries';
 import { resolveDefaultCashBox, sortCashBoxesWithPrimaryFirst } from '../lib/defaults';
 import DateInput from './DateInput';
 import MoneyDisplay from './MoneyDisplay';
@@ -359,7 +359,7 @@ export default function ReceiptForm({
       </div>
 
       {/* -------------------------------------------------------------------
-          البطاقة الثانية: السطر الثالث (المبلغ + التفقيط) + السطر الرابع (البيان إجباري)
+          البطاقة الثانية: السطر الثالث (المبلغ + التفقيط) + السطر الرابع (البيان)
           ------------------------------------------------------------------- */}
       <div className="receipt-amount-card">
         <div className="row-amount-tafqeet">
@@ -412,10 +412,7 @@ export default function ReceiptForm({
         </div>
 
         <label className="field-receipt-statement">
-          <span className="field-label-required">
-            <span>البيان</span>
-            {!isReadOnly && <span className="required-asterisk" aria-hidden="true">*</span>}
-          </span>
+          <span>البيان</span>
           {isReadOnly ? (
             <div className="readonly-val-box">
               {statement || '—'}
@@ -425,7 +422,7 @@ export default function ReceiptForm({
               type="text"
               value={statement}
               onChange={(e) => setStatement(e.target.value)}
-              placeholder="اكتب بيان الإيصال (إجباري)…"
+              placeholder="اكتب بيان الإيصال…"
               className="receipt-statement-input"
               required
             />
@@ -448,10 +445,8 @@ export default function ReceiptForm({
               <SearchableSelect
                 portal
                 value={cashBoxId}
-                options={sortedCashBoxes.map((box) => ({
-                  value: box.id,
-                  label: `${box.name} (${money(box.balance)})`,
-                }))}
+                selectedLabel={selectedCashBox?.name ?? editing?.cash_box_name}
+                options={sortedCashBoxes.map(toCashBoxOption)}
                 onChange={setCashBoxId}
                 placeholder="اختر الخزنة…"
                 searchPlaceholder="ابحث باسم الخزنة…"

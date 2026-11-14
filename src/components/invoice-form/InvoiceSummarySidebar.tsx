@@ -1,6 +1,6 @@
 import { Link, useInRouterContext } from 'react-router-dom';
 import { Check, ExternalLink, X } from 'lucide-react';
-import { money } from '../../lib/format';
+import { toCashBoxOption } from '../../lib/masterDataQueries';
 import SearchableSelect from '../SearchableSelect';
 import MoneyDisplay from '../MoneyDisplay';
 import StatusBadge from '../StatusBadge';
@@ -237,10 +237,7 @@ export default function InvoiceSummarySidebar({
             ) : (
               <SearchableSelect
                 value={effectiveCashBoxId}
-                options={selectableCashBoxes.map((box) => ({
-                  value: box.id,
-                  label: `${box.name} (${money(box.balance)})`,
-                }))}
+                options={selectableCashBoxes.map(toCashBoxOption)}
                 onChange={onCashBoxChange}
                 placeholder="اختر الخزنة…"
                 searchPlaceholder="اكتب للبحث عن خزنة…"

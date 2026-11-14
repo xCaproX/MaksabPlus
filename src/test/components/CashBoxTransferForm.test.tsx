@@ -53,6 +53,8 @@ describe('CashBoxTransferForm', () => {
     );
 
     const amountInput = screen.getByLabelText('المبلغ المراد تحويله');
+    expect((screen.getByDisplayValue('الخزنة الرئيسية') as HTMLInputElement).value).toBe('الخزنة الرئيسية');
+    expect((screen.getByDisplayValue('خزنة الفرع') as HTMLInputElement).value).toBe('خزنة الفرع');
     expect(amountInput).toHaveAttribute('step', '0.01');
     expect(amountInput).toHaveAttribute('min', '0.01');
     expect(amountInput.parentElement?.querySelector('.line-unit-suffix')).toBeNull();

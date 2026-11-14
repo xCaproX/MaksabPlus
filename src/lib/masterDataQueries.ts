@@ -1,9 +1,11 @@
+import { createElement, Fragment } from 'react';
+import MoneyDisplay from '../components/MoneyDisplay';
 import { collectAllRows } from './exportRows';
 import { sortAccountsWithCashFirst } from './defaults';
 import { supabase } from './supabase';
 import { qty as formatQty, normalizeDigits } from './format';
 import { buildPostgrestOrFilter, escapeLikePattern } from './search';
-import type { AccountKind, WarehouseOption } from './types';
+import type { AccountKind, CashBoxRow, WarehouseOption } from './types';
 import type { SearchOption } from '../components/SearchableSelect';
 
 interface AccountQueryResult {
@@ -50,6 +52,28 @@ export interface SearchAccountsOptions {
 /** تنسيق اسم الحساب في القوائم المنسدلة بشكل موحد */
 export function formatAccountOptionLabel(name: string, phone?: string | null): string {
   return phone ? `${name} — ${phone}` : name;
+}
+
+/**
+ * تنسيق خيار الخزنة الموحّد: الاسم فقط في الخانة المقفولة، والرصيد كسطر فرعي داخل القائمة عند فتحها
+ */
+export function toCashBoxOption(
+  box: Pick<CashBoxRow, 'id' | 'name' | 'balance'>,
+): SearchOption {
+  const numericBalance = Number(box.balance || 0);
+  return {
+    value: box.id,
+    label: box.name,
+    sublabel: createElement(
+      Fragment,
+      null,
+      'الرصيد: ',
+      createElement(MoneyDisplay, {
+        value: numericBalance,
+        tone: numericBalance < 0 ? 'danger' : 'default',
+      }),
+    ),
+  };
 }
 
 /**

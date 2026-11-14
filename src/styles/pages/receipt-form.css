@@ -49,17 +49,6 @@
   min-width: 0;
 }
 
-.receipt-single-layout .field-label-required {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.receipt-single-layout .required-asterisk {
-  color: #dc2626;
-  font-weight: 800;
-}
-
 /* Card 1: Account Header Row 1 (Date + Kind + Account) */
 .receipt-account-row1 {
   display: grid;

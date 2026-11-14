@@ -1,5 +1,7 @@
+import { createElement } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { searchAccountsAsync } from '../lib/masterDataQueries';
+import { render, screen } from '@testing-library/react';
+import { searchAccountsAsync, toCashBoxOption } from '../lib/masterDataQueries';
 import { supabase } from '../lib/supabase';
 
 const mockState = vi.hoisted(() => ({
@@ -79,5 +81,23 @@ describe('searchAccountsAsync', () => {
 
     expect(mockState.calls.some((c) => c.method === 'is')).toBe(false);
     expect(result.map((o) => o.value)).toEqual(['cash-c', 'c1', 'c2']);
+  });
+});
+
+describe('toCashBoxOption', () => {
+  it('يفصل اسم الخزنة عن الرصيد ويعزل رقم الرصيد في اتجاه LTR مع تمييز السالب', () => {
+    const posOpt = toCashBoxOption({ id: 'cb-1', name: 'الخزنة الرئيسية', balance: 5000 });
+    expect(posOpt.value).toBe('cb-1');
+    expect(posOpt.label).toBe('الخزنة الرئيسية');
+
+    const { unmount } = render(createElement('div', null, posOpt.sublabel));
+    expect(screen.getByText('5,000.00').closest('[dir="ltr"]')).toHaveClass('tabular-nums');
+    expect(screen.getByText('5,000.00').closest('[dir="ltr"]')).not.toHaveClass('money-danger');
+    unmount();
+
+    const negOpt = toCashBoxOption({ id: 'cb-2', name: 'خزنة السحب', balance: -190732.32 });
+    expect(negOpt.label).toBe('خزنة السحب');
+    render(createElement('div', null, negOpt.sublabel));
+    expect(screen.getByText('-190,732.32').closest('[dir="ltr"]')).toHaveClass('money-danger', 'tabular-nums');
   });
 });

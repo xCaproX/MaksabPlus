@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react';
+import { useEffect, useLayoutEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Loader2 } from 'lucide-react';
 import { normalizeDigits } from '../lib/format';
@@ -6,7 +6,7 @@ import { normalizeDigits } from '../lib/format';
 export interface SearchOption {
   value: string;
   label: string;
-  sublabel?: string;
+  sublabel?: ReactNode;
   disabled?: boolean;
 }
 

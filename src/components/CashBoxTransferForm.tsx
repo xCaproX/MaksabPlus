@@ -12,6 +12,7 @@ import DateInput from './DateInput';
 import MoneyDisplay from './MoneyDisplay';
 import { useModalDirtyGuard } from './Modal';
 import { resolveDefaultCashBox } from '../lib/defaults';
+import { toCashBoxOption } from '../lib/masterDataQueries';
 import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
 
 interface Props {
@@ -173,10 +174,7 @@ export default function CashBoxTransferForm({
             ) : (
               <SearchableSelect
                 value={sourceId}
-                options={activeBoxes.map((box) => ({
-                  value: box.id,
-                  label: `${box.name} (${money(box.balance)})`,
-                }))}
+                options={activeBoxes.map(toCashBoxOption)}
                 onChange={(next) => {
                   setSourceId(next);
                   if (next === destinationId) {
@@ -220,10 +218,7 @@ export default function CashBoxTransferForm({
                 value={destinationId}
                 options={activeBoxes
                   .filter((box) => box.id !== sourceId)
-                  .map((box) => ({
-                    value: box.id,
-                    label: `${box.name} (${money(box.balance)})`,
-                  }))}
+                  .map(toCashBoxOption)}
                 onChange={setDestinationId}
                 placeholder="اختر خزنة الوجهة…"
                 searchPlaceholder="ابحث باسم الخزنة…"

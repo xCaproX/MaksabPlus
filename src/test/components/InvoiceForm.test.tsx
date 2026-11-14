@@ -609,4 +609,29 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
       }
     },
   );
+
+  it('تعرض قائمة الخزنة في الشريط الجانبي للفاتورة الاسم فقط عند الاختيار والرصيد كسطر فرعي عند الفتح', () => {
+    render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={mockEditingInvoice}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    const cashBoxInput = screen.getByDisplayValue('الخزينة الرئيسية') as HTMLInputElement;
+    expect(cashBoxInput.value).toBe('الخزينة الرئيسية');
+
+    fireEvent.focus(cashBoxInput);
+    const cashOption = screen.getByRole('option', { name: /الخزينة الرئيسية/ });
+    expect(within(cashOption).getByText(/10,000\.00/).closest('[dir="ltr"]')).toHaveClass('tabular-nums');
+    expect(cashOption.querySelector('.searchable-select-sublabel')).toHaveTextContent('الرصيد: 10,000.00');
+  });
 });
