@@ -170,29 +170,26 @@ export default function InvoiceItemsTable({
                   </div>
                 </td>
                 <td data-label={isWaste ? 'سعر البيع' : 'السعر'}>
-                  <div className="line-qty-group">
-                    <input
-                      ref={entryPriceInputRef}
-                      aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={entryUnitPrice}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => onEntryPriceChange(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          onInsertLine();
-                        }
-                      }}
-                      disabled={isWaste}
-                      className="no-spinner num"
-                    />
-                    <span className="line-unit-suffix">ج.م</span>
-                  </div>
+                  <input
+                    ref={entryPriceInputRef}
+                    aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={entryUnitPrice}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => onEntryPriceChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        onInsertLine();
+                      }
+                    }}
+                    disabled={isWaste}
+                    className="no-spinner num"
+                  />
                 </td>
                 <td className="line-total" data-label="الإجمالي">
                   <MoneyDisplay value={entryLineTotal} />
@@ -310,22 +307,19 @@ export default function InvoiceItemsTable({
                       {isReadOnly ? (
                         <MoneyDisplay value={line.unit_price} className="readonly-line-price" />
                       ) : (
-                        <div className="line-qty-group">
-                          <input
-                            aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
-                            type="number"
-                            inputMode="decimal"
-                            min="0"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={line.unit_price}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) => onUpdateLine(line.key, { unit_price: e.target.value })}
-                            disabled={isWaste}
-                            className="no-spinner num"
-                          />
-                          <span className="line-unit-suffix">ج.م</span>
-                        </div>
+                        <input
+                          aria-label={isWaste ? 'سعر البيع' : 'سعر الوحدة'}
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={line.unit_price}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => onUpdateLine(line.key, { unit_price: e.target.value })}
+                          disabled={isWaste}
+                          className="no-spinner num"
+                        />
                       )}
                     </td>
                     <td className="line-total" data-label="الإجمالي">

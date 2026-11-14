@@ -322,27 +322,24 @@ export default function AccountOpeningTab({
                       <td className="muted col-hide-on-detail" style={{ width: '90px' }}>{isCustomer ? 'عميل' : 'مورد'}</td>
                       <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '250px' }}>
                         <div className="opening-entry-cell">
-                          <div className="input-with-suffix">
-                            <input
-                              className="table-input num no-spinner"
-                              style={{ width: '100%', maxWidth: '120px' }}
-                              type="number"
-                              inputMode="decimal"
-                              min="0"
-                              step="0.0001"
-                              aria-label={`مبلغ الرصيد الافتتاحي لـ ${account.name}`}
-                              disabled={!canEditOpening || saving}
-                              value={entry.amount}
-                              onFocus={(event) => event.target.select()}
-                              onChange={(event) =>
-                                setAccountValues((values) => ({
-                                  ...values,
-                                  [account.id]: { ...entry, amount: event.target.value },
-                                }))
-                              }
-                            />
-                            <span className="input-suffix">ج.م</span>
-                          </div>
+                          <input
+                            className="table-input num no-spinner"
+                            style={{ width: '100%', maxWidth: '120px' }}
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.0001"
+                            aria-label={`مبلغ الرصيد الافتتاحي لـ ${account.name}`}
+                            disabled={!canEditOpening || saving}
+                            value={entry.amount}
+                            onFocus={(event) => event.target.select()}
+                            onChange={(event) =>
+                              setAccountValues((values) => ({
+                                ...values,
+                                [account.id]: { ...entry, amount: event.target.value },
+                              }))
+                            }
+                          />
                           <select
                             className="opening-direction-select"
                             aria-label={`اتجاه الرصيد الافتتاحي لـ ${account.name}`}

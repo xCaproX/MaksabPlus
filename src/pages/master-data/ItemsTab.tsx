@@ -728,41 +728,35 @@ export default function ItemsTab() {
 
                 <label>
                   سعر البيع الافتراضي
-                  <div className="input-with-suffix">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.0001"
+                    min="0"
+                    className="num no-spinner"
+                    value={salePrice}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setSalePrice(e.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </label>
+
+                {canViewPurchasePrice && (
+                  <label>
+                    سعر الشراء الافتراضي
                     <input
                       type="number"
                       inputMode="decimal"
                       step="0.0001"
                       min="0"
                       className="num no-spinner"
-                      value={salePrice}
+                      value={purchasePrice}
                       onFocus={(e) => e.target.select()}
-                      onChange={(e) => setSalePrice(e.target.value)}
+                      onChange={(e) => setPurchasePrice(e.target.value)}
                       placeholder="0.00"
                       required
                     />
-                    <span className="input-suffix">ج.م</span>
-                  </div>
-                </label>
-
-                {canViewPurchasePrice && (
-                  <label>
-                    سعر الشراء الافتراضي
-                    <div className="input-with-suffix">
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.0001"
-                        min="0"
-                        className="num no-spinner"
-                        value={purchasePrice}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => setPurchasePrice(e.target.value)}
-                        placeholder="0.00"
-                        required
-                      />
-                      <span className="input-suffix">ج.م</span>
-                    </div>
                   </label>
                 )}
 
@@ -819,19 +813,16 @@ export default function ItemsTab() {
                         {canViewProfit && (
                           <label>
                             تكلفة الوحدة الافتتاحية
-                            <div className="input-with-suffix">
-                              <input
-                                type="number"
-                                inputMode="decimal"
-                                step="0.0001"
-                                min="0"
-                                className="num no-spinner"
-                                value={itemOpeningCost}
-                                onFocus={(e) => e.target.select()}
-                                onChange={(e) => setItemOpeningCost(e.target.value)}
-                              />
-                              <span className="input-suffix">ج.م</span>
-                            </div>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              step="0.0001"
+                              min="0"
+                              className="num no-spinner"
+                              value={itemOpeningCost}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setItemOpeningCost(e.target.value)}
+                            />
                           </label>
                         )}
                       </>

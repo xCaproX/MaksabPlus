@@ -337,23 +337,20 @@ export default function StockOpeningTab({
                         </div>
                       </td>
                       {canViewProfit && <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '150px' }}>
-                        <div className="input-with-suffix">
-                          <input
-                            className="table-input num no-spinner"
-                            style={{ width: '100%', maxWidth: '130px' }}
-                            type="number"
-                            inputMode="decimal"
-                            min="0"
-                            step="0.0001"
-                            value={value.cost}
-                            disabled={!canEditOpening || row.cost_locked || saving}
-                            onFocus={(event) => event.target.select()}
-                            onChange={(event) =>
-                              setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))
-                            }
-                          />
-                          <span className="input-suffix">ج.م</span>
-                        </div>
+                        <input
+                          className="table-input num no-spinner"
+                          style={{ width: '100%', maxWidth: '130px' }}
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.0001"
+                          value={value.cost}
+                          disabled={!canEditOpening || row.cost_locked || saving}
+                          onFocus={(event) => event.target.select()}
+                          onChange={(event) =>
+                            setStockValues((values) => ({ ...values, [key]: { ...value, cost: event.target.value } }))
+                          }
+                        />
                       </td>}
                       <td className="num strong" style={{ width: '140px' }}>
                         <bdi dir="ltr" className="tabular-nums">{formatQty(row.current_qty)}</bdi> {row.unit}

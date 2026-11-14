@@ -55,6 +55,7 @@ describe('CashBoxTransferForm', () => {
     const amountInput = screen.getByLabelText('المبلغ المراد تحويله');
     expect(amountInput).toHaveAttribute('step', '0.01');
     expect(amountInput).toHaveAttribute('min', '0.01');
+    expect(amountInput.parentElement?.querySelector('.line-unit-suffix')).toBeNull();
 
     // تقليل التحويل من 1000 إلى 200 رغم أن رصيد الوجهة 300 فقط -> عجز -500 في الوجهة
     fireEvent.change(amountInput, { target: { value: '200' } });

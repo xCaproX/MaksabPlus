@@ -189,20 +189,17 @@ export default function InvoiceSummarySidebar({
             {isReadOnly ? (
               <MoneyDisplay value={paidNumber} strong className="strip-value" />
             ) : (
-              <>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={paid}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => onPaidChange(e.target.value)}
-                  onBlur={onPaidBlur}
-                  className="no-spinner num left-paid-input"
-                  aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
-                />
-                <span className="line-unit-suffix">ج.م</span>
-              </>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={paid}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => onPaidChange(e.target.value)}
+                onBlur={onPaidBlur}
+                className="no-spinner num left-paid-input"
+                aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
+              />
             )}
           </div>
         </div>

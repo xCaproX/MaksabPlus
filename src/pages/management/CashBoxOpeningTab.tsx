@@ -222,23 +222,20 @@ export default function CashBoxOpeningTab({
                       <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('CBX', box.serial_number)}</bdi></td>
                       <td className="strong">{box.name}</td>
                       <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '160px' }}>
-                        <div className="input-with-suffix">
-                          <input
-                            className="table-input num no-spinner"
-                            style={{ width: '100%', maxWidth: '140px' }}
-                            type="number"
-                            inputMode="decimal"
-                            step="0.0001"
-                            min="0"
-                            disabled={!canEditOpening || saving}
-                            value={cashValues[box.id] ?? '0'}
-                            onFocus={(event) => event.target.select()}
-                            onChange={(event) =>
-                              setCashValues((values) => ({ ...values, [box.id]: event.target.value }))
-                            }
-                          />
-                          <span className="input-suffix">ج.م</span>
-                        </div>
+                        <input
+                          className="table-input num no-spinner"
+                          style={{ width: '100%', maxWidth: '140px' }}
+                          type="number"
+                          inputMode="decimal"
+                          step="0.0001"
+                          min="0"
+                          disabled={!canEditOpening || saving}
+                          value={cashValues[box.id] ?? '0'}
+                          onFocus={(event) => event.target.select()}
+                          onChange={(event) =>
+                            setCashValues((values) => ({ ...values, [box.id]: event.target.value }))
+                          }
+                        />
                       </td>
                       <td className="num strong remaining" style={{ width: '160px' }}>
                         <bdi dir="ltr" className="tabular-nums">{money(box.balance)}</bdi>

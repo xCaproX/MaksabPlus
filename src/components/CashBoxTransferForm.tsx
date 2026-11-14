@@ -277,7 +277,6 @@ export default function CashBoxTransferForm({
                     className="receipt-amount-input no-spinner num"
                     required
                   />
-                  <span className="line-unit-suffix">ج.م</span>
                   <button
                     type="button"
                     className="btn-settle-all-action"

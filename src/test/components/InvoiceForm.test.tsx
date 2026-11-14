@@ -422,4 +422,28 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
       expect(remainingStrip).not.toHaveTextContent('غير مسترد');
     },
   );
+
+  it('يزيل لاحقة العملة "ج.م" من حقول السعر والمدفوع مع الإبقاء على وحدة الكمية للصنف', () => {
+    const { container } = render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={mockEditingInvoice}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    const suffixes = Array.from(container.querySelectorAll('.line-unit-suffix')).map((el) =>
+      el.textContent?.trim(),
+    );
+    expect(suffixes).not.toContain('ج.م');
+    expect(suffixes).toContain('قطعة');
+    expect(suffixes).toContain('كجم');
+  });
 });

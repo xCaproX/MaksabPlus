@@ -535,20 +535,17 @@ export default function CashBoxesTab() {
               {!editingCashBoxId && (
                 <label>
                   الرصيد الافتتاحي
-                  <div className="input-with-suffix">
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.0001"
-                      min="0"
-                      className="num no-spinner"
-                      value={cashBoxOpeningBalance}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => setCashBoxOpeningBalance(e.target.value)}
-                      placeholder="0.00"
-                    />
-                    <span className="input-suffix">ج.م</span>
-                  </div>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.0001"
+                    min="0"
+                    className="num no-spinner"
+                    value={cashBoxOpeningBalance}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setCashBoxOpeningBalance(e.target.value)}
+                    placeholder="0.00"
+                  />
                 </label>
               )}
             </div>

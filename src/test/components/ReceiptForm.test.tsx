@@ -334,6 +334,7 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     const amountInput = screen.getByLabelText('مبلغ الإيصال');
     expect(amountInput).toHaveAttribute('step', '0.01');
     expect(amountInput).toHaveAttribute('min', '0.01');
+    expect(amountInput.parentElement?.querySelector('.line-unit-suffix')).toBeNull();
 
     // تغيير الحساب إلى العميل الآخر ذي الرصيد 1000
     const accountCombo = screen.getByDisplayValue(/عميل تجريبي/);

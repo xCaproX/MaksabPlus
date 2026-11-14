@@ -662,7 +662,6 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                 <div className="form-row">
                   <label>
                     <span>رصيد بداية التعامل</span>
-                    <div className="input-with-suffix">
                     <input
                       type="number"
                       inputMode="decimal"
@@ -673,8 +672,6 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setAccountOpeningBalance(e.target.value)}
                     />
-                    <span className="input-suffix">ج.م</span>
-                    </div>
                   </label>
                   <label>
                     <span>الرصيد ده لمين؟</span>
