@@ -13,11 +13,14 @@ import {
   AlertCircle,
   Wallet,
   ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import EmptyState from '../../components/EmptyState';
 import { SkeletonRows } from '../../components/LoadingSkeleton';
+import StatusBadge from '../../components/StatusBadge';
 import { useAccess } from '../../lib/access';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import { getStatementRowLink } from '../../lib/documentLinks';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, getBalanceStatus, money } from '../../lib/format';
@@ -60,6 +63,8 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
 
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
 
   // الفلاتر
   const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
@@ -80,6 +85,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
 
   // التحديد والتفاصيل
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
+  useDrawerEscape(Boolean(selectedAccount), () => setSelectedAccount(null));
 
   // كشف الحساب
   const [statementAccount, setStatementAccount] = useState<AccountRow | null>(null);
@@ -94,6 +100,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
 
     async function load() {
       setLoading(true);
+      setLoadError(null);
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
 
@@ -154,7 +161,9 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
         }
       } catch (err: unknown) {
         if (!alive) return;
-        toast.error(errorMessage(err));
+        const message = errorMessage(err);
+        setLoadError(message);
+        toast.error(message);
       } finally {
         if (alive) {
           setLoading(false);
@@ -166,7 +175,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
     return () => {
       alive = false;
     };
-  }, [columns.filters, kind, page, sortOrder]);
+  }, [columns.filters, kind, page, sortOrder, version]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const pagedAccounts = accounts;
@@ -214,7 +223,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
           icon: AlertCircle,
           subtext: (
             <span>
-              لدى <bdi dir="ltr">{debtorCount}</bdi> عميل مدين
+              لدى <bdi dir="ltr" className="tabular-nums">{debtorCount}</bdi> عميل مدين
             </span>
           ),
         },
@@ -233,7 +242,11 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
           unit: 'عميل',
           variant: 'neutral',
           icon: UserCheck,
-          subtext: `منهم ${debtorCount} عليهم مديونية`,
+          subtext: (
+            <span>
+              منهم <bdi dir="ltr" className="tabular-nums">{debtorCount}</bdi> عليهم مديونية
+            </span>
+          ),
         },
       ];
     }
@@ -270,7 +283,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
         icon: AlertCircle,
         subtext: (
           <span>
-            مستحقة لـ <bdi dir="ltr">{creditorCount}</bdi> مورد
+            مستحقة لـ <bdi dir="ltr" className="tabular-nums">{creditorCount}</bdi> مورد
           </span>
         ),
       },
@@ -289,7 +302,11 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
         unit: 'مورد',
         variant: 'neutral',
         icon: UserCheck,
-        subtext: `منهم ${creditorCount} لهم مستحقات`,
+        subtext: (
+          <span>
+            منهم <bdi dir="ltr" className="tabular-nums">{creditorCount}</bdi> لهم مستحقات
+          </span>
+        ),
       },
     ];
   }, [summary, isCustomer]);
@@ -339,7 +356,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
 
   return (
     <>
-      <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${entityPlural}`} />
+      <KpiBar items={kpiItems} loading={loading} ariaLabel={`مؤشرات ${entityPlural}`} />
 
       <div className={selectedAccount ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة ${entityPlural}`}>
@@ -360,7 +377,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                     onSort={(s) => setSortOrder(s as BalanceSort)}
                     defaultDirection="asc"
                   />
-                  <th className="col-hide-on-detail">الهاتف</th>
+                  <th>الهاتف</th>
                   <SortableHeader
                     label="الرصيد الحالي"
                     field="balance"
@@ -368,21 +385,36 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                     onSort={(s) => setSortOrder(s as BalanceSort)}
                     className="num"
                   />
-                  <th className="col-hide-on-detail col-notes">الملاحظات</th>
+                  <th className="col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
                 <ColumnFilterRow scope="account_balances" kind={kind} values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && <SkeletonRows columns={6} />}
-                {!loading && pagedAccounts.length === 0 && (
+                {!loading && loadError && (
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    role="alert"
+                    icon={AlertCircle}
+                    title={`تعذّر تحميل أرصدة ${entityPlural}.`}
+                    description={loadError}
+                    action={{
+                      label: 'إعادة المحاولة',
+                      onClick: () => setVersion((v) => v + 1),
+                      icon: RefreshCw,
+                    }}
+                  />
+                )}
+                {!loading && !loadError && pagedAccounts.length === 0 && (
                   <EmptyState
                     colSpan={6}
                     compact
                     title={`لا توجد حسابات ${entityPlural} تطابق الفلاتر.`}
                   />
                 )}
-                {!loading &&
+                {!loading && !loadError &&
                   pagedAccounts.map((account) => {
                     const isSelected = selectedAccount?.id === account.id;
                     const status = getBalanceStatus(account.balance, account.kind as 'customer' | 'supplier');
@@ -401,7 +433,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                       >
                         <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber(entityPrefix, account.serial_number)}</bdi></td>
                         <td className="strong">{account.name}</td>
-                        <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{account.phone || '—'}</bdi></td>
+                        <td className="num"><bdi dir="ltr" className="tabular-nums">{account.phone || '—'}</bdi></td>
                         <td className="num">
                           <div
                             style={{
@@ -410,9 +442,9 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                               gap: '8px',
                             }}
                           >
-                            <span className={`status-badge-mini status-${status.type}`}>
+                            <StatusBadge variant={status.type}>
                               {status.text}
-                            </span>
+                            </StatusBadge>
                             <strong
                               dir="ltr"
                               className={`tabular-nums ${Number(account.balance) > 0 ? 'remaining' : ''}`}
@@ -421,7 +453,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                             </strong>
                           </div>
                         </td>
-                        <td className="muted col-hide-on-detail col-notes">{account.notes || '—'}</td>
+                        <td className="muted col-notes">{account.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
@@ -445,8 +477,17 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
             loading={loading}
+            countsPending={loading}
           />
         </section>
+
+        {selectedAccount && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedAccount(null)}
+          />
+        )}
 
         {/* لوحة التفاصيل الجانبية */}
         <aside
@@ -473,11 +514,11 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
               <dl className="erp-detail-summary">
                 <div>
                   <dt>الرقم التسلسلي</dt>
-                  <dd className="num">{entityNumber(entityPrefix, selectedAccount.serial_number)}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber(entityPrefix, selectedAccount.serial_number)}</bdi></dd>
                 </div>
                 <div>
                   <dt>رقم الهاتف</dt>
-                  <dd className="num">{selectedAccount.phone || '—'}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedAccount.phone || '—'}</bdi></dd>
                 </div>
                 <div>
                   <dt>الحالة</dt>
@@ -491,9 +532,9 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                   {(() => {
                     const status = getBalanceStatus(selectedAccount.balance, selectedAccount.kind as 'customer' | 'supplier');
                     return (
-                      <span className={`status-badge-mini status-${status.type}`}>
+                      <StatusBadge variant={status.type}>
                         {status.text}
-                      </span>
+                      </StatusBadge>
                     );
                   })()}
                   <strong
@@ -525,10 +566,12 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
               </div>
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر حسابًا</strong>
-              <span>ستظهر بيانات الرصيد وإمكانية استخراج كشف الحساب من هنا فورًا.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={Users}
+              title="اختر حسابًا"
+              description="ستظهر بيانات الرصيد وإمكانية استخراج كشف الحساب من هنا فورًا."
+            />
           )}
         </aside>
       </div>
@@ -546,7 +589,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
               <div>
                 <h2>كشف حساب {isCustomer ? 'عميل' : 'مورد'}</h2>
                 <strong>{statementAccount.name}</strong>
-                <p>{statementAccount.phone || '—'}</p>
+                <p><bdi dir="ltr" className="tabular-nums">{statementAccount.phone || '—'}</bdi></p>
               </div>
               <div className="account-statement-period">
                 <PeriodFilter from={statementFrom} to={statementTo} required disabled={statementLoading}
@@ -604,9 +647,9 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                       <div className="statement-cockpit-card primary-card">
                         <span className="card-label">رصيد آخر المدة</span>
                         <div className="card-value-wrap">
-                          <span className={`status-badge-mini status-${status.type}`}>
+                          <StatusBadge variant={status.type}>
                             {status.text}
-                          </span>
+                          </StatusBadge>
                           <strong
                             dir="ltr"
                             className={`card-value num tabular-nums ${lastBal > 0 ? 'due' : ''}`}
@@ -652,13 +695,13 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                               )}
                             </td>
                             <td className="num" data-label="مدين">
-                              {Number(row.debit) ? money(row.debit) : '—'}
+                              {Number(row.debit) ? <bdi dir="ltr" className="tabular-nums">{money(row.debit)}</bdi> : '—'}
                             </td>
                             <td className="num" data-label="دائن">
-                              {Number(row.credit) ? money(row.credit) : '—'}
+                              {Number(row.credit) ? <bdi dir="ltr" className="tabular-nums">{money(row.credit)}</bdi> : '—'}
                             </td>
                             <td className="num strong" data-label="الرصيد">
-                              {money(row.running_balance)}
+                              <bdi dir="ltr" className="tabular-nums">{money(row.running_balance)}</bdi>
                             </td>
                           </tr>
                         );
@@ -670,15 +713,15 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                 <div className="account-statement-totals">
                   <p>
                     <span>إجمالي المدين:</span>
-                    <strong>{money(statementRows[0].total_debit)}</strong>
+                    <strong><bdi dir="ltr" className="tabular-nums">{money(statementRows[0].total_debit)}</bdi></strong>
                   </p>
                   <p>
                     <span>إجمالي الدائن:</span>
-                    <strong>{money(statementRows[0].total_credit)}</strong>
+                    <strong><bdi dir="ltr" className="tabular-nums">{money(statementRows[0].total_credit)}</bdi></strong>
                   </p>
                   <p>
                     <span>رصيد آخر المدة:</span>
-                    <strong>{money(statementRows[statementRows.length - 1].running_balance)}</strong>
+                    <strong><bdi dir="ltr" className="tabular-nums">{money(statementRows[statementRows.length - 1].running_balance)}</bdi></strong>
                   </p>
                 </div>
               </>

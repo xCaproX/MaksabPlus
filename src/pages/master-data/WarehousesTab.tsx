@@ -6,7 +6,7 @@ import { matchesColumnFilters } from '../../lib/columnFilters';
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { X, Warehouse, CheckCircle2 } from 'lucide-react';
+import { X, Warehouse, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber } from '../../lib/format';
@@ -21,6 +21,7 @@ import { toast } from '../../components/Toast';
 import type { WarehouseOption } from '../../lib/types';
 import { useAccess } from '../../lib/access';
 import { useConfirmDialog } from '../../lib/useConfirmDialog';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import { useMasterData } from '../../context/MasterDataContext';
 
 interface WarehouseRecord extends WarehouseOption {
@@ -38,6 +39,7 @@ export default function WarehousesTab() {
 
   const [warehouses, setWarehouses] = useState<WarehouseRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
 
   // الفلاتر
@@ -49,6 +51,7 @@ export default function WarehousesTab() {
 
   // التحديد والتفاصيل
   const [selectedWarehouse, setSelectedWarehouse] = useState<WarehouseRecord | null>(null);
+  useDrawerEscape(Boolean(selectedWarehouse), () => setSelectedWarehouse(null));
 
   // المودال والإدخال
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,6 +79,7 @@ export default function WarehousesTab() {
 
     async function load() {
       setLoading(true);
+      setLoadError(null);
       try {
         const rows = await loadAllWarehouses<WarehouseRecord>();
         if (!alive) return;
@@ -83,7 +87,9 @@ export default function WarehousesTab() {
         setLoading(false);
       } catch (err: unknown) {
         if (!alive) return;
-        toast.error(errorMessage(err));
+        const message = translateDbError(errorMessage(err));
+        setLoadError(message);
+        toast.error(message);
         setLoading(false);
       }
     }
@@ -253,7 +259,7 @@ export default function WarehousesTab() {
 
   return (
     <>
-      <KpiBar items={kpiItems} ariaLabel="مؤشرات المخازن" />
+      <KpiBar items={kpiItems} loading={loading} ariaLabel="مؤشرات المخازن" />
 
       <div className={selectedWarehouse ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة المخازن">
@@ -274,8 +280,8 @@ export default function WarehousesTab() {
                     onSort={(s) => setSortOrder(s as WarehouseSort)}
                     defaultDirection="asc"
                   />
-                  <th className="col-hide-on-detail">النوع</th>
-                  <th className="col-hide-on-detail col-notes">ملاحظات</th>
+                  <th>النوع</th>
+                  <th className="col-notes">ملاحظات</th>
                   <th>الحالة</th>
                   <th aria-label="الإجراءات" />
                 </tr>
@@ -285,7 +291,22 @@ export default function WarehousesTab() {
                 {loading && (
                   <SkeletonRows columns={6} />
                 )}
-                {!loading && pagedWarehouses.length === 0 && (
+                {!loading && loadError && (
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    role="alert"
+                    icon={AlertCircle}
+                    title="تعذّر تحميل المخازن."
+                    description={loadError}
+                    action={{
+                      label: 'إعادة المحاولة',
+                      onClick: () => setVersion((v) => v + 1),
+                      icon: RefreshCw,
+                    }}
+                  />
+                )}
+                {!loading && !loadError && pagedWarehouses.length === 0 && (
                   <EmptyState
                     colSpan={6}
                     compact
@@ -293,7 +314,7 @@ export default function WarehousesTab() {
                     description="جرّب تعديل الفلاتر المختارة أو تصفيرها."
                   />
                 )}
-                {!loading &&
+                {!loading && !loadError &&
                   pagedWarehouses.map((warehouse) => {
                     const isSelected = selectedWarehouse?.id === warehouse.id;
                     return (
@@ -311,14 +332,14 @@ export default function WarehousesTab() {
                       >
                         <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('WH', warehouse.serial_number)}</bdi></td>
                         <td className="strong">{warehouse.name}</td>
-                        <td className="col-hide-on-detail">
+                        <td>
                           {warehouse.is_primary ? (
-                            <span className="badge">رئيسي</span>
+                            <StatusBadge variant="neutral">رئيسي</StatusBadge>
                           ) : (
                             <span className="muted">فرعي</span>
                           )}
                         </td>
-                        <td className="muted col-hide-on-detail col-notes">{warehouse.notes || '—'}</td>
+                        <td className="muted col-notes">{warehouse.notes || '—'}</td>
                         <td>
                           <StatusBadge variant={warehouse.is_active ? 'paid' : 'unpaid'}>
                             {warehouse.is_active ? 'نشط' : 'موقوف'}
@@ -351,6 +372,14 @@ export default function WarehousesTab() {
             countsPending={loading}
           />
         </section>
+
+        {selectedWarehouse && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedWarehouse(null)}
+          />
+        )}
 
         {/* لوحة التفاصيل الجانبية */}
         <aside

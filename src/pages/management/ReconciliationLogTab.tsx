@@ -3,9 +3,11 @@ import { useColumnFilters } from '../../lib/useColumnFilters';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
+  AlertCircle,
   CheckCircle2,
   Clock,
   History,
+  RefreshCw,
   ShieldAlert,
   Sparkles,
   X,
@@ -16,6 +18,9 @@ import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import PeriodFilter from '../../components/PeriodFilter';
 import { periodDates, shiftCalendarDate } from '../../lib/period';
 import Pagination from '../../components/Pagination';
+import SortableHeader from '../../components/SortableHeader';
+import StatusBadge from '../../components/StatusBadge';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import { supabase } from '../../lib/supabase';
 import { creationDate, creationTime, money, qty } from '../../lib/format';
 import DateDisplay from '../../components/DateDisplay';
@@ -23,6 +28,8 @@ import { errorMessage, translateDbError } from '../../lib/errors';
 import { toast } from '../../components/Toast';
 import type { ReconciliationLogRow } from '../../lib/types';
 import RunReconciliationModal from './RunReconciliationModal';
+
+type ReconciliationSort = 'date-desc' | 'date-asc' | 'discrepancies-desc' | 'discrepancies-asc';
 
 const PAGE_SIZE = 20;
 
@@ -36,18 +43,21 @@ export default function ReconciliationLogTab({
   const [logs, setLogs] = useState<ReconciliationLogRow[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
 
+  const [sortOrder, setSortOrder] = useState<ReconciliationSort>('date-desc');
   const [page, setPage] = useState(1);
   const [dateFrom, setDateFrom] = useState(() => periodDates().from);
   const [dateTo, setDateTo] = useState(() => periodDates().to);
   const [selectedLog, setSelectedLog] = useState<ReconciliationLogRow | null>(null);
+  useDrawerEscape(Boolean(selectedLog), () => setSelectedLog(null));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [summary, setSummary] = useState<{ total_discrepancies: number; latest_created_at: string | null; latest_status: string | null }>({ total_discrepancies: 0, latest_created_at: null, latest_status: null });
   const [searchParams, setSearchParams] = useSearchParams();
   const columns = useColumnFilters('reconciliations', () => { setDateFrom(periodDates().from); setDateTo(periodDates().to); setPage(1);
   });
-  useEffect(() => { setPage(1); }, [columns.filters]);
+  useEffect(() => { setPage(1); }, [columns.filters, sortOrder]);
 
   useEffect(() => {
     if (searchParams.get('action') === 'new') {
@@ -62,6 +72,7 @@ export default function ReconciliationLogTab({
   const loadLogs = useCallback(async () => {
     const request = ++requestVersion.current;
     setLoading(true);
+    setLoadError(null);
     try {
       let query = supabase
         .rpc('filter_reconciliation_rows', { p_columns: columns.filters, p_search: null }, { count: 'exact' }).select('*');
@@ -69,10 +80,20 @@ export default function ReconciliationLogTab({
       if (dateFrom) query = query.gte('created_at', `${dateFrom} 00:00:00 Africa/Cairo`);
       if (dateTo) query = query.lt('created_at', `${shiftCalendarDate(dateTo, 1)} 00:00:00 Africa/Cairo`);
 
+      if (sortOrder === 'date-asc') {
+        query = query.order('created_at', { ascending: true });
+      } else if (sortOrder === 'discrepancies-desc') {
+        query = query.order('discrepancies_count', { ascending: false }).order('created_at', { ascending: false });
+      } else if (sortOrder === 'discrepancies-asc') {
+        query = query.order('discrepancies_count', { ascending: true }).order('created_at', { ascending: false });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
       const [result, kpis] = await Promise.all([
-        query.order('created_at', { ascending: false }).range(from, to),
+        query.range(from, to),
         supabase.rpc('get_reconciliation_log_kpis_columns', { p_columns: columns.filters, p_search: null, p_mode: 'all', p_date_from: dateFrom || null, p_date_to: dateTo || null }),
       ]);
       if (request !== requestVersion.current) return;
@@ -84,11 +105,15 @@ export default function ReconciliationLogTab({
       setLogs((data || []) as ReconciliationLogRow[]);
       setTotalCount(count || 0);
     } catch (err: unknown) {
-      if (request === requestVersion.current) toast.error(translateDbError(errorMessage(err)));
+      if (request === requestVersion.current) {
+        const message = translateDbError(errorMessage(err));
+        setLoadError(message);
+        toast.error(message);
+      }
     } finally {
       if (request === requestVersion.current) setLoading(false);
     }
-  }, [page, dateFrom, dateTo, columns.filters]);
+  }, [page, dateFrom, dateTo, columns.filters, sortOrder]);
 
   useEffect(() => {
     void loadLogs();
@@ -172,7 +197,7 @@ export default function ReconciliationLogTab({
 
   return (
     <>
-      <KpiBar items={kpiItems} ariaLabel="مؤشرات سجل تدقيق ومطابقة الأرصدة" />
+      <KpiBar items={kpiItems} loading={loading} ariaLabel="مؤشرات سجل تدقيق ومطابقة الأرصدة" />
 
       <div className={selectedLog ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة سجلات المطابقة والتدقيق">
@@ -186,18 +211,44 @@ export default function ReconciliationLogTab({
             <table className="table erp-table">
               <thead>
                 <tr>
-                  <th className="col-datetime">تاريخ وتوقيت الفحص</th>
+                  <SortableHeader
+                    label="تاريخ وتوقيت الفحص"
+                    field="date"
+                    currentSort={sortOrder}
+                    onSort={(s) => setSortOrder(s as ReconciliationSort)}
+                    className="col-datetime"
+                  />
                   <th style={{ width: '130px' }}>القائم بالفحص</th>
                   <th style={{ width: '130px' }}>نوع العملية</th>
-                  <th className="col-hide-on-detail" style={{ width: '180px' }}>نطاق الفحص</th>
-                  <th style={{ width: '140px' }}>نتيجة الفحص</th>
+                  <th style={{ width: '180px' }}>نطاق الفحص</th>
+                  <SortableHeader
+                    label="نتيجة الفحص"
+                    field="discrepancies"
+                    currentSort={sortOrder}
+                    onSort={(s) => setSortOrder(s as ReconciliationSort)}
+                  />
                   <th>الملاحظات</th>
                 </tr>
                 <ColumnFilterRow scope="reconciliations" owner values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && <SkeletonRows columns={6} />}
-                {!loading && logs.length === 0 && (
+                {!loading && loadError && (
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    role="alert"
+                    icon={AlertCircle}
+                    title="تعذّر تحميل سجل المطابقة والتدقيق."
+                    description={loadError}
+                    action={{
+                      label: 'إعادة المحاولة',
+                      onClick: () => void loadLogs(),
+                      icon: RefreshCw,
+                    }}
+                  />
+                )}
+                {!loading && !loadError && logs.length === 0 && (
                   <EmptyState
                     colSpan={6}
                     compact
@@ -205,7 +256,7 @@ export default function ReconciliationLogTab({
                     description="اضغط على «بدء فحص جديد» للتدقيق."
                   />
                 )}
-                {!loading &&
+                {!loading && !loadError &&
                   logs.map((row) => {
                     const isSelected = selectedLog?.id === row.id;
                     const isClean = row.status === 'clean' || row.discrepancies_count === 0;
@@ -233,18 +284,18 @@ export default function ReconciliationLogTab({
                         <td>{row.performed_by_name || 'المالك'}</td>
                         <td>
                           {row.mode === 'reconcile' ? (
-                            <span className="status-badge-mini status-completed" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <Sparkles size={12} />
+                            <StatusBadge variant="completed">
+                              <Sparkles size={12} aria-hidden="true" />
                               <span>تصحيح فعلي</span>
-                            </span>
+                            </StatusBadge>
                           ) : (
-                            <span className="status-badge-mini status-pending" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <ShieldAlert size={12} />
+                            <StatusBadge variant="pending">
+                              <ShieldAlert size={12} aria-hidden="true" />
                               <span>استكشافي</span>
-                            </span>
+                            </StatusBadge>
                           )}
                         </td>
-                        <td className="col-hide-on-detail muted" style={{ fontSize: '0.85rem' }}>
+                        <td className="muted" style={{ fontSize: '0.85rem' }}>
                           <span>
                             <bdi dir="ltr" className="tabular-nums">{row.accounts_count}</bdi> حساب •{' '}
                             <bdi dir="ltr" className="tabular-nums">{row.cash_boxes_count}</bdi> خزنة •{' '}
@@ -253,13 +304,13 @@ export default function ReconciliationLogTab({
                         </td>
                         <td>
                           {isClean ? (
-                            <span className="status-badge-mini status-active">
+                            <StatusBadge variant="active">
                               <bdi dir="ltr" className="tabular-nums">100%</bdi> متطابقة
-                            </span>
+                            </StatusBadge>
                           ) : (
-                            <span className="status-badge-mini status-warning">
+                            <StatusBadge variant="warning">
                               <bdi dir="ltr" className="tabular-nums">{row.discrepancies_count}</bdi> فروقات
-                            </span>
+                            </StatusBadge>
                           )}
                         </td>
                         <td style={{ color: row.notes ? 'inherit' : 'var(--muted)' }}>
@@ -279,8 +330,17 @@ export default function ReconciliationLogTab({
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
             loading={loading}
+            countsPending={loading}
           />
         </section>
+
+        {selectedLog && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedLog(null)}
+          />
+        )}
 
         <aside
           className={selectedLog ? 'erp-detail-panel open' : 'erp-detail-panel'}
@@ -291,7 +351,7 @@ export default function ReconciliationLogTab({
               <div className="erp-detail-head">
                 <div>
                   <span>سجل التدقيق والمطابقة</span>
-                  <h2><DateDisplay value={selectedLog.created_at} /> ({creationTime(selectedLog.created_at)})</h2>
+                  <h2><DateDisplay value={selectedLog.created_at} /> (<bdi dir="ltr" className="tabular-nums">{creationTime(selectedLog.created_at)}</bdi>)</h2>
                 </div>
                 <button
                   type="button"
@@ -330,13 +390,14 @@ export default function ReconciliationLogTab({
                     <bdi dir="ltr" className="tabular-nums">{selectedLog.discrepancies_count}</bdi> فرق
                   </dd>
                 </div>
-                {selectedLog.notes && (
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <dt>الملاحظات</dt>
-                    <dd>{selectedLog.notes}</dd>
-                  </div>
-                )}
               </dl>
+
+              {selectedLog.notes && (
+                <p className="erp-detail-notes">
+                  <span>الملاحظات</span>
+                  {selectedLog.notes}
+                </p>
+              )}
 
               <div style={{ padding: '16px', overflowY: 'auto', flex: 1 }}>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBlockEnd: '10px' }}>
@@ -344,19 +405,9 @@ export default function ReconciliationLogTab({
                 </h3>
 
                 {selectedLog.discrepancies.length === 0 ? (
-                  <div
-                    style={{
-                      padding: '16px',
-                      borderRadius: '8px',
-                      background: 'var(--color-success-subtle, #ecfdf5)',
-                      border: '1px solid var(--color-success-border, #a7f3d0)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                    }}
-                  >
-                    <CheckCircle2 style={{ color: '#059669', flexShrink: 0 }} size={24} />
-                    <div style={{ fontSize: '0.85rem', color: '#065f46' }}>
+                  <div className="alert success" role="status">
+                    <CheckCircle2 size={22} aria-hidden="true" style={{ flexShrink: 0 }} />
+                    <div>
                       <strong>الأرصدة متطابقة 100%</strong>
                       <div>لم تسفر هذه العملية عن أي فروقات في الأرصدة أو كميات المخزون.</div>
                     </div>
@@ -413,10 +464,12 @@ export default function ReconciliationLogTab({
               </div>
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر عملية فحص</strong>
-              <span>اضغط على أي سطر في السجل لمراجعة تفاصيل الحسابات والفروقات المرصودة.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={History}
+              title="اختر عملية فحص"
+              description="اضغط على أي سطر في السجل لمراجعة تفاصيل الحسابات والفروقات المرصودة."
+            />
           )}
         </aside>
       </div>

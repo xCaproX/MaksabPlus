@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import { AlertCircle, Play, UserPlus } from 'lucide-react';
+import { AlertCircle, Play, RefreshCw, UserPlus } from 'lucide-react';
 import { useAccess } from '../lib/access';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EmptyState from '../components/EmptyState';
@@ -182,9 +182,15 @@ export default function Management() {
 
       {canViewCurrentTab && loadError && (
         <EmptyState
+          role="alert"
           icon={AlertCircle}
           title="تعذّر تحميل البيانات كاملة"
-          description="حدّث الصفحة وحاول مرة أخرى."
+          description="حدّث الصفحة أو أعد المحاولة."
+          action={{
+            label: 'إعادة المحاولة',
+            onClick: () => void refresh(TAB_RESOURCES[tab]),
+            icon: RefreshCw,
+          }}
         />
       )}
 

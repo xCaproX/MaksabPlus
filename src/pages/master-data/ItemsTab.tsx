@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   DollarSign,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
@@ -27,6 +29,7 @@ import { toast } from '../../components/Toast';
 import type { ItemRow, WarehouseOption } from '../../lib/types';
 import { useAccess } from '../../lib/access';
 import { useConfirmDialog } from '../../lib/useConfirmDialog';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import { useMasterData } from '../../context/MasterDataContext';
 
 interface MasterItemRecord extends Omit<ItemRow, 'qty'> {
@@ -57,6 +60,7 @@ export default function ItemsTab() {
   const [items, setItems] = useState<MasterItemRecord[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
 
   // الفلاتر
@@ -77,6 +81,7 @@ export default function ItemsTab() {
 
   // التحديد والتفاصيل
   const [selectedItem, setSelectedItem] = useState<MasterItemRecord | null>(null);
+  useDrawerEscape(Boolean(selectedItem), () => setSelectedItem(null));
 
   // المودال والإدخال
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -144,6 +149,7 @@ export default function ItemsTab() {
 
     async function load() {
       setLoading(true);
+      setLoadError(null);
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
 
@@ -200,7 +206,9 @@ export default function ItemsTab() {
         setLoading(false);
       } catch (err: unknown) {
         if (!alive) return;
-        toast.error(errorMessage(err));
+        const message = translateDbError(errorMessage(err));
+        setLoadError(message);
+        toast.error(message);
         setLoading(false);
       }
     }
@@ -422,7 +430,7 @@ export default function ItemsTab() {
 
   return (
     <>
-      <KpiBar items={kpiItems} ariaLabel="مؤشرات الأصناف" />
+      <KpiBar items={kpiItems} loading={loading} ariaLabel="مؤشرات الأصناف" />
 
       <div className={selectedItem ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة الأصناف">
@@ -436,7 +444,7 @@ export default function ItemsTab() {
                     currentSort={sortOrder}
                     onSort={(s) => setSortOrder(s as ItemSort)}
                   />
-                  <th className="col-hide-on-detail">الكود</th>
+                  <th>الكود</th>
                   <SortableHeader
                     label="الاسم"
                     field="name"
@@ -444,7 +452,7 @@ export default function ItemsTab() {
                     onSort={(s) => setSortOrder(s as ItemSort)}
                     defaultDirection="asc"
                   />
-                  <th className="col-hide-on-detail">الوحدة</th>
+                  <th>الوحدة</th>
                   <SortableHeader
                     label="سعر البيع"
                     field="price"
@@ -452,7 +460,7 @@ export default function ItemsTab() {
                     onSort={(s) => setSortOrder(s as ItemSort)}
                     className="num"
                   />
-                  {canViewPurchasePrice && <th className="num col-hide-on-detail">سعر الشراء</th>}
+                  {canViewPurchasePrice && <th className="num">سعر الشراء</th>}
                   <th>الحالة</th>
                   <th aria-label="الإجراءات" />
                 </tr>
@@ -468,7 +476,22 @@ export default function ItemsTab() {
                 {loading && (
                   <SkeletonRows columns={canViewPurchasePrice ? 8 : 7} />
                 )}
-                {!loading && items.length === 0 && (
+                {!loading && loadError && (
+                  <EmptyState
+                    colSpan={canViewPurchasePrice ? 8 : 7}
+                    compact
+                    role="alert"
+                    icon={AlertCircle}
+                    title="تعذّر تحميل الأصناف."
+                    description={loadError}
+                    action={{
+                      label: 'إعادة المحاولة',
+                      onClick: () => setVersion((v) => v + 1),
+                      icon: RefreshCw,
+                    }}
+                  />
+                )}
+                {!loading && !loadError && items.length === 0 && (
                   <EmptyState
                     colSpan={canViewPurchasePrice ? 8 : 7}
                     compact
@@ -476,7 +499,7 @@ export default function ItemsTab() {
                     description="جرّب تعديل الفلاتر المختارة أو تصفيرها."
                   />
                 )}
-                {!loading &&
+                {!loading && !loadError &&
                   items.map((item) => {
                     const isSelected = selectedItem?.id === item.id;
                     return (
@@ -493,12 +516,12 @@ export default function ItemsTab() {
                         }}
                       >
                         <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', item.serial_number)}</bdi></td>
-                        <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{item.code}</bdi></td>
+                        <td className="num">{item.code ? <bdi dir="ltr" className="tabular-nums">{item.code}</bdi> : '—'}</td>
                         <td className="strong">{item.name}</td>
-                        <td className="col-hide-on-detail">{item.unit}</td>
+                        <td>{item.unit}</td>
                         <td className="num strong"><bdi dir="ltr" className="tabular-nums">{money(item.sale_price)}</bdi></td>
                         {canViewPurchasePrice && (
-                          <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{money(item.purchase_price)}</bdi></td>
+                          <td className="num"><bdi dir="ltr" className="tabular-nums">{money(item.purchase_price)}</bdi></td>
                         )}
                         <td>
                           <StatusBadge variant={item.is_active ? 'paid' : 'unpaid'}>
@@ -528,6 +551,14 @@ export default function ItemsTab() {
             countsPending={loading}
           />
         </section>
+
+        {selectedItem && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedItem(null)}
+          />
+        )}
 
         {/* لوحة التفاصيل الجانبية */}
         <aside className={selectedItem ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل السجل">

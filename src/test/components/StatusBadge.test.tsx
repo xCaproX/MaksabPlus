@@ -18,5 +18,14 @@ describe('StatusBadge - شارة الحالة الموحدة', () => {
     rerender(<StatusBadge variant="unpaid">غير مسددة</StatusBadge>);
     expect(screen.getByText('غير مسددة')).toBeInTheDocument();
     expect(container.firstChild).toHaveClass('status-badge-unpaid');
+
+    rerender(<StatusBadge variant="pending">استكشافي</StatusBadge>);
+    expect(container.firstChild).toHaveClass('status-badge-pending');
+
+    rerender(<StatusBadge variant="credit">له</StatusBadge>);
+    expect(container.firstChild).toHaveClass('status-badge-credit');
+
+    rerender(<StatusBadge variant="settled">خالص</StatusBadge>);
+    expect(container.firstChild).toHaveClass('status-badge-settled');
   });
 });

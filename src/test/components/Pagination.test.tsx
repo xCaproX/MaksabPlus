@@ -22,6 +22,28 @@ describe('Pagination Component', () => {
     // أرقام الصفحة
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
+
+    ['21', '40', '95', '2', '5'].forEach((numText) => {
+      const bdi = screen.getByText(numText).closest('bdi');
+      expect(bdi).toHaveAttribute('dir', 'ltr');
+      expect(bdi).toHaveClass('tabular-nums');
+    });
+  });
+
+  it('يخفي العدادات أثناء countsPending ويعرض هياكل التحميل دون كسر الترقيم', () => {
+    render(
+      <Pagination
+        page={2}
+        pageCount={5}
+        totalCount={95}
+        countsPending={true}
+        onPageChange={() => {}}
+      />
+    );
+
+    expect(screen.queryByText('95')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('الصفحة السابقة')).toBeEnabled();
+    expect(screen.getByLabelText('الصفحة التالية')).toBeEnabled();
   });
 
   it('يعطل زر السابق عند التواجد في الصفحة الأولى', () => {

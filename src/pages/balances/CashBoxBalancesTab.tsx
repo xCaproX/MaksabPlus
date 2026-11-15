@@ -12,6 +12,8 @@ import {
   Wallet,
   Landmark,
   ExternalLink,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import EmptyState from '../../components/EmptyState';
@@ -20,6 +22,7 @@ import { useAccess } from '../../lib/access';
 import { getStatementRowLink } from '../../lib/documentLinks';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, money } from '../../lib/format';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import DateDisplay from '../../components/DateDisplay';
 import Modal from '../../components/Modal';
 import PeriodFilter from '../../components/PeriodFilter';
@@ -42,7 +45,7 @@ const REQUIRED_RESOURCES = ['cashBoxes'] as const;
 
 export default function CashBoxBalancesTab() {
   const { can } = useAccess();
-  const { cashBoxes, resourceStatus } = useMasterData(REQUIRED_RESOURCES);
+  const { cashBoxes, resourceStatus, refresh } = useMasterData(REQUIRED_RESOURCES);
   const { loading, error } = resourceStatus.cashBoxes;
 
   // الفلاتر
@@ -54,6 +57,7 @@ export default function CashBoxBalancesTab() {
 
   // التحديد والتفاصيل
   const [selectedBox, setSelectedBox] = useState<CashBoxRow | null>(null);
+  useDrawerEscape(Boolean(selectedBox), () => setSelectedBox(null));
 
   // كشف حركة الخزنة
   const [cashStatementBox, setCashStatementBox] = useState<CashBoxRow | null>(null);
@@ -165,12 +169,21 @@ export default function CashBoxBalancesTab() {
 
   return (
     <>
-      {error && (
-        <p className="empty-state" role="alert">
-          تعذّر تحديث أرصدة الخزن كاملة. حدّث الصفحة وحاول مرة أخرى.
-        </p>
+      {error && pagedBoxes.length > 0 && (
+        <EmptyState
+          compact
+          role="alert"
+          icon={AlertCircle}
+          title="تعذّر تحديث أرصدة الخزن كاملة."
+          description={error}
+          action={{
+            label: 'إعادة المحاولة',
+            onClick: () => void refresh(REQUIRED_RESOURCES),
+            icon: RefreshCw,
+          }}
+        />
       )}
-      <KpiBar items={kpiItems} ariaLabel="مؤشرات أرصدة الخزن" />
+      <KpiBar items={kpiItems} loading={loading} ariaLabel="مؤشرات أرصدة الخزن" />
 
       <div className={selectedBox ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة أرصدة الخزن">
@@ -198,13 +211,28 @@ export default function CashBoxBalancesTab() {
                     onSort={(s) => setSortOrder(s as BalanceSort)}
                     className="num"
                   />
-                  <th className="col-hide-on-detail col-notes">الملاحظات</th>
+                  <th className="col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
                 <ColumnFilterRow scope="cash_balances" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && <SkeletonRows columns={5} />}
+                {!loading && error && pagedBoxes.length === 0 && (
+                  <EmptyState
+                    colSpan={5}
+                    compact
+                    role="alert"
+                    icon={AlertCircle}
+                    title="تعذّر تحميل أرصدة الخزن."
+                    description={error}
+                    action={{
+                      label: 'إعادة المحاولة',
+                      onClick: () => void refresh(REQUIRED_RESOURCES),
+                      icon: RefreshCw,
+                    }}
+                  />
+                )}
                 {!loading && !error && pagedBoxes.length === 0 && (
                   <EmptyState
                     colSpan={5}
@@ -231,7 +259,7 @@ export default function CashBoxBalancesTab() {
                         <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('CBX', box.serial_number)}</bdi></td>
                         <td className="strong">{box.name}</td>
                         <td className="num strong"><bdi dir="ltr" className="tabular-nums">{money(box.balance)}</bdi></td>
-                        <td className="muted col-hide-on-detail col-notes">{box.notes || '—'}</td>
+                        <td className="muted col-notes">{box.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
@@ -255,8 +283,17 @@ export default function CashBoxBalancesTab() {
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
             loading={loading}
+            countsPending={loading}
           />
         </section>
+
+        {selectedBox && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedBox(null)}
+          />
+        )}
 
         {/* لوحة التفاصيل الجانبية */}
         <aside
@@ -283,7 +320,7 @@ export default function CashBoxBalancesTab() {
               <dl className="erp-detail-summary">
                 <div>
                   <dt>الرقم التسلسلي</dt>
-                  <dd className="num">{entityNumber('CBX', selectedBox.serial_number)}</dd>
+                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber('CBX', selectedBox.serial_number)}</bdi></dd>
                 </div>
                 <div>
                   <dt>النوع</dt>
@@ -297,7 +334,7 @@ export default function CashBoxBalancesTab() {
 
               <div className="erp-detail-totals">
                 <span>رصيد الفلوس الحالي</span>
-                <strong className="num remaining">{money(selectedBox.balance)}</strong>
+                <strong className="num remaining"><bdi dir="ltr" className="tabular-nums">{money(selectedBox.balance)}</bdi></strong>
               </div>
 
               {selectedBox.notes && (
@@ -320,10 +357,12 @@ export default function CashBoxBalancesTab() {
               </div>
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر خزنة</strong>
-              <span>ستظهر بيانات الرصيد وإمكانية استخراج كشف الحركة من هنا فورًا.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={Wallet}
+              title="اختر خزنة"
+              description="ستظهر بيانات الرصيد وإمكانية استخراج كشف الحركة من هنا فورًا."
+            />
           )}
         </aside>
       </div>
@@ -439,13 +478,13 @@ export default function CashBoxBalancesTab() {
                               )}
                             </td>
                             <td className="num" data-label="وارد">
-                              {Number(row.incoming) ? money(row.incoming) : '—'}
+                              {Number(row.incoming) ? <bdi dir="ltr" className="tabular-nums">{money(row.incoming)}</bdi> : '—'}
                             </td>
                             <td className="num" data-label="صادر">
-                              {Number(row.outgoing) ? money(row.outgoing) : '—'}
+                              {Number(row.outgoing) ? <bdi dir="ltr" className="tabular-nums">{money(row.outgoing)}</bdi> : '—'}
                             </td>
                             <td className="num strong" data-label="الرصيد">
-                              {money(row.running_balance)}
+                              <bdi dir="ltr" className="tabular-nums">{money(row.running_balance)}</bdi>
                             </td>
                           </tr>
                         );
@@ -457,15 +496,15 @@ export default function CashBoxBalancesTab() {
                 <div className="account-statement-totals">
                   <p>
                     <span>إجمالي الوارد:</span>
-                    <strong>{money(cashStatementRows[0].total_incoming)}</strong>
+                    <strong><bdi dir="ltr" className="tabular-nums">{money(cashStatementRows[0].total_incoming)}</bdi></strong>
                   </p>
                   <p>
                     <span>إجمالي الصادر:</span>
-                    <strong>{money(cashStatementRows[0].total_outgoing)}</strong>
+                    <strong><bdi dir="ltr" className="tabular-nums">{money(cashStatementRows[0].total_outgoing)}</bdi></strong>
                   </p>
                   <p>
                     <span>رصيد آخر المدة:</span>
-                    <strong>{money(cashStatementRows[cashStatementRows.length - 1].running_balance)}</strong>
+                    <strong><bdi dir="ltr" className="tabular-nums">{money(cashStatementRows[cashStatementRows.length - 1].running_balance)}</bdi></strong>
                   </p>
                 </div>
               </>

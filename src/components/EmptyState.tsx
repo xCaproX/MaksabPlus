@@ -15,6 +15,7 @@ export interface EmptyStateProps {
   action?: EmptyStateAction;
   compact?: boolean;
   className?: string;
+  role?: 'alert' | 'status';
   /**
    * عند تمرير colSpan، يتم تغليف المكوّن تلقائياً داخل <tr> و <td> ليناسب جداول HTML
    */
@@ -28,6 +29,7 @@ export default function EmptyState({
   action,
   compact = false,
   className = '',
+  role,
   colSpan,
 }: EmptyStateProps) {
   const ActionIcon = action?.icon;
@@ -36,6 +38,7 @@ export default function EmptyState({
 
   const content = (
     <div
+      role={role}
       className={`empty-state ${compact ? 'is-compact' : ''} ${className}`.trim()}
     >
       {Icon && (

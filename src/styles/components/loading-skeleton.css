@@ -37,6 +37,18 @@
   block-size: 2.75rem;
 }
 
+.skeleton-row,
+.table tbody tr.skeleton-row,
+.erp-table tbody tr.skeleton-row {
+  cursor: default;
+}
+
+.skeleton-row:hover td,
+.table tbody tr.skeleton-row:hover td,
+.erp-table tbody tr.skeleton-row:hover td {
+  background: transparent;
+}
+
 .loading-layout {
   display: grid;
   gap: 1rem;

@@ -51,9 +51,9 @@ export default function ColumnFilterRow({ scope, kind = '', owner = false, value
         onChange={(value) => onChange(key, value)} placeholder="الكل" searchPlaceholder="بحث…" />;
     }
     return <input type={type === 'number' ? 'number' : 'text'}
-      step="any" inputMode={type === 'number' ? 'decimal' : undefined}
+      step={type === 'number' ? 'any' : undefined} inputMode={type === 'number' ? 'decimal' : undefined}
       className={type === 'number' ? 'no-spinner tabular-nums' : ''}
-      value={values[key] ?? ''} aria-label={ariaLabel} placeholder={type === 'number' ? '=' : ['notes', 'statement'].includes(key) ? 'بحث' : 'بحث…'}
+      value={values[key] ?? ''} aria-label={ariaLabel} placeholder={type === 'number' ? '=' : 'بحث…'}
       onFocus={(event) => event.target.select()} onChange={(event) => onChange(key, event.target.value)} />;
   }
   if (as === 'bar') return <div className="column-filter-bar" aria-label="بحث بالأعمدة">

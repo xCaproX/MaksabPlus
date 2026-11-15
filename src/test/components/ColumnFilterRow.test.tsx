@@ -34,6 +34,9 @@ describe('column-filter controls and reset', () => {
     expect(screen.getByRole('button', { name: 'اختيار التاريخ من التقويم' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'اختيار الوقت' })).toBeInTheDocument();
     expect(screen.getByLabelText('بحث في المسدد')).toHaveAttribute('placeholder', '=');
+    expect(screen.getByLabelText('بحث في المسدد')).toHaveAttribute('step', 'any');
+    expect(screen.getByLabelText('بحث في الحساب')).toHaveAttribute('placeholder', 'بحث…');
+    expect(screen.getByLabelText('بحث في الحساب')).not.toHaveAttribute('step');
     expect(document.querySelector('.column-filter-row .searchable-select-arrow')).toBeInTheDocument();
     expect(screen.getByLabelText('بحث في التاريخ')).toHaveAttribute('placeholder', 'تاريخ');
     fireEvent.click(screen.getByRole('combobox', { name: 'بحث في الحالة' }));

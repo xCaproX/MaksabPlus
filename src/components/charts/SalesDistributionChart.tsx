@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Chart as ChartJS, type ChartConfiguration } from 'chart.js';
 import { ensureChartRegistered, chartTokens, defaultTooltipConfig } from './chartDefaults';
 import { money } from '../../lib/format';
+import MoneyDisplay from '../MoneyDisplay';
 
 export interface SalesDistributionData {
   cash_sales: number;
@@ -137,10 +138,7 @@ export default function SalesDistributionChart({ distribution }: SalesDistributi
         />
         <div className="sales-dist-center" aria-hidden="true">
           <span className="sales-dist-center-label">إجمالي المبيعات</span>
-          <span className="sales-dist-center-value">
-            <bdi dir="ltr" className="tabular-nums">{money(total)}</bdi>
-            <span className="sales-dist-center-unit">ج.م</span>
-          </span>
+          <MoneyDisplay value={total} currency className="sales-dist-center-value" />
         </div>
       </div>
 

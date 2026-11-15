@@ -7,6 +7,8 @@ import EmptyState from '../../components/EmptyState';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
 import SortableHeader from '../../components/SortableHeader';
+import StatusBadge from '../../components/StatusBadge';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, getBalanceStatus, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
@@ -55,6 +57,7 @@ export default function AccountOpeningTab({
     setPage(1);
   });
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
+  useDrawerEscape(Boolean(selectedAccount), () => setSelectedAccount(null));
 
   const visibleAccounts = useMemo(
     () => accounts.filter((account) => account.kind === kind),
@@ -270,7 +273,7 @@ export default function AccountOpeningTab({
                     onSort={(s) => setSortOrder(s as ManagementSort)}
                     defaultDirection="asc"
                   />
-                  <th className="col-hide-on-detail" style={{ width: '90px' }}>النوع</th>
+                  <th style={{ width: '90px' }}>النوع</th>
                   <th className="num" style={{ width: '250px' }}>الرصيد الافتتاحي</th>
                   <th className="num" style={{ width: '195px' }}>الرصيد الحالي</th>
                 </tr>
@@ -302,7 +305,7 @@ export default function AccountOpeningTab({
                     >
                       <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber(entityPrefix, account.serial_number)}</bdi></td>
                       <td className="strong">{account.name}</td>
-                      <td className="muted col-hide-on-detail" style={{ width: '90px' }}>{isCustomer ? 'عميل' : 'مورد'}</td>
+                      <td className="muted" style={{ width: '90px' }}>{isCustomer ? 'عميل' : 'مورد'}</td>
                       <td className="mobile-field-cell" onClick={(e) => e.stopPropagation()} style={{ width: '250px' }}>
                         <div className="opening-entry-cell">
                           <input
@@ -345,9 +348,9 @@ export default function AccountOpeningTab({
                           {(() => {
                             const status = getBalanceStatus(account.balance, account.kind);
                             return (
-                              <span className={`status-badge-mini status-${status.type}`}>
+                              <StatusBadge variant={status.type}>
                                 {status.text}
-                              </span>
+                              </StatusBadge>
                             );
                           })()}
                           <strong dir="ltr" className={`tabular-nums ${Number(account.balance) > 0 ? 'remaining' : ''}`}>
@@ -370,6 +373,14 @@ export default function AccountOpeningTab({
             onPageChange={setPage}
           />
         </section>
+
+        {selectedAccount && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedAccount(null)}
+          />
+        )}
 
         <aside className={selectedAccount ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل الحساب">
           {selectedAccount ? (
@@ -395,9 +406,9 @@ export default function AccountOpeningTab({
                       const status = getBalanceStatus(selectedAccount.balance, selectedAccount.kind);
                       return (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                          <span className={`status-badge-mini status-${status.type}`}>
+                          <StatusBadge variant={status.type}>
                             {status.text}
-                          </span>
+                          </StatusBadge>
                           <bdi dir="ltr" className="tabular-nums">
                             {money(Math.abs(Number(selectedAccount.balance || 0)))}
                           </bdi>
@@ -415,9 +426,9 @@ export default function AccountOpeningTab({
                     const openingVal = signedEntryValue(selectedAccount);
                     const status = getBalanceStatus(openingVal, selectedAccount.kind);
                     return (
-                      <span className={`status-badge-mini status-${status.type}`}>
+                      <StatusBadge variant={status.type}>
                         {status.text}
-                      </span>
+                      </StatusBadge>
                     );
                   })()}
                   <strong dir="ltr" className="num tabular-nums remaining">
@@ -429,10 +440,12 @@ export default function AccountOpeningTab({
               {selectedAccount.notes && <p className="erp-detail-notes"><span>ملاحظات</span>{selectedAccount.notes}</p>}
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر بندًا</strong>
-              <span>اضغط على أي سطر لمراجعة رصيده الافتتاحي والفعلي.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={Users}
+              title="اختر بندًا"
+              description="اضغط على أي سطر لمراجعة رصيده الافتتاحي والفعلي."
+            />
           )}
         </aside>
       </div>

@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
-import { Inbox, RefreshCw } from 'lucide-react';
+import { Inbox } from 'lucide-react';
 import EmptyState from '../../components/EmptyState';
+import { LoadingSkeleton } from '../../components/LoadingSkeleton';
 import DashboardCardAction from './DashboardCardAction';
 
 export interface RankedItem {
@@ -55,10 +56,7 @@ export default function TopRankedList({
       </div>
 
       {loading ? (
-        <div className="chart-loading-state" role="status" style={{ minHeight: 180 }}>
-          <RefreshCw className="spin" size={20} />
-          <span className="chart-empty-text">جارٍ التحميل…</span>
-        </div>
+        <LoadingSkeleton layout="page" label="جارٍ التحميل…" />
       ) : items.length === 0 ? (
         <EmptyState
           compact

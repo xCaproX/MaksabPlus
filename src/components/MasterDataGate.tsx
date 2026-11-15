@@ -1,5 +1,7 @@
-import { LoadingSkeleton } from './LoadingSkeleton';
 import type { ReactNode } from 'react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import EmptyState from './EmptyState';
+import { LoadingSkeleton } from './LoadingSkeleton';
 import type { MasterDataContextType, MasterDataResource } from '../context/MasterDataContext';
 
 interface Props {
@@ -12,10 +14,14 @@ interface Props {
 export default function MasterDataGate({ resources, status, children, onRetry }: Props) {
   if (resources.some((key) => status[key].error)) {
     return (
-      <div className="empty-state">
-        <p role="alert">تعذّر تحميل بيانات النموذج.{!onRetry && " اقفله وافتحه تاني للمحاولة."}</p>
-        {onRetry && <button type="button" className="btn outline" onClick={onRetry}>إعادة المحاولة</button>}
-      </div>
+      <EmptyState
+        compact
+        role="alert"
+        icon={AlertCircle}
+        title="تعذّر تحميل بيانات النموذج."
+        description={!onRetry ? 'اقفله وافتحه تاني للمحاولة.' : undefined}
+        action={onRetry ? { label: 'إعادة المحاولة', onClick: onRetry, icon: RefreshCw } : undefined}
+      />
     );
   }
 

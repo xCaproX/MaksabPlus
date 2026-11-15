@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import KpiBar, { type KpiItem } from './KpiBar';
 import DocumentListToolbar from './DocumentListToolbar';
+import EmptyState from './EmptyState';
 import Pagination from './Pagination';
 import ConfirmDialog from './ConfirmDialog';
 import Modal from './Modal';
@@ -160,12 +162,23 @@ export default function DocumentListPage<TTab extends string = string>({
 
       {/* شريط المؤشرات والإجماليات المتفاعل مع الفلاتر */}
       {summaryError ? (
-        <p role="alert">تعذّر تحميل الملخص.</p>
+        <EmptyState
+          compact
+          role="alert"
+          icon={AlertCircle}
+          title="تعذّر تحميل الملخص."
+          action={onRetry ? { label: 'إعادة المحاولة', onClick: onRetry, icon: RefreshCw } : undefined}
+        />
       ) : (
         <KpiBar items={kpiItems} loading={summaryLoading} ariaLabel={kpiAriaLabel ?? `مؤشرات ${title}`} />
       )}
-      {(summaryError || listError) && onRetry && (
-        <div><button type="button" className="btn outline" onClick={onRetry}>إعادة المحاولة</button></div>
+      {!summaryError && listError && onRetry && (
+        <EmptyState
+          compact
+          icon={AlertCircle}
+          title="تعذّر تحديث القائمة."
+          action={{ label: 'إعادة المحاولة', onClick: onRetry, icon: RefreshCw }}
+        />
       )}
 
       {/* شريط الأدوات الموحد */}
@@ -189,7 +202,14 @@ export default function DocumentListPage<TTab extends string = string>({
       {/* مساحة عرض الجدول والترقيم */}
       <div className="erp-sales-workspace">
         <section className="erp-list-panel" aria-label={`قائمة ${title}`}>
-          {listError ? <p className="empty-state" role="alert">تعذّر تحميل القائمة.</p> : children}
+          {listError ? (
+            <EmptyState
+              compact
+              role="alert"
+              icon={AlertCircle}
+              title="تعذّر تحميل القائمة."
+            />
+          ) : children}
 
           {!listError && (
             <Pagination

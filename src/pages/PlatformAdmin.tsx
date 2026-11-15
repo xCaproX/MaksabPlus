@@ -18,6 +18,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import DateDisplay from '../components/DateDisplay';
 import EmptyState from '../components/EmptyState';
 import KpiBar, { type KpiItem } from '../components/KpiBar';
+import { SkeletonRows } from '../components/LoadingSkeleton';
 import RowActions from '../components/RowActions';
 import SearchableSelect from '../components/SearchableSelect';
 import StatusBadge from '../components/StatusBadge';
@@ -414,11 +415,14 @@ export default function PlatformAdmin() {
                     </thead>
                     <tbody>
                       {loading && companies.length === 0 ? (
-                        <tr>
-                          <td colSpan={selectedCompany ? 5 : 8} className="empty">
-                            جارٍ تحميل الشركات…
-                          </td>
-                        </tr>
+                        <SkeletonRows columns={selectedCompany ? 5 : 8} />
+                      ) : loadError && filteredCompanies.length === 0 ? (
+                        <EmptyState
+                          colSpan={selectedCompany ? 5 : 8}
+                          compact
+                          title="تعذّر تحميل الشركات."
+                          description="استخدم زر إعادة المحاولة بالأعلى لتحديث القائمة."
+                        />
                       ) : filteredCompanies.length === 0 ? (
                         <EmptyState
                           colSpan={selectedCompany ? 5 : 8}
@@ -468,13 +472,13 @@ export default function PlatformAdmin() {
                                 </StatusBadge>
                               </td>
                               <td>
-                                <span dir="ltr" className="tabular-nums">
+                                <bdi dir="ltr" className="tabular-nums">
                                   {company.active_users_count} / {company.users_count}
-                                </span>
+                                </bdi>
                               </td>
                               {!selectedCompany && (
                                 <td>
-                                  <span dir="ltr" className="tabular-nums">{company.invoices_count}</span>
+                                  <bdi dir="ltr" className="tabular-nums">{company.invoices_count}</bdi>
                                 </td>
                               )}
                               {!selectedCompany && (
@@ -483,11 +487,7 @@ export default function PlatformAdmin() {
                                 </td>
                               )}
                               <td className="col-date">
-                                {company.last_activity_at ? (
-                                  <DateDisplay value={company.last_activity_at} />
-                                ) : (
-                                  '—'
-                                )}
+                                <DateDisplay value={company.last_activity_at} />
                               </td>
                               {!selectedCompany && (
                                 <td className="platform-notes-cell" title={company.admin_notes || undefined}>

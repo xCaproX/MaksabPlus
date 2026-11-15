@@ -316,7 +316,8 @@ td.row-actions > * + * {
   color: var(--danger);
 }
 
-.row-actions-item.danger:hover {
+.row-actions-item.danger:hover,
+.row-actions-item.danger:focus-visible {
   background: #fef2f2;
   color: #dc2626;
 }
@@ -326,8 +327,7 @@ td.row-actions > * + * {
   opacity: 0.8;
 }
 
-/* Hide lower-priority columns when detail panel is open */
-.erp-sales-workspace.detail-open .col-hide-on-detail { display: none !important; }
+.erp-row-actions { width: 42px; text-align: center; }
 
 .erp-pagination {
   display: flex;

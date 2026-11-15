@@ -7,6 +7,7 @@ import EmptyState from '../../components/EmptyState';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
 import SortableHeader from '../../components/SortableHeader';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
@@ -42,6 +43,7 @@ export default function CashBoxOpeningTab({
     setPage(1);
   });
   const [selectedBox, setSelectedBox] = useState<CashBoxRow | null>(null);
+  useDrawerEscape(Boolean(selectedBox), () => setSelectedBox(null));
 
   useEffect(() => {
     setCashValues(
@@ -212,6 +214,7 @@ export default function CashBoxOpeningTab({
                           inputMode="decimal"
                           step="0.0001"
                           min="0"
+                          aria-label={`الرصيد الافتتاحي لخزينة ${box.name}`}
                           disabled={!canEditOpening || saving}
                           value={cashValues[box.id] ?? '0'}
                           onFocus={(event) => event.target.select()}
@@ -239,6 +242,14 @@ export default function CashBoxOpeningTab({
           />
         </section>
 
+        {selectedBox && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedBox(null)}
+          />
+        )}
+
         <aside className={selectedBox ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل الخزينة">
           {selectedBox ? (
             <>
@@ -264,10 +275,12 @@ export default function CashBoxOpeningTab({
               </div>
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر بندًا</strong>
-              <span>اضغط على أي سطر لمراجعة رصيده الافتتاحي والفعلي.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={Wallet}
+              title="اختر بندًا"
+              description="اضغط على أي سطر لمراجعة رصيده الافتتاحي والفعلي."
+            />
           )}
         </aside>
       </div>

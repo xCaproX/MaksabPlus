@@ -403,6 +403,9 @@
 }
 
 .fin-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
   font-size: var(--font-kpi-sm);
   font-weight: 750;
   line-height: 1.2;
@@ -410,10 +413,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-.fin-unit {
+.fin-value .currency-suffix {
   font-size: var(--font-xs);
   font-weight: 600;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 /* Arrow button (.dashboard-card-action) - ثابت بدون اهتزاز أو فلاش */
@@ -867,10 +871,11 @@
   max-width: 100%;
 }
 
-.sales-dist-center-unit {
+.sales-dist-center-value .currency-suffix {
   font-size: 11px;
   font-weight: 600;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .sales-dist-indicators {

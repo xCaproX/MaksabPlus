@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Wallet,
+  RefreshCw,
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
@@ -28,6 +29,7 @@ import { toast } from '../../components/Toast';
 import type { AccountKind, AccountRow } from '../../lib/types';
 import { useAccess } from '../../lib/access';
 import { useConfirmDialog } from '../../lib/useConfirmDialog';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import { useMasterData } from '../../context/MasterDataContext';
 import { accountOpeningBalance as signedOpeningBalance, defaultAccountOpeningDirection, type AccountOpeningDirection } from '../../lib/accountOpeningBalance';
 
@@ -58,6 +60,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
 
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
 
   // الفلاتر
@@ -78,6 +81,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
 
   // التحديد والتفاصيل
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
+  useDrawerEscape(Boolean(selectedAccount), () => setSelectedAccount(null));
 
   // المودال والإدخال
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -115,6 +119,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
 
     async function load() {
       setLoading(true);
+      setLoadError(null);
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
 
@@ -169,7 +174,9 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
         }
       } catch (err: unknown) {
         if (!alive) return;
-        toast.error(errorMessage(err));
+        const message = translateDbError(errorMessage(err));
+        setLoadError(message);
+        toast.error(message);
       } finally {
         if (alive) {
           setLoading(false);
@@ -409,7 +416,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
 
   return (
     <>
-      <KpiBar items={kpiItems} ariaLabel={`مؤشرات ${entityPlural}`} />
+      <KpiBar items={kpiItems} loading={loading} ariaLabel={`مؤشرات ${entityPlural}`} />
 
       <div className={selectedAccount ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة ${entityPlural}`}>
@@ -430,9 +437,9 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                     onSort={(s) => setSortOrder(s as AccountSort)}
                     defaultDirection="asc"
                   />
-                  <th className="col-hide-on-detail">الهاتف</th>
-                  <th className="col-hide-on-detail">الحالة</th>
-                  <th className="col-hide-on-detail col-notes">الملاحظات</th>
+                  <th>الهاتف</th>
+                  <th>الحالة</th>
+                  <th className="col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
                 <ColumnFilterRow scope="master_accounts" kind={kind} values={columns.values} onChange={columns.setField} onReset={columns.reset} />
@@ -441,7 +448,22 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                 {loading && (
                   <SkeletonRows columns={6} />
                 )}
-                {!loading && pagedAccounts.length === 0 && (
+                {!loading && loadError && (
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    role="alert"
+                    icon={AlertCircle}
+                    title={`تعذّر تحميل قائمة ${entityPlural}.`}
+                    description={loadError}
+                    action={{
+                      label: 'إعادة المحاولة',
+                      onClick: () => setVersion((v) => v + 1),
+                      icon: RefreshCw,
+                    }}
+                  />
+                )}
+                {!loading && !loadError && pagedAccounts.length === 0 && (
                   <EmptyState
                     colSpan={6}
                     compact
@@ -449,7 +471,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                     description="جرّب تعديل الفلاتر المختارة أو تصفيرها."
                   />
                 )}
-                {!loading &&
+                {!loading && !loadError &&
                   pagedAccounts.map((account) => {
                     const isSelected = selectedAccount?.id === account.id;
                     return (
@@ -467,13 +489,13 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                       >
                         <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber(entityPrefix, account.serial_number)}</bdi></td>
                         <td className="strong">{account.name}</td>
-                        <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{account.phone || '—'}</bdi></td>
-                        <td className="col-hide-on-detail">
+                        <td className="num"><bdi dir="ltr" className="tabular-nums">{account.phone || '—'}</bdi></td>
+                        <td>
                           <StatusBadge variant={account.is_active ? 'paid' : 'unpaid'}>
                             {account.is_active ? 'نشط' : 'موقوف'}
                           </StatusBadge>
                         </td>
-                        <td className="muted col-hide-on-detail col-notes">{account.notes || '—'}</td>
+                        <td className="muted col-notes">{account.notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <RowActions
                             onEdit={can(`${permissionPrefix}.edit`) ? () => startEdit(account) : undefined}
@@ -497,6 +519,14 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
             countsPending={loading}
           />
         </section>
+
+        {selectedAccount && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedAccount(null)}
+          />
+        )}
 
         {/* لوحة التفاصيل الجانبية */}
         <aside

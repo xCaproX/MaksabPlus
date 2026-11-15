@@ -321,7 +321,7 @@ describe('Phase 4 parity fixes', () => {
     const drawer = screen.getByLabelText('تفاصيل الحساب');
     expect(drawer).toHaveTextContent('موقوف');
     expect(drawer).not.toHaveTextContent('معطل');
-    expect(drawer.querySelector('.status-badge-mini')).toBeInTheDocument();
+    expect(drawer.querySelector('.status-badge')).toBeInTheDocument();
   });
 
   it('omits duplicate مرتبط action label for linked receipts and aligns money column in ReceiptTable', () => {

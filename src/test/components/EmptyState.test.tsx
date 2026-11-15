@@ -93,4 +93,15 @@ describe('EmptyState - مكوّن الحالة الفارغة الموحد', () 
     expect(td).toHaveAttribute('colspan', '8');
     expect(screen.getByText('لا توجد سجلات')).toBeInTheDocument();
   });
+
+  it('يمرر role="alert" و role="status" إلى جذر الحالة الفارغة عند تحديده', () => {
+    const { rerender } = render(
+      <EmptyState role="alert" title="تعذّر تحميل البيانات" />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('تعذّر تحميل البيانات');
+
+    rerender(<EmptyState role="status" title="جاري المزامنة" />);
+    expect(screen.getByRole('status')).toHaveTextContent('جاري المزامنة');
+  });
 });

@@ -43,7 +43,7 @@ flowchart TD
 1. **`MasterDataContext` (`src/context/MasterDataContext.tsx`)**:
    - يوفر بيانات الكيانات الأساسية النشطة (الحسابات، الأصناف، المخازن، الخزن) مع دوال التحديث الآني `refreshMasterData()`، ويحمي العرض عبر `MasterDataGate` عند اللزوم.
 2. **الحالة الموضعية والخطافات المساعدة**:
-   - خطافات مشتركة في `src/lib/` مثل `useColumnFilters`, `useCompleteStatement`, `useConfirmDialog`, `useDocumentPageNumber`, `useStableTableColumns`، ومنطق إدخال السطور في `docLineEntry.ts` وحسابات/تحقق الفواتير في `invoiceMath.ts` و`invoiceValidation.ts`.
+   - خطافات مشتركة في `src/lib/` مثل `useColumnFilters`, `useCompleteStatement`, `useConfirmDialog`, `useDocumentPageNumber`, `useDrawerEscape`, `useStableTableColumns`، ومنطق إدخال السطور في `docLineEntry.ts` وحسابات/تحقق الفواتير في `invoiceMath.ts` و`invoiceValidation.ts`.
 
 ---
 
@@ -71,7 +71,7 @@ flowchart TD
 | `AccountBalancePills` | `src/components/AccountBalancePills.tsx` | شارات عرض رصيد العميل/المورد قبل وبعد المستند. |
 | `CashBoxBalanceBox` / `ItemNameDisplay` | `src/components/` | عرض رصيد الخزنة المختارة وتنسيق اسم الصنف بترتيب (`code, name, unit`). |
 | `SearchableSelect` / `PickerInput` | `src/components/SearchableSelect.tsx`, `PickerInput.tsx` | قوائم اختيار وبحث سريعة بلوحة المفاتيح والباركود مع دعم `portal` داخل الحاويات القابلة للتمرير. |
-| `StatusBadge` | `src/components/StatusBadge.tsx` | شارات الحالة (مسددة، جزئية، غير مسددة، نشط، موقوف، إلخ). |
+| `StatusBadge` | `src/components/StatusBadge.tsx` | شارات الحالة الموحدة (مسددة، جزئية، غير مسددة، متزن/مدين/دائن، قيد المعالجة/مكتمل/نشط/تحذير، محايد، إلخ). |
 | `RowActions` / `DocumentCreatorCell` | `src/components/RowActions.tsx`, `DocumentCreatorCell.tsx` | قائمة إجراءات السطر وخلية منشئ المستند. |
 | `ConfirmDialog` / `Modal` / `GuardedLink` / `ChangePasswordModal` | `src/components/` | النوافذ الحوارية (`Modal` مع `ModalCancelButton` و`useReportBusy`) وحراسة الروابط (`GuardedLink`) وتأكيد الحذف وتغيير كلمة المرور. |
 | `KpiBar` / `LoadingSkeleton` / `EmptyState` / `Toast` | `src/components/` | شريط المؤشرات، حالات التحميل والفراغ، والتنبيهات. |
@@ -87,8 +87,8 @@ flowchart TD
    - حقول الأرقام تخفي الأسهم الافتراضية وتستخدم `inputMode="decimal"` وتُحدد القيمة تلقائياً عند التركيز (`select()`).
 2. **محاذاة وخصائص CSS المنطقية**:
    - استخدام `margin-inline-start`, `padding-inline-end`, `text-align: start` حصرياً عبر `src/styles/`، وتجنب `left/right` في التخطيطات.
-3. **إخفاء الأعمدة ذات الأولوية الأقل وتصدير Excel**:
-   - عند فتح لوحة التفاصيل الجانبية، تُخفى الأعمدة الثانوية وتبقى الأعمدة الأساسية (الرقم، الحساب، الإجمالي، المتبقي) ظاهرة.
+3. **اللوحة الجانبية العائمة وتصدير Excel**:
+   - تفتح لوحة التفاصيل الجانبية كدرج عائم فوق الصفحة مع خلفية معتمة وإغلاق بمفتاح `Escape` (عبر `useDrawerEscape`) مع إبقاء أعمدة الجدول ظاهرة.
    - دعم تصدير المستندات والبيانات إلى Excel عبر `src/lib/documentExcel.ts` و`src/lib/exportRows.ts`.
 4. **لغة وسياق الواجهة**:
    - لغة عربية مصرية بسيطة وواضحة للمستخدم العادي (مثل: "النهارده"، "أمس"، "عليه"، "له"، "خالص"، "كاش"، "آجل").

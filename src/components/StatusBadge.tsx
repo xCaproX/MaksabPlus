@@ -6,7 +6,14 @@ export type StatusBadgeVariant =
   | 'unpaid'
   | 'linked'
   | 'free'
-  | 'neutral';
+  | 'neutral'
+  | 'settled'
+  | 'debit'
+  | 'credit'
+  | 'active'
+  | 'completed'
+  | 'pending'
+  | 'warning';
 
 interface StatusBadgeProps {
   variant: StatusBadgeVariant;

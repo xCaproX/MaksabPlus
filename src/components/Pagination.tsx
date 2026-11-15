@@ -27,7 +27,7 @@ export default function Pagination({
       <span>
         {countsPending ? <Skeleton width="7rem" /> : totalCount !== undefined ? (
           <>
-            عرض <bdi>{startItem}</bdi>–<bdi>{endItem}</bdi> من <bdi>{totalCount}</bdi>
+            عرض <bdi dir="ltr" className="tabular-nums">{startItem}</bdi>–<bdi dir="ltr" className="tabular-nums">{endItem}</bdi> من <bdi dir="ltr" className="tabular-nums">{totalCount}</bdi>
           </>
         ) : (
           <span>الصفحة الحالية</span>
@@ -44,7 +44,7 @@ export default function Pagination({
           السابق
         </button>
         <span className="tabular-nums" dir="ltr">
-          {countsPending ? <Skeleton width="2rem" /> : <><bdi>{page}</bdi> / <bdi>{safePageCount}</bdi></>}
+          {countsPending ? <Skeleton width="2rem" /> : <><bdi dir="ltr" className="tabular-nums">{page}</bdi> / <bdi dir="ltr" className="tabular-nums">{safePageCount}</bdi></>}
         </span>
         <button
           type="button"

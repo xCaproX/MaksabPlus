@@ -6,7 +6,7 @@ import { matchesColumnFilters } from '../../lib/columnFilters';
 import Pagination from '../../components/Pagination';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { X, Landmark, CheckCircle2, Wallet } from 'lucide-react';
+import { X, Landmark, CheckCircle2, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber } from '../../lib/format';
@@ -20,6 +20,7 @@ import StatusBadge from '../../components/StatusBadge';
 import { toast } from '../../components/Toast';
 import { useAccess } from '../../lib/access';
 import { useConfirmDialog } from '../../lib/useConfirmDialog';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import { useMasterData } from '../../context/MasterDataContext';
 
 interface CashBoxRecord {
@@ -41,6 +42,7 @@ export default function CashBoxesTab() {
 
   const [cashBoxes, setCashBoxes] = useState<CashBoxRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
 
   // الفلاتر
@@ -52,6 +54,7 @@ export default function CashBoxesTab() {
 
   // التحديد والتفاصيل
   const [selectedBox, setSelectedBox] = useState<CashBoxRecord | null>(null);
+  useDrawerEscape(Boolean(selectedBox), () => setSelectedBox(null));
 
   // المودال والإدخال
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -80,6 +83,7 @@ export default function CashBoxesTab() {
 
     async function load() {
       setLoading(true);
+      setLoadError(null);
       try {
         const rows = await collectAllRows<CashBoxRecord>((from, to) =>
           supabase.from('cash_boxes').select('*', { count: 'exact' }).order('name').order('id').range(from, to),
@@ -89,7 +93,9 @@ export default function CashBoxesTab() {
         setLoading(false);
       } catch (err: unknown) {
         if (!alive) return;
-        toast.error(errorMessage(err));
+        const message = translateDbError(errorMessage(err));
+        setLoadError(message);
+        toast.error(message);
         setLoading(false);
       }
     }
@@ -286,7 +292,7 @@ export default function CashBoxesTab() {
 
   return (
     <>
-      <KpiBar items={kpiItems} ariaLabel="مؤشرات الخزن" />
+      <KpiBar items={kpiItems} loading={loading} ariaLabel="مؤشرات الخزن" />
 
       <div className={selectedBox ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة الخزن">
@@ -307,8 +313,8 @@ export default function CashBoxesTab() {
                     onSort={(s) => setSortOrder(s as CashBoxSort)}
                     defaultDirection="asc"
                   />
-                  <th className="col-hide-on-detail">النوع</th>
-                  <th className="col-hide-on-detail col-notes">ملاحظات</th>
+                  <th>النوع</th>
+                  <th className="col-notes">ملاحظات</th>
                   <th>الحالة</th>
                   <th aria-label="الإجراءات" />
                 </tr>
@@ -318,7 +324,22 @@ export default function CashBoxesTab() {
                 {loading && (
                   <SkeletonRows columns={6} />
                 )}
-                {!loading && pagedBoxes.length === 0 && (
+                {!loading && loadError && (
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    role="alert"
+                    icon={AlertCircle}
+                    title="تعذّر تحميل الخزن."
+                    description={loadError}
+                    action={{
+                      label: 'إعادة المحاولة',
+                      onClick: () => setVersion((v) => v + 1),
+                      icon: RefreshCw,
+                    }}
+                  />
+                )}
+                {!loading && !loadError && pagedBoxes.length === 0 && (
                   <EmptyState
                     colSpan={6}
                     compact
@@ -326,7 +347,7 @@ export default function CashBoxesTab() {
                     description="جرّب تعديل الفلاتر المختارة أو تصفيرها."
                   />
                 )}
-                {!loading &&
+                {!loading && !loadError &&
                   pagedBoxes.map((box) => {
                     const isSelected = selectedBox?.id === box.id;
                     return (
@@ -344,14 +365,14 @@ export default function CashBoxesTab() {
                       >
                         <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('CBX', box.serial_number)}</bdi></td>
                         <td className="strong">{box.name}</td>
-                        <td className="col-hide-on-detail">
+                        <td>
                           {box.is_primary ? (
-                            <span className="badge">رئيسية</span>
+                            <StatusBadge variant="neutral">رئيسية</StatusBadge>
                           ) : (
                             <span className="muted">فرعية</span>
                           )}
                         </td>
-                        <td className="muted col-hide-on-detail col-notes">{box.notes || '—'}</td>
+                        <td className="muted col-notes">{box.notes || '—'}</td>
                         <td>
                           <StatusBadge variant={box.is_active ? 'paid' : 'unpaid'}>
                             {box.is_active ? 'نشطة' : 'موقوفة'}
@@ -384,6 +405,14 @@ export default function CashBoxesTab() {
             countsPending={loading}
           />
         </section>
+
+        {selectedBox && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedBox(null)}
+          />
+        )}
 
         {/* لوحة التفاصيل الجانبية */}
         <aside className={selectedBox ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل السجل">

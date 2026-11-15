@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import DateDisplay from '../DateDisplay';
 import EmptyState from '../EmptyState';
+import { LoadingSkeleton } from '../LoadingSkeleton';
 import RowActions from '../RowActions';
 import StatusBadge from '../StatusBadge';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import type { PlatformCompany, PlatformCompanyUser } from '../../lib/platformAdmin';
 
 interface PlatformCompanyDetailPanelProps {
@@ -79,17 +81,7 @@ export default function PlatformCompanyDetailPanel({
     onDirtyChange?.(false);
   }, [onDirtyChange]);
 
-  useEffect(() => {
-    if (!company) return;
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') return;
-      if (document.querySelector('.modal-backdrop')) return;
-      event.preventDefault();
-      onClose();
-    }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [company, onClose]);
+  useDrawerEscape(Boolean(company), onClose);
 
   if (!company) {
     return null;
@@ -171,7 +163,7 @@ export default function PlatformCompanyDetailPanel({
         <div>
           <dt>آخر نشاط</dt>
           <dd>
-            {company.last_activity_at ? <DateDisplay value={company.last_activity_at} /> : '—'}
+            <DateDisplay value={company.last_activity_at} />
           </dd>
         </div>
         <div>
@@ -259,7 +251,7 @@ export default function PlatformCompanyDetailPanel({
           </div>
 
           {usersLoading ? (
-            <p className="hint">جارٍ تحميل المستخدمين…</p>
+            <LoadingSkeleton layout="form" label="جارٍ تحميل المستخدمين…" />
           ) : users.length === 0 ? (
             <EmptyState
               compact

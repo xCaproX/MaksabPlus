@@ -1,7 +1,7 @@
 import { Wallet, Users, Truck } from 'lucide-react';
+import MoneyDisplay from '../../components/MoneyDisplay';
 import DashboardCardAction from './DashboardCardAction';
 import HomeSection from './HomeSection';
-import { money } from '../../lib/format';
 
 interface FinancialPulseCardsProps {
   cashBalance: number | null;
@@ -29,10 +29,7 @@ export default function FinancialPulseCards({
             <div className="fin-content">
               <span className="fin-label">المستحق على العملاء</span>
               <div className="fin-value-group">
-                <bdi dir="ltr" className="fin-value num tabular-nums">
-                  {money(receivablesBalance)}
-                </bdi>
-                <span className="fin-unit">ج.م</span>
+                <MoneyDisplay value={receivablesBalance} currency className="fin-value" />
               </div>
             </div>
             <DashboardCardAction to="/balances?tab=customers" label="عرض أرصدة العملاء" />
@@ -48,10 +45,7 @@ export default function FinancialPulseCards({
             <div className="fin-content">
               <span className="fin-label">المستحق للموردين</span>
               <div className="fin-value-group">
-                <bdi dir="ltr" className="fin-value num tabular-nums">
-                  {money(payablesBalance)}
-                </bdi>
-                <span className="fin-unit">ج.م</span>
+                <MoneyDisplay value={payablesBalance} currency className="fin-value" />
               </div>
             </div>
             <DashboardCardAction to="/balances?tab=suppliers" label="عرض حسابات الموردين" />
@@ -67,10 +61,7 @@ export default function FinancialPulseCards({
             <div className="fin-content">
               <span className="fin-label">أرصدة الخزن</span>
               <div className="fin-value-group">
-                <bdi dir="ltr" className="fin-value num tabular-nums">
-                  {money(cashBalance)}
-                </bdi>
-                <span className="fin-unit">ج.م</span>
+                <MoneyDisplay value={cashBalance} currency className="fin-value" />
               </div>
             </div>
             <DashboardCardAction to="/balances?tab=cashBoxes" label="عرض كشف الخزن" />

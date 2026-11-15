@@ -9,6 +9,7 @@ import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import Pagination from '../../components/Pagination';
 import SearchableSelect from '../../components/SearchableSelect';
 import SortableHeader from '../../components/SortableHeader';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, qty as formatQty, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
@@ -50,6 +51,7 @@ export default function StockOpeningTab({
     setPage(1);
   });
   const [selectedItemRow, setSelectedItemRow] = useState<StockOpeningRow | null>(null);
+  useDrawerEscape(Boolean(selectedItemRow), () => setSelectedItemRow(null));
 
   useEffect(() => {
     if (!selectedWarehouseId && warehouses.length > 0) {
@@ -258,7 +260,7 @@ export default function StockOpeningTab({
                     currentSort={sortOrder}
                     onSort={(s) => setSortOrder(s as ManagementSort)}
                   />
-                  <th className="col-hide-on-detail" style={{ width: '100px' }}>الكود</th>
+                  <th style={{ width: '100px' }}>الكود</th>
                   <SortableHeader
                     label="الصنف"
                     field="name"
@@ -298,7 +300,7 @@ export default function StockOpeningTab({
                       }}
                     >
                       <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', row.item_number)}</bdi></td>
-                      <td className="num col-hide-on-detail" style={{ width: '100px' }}><bdi dir="ltr" className="tabular-nums">{row.item_code}</bdi></td>
+                      <td className="num" style={{ width: '100px' }}><bdi dir="ltr" className="tabular-nums">{row.item_code}</bdi></td>
                       <td className="strong">
                         <div className="inserted-item-info">
                           <span className="item-name">{row.item_name}</span>
@@ -313,6 +315,7 @@ export default function StockOpeningTab({
                           inputMode="decimal"
                           min="0"
                           step="0.0001"
+                          aria-label={`كمية البداية لصنف ${row.item_name}`}
                           disabled={!canEditOpening || saving}
                           value={value.qty}
                           onFocus={(event) => event.target.select()}
@@ -329,6 +332,7 @@ export default function StockOpeningTab({
                           inputMode="decimal"
                           min="0"
                           step="0.0001"
+                          aria-label={`تكلفة الوحدة لصنف ${row.item_name}`}
                           value={value.cost}
                           disabled={!canEditOpening || row.cost_locked || saving}
                           onFocus={(event) => event.target.select()}
@@ -355,6 +359,14 @@ export default function StockOpeningTab({
             onPageChange={setPage}
           />
         </section>
+
+        {selectedItemRow && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedItemRow(null)}
+          />
+        )}
 
         <aside className={selectedItemRow ? 'erp-detail-panel open' : 'erp-detail-panel'} aria-label="تفاصيل الصنف">
           {selectedItemRow ? (
@@ -395,10 +407,12 @@ export default function StockOpeningTab({
               )}
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر بندًا</strong>
-              <span>اضغط على أي سطر لمراجعة رصيده الافتتاحي والفعلي.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={Boxes}
+              title="اختر بندًا"
+              description="اضغط على أي سطر لمراجعة رصيده الافتتاحي والفعلي."
+            />
           )}
         </aside>
       </div>

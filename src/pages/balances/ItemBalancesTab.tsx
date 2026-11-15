@@ -13,14 +13,18 @@ import {
   AlertTriangle,
   FileText,
   ExternalLink,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import EmptyState from '../../components/EmptyState';
+import ItemNameDisplay from '../../components/ItemNameDisplay';
 import { SkeletonRows } from '../../components/LoadingSkeleton';
 import { getStatementRowLink } from '../../lib/documentLinks';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, money, qty as formatQty } from '../../lib/format';
 import { resolveDefaultWarehouse } from '../../lib/defaults';
+import { useDrawerEscape } from '../../lib/useDrawerEscape';
 import DateDisplay from '../../components/DateDisplay';
 import { translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
@@ -77,6 +81,8 @@ export default function ItemBalancesTab() {
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [items, setItems] = useState<WarehouseItemRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
 
   // الفلاتر
   const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
@@ -105,6 +111,7 @@ export default function ItemBalancesTab() {
 
   // التحديد والتفاصيل
   const [selectedItem, setSelectedItem] = useState<WarehouseItemRow | null>(null);
+  useDrawerEscape(Boolean(selectedItem), () => setSelectedItem(null));
 
   // كشف حركة الصنف
   const [itemStatementRow, setItemStatementRow] = useState<WarehouseItemRow | null>(null);
@@ -121,6 +128,7 @@ export default function ItemBalancesTab() {
 
     async function load() {
       setLoading(true);
+      setLoadError(null);
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
 
@@ -182,7 +190,9 @@ export default function ItemBalancesTab() {
         setLoading(false);
       } catch (err: unknown) {
         if (!alive) return;
-        toast.error(translateDbError((err as Error).message));
+        const message = translateDbError((err as Error).message);
+        setLoadError(message);
+        toast.error(message);
         setLoading(false);
       }
     }
@@ -191,7 +201,7 @@ export default function ItemBalancesTab() {
     return () => {
       alive = false;
     };
-  }, [columns.filters, page, selectedWarehouseId, sortOrder]);
+  }, [columns.filters, page, selectedWarehouseId, sortOrder, version]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -289,7 +299,7 @@ export default function ItemBalancesTab() {
 
   return (
     <>
-      <KpiBar items={kpiItems} ariaLabel="مؤشرات أرصدة الأصناف" />
+      <KpiBar items={kpiItems} loading={loading} ariaLabel="مؤشرات أرصدة الأصناف" />
 
       <div className={selectedItem ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة أرصدة الأصناف">
@@ -325,7 +335,7 @@ export default function ItemBalancesTab() {
                     currentSort={sortOrder}
                     onSort={(s) => setSortOrder(s as BalanceSort)}
                   />
-                  <th className="col-hide-on-detail">الكود</th>
+                  <th>الكود</th>
                   <SortableHeader
                     label="الصنف"
                     field="name"
@@ -340,21 +350,36 @@ export default function ItemBalancesTab() {
                     onSort={(s) => setSortOrder(s as BalanceSort)}
                     className="num"
                   />
-                  <th className="col-hide-on-detail col-notes">الملاحظات</th>
+                  <th className="col-notes">الملاحظات</th>
                   <th aria-label="الإجراءات" />
                 </tr>
                 <ColumnFilterRow scope="warehouse_items" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
               <tbody>
                 {loading && <SkeletonRows columns={6} />}
-                {!loading && items.length === 0 && (
+                {!loading && loadError && (
+                  <EmptyState
+                    colSpan={6}
+                    compact
+                    role="alert"
+                    icon={AlertCircle}
+                    title="تعذّر تحميل أرصدة الأصناف."
+                    description={loadError}
+                    action={{
+                      label: 'إعادة المحاولة',
+                      onClick: () => setVersion((v) => v + 1),
+                      icon: RefreshCw,
+                    }}
+                  />
+                )}
+                {!loading && !loadError && items.length === 0 && (
                   <EmptyState
                     colSpan={6}
                     compact
                     title="لا توجد أصناف تطابق الفلاتر أو المخزن."
                   />
                 )}
-                {!loading &&
+                {!loading && !loadError &&
                   items.map((row) => {
                     const isSelected =
                       selectedItem?.item_id === row.item_id && selectedItem?.warehouse_id === row.warehouse_id;
@@ -372,12 +397,12 @@ export default function ItemBalancesTab() {
                         }}
                       >
                         <td className="num strong"><bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', row.item_number)}</bdi></td>
-                        <td className="num col-hide-on-detail"><bdi dir="ltr" className="tabular-nums">{row.item_code}</bdi></td>
-                        <td className="strong">{row.item_name}</td>
+                        <td className="num">{row.item_code ? <bdi dir="ltr" className="tabular-nums">{row.item_code}</bdi> : '—'}</td>
+                        <td className="strong"><ItemNameDisplay name={row.item_name} unit={row.unit} /></td>
                         <td className="num strong">
-                          <bdi dir="ltr" className="tabular-nums">{formatQty(row.current_qty)}</bdi> {row.unit}
+                          <bdi dir="ltr" className="tabular-nums">{formatQty(row.current_qty)}</bdi>
                         </td>
-                        <td className="muted col-hide-on-detail col-notes">{row.item_notes || '—'}</td>
+                        <td className="muted col-notes">{row.item_notes || '—'}</td>
                         <td className="row-actions erp-row-actions" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
@@ -401,8 +426,17 @@ export default function ItemBalancesTab() {
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
             loading={loading}
+            countsPending={loading}
           />
         </section>
+
+        {selectedItem && (
+          <div
+            className="erp-drawer-backdrop"
+            aria-hidden="true"
+            onClick={() => setSelectedItem(null)}
+          />
+        )}
 
         {/* لوحة التفاصيل الجانبية */}
         <aside
@@ -433,7 +467,7 @@ export default function ItemBalancesTab() {
                 </div>
                 <div>
                   <dt>كود الصنف</dt>
-                  <dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedItem.item_code}</bdi></dd>
+                  <dd className="num">{selectedItem.item_code ? <bdi dir="ltr" className="tabular-nums">{selectedItem.item_code}</bdi> : '—'}</dd>
                 </div>
                 <div>
                   <dt>المخزن</dt>
@@ -448,7 +482,7 @@ export default function ItemBalancesTab() {
               <div className="erp-detail-totals">
                 <span>الكمية الحالية</span>
                 <strong className="num">
-                  <bdi dir="ltr" className="tabular-nums">{formatQty(selectedItem.current_qty)}</bdi> {selectedItem.unit}
+                  <bdi dir="ltr" className="tabular-nums">{formatQty(selectedItem.current_qty)}</bdi>
                 </strong>
               </div>
 
@@ -472,10 +506,12 @@ export default function ItemBalancesTab() {
               </div>
             </>
           ) : (
-            <div className="erp-detail-empty">
-              <strong>اختر صنفًا</strong>
-              <span>ستظهر بيانات الرصيد وإمكانية استخراج كشف الحركة من هنا فورًا.</span>
-            </div>
+            <EmptyState
+              compact
+              icon={Boxes}
+              title="اختر صنفًا"
+              description="ستظهر بيانات الرصيد وإمكانية استخراج كشف الحركة من هنا فورًا."
+            />
           )}
         </aside>
       </div>
@@ -493,7 +529,10 @@ export default function ItemBalancesTab() {
               <div>
                 <h2>كشف حركة صنف</h2>
                 <strong>
-                  [{entityNumber('ITM', itemStatementRow.item_number)}] {itemStatementRow.item_code} —{' '}
+                  [<bdi dir="ltr" className="tabular-nums">{entityNumber('ITM', itemStatementRow.item_number)}</bdi>]
+                  {itemStatementRow.item_code && (
+                    <> <bdi dir="ltr" className="tabular-nums">{itemStatementRow.item_code}</bdi> —</>
+                  )}{' '}
                   {itemStatementRow.item_name} ~ {itemStatementRow.unit}
                 </strong>
                 <p>{selectedWarehouse?.name ?? itemStatementRow.warehouse_name}</p>
@@ -537,24 +576,24 @@ export default function ItemBalancesTab() {
                       <div className="statement-cockpit-card">
                         <span className="card-label">إجمالي الوارد</span>
                         <div className="card-value-wrap">
-                          <strong dir="ltr" className="card-value num tabular-nums">
-                            {formatQty(itemStatementRows[0].total_incoming)} {itemStatementRow.unit}
+                          <strong className="card-value num">
+                            <bdi dir="ltr" className="tabular-nums">{formatQty(itemStatementRows[0].total_incoming)}</bdi> {itemStatementRow.unit}
                           </strong>
                         </div>
                       </div>
                       <div className="statement-cockpit-card">
                         <span className="card-label">إجمالي الصادر</span>
                         <div className="card-value-wrap">
-                          <strong dir="ltr" className="card-value num tabular-nums">
-                            {formatQty(itemStatementRows[0].total_outgoing)} {itemStatementRow.unit}
+                          <strong className="card-value num">
+                            <bdi dir="ltr" className="tabular-nums">{formatQty(itemStatementRows[0].total_outgoing)}</bdi> {itemStatementRow.unit}
                           </strong>
                         </div>
                       </div>
                       <div className="statement-cockpit-card primary-card">
                         <span className="card-label">الرصيد المتبقي</span>
                         <div className="card-value-wrap">
-                          <strong dir="ltr" className="card-value num tabular-nums">
-                            {formatQty(lastQty)} {itemStatementRow.unit}
+                          <strong className="card-value num">
+                            <bdi dir="ltr" className="tabular-nums">{formatQty(lastQty)}</bdi> {itemStatementRow.unit}
                           </strong>
                         </div>
                       </div>
@@ -595,13 +634,13 @@ export default function ItemBalancesTab() {
                               )}
                             </td>
                             <td className="num" data-label="وارد">
-                              {Number(row.incoming) ? formatQty(row.incoming) : '—'}
+                              {Number(row.incoming) ? <bdi dir="ltr" className="tabular-nums">{formatQty(row.incoming)}</bdi> : '—'}
                             </td>
                             <td className="num" data-label="صادر">
-                              {Number(row.outgoing) ? formatQty(row.outgoing) : '—'}
+                              {Number(row.outgoing) ? <bdi dir="ltr" className="tabular-nums">{formatQty(row.outgoing)}</bdi> : '—'}
                             </td>
                             <td className="num strong" data-label="الرصيد">
-                              {formatQty(row.running_balance)}
+                              <bdi dir="ltr" className="tabular-nums">{formatQty(row.running_balance)}</bdi>
                             </td>
                           </tr>
                         );
@@ -614,19 +653,19 @@ export default function ItemBalancesTab() {
                   <p>
                     <span>إجمالي الوارد:</span>
                     <strong>
-                      {formatQty(itemStatementRows[0].total_incoming)} {itemStatementRow.unit}
+                      <bdi dir="ltr" className="tabular-nums">{formatQty(itemStatementRows[0].total_incoming)}</bdi> {itemStatementRow.unit}
                     </strong>
                   </p>
                   <p>
                     <span>إجمالي الصادر:</span>
                     <strong>
-                      {formatQty(itemStatementRows[0].total_outgoing)} {itemStatementRow.unit}
+                      <bdi dir="ltr" className="tabular-nums">{formatQty(itemStatementRows[0].total_outgoing)}</bdi> {itemStatementRow.unit}
                     </strong>
                   </p>
                   <p>
                     <span>رصيد آخر المدة:</span>
                     <strong>
-                      {formatQty(itemStatementRows[itemStatementRows.length - 1].running_balance)}{' '}
+                      <bdi dir="ltr" className="tabular-nums">{formatQty(itemStatementRows[itemStatementRows.length - 1].running_balance)}</bdi>{' '}
                       {itemStatementRow.unit}
                     </strong>
                   </p>

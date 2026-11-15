@@ -526,7 +526,7 @@ export default function ReceiptForm({
               onBeforeNavigate={(proceed) => requestClose(() => { onCancel(); proceed(); })}
             >
               <FileText size={15} />
-              <span>{linkKind(editing.invoice_kind)} {editing.invoice_number}</span>
+              <span>{linkKind(editing.invoice_kind)} <bdi dir="ltr" className="tabular-nums">{editing.invoice_number}</bdi></span>
               <ExternalLink size={13} className="link-ext-icon" />
             </GuardedLink>
           </div>
