@@ -1,5 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../../lib/supabase';
 import Invoices from '../../pages/Invoices';
@@ -12,11 +12,15 @@ const masterData = vi.hoisted(() => ({
   stock: { loading: false, error: null, hasLoaded: true },
 }));
 
+const accessMock = vi.hoisted(() => ({
+  can: vi.fn((_key: string) => true),
+  canViewProfit: true,
+}));
+
 vi.mock('../../lib/supabase', () => ({ supabase: { rpc: vi.fn() } }));
-vi.mock('../../lib/access', () => {
-  const can = () => true;
-  return { useAccess: () => ({ can, canViewProfit: true }) };
-});
+vi.mock('../../lib/access', () => ({
+  useAccess: () => accessMock,
+}));
 vi.mock('../../context/MasterDataContext', () => {
   const { ready, refresh } = masterData;
   return { useMasterData: () => ({
@@ -25,10 +29,11 @@ vi.mock('../../context/MasterDataContext', () => {
   }) };
 });
 vi.mock('../../components/InvoiceForm', () => ({
-  default: ({ onSaved }: { onSaved: (message: string, affectsCash: boolean) => void }) => (
+  default: ({ onSaved, onRestore }: { onSaved: (message: string, affectsCash: boolean) => void; onRestore?: () => void }) => (
     <>
       <button onClick={() => onSaved('تم الحفظ', false)}>اختبار إتمام الحفظ</button>
       <button onClick={() => onSaved('تم الحفظ', true)}>اختبار إتمام الحفظ بتحصيل</button>
+      {onRestore && <button onClick={onRestore}>استعادة الفاتورة</button>}
     </>
   ),
 }));
@@ -70,6 +75,9 @@ async function changeNotes(value: string) {
 describe('document list request lifecycle', () => {
   beforeEach(() => {
     requests.length = 0;
+    accessMock.can.mockReset();
+    accessMock.can.mockReturnValue(true);
+    accessMock.canViewProfit = true;
     masterData.refresh.mockClear();
     masterData.stock = masterData.ready;
     vi.useFakeTimers();
@@ -205,5 +213,103 @@ describe('document list request lifecycle', () => {
     expect(afterReset[0].args.p_date_from).toBeNull();
     expect(afterReset[0].args.p_date_to).toBeNull();
     expect(screen.getByRole('combobox', { name: 'الفترة' })).toHaveValue('كل الفترات');
+  });
+
+  it('resets showDeleted and sortOrder when switching tabs in Invoices and Receipts', async () => {
+    const view = render(<MemoryRouter initialEntries={['/?tab=sale']}><Invoices /></MemoryRouter>);
+    await resolvePair(expectPair(0, 'get_invoice_kpis_columns', 0));
+
+    fireEvent.click(screen.getByRole('button', { name: 'عرض المحذوفات' }));
+    await resolvePair(expectPair(2, 'get_invoice_kpis_columns', 0));
+
+    fireEvent.click(screen.getByRole('columnheader', { name: 'الرقم' }));
+    const sortedInv = expectPair(4, 'get_invoice_kpis_columns', 0);
+    expect(sortedInv[0].args.p_show_deleted).toBe(true);
+    expect(sortedInv[0].args.p_sort_order).toMatch(/^number-/);
+    await resolvePair(sortedInv);
+
+    fireEvent.click(screen.getByRole('button', { name: 'فواتير المشتريات' }));
+    const switchedInv = expectPair(6, 'get_invoice_kpis_columns', 0);
+    expect(switchedInv[0].args.p_show_deleted).toBe(false);
+    expect(switchedInv[0].args.p_sort_order).toBe('date-desc');
+    await resolvePair(switchedInv);
+
+    view.unmount();
+    requests.length = 0;
+
+    render(<MemoryRouter initialEntries={['/?tab=in']}><Receipts /></MemoryRouter>);
+    await resolvePair(expectPair(0, 'get_receipt_kpis_columns', 0));
+
+    fireEvent.click(screen.getByRole('button', { name: 'عرض المحذوفات' }));
+    await resolvePair(expectPair(2, 'get_receipt_kpis_columns', 0));
+
+    fireEvent.click(screen.getByRole('columnheader', { name: 'الرقم' }));
+    await resolvePair(expectPair(4, 'get_receipt_kpis_columns', 0));
+
+    fireEvent.click(screen.getByRole('button', { name: 'إيصالات صرف' }));
+    const switchedRec = expectPair(6, 'get_receipt_kpis_columns', 0);
+    expect(switchedRec[0].args.p_show_deleted).toBe(false);
+    expect(switchedRec[0].args.p_sort_order).toBe('date-desc');
+  });
+
+  it('enforces create/delete permissions on Invoices toolbar and redirects unauthorized Receipts to /access-denied', async () => {
+    accessMock.can.mockImplementation((key: string) => key === 'goods.sale.view');
+
+    const invView = render(<MemoryRouter initialEntries={['/?tab=sale']}><Invoices /></MemoryRouter>);
+    await resolvePair(expectPair(0, 'get_invoice_kpis_columns', 0));
+    expect(screen.queryByRole('button', { name: '+ فاتورة مبيعات' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'عرض المحذوفات' })).not.toBeInTheDocument();
+    invView.unmount();
+
+    accessMock.can.mockReturnValue(false);
+    render(
+      <MemoryRouter initialEntries={['/receipts?tab=in']}>
+        <Routes>
+          <Route path="/receipts" element={<Receipts />} />
+          <Route path="/access-denied" element={<h1>مرفوض الوصول</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { name: 'مرفوض الوصول' })).toBeInTheDocument();
+  });
+
+  it('keeps deleted receipt modal open when cancelling restore confirmation', async () => {
+    const deletedReceipt = {
+      id: 'rec-del-1',
+      serial_number: 5,
+      direction: 'in',
+      number: 'RCP-000005',
+      receipt_date: '2026-11-05',
+      account_id: 'acc-1',
+      account_kind: 'customer',
+      account_name: 'عميل محذوف',
+      cash_box_id: 'cb-1',
+      cash_box_name: 'الخزينة الرئيسية',
+      amount: 100,
+      is_free: true,
+      description: 'تجربة',
+      notes: null,
+      created_at: '2026-11-05T10:00:00Z',
+    };
+
+    render(<MemoryRouter initialEntries={['/?tab=in']}><Receipts /></MemoryRouter>);
+    await resolvePair(expectPair(0, 'get_receipt_kpis_columns', 0));
+
+    fireEvent.click(screen.getByRole('button', { name: 'عرض المحذوفات' }));
+    const deletedPair = expectPair(2, 'get_receipt_kpis_columns', 0);
+    await act(async () => {
+      deletedPair[0].resolve({ error: null, data: { rows: [deletedReceipt], total_count: 1 } });
+      deletedPair[1].resolve({ error: null, data: { count: 1, total_amount: 100, linked_amount: 0 } });
+    });
+
+    fireEvent.click(screen.getByText('RCP-000005'));
+    const modal = screen.getByRole('dialog');
+    fireEvent.click(within(modal).getByRole('button', { name: 'استعادة الإيصال' }));
+
+    const confirmDialog = screen.getByRole('dialog', { name: 'تأكيد العملية' });
+    fireEvent.click(within(confirmDialog).getByRole('button', { name: 'إلغاء' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).getByText(/RCP-000005/)).toBeInTheDocument();
   });
 });

@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import QuickActions from '../pages/home/QuickActions';
 import InvoiceForm from '../components/InvoiceForm';
+import Modal from '../components/Modal';
 import ReceiptForm from '../components/ReceiptForm';
 import Management from '../pages/Management';
 import ItemsTab from '../pages/master-data/ItemsTab';
+import Login from '../pages/Login';
+import SetPassword from '../pages/SetPassword';
+import UserPermissions from '../components/UserPermissions';
+import { toast } from '../components/Toast';
 import { NavigationGuardProvider, useNavigationDirtyGuard, useNavigationGuard } from '../components/NavigationGuardContext';
 import { supabase } from '../lib/supabase';
 
@@ -106,8 +111,13 @@ vi.mock('../lib/supabase', () => {
   }
   return {
     supabase: {
+      auth: {
+        signInWithPassword: vi.fn().mockResolvedValue({ data: {}, error: null }),
+        updateUser: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      },
       rpc: vi.fn((name: string) => {
         if (name === 'filter_master_item_rows') return builder([sampleItemRow]);
+        if (name === 'list_company_users') return builder([]);
         return Promise.resolve({ data: { total_count: 1, active_count: 1, inactive_count: 0, avg_price: 50 }, error: null });
       }),
       from: vi.fn(() => builder([])),
@@ -359,5 +369,171 @@ describe('Phase 3 workflow fixes', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'إيقاف' }));
     await waitFor(() => expect(supabase.from).toHaveBeenCalledWith('items'));
+  });
+
+  it('Management redirects to /access-denied when no tabs are allowed and redirects disallowed tab to first allowed tab', () => {
+    mockAccess.can.mockReturnValue(false);
+    const deniedView = render(
+      <MemoryRouter initialEntries={['/management']}>
+        <Routes>
+          <Route path="/management" element={<Management />} />
+          <Route path="/access-denied" element={<h1>غير مصرح بالوصول</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { name: 'غير مصرح بالوصول' })).toBeInTheDocument();
+    deniedView.unmount();
+
+    mockAccess.can.mockImplementation((key: string) => key === 'management.suppliers.view');
+    render(
+      <MemoryRouter initialEntries={['/management?tab=customers']}>
+        <Management />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: 'افتتاحيات الموردين' })).toHaveClass('active');
+    expect(screen.queryByRole('button', { name: /حفظ/ })).not.toBeInTheDocument();
+  });
+
+  it('dirty InvoiceForm linked receipt link stops immediate navigation until discard is confirmed', () => {
+    const closeModal = vi.fn();
+    const accounts = [
+      { id: 'acc-2', name: 'شركة النور', kind: 'customer', balance: 550, is_active: true, notes: '', phone: '', serial_number: 2, opening_balance: 0, invoiced: 1050, paid: 500, has_documents: true, system_key: null },
+    ] as any;
+    const cashBoxes = [{ id: 'cb-1', name: 'الخزنة الرئيسية', balance: 1000, is_active: true, is_primary: true, serial_number: 1, opening_balance: 0, notes: null }] as any;
+    const warehouses = [{ id: 'wh-1', name: 'المخزن الرئيسي', is_primary: true, is_active: true, serial_number: 1 }] as any;
+    const editingInvoice = {
+      invoice: {
+        id: 'inv-101',
+        company_id: 'cmp-1',
+        serial_number: 101,
+        kind: 'sale',
+        number: 'SAL-000101',
+        invoice_date: '2026-11-01',
+        account_id: 'acc-2',
+        account_kind: 'customer',
+        warehouse_id: 'wh-1',
+        cash_box_id: 'cb-1',
+        subtotal: 100,
+        discount: 0,
+        total: 100,
+        paid: 50,
+        remaining: 50,
+        notes: 'أصلية',
+        created_at: '2026-11-01T10:00:00Z',
+        updated_at: '2026-11-01T10:00:00Z',
+        receipt_id: 'rcp-99',
+        receipt_number: 'RCP-000099',
+        receipt_amount: 50,
+      },
+      lines: [{ key: 'l-1', item_id: 'itm-1', qty: '1', unit_price: '100' }],
+    } as any;
+
+    render(
+      <MemoryRouter initialEntries={['/invoices']}>
+        <Routes>
+          <Route
+            path="/invoices"
+            element={
+              <Modal title="تعديل فاتورة" onClose={closeModal}>
+                <InvoiceForm
+                  kind="sale"
+                  accounts={accounts}
+                  warehouses={warehouses}
+                  cashBoxes={cashBoxes}
+                  items={[{ id: 'itm-1', serial_number: 1, code: '1', name: 'صنف', unit: 'قطعة', sale_price: 100, purchase_price: 80, qty: 5, is_active: true }] as any}
+                  stockRows={[{ item_id: 'itm-1', warehouse_id: 'wh-1', current_qty: 5 }] as any}
+                  editing={editingInvoice}
+                  readOnly={false}
+                  onSaved={vi.fn()}
+                  onCancel={closeModal}
+                />
+              </Modal>
+            }
+          />
+          <Route path="/receipts" element={<h1>صفحة الإيصالات</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const notesInput = screen.getByPlaceholderText('ملاحظات اختيارية على الفاتورة…');
+    fireEvent.change(notesInput, { target: { value: 'ملاحظة معدلة' } });
+
+    const receiptLink = screen.getByRole('link', { name: /إيصال.*RCP-000099/ });
+    fireEvent.click(receiptLink);
+
+    expect(screen.queryByRole('heading', { name: 'صفحة الإيصالات' })).not.toBeInTheDocument();
+    const confirmModal = screen.getByRole('dialog', { name: 'تجاهل التغييرات؟' });
+    fireEvent.click(within(confirmModal).getByRole('button', { name: 'تجاهل وإغلاق' }));
+
+    expect(closeModal).toHaveBeenCalledOnce();
+    expect(screen.getByRole('heading', { name: 'صفحة الإيصالات' })).toBeInTheDocument();
+  });
+
+  it('UserPermissions dirty invite modal guards Cancel button', async () => {
+    const onInviteOpenChange = vi.fn();
+    render(
+      <UserPermissions
+        inviteOpen={true}
+        onInviteOpenChange={onInviteOpenChange}
+      />,
+    );
+
+    const dialog = await screen.findByRole('dialog', { name: 'دعوة موظف جديد' });
+    fireEvent.change(within(dialog).getByPlaceholderText('مثال: أحمد محمد'), {
+      target: { value: 'موظف جديد' },
+    });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'إلغاء' }));
+    expect(onInviteOpenChange).not.toHaveBeenCalled();
+
+    const confirmModal = screen.getByRole('dialog', { name: 'تجاهل التغييرات؟' });
+    fireEvent.click(within(confirmModal).getByRole('button', { name: 'تجاهل وإغلاق' }));
+    expect(onInviteOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('Login disables email input while busy and SetPassword trims, reveals, toasts success, and navigates', async () => {
+    let resolveLogin!: (val: { data: object; error: null }) => void;
+    vi.mocked(supabase.auth.signInWithPassword).mockImplementationOnce(
+      () => new Promise((resolve) => { resolveLogin = resolve; }) as never,
+    );
+
+    const loginView = render(<Login />);
+    const emailInput = screen.getByPlaceholderText('name@company.com') as HTMLInputElement;
+    const pwdInput = screen.getByPlaceholderText('••••••••') as HTMLInputElement;
+    fireEvent.change(emailInput, { target: { value: 'user@test.com' } });
+    fireEvent.change(pwdInput, { target: { value: 'Password123' } });
+    fireEvent.submit(emailInput.closest('form')!);
+
+    expect(emailInput).toBeDisabled();
+    expect(emailInput.closest('form')).toHaveAttribute('aria-busy', 'true');
+    await act(async () => resolveLogin({ data: {}, error: null }));
+    expect(emailInput).not.toBeDisabled();
+    loginView.unmount();
+
+    vi.mocked(supabase.auth.updateUser).mockResolvedValueOnce({ data: { user: null }, error: null } as never);
+    render(
+      <MemoryRouter initialEntries={['/set-password']}>
+        <Routes>
+          <Route path="/set-password" element={<SetPassword />} />
+          <Route path="/" element={<h1>الرئيسية بعد التفعيل</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const toggleButtons = screen.getAllByRole('button', { name: /إظهار كلمة المرور/ });
+    fireEvent.click(toggleButtons[0]);
+    const setPwdInputs = screen.getAllByPlaceholderText('••••••••');
+    expect(setPwdInputs[0]).toHaveAttribute('type', 'text');
+    expect(setPwdInputs[1]).toHaveAttribute('type', 'text');
+
+    fireEvent.change(setPwdInputs[0], { target: { value: '  StrongPass#26  ' } });
+    fireEvent.change(setPwdInputs[1], { target: { value: 'StrongPass#26' } });
+    fireEvent.submit(setPwdInputs[0].closest('form')!);
+
+    await waitFor(() => {
+      expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'StrongPass#26' });
+    });
+    expect(toast.success).toHaveBeenCalledWith('تم تعيين كلمة المرور وتفعيل الحساب بنجاح.');
+    expect(screen.getByRole('heading', { name: 'الرئيسية بعد التفعيل' })).toBeInTheDocument();
   });
 });

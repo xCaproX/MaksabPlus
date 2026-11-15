@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { errorMessage } from '../lib/errors';
-import Modal from './Modal';
+import Modal, { ModalCancelButton } from './Modal';
 import PasswordInput from './PasswordInput';
 import { toast } from './Toast';
 
@@ -91,6 +91,7 @@ export default function ChangePasswordModal({
 
       setPassword('');
       setConfirmPassword('');
+      setShowPassword(false);
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -104,6 +105,7 @@ export default function ChangePasswordModal({
     if (busy) return;
     setPassword('');
     setConfirmPassword('');
+    setShowPassword(false);
     onClose();
   }
 
@@ -161,9 +163,7 @@ export default function ChangePasswordModal({
             <KeyRound size={16} />
             <span>{busy ? 'جارٍ الحفظ…' : 'حفظ كلمة المرور'}</span>
           </button>
-          <button type="button" className="btn" onClick={handleClose} disabled={busy}>
-            إلغاء
-          </button>
+          <ModalCancelButton className="btn" onCancel={handleClose} disabled={busy} />
         </div>
       </form>
     </Modal>

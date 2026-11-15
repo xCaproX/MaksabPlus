@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import Modal from '../Modal';
+import Modal, { ModalCancelButton } from '../Modal';
 import PasswordInput from '../PasswordInput';
 import {
   addPlatformCompanyUser,
@@ -82,8 +82,9 @@ export default function PlatformAddUserModal({
 
   return (
     <Modal title={`إضافة مستخدم لشركة «${companyName}»`} onClose={onClose} dismissible={!busy} isDirty={isDirty}>
-      <form className="stack" onSubmit={handleSubmit}>
-        <div className="form-row">
+      <form className="stack" onSubmit={handleSubmit} aria-busy={busy}>
+        <fieldset className="form-fields stack" disabled={busy}>
+          <div className="form-row">
           <label>
             <span>الاسم الكامل</span>
             <input
@@ -183,14 +184,13 @@ export default function PlatformAddUserModal({
 
         {error && <div className="alert error" role="alert">{error}</div>}
 
-        <div className="form-modal-actions">
-          <button type="button" className="btn outline" onClick={onClose} disabled={busy}>
-            إلغاء
-          </button>
-          <button type="submit" className="btn primary" disabled={busy}>
-            {busy ? 'جارٍ الإضافة…' : 'إضافة المستخدم'}
-          </button>
-        </div>
+          <div className="form-modal-actions">
+            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} />
+            <button type="submit" className="btn primary" disabled={busy}>
+              {busy ? 'جارٍ الإضافة…' : 'إضافة المستخدم'}
+            </button>
+          </div>
+        </fieldset>
       </form>
     </Modal>
   );

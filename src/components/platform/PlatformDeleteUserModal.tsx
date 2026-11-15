@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import Modal from '../Modal';
+import Modal, { ModalCancelButton } from '../Modal';
 import {
   deletePlatformCompanyUser,
   type PlatformCompanyUser,
@@ -76,59 +76,59 @@ export default function PlatformDeleteUserModal({
       dismissible={!busy}
       isDirty={Boolean(typedIdentifier)}
     >
-      <form className="stack" onSubmit={handleSubmit}>
-        {isLastActiveOwner ? (
-          <div className="alert error" role="alert">
-            <div>
-              <strong>لا يمكن حذف آخر مالك نشط للشركة</strong>
-              <p>
-                المستخدم «{user.full_name || user.email}» هو المالك النشط الوحيد في شركة «{companyName}». أضف مالكًا نشطًا آخر أو فعّل مالكًا بديلًا قبل الحذف.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <>
+      <form className="stack" onSubmit={handleSubmit} aria-busy={busy}>
+        <fieldset className="form-fields stack" disabled={busy}>
+          {isLastActiveOwner ? (
             <div className="alert error" role="alert">
               <div>
-                <strong>تحذير: لا يمكن التراجع عن حذف المستخدم!</strong>
+                <strong>لا يمكن حذف آخر مالك نشط للشركة</strong>
                 <p>
-                  سيتم حذف دخول «<strong>{user.full_name || user.email}</strong>» من شركة «{companyName}» وحذف حسابه نهائيًا، مع بقاء اسم المنشئ محفوظًا على المستندات السابقة.
+                  المستخدم «{user.full_name || user.email}» هو المالك النشط الوحيد في شركة «{companyName}». أضف مالكًا نشطًا آخر أو فعّل مالكًا بديلًا قبل الحذف.
                 </p>
               </div>
             </div>
+          ) : (
+            <>
+              <div className="alert error" role="alert">
+                <div>
+                  <strong>تحذير: لا يمكن التراجع عن حذف المستخدم!</strong>
+                  <p>
+                    سيتم حذف دخول «<strong>{user.full_name || user.email}</strong>» من شركة «{companyName}» وحذف حسابه نهائيًا، مع بقاء اسم المنشئ محفوظًا على المستندات السابقة.
+                  </p>
+                </div>
+              </div>
 
-            <label>
-              <span>
-                للمتابعة، اكتب البريد الإلكتروني (<bdi dir="ltr" className="platform-confirm-target">{user.email}</bdi>)
-                {expectedName ? ` أو الاسم (${expectedName})` : ''}:
-              </span>
-              <input
-                type="text"
-                dir="ltr"
-                value={typedIdentifier}
-                onChange={(e) => setTypedIdentifier(e.target.value)}
-                placeholder={user.email}
-                autoFocus
-                required
-              />
-            </label>
-          </>
-        )}
+              <label>
+                <span>
+                  للمتابعة، اكتب البريد الإلكتروني (<bdi dir="ltr" className="platform-confirm-target">{user.email}</bdi>)
+                  {expectedName ? ` أو الاسم (${expectedName})` : ''}:
+                </span>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={typedIdentifier}
+                  onChange={(e) => setTypedIdentifier(e.target.value)}
+                  placeholder={user.email}
+                  autoFocus
+                  required
+                />
+              </label>
+            </>
+          )}
 
-        {error && <div className="alert error" role="alert">{error}</div>}
+          {error && <div className="alert error" role="alert">{error}</div>}
 
-        <div className="form-modal-actions">
-          <button type="button" className="btn outline" onClick={onClose} disabled={busy}>
-            تراجع
-          </button>
-          <button
-            type="submit"
-            className="btn danger"
-            disabled={busy || isLastActiveOwner || !isMatch}
-          >
-            {busy ? 'جارٍ الحذف…' : 'حذف المستخدم نهائيًا'}
-          </button>
-        </div>
+          <div className="form-modal-actions">
+            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} label="تراجع" />
+            <button
+              type="submit"
+              className="btn danger"
+              disabled={busy || isLastActiveOwner || !isMatch}
+            >
+              {busy ? 'جارٍ الحذف…' : 'حذف المستخدم نهائيًا'}
+            </button>
+          </div>
+        </fieldset>
       </form>
     </Modal>
   );

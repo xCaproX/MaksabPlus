@@ -169,17 +169,6 @@
   color: #b91c1c;
 }
 
-.overdraft-warning-badge {
-  padding: 8px 12px;
-  background: #fef2f2;
-  border: 1px solid #f87171;
-  color: #b91c1c;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 6px;
-  text-align: center;
-}
-
 /* Linked receipt banner (informational slate + blue link accent, distinct from payment green) */
 .receipt-form .linked-receipt-box {
   background: #ffffff;

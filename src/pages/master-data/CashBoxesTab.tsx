@@ -11,7 +11,7 @@ import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
-import Modal from '../../components/Modal';
+import Modal, { ModalCancelButton } from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import EmptyState from '../../components/EmptyState';
 import SortableHeader from '../../components/SortableHeader';
@@ -515,9 +515,7 @@ export default function CashBoxesTab() {
               <button type="submit" className="btn primary" disabled={savingCashBox}>
                 {savingCashBox ? 'جارٍ الحفظ…' : editingCashBoxId ? 'حفظ التعديلات' : 'إضافة خزنة'}
               </button>
-              <button type="button" className="btn" onClick={cancelEdit} disabled={savingCashBox}>
-                إلغاء
-              </button>
+              <ModalCancelButton className="btn" onCancel={cancelEdit} disabled={savingCashBox} />
             </div>
           </form>
         </Modal>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Play, ShieldAlert, Sparkles } from 'lucide-react';
-import Modal from '../../components/Modal';
+import Modal, { ModalCancelButton } from '../../components/Modal';
 
 interface RunReconciliationModalProps {
   onClose: () => void;
@@ -22,7 +22,12 @@ export default function RunReconciliationModal({
   }
 
   return (
-    <Modal onClose={onClose} title="بدء فحص ومطابقة الأرصدة والمخزون">
+    <Modal
+      onClose={onClose}
+      title="بدء فحص ومطابقة الأرصدة والمخزون"
+      dismissible={!loading}
+      isDirty={Boolean(notes.trim())}
+    >
       <form onSubmit={handleSubmit} className="stack gap-4">
         <p style={{ color: 'var(--muted)', fontSize: '0.9rem', margin: 0 }}>
           يقوم النظام بمراجعة وتدقيق كافة حركات الدفاتر (الفواتير، الإيصالات، التحويلات، والتسويات)
@@ -120,14 +125,7 @@ export default function RunReconciliationModal({
         </div>
 
         <div className="actions" style={{ justifyContent: 'flex-end', marginBlockStart: '8px' }}>
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={onClose}
-            disabled={loading}
-          >
-            إلغاء
-          </button>
+          <ModalCancelButton className="btn ghost" onCancel={onClose} disabled={loading} />
           <button
             type="submit"
             className="btn primary"

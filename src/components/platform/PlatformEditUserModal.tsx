@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import Modal from '../Modal';
+import Modal, { ModalCancelButton } from '../Modal';
 import {
   updatePlatformCompanyUser,
   type CompanyUserRole,
@@ -82,63 +82,63 @@ export default function PlatformEditUserModal({
       dismissible={!busy}
       isDirty={hasChanges}
     >
-      <form className="stack" onSubmit={handleSubmit}>
-        <label>
-          <span>الاسم الكامل</span>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-            autoFocus
-          />
-        </label>
+      <form className="stack" onSubmit={handleSubmit} aria-busy={busy}>
+        <fieldset className="form-fields stack" disabled={busy}>
+          <label>
+            <span>الاسم الكامل</span>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              autoFocus
+            />
+          </label>
 
-        <label>
-          <span>البريد الإلكتروني للدخول</span>
-          <input
-            type="email"
-            dir="ltr"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
+          <label>
+            <span>البريد الإلكتروني للدخول</span>
+            <input
+              type="email"
+              dir="ltr"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
 
-        <label>
-          <span>الدور داخل الشركة</span>
-          <select
-            value={accessRole}
-            onChange={(e) => setAccessRole(e.target.value === 'employee' ? 'employee' : 'owner')}
-            disabled={isLastActiveOwner}
-          >
-            <option value="owner">مالك (صلاحيات كاملة للشركة)</option>
-            <option value="employee">موظف (يضبط المالك صلاحياته)</option>
-          </select>
-        </label>
+          <label>
+            <span>الدور داخل الشركة</span>
+            <select
+              value={accessRole}
+              onChange={(e) => setAccessRole(e.target.value === 'employee' ? 'employee' : 'owner')}
+              disabled={isLastActiveOwner}
+            >
+              <option value="owner">مالك (صلاحيات كاملة للشركة)</option>
+              <option value="employee">موظف (يضبط المالك صلاحياته)</option>
+            </select>
+          </label>
 
-        {isLastActiveOwner && (
-          <div className="alert warning" role="note">
-            هذا المستخدم هو آخر مالك نشط في الشركة؛ لا يمكن تحويله إلى موظف إلا بعد إضافة أو تفعيل مالك آخر.
+          {isLastActiveOwner && (
+            <div className="alert warning" role="note">
+              هذا المستخدم هو آخر مالك نشط في الشركة؛ لا يمكن تحويله إلى موظف إلا بعد إضافة أو تفعيل مالك آخر.
+            </div>
+          )}
+
+          {!isLastActiveOwner && downgradingOwner && (
+            <div className="alert info" role="note">
+              عند تحويل المالك إلى موظف ستُلغى صلاحيات المالك الكاملة ويبدأ بصلاحيات فارغة يضبطها مالك الشركة من شاشة الإدارة.
+            </div>
+          )}
+
+          {error && <div className="alert error" role="alert">{error}</div>}
+
+          <div className="form-modal-actions">
+            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} />
+            <button type="submit" className="btn primary" disabled={busy || !hasChanges}>
+              {busy ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
+            </button>
           </div>
-        )}
-
-        {!isLastActiveOwner && downgradingOwner && (
-          <div className="alert info" role="note">
-            عند تحويل المالك إلى موظف ستُلغى صلاحيات المالك الكاملة ويبدأ بصلاحيات فارغة يضبطها مالك الشركة من شاشة الإدارة.
-          </div>
-        )}
-
-        {error && <div className="alert error" role="alert">{error}</div>}
-
-        <div className="form-modal-actions">
-          <button type="button" className="btn outline" onClick={onClose} disabled={busy}>
-            إلغاء
-          </button>
-          <button type="submit" className="btn primary" disabled={busy || !hasChanges}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
-          </button>
-        </div>
+        </fieldset>
       </form>
     </Modal>
   );

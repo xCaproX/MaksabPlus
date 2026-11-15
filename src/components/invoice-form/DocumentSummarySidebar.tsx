@@ -6,6 +6,7 @@ interface DocumentSummarySidebarProps {
   isEditing: boolean;
   notes: string;
   busy: boolean;
+  saveDisabled?: boolean;
   notesPlaceholder?: string;
   emptyNotesText?: string;
   saveLabel: string;
@@ -35,6 +36,7 @@ export default function DocumentSummarySidebar({
   isEditing,
   notes,
   busy,
+  saveDisabled = false,
   notesPlaceholder = 'ملاحظات اختيارية…',
   emptyNotesText = 'لا توجد ملاحظات',
   saveLabel,
@@ -83,6 +85,7 @@ export default function DocumentSummarySidebar({
         isReadOnly={isReadOnly}
         isEditing={isEditing}
         busy={busy}
+        saveDisabled={saveDisabled}
         containerClassName="left-actions-group"
         saveLabel={saveLabel}
         restoreLabel={restoreLabel}

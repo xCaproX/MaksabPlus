@@ -114,6 +114,7 @@ export default function Invoices() {
   const [version, setVersion] = useState(0);
   const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
   const [showDeleted, setShowDeleted] = useState(false);
+  const [formBusy, setFormBusy] = useState(false);
 
   // الفلاتر الموحدة
   const [dateFrom, setDateFrom] = useState(() => periodDates().from);
@@ -154,6 +155,11 @@ export default function Invoices() {
 
     if (targetKind !== kind) {
       setKind(targetKind);
+      if (!searchParams.get('doc')) {
+        setShowDeleted(false);
+      }
+      setSortOrder('date-desc');
+      setFormBusy(false);
       setEditing(null);
       setEditingTransfer(null);
       setDateFrom(periodDates().from);
@@ -469,6 +475,9 @@ export default function Invoices() {
     if (next === kind) return;
     setKind(next);
     setSearchParams({ tab: next });
+    setShowDeleted(false);
+    setSortOrder('date-desc');
+    setFormBusy(false);
     setFormOpen(false);
     setEditing(null);
     setEditingTransfer(null);
@@ -706,6 +715,9 @@ export default function Invoices() {
       showDeleted={showDeleted}
       onDeletedToggle={toggleDeleted}
       sortOrder={sortOrder}
+      canCreate={can(`goods.${kind}.create`)}
+      canDelete={can(`goods.${kind}.delete`)}
+      modalDismissible={!formBusy}
       newLabel={`+ ${newLabel}`}
       onNew={!showDeleted && can(`goods.${kind}.create`) ? openNew : undefined}
       toolbarDisabled={listError || loading || columns.values !== columns.filters}
@@ -739,11 +751,13 @@ export default function Invoices() {
             stockRows={stockRows}
             editing={editingTransfer}
             readOnly={modalMode === 'view'}
+            onBusyChange={setFormBusy}
             onSaved={handleSaved}
             onCancel={() => {
               if (modalMode === 'edit' && openedTransferFromViewRef.current) {
                 setModalMode('view');
               } else {
+                setFormBusy(false);
                 setFormOpen(false);
                 setEditingTransfer(null);
               }
@@ -756,11 +770,7 @@ export default function Invoices() {
             }
             onRestore={
               showDeleted && can(`goods.${kind}.delete`) && editingTransfer
-                ? async () => {
-                    await restoreTransfer(editingTransfer);
-                    setFormOpen(false);
-                    setEditingTransfer(null);
-                  }
+                ? () => void restoreTransfer(editingTransfer)
                 : undefined
             }
             onPrint={() => window.print()}
@@ -776,11 +786,13 @@ export default function Invoices() {
             stockRows={stockRows}
             editing={editing}
             readOnly={modalMode === 'view'}
+            onBusyChange={setFormBusy}
             onSaved={handleSaved}
             onCancel={() => {
               if (modalMode === 'edit' && openedFromViewRef.current) {
                 setModalMode('view');
               } else {
+                setFormBusy(false);
                 setFormOpen(false);
                 setEditing(null);
               }
@@ -793,11 +805,7 @@ export default function Invoices() {
             }
             onRestore={
               showDeleted && can(`goods.${kind}.delete`) && editing
-                ? async () => {
-                    await restore(editing.invoice);
-                    setFormOpen(false);
-                    setEditing(null);
-                  }
+                ? () => void restore(editing.invoice)
                 : undefined
             }
             onPrint={() => window.print()}

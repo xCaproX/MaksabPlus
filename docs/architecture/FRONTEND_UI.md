@@ -73,7 +73,7 @@ flowchart TD
 | `SearchableSelect` / `PickerInput` | `src/components/SearchableSelect.tsx`, `PickerInput.tsx` | قوائم اختيار وبحث سريعة بلوحة المفاتيح والباركود مع دعم `portal` داخل الحاويات القابلة للتمرير. |
 | `StatusBadge` | `src/components/StatusBadge.tsx` | شارات الحالة (مسددة، جزئية، غير مسددة، نشط، موقوف، إلخ). |
 | `RowActions` / `DocumentCreatorCell` | `src/components/RowActions.tsx`, `DocumentCreatorCell.tsx` | قائمة إجراءات السطر وخلية منشئ المستند. |
-| `ConfirmDialog` / `Modal` / `ChangePasswordModal` | `src/components/` | النوافذ الحوارية وتأكيد الحذف بالاسم/الرقم وتغيير كلمة المرور. |
+| `ConfirmDialog` / `Modal` / `GuardedLink` / `ChangePasswordModal` | `src/components/` | النوافذ الحوارية (`Modal` مع `ModalCancelButton` و`useReportBusy`) وحراسة الروابط (`GuardedLink`) وتأكيد الحذف وتغيير كلمة المرور. |
 | `KpiBar` / `LoadingSkeleton` / `EmptyState` / `Toast` | `src/components/` | شريط المؤشرات، حالات التحميل والفراغ، والتنبيهات. |
 | `DashboardChartsSection` | `src/components/charts/` | رسوم لوحة التحكم التفاعلية (`Chart.js`: `SalesTrendChart`, `SalesVsPurchasesChart`, `SalesDistributionChart`, `SparklineSvg`, `ChartContainer`, `ChartErrorBoundary`). |
 

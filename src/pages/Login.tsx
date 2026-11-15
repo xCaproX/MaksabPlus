@@ -25,7 +25,7 @@ export default function Login() {
 
   return (
     <div className="config-screen">
-      <form className="card login-card" onSubmit={submit}>
+      <form className="card login-card" onSubmit={submit} aria-busy={busy}>
         <img className="login-logo" src="/maksab-logo.png" alt="مكسب بلس" />
         <div className="login-intro">
           <h1>مرحبًا بعودتك</h1>
@@ -41,6 +41,7 @@ export default function Login() {
             autoComplete="username"
             dir="ltr"
             placeholder="name@company.com"
+            disabled={busy}
           />
         </label>
 

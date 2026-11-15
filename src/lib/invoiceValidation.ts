@@ -4,6 +4,9 @@
 -- ============================================================================
  */
 
+import { round2 } from './format';
+import type { InvoiceKind } from './types';
+
 export interface ClampQuantityOptions {
   availableStock?: number;
   isStockLimited?: boolean;
@@ -116,4 +119,53 @@ export function calculateAvailableStock(options: CalculateAvailableStockOptions)
   }
 
   return available;
+}
+
+export interface CalculateInvoiceCashBoxStateOptions {
+  kind: InvoiceKind;
+  isReadOnly?: boolean;
+  paidNumber: number;
+  effectiveCashBoxId: string;
+  cashBoxes: Array<{ id: string; balance: number | string }>;
+  editingInvoice?: { cash_box_id?: string | null; paid?: number | string | null } | null;
+}
+
+/**
+ * حساب الرصيد المعروض للخزنة وتحديد حالة التجاوز لفواتير الصرف (المشتريات ومرتجع المبيعات).
+ */
+export function calculateInvoiceCashBoxState(options: CalculateInvoiceCashBoxStateOptions): {
+  isCashOut: boolean;
+  displayBalance: number | null;
+  isOverdraft: boolean;
+} {
+  const {
+    kind,
+    isReadOnly = false,
+    paidNumber,
+    effectiveCashBoxId,
+    cashBoxes,
+    editingInvoice,
+  } = options;
+  const isCashOut = kind === 'purchase' || kind === 'sale_return';
+  const selectedCashBox = cashBoxes.find((b) => b.id === effectiveCashBoxId);
+  const prevOutOnSameBox =
+    editingInvoice &&
+    isCashOut &&
+    editingInvoice.cash_box_id === effectiveCashBoxId &&
+    Number(editingInvoice.paid || 0) > 0
+      ? Number(editingInvoice.paid || 0)
+      : 0;
+  const displayBalance = selectedCashBox
+    ? !isReadOnly && isCashOut
+      ? round2(Number(selectedCashBox.balance || 0) + prevOutOnSameBox)
+      : Number(selectedCashBox.balance || 0)
+    : null;
+  const isOverdraft =
+    !isReadOnly &&
+    isCashOut &&
+    displayBalance !== null &&
+    paidNumber > 0 &&
+    round2(paidNumber) > round2(displayBalance);
+
+  return { isCashOut, displayBalance, isOverdraft };
 }

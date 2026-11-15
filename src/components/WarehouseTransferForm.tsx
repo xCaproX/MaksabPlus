@@ -20,7 +20,7 @@ import {
 } from '../lib/masterDataQueries';
 import { resolveDefaultWarehouse } from '../lib/defaults';
 import { clampDocQty, clampDocQtyOnBlur, DOC_LINE_CLAMP_WARNING, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
-import { useModalDirtyGuard } from './Modal';
+import { useModalDirtyGuard, useReportBusy } from './Modal';
 import { toast } from './Toast';
 import type { ItemRow, StockOpeningRow, WarehouseOption, WarehouseTransferLine, WarehouseTransferRow } from '../lib/types';
 
@@ -34,6 +34,7 @@ interface Props {
   stockRows: StockOpeningRow[];
   editing: EditingWarehouseTransfer | null;
   readOnly?: boolean;
+  onBusyChange?: (busy: boolean) => void;
   onSaved: (message: string) => void;
   onCancel: () => void;
   onEdit?: () => void;
@@ -50,6 +51,7 @@ export default function WarehouseTransferForm({
   stockRows,
   editing,
   readOnly = false,
+  onBusyChange,
   onSaved,
   onCancel,
   onEdit,
@@ -77,6 +79,7 @@ export default function WarehouseTransferForm({
     return [];
   });
   const [busy, setBusy] = useState(false);
+  useReportBusy(busy, onBusyChange);
   const [adjustedHighlightItemId, setAdjustedHighlightItemId] = useState<string | null>(null);
   const [clampWarning, setClampWarning] = useState<string | null>(null);
 

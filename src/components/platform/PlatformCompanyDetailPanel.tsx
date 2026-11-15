@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import {
   Ban,
   CheckCircle2,
@@ -22,6 +22,7 @@ interface PlatformCompanyDetailPanelProps {
   users: PlatformCompanyUser[];
   usersLoading: boolean;
   onClose: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
   onSaveCompany: (params: {
     companyId: string;
     name: string;
@@ -44,6 +45,7 @@ export default function PlatformCompanyDetailPanel({
   users,
   usersLoading,
   onClose,
+  onDirtyChange,
   onSaveCompany,
   onRequestToggleCompanyStatus,
   onRequestDeleteCompany,
@@ -60,16 +62,38 @@ export default function PlatformCompanyDetailPanel({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
+  const activeOwnersCount = users.filter((u) => u.access_role === 'owner' && u.is_active).length;
+
+  const hasChanges = Boolean(
+    company &&
+      (name.trim() !== company.name.trim() ||
+        adminNotes.trim() !== company.admin_notes.trim() ||
+        (!company.is_active && suspensionReason.trim() !== company.suspension_reason.trim())),
+  );
+
+  useEffect(() => {
+    onDirtyChange?.(hasChanges);
+  }, [hasChanges, onDirtyChange]);
+
+  useEffect(() => () => {
+    onDirtyChange?.(false);
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    if (!company) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      if (document.querySelector('.modal-backdrop')) return;
+      event.preventDefault();
+      onClose();
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [company, onClose]);
+
   if (!company) {
     return null;
   }
-
-  const activeOwnersCount = users.filter((u) => u.access_role === 'owner' && u.is_active).length;
-
-  const hasChanges =
-    name.trim() !== company.name.trim() ||
-    adminNotes.trim() !== company.admin_notes.trim() ||
-    (!company.is_active && suspensionReason.trim() !== company.suspension_reason.trim());
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -157,66 +181,68 @@ export default function PlatformCompanyDetailPanel({
       </dl>
 
       <div className="erp-detail-lines stack">
-        <form className="stack platform-edit-form" onSubmit={handleSave}>
-          <h3>بيانات الشركة والملاحظات الخاصة</h3>
+        <form className="stack platform-edit-form" onSubmit={handleSave} aria-busy={saving}>
+          <fieldset className="form-fields stack" disabled={saving}>
+            <h3>بيانات الشركة والملاحظات الخاصة</h3>
 
-          <label>
-            <span>اسم الشركة</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </label>
-
-          <label>
-            <span>ملاحظات المطور (سرية للمنصة فقط)</span>
-            <textarea
-              rows={3}
-              value={adminNotes}
-              onChange={(e) => setAdminNotes(e.target.value)}
-              placeholder="ملاحظاتك الخاصة حول العميل أو الباقة أو المتابعة..."
-            />
-          </label>
-
-          {!company.is_active && (
             <label>
-              <span>سبب الإيقاف الظاهر لمستخدمي الشركة</span>
-              <textarea
-                rows={2}
-                value={suspensionReason}
-                onChange={(e) => setSuspensionReason(e.target.value)}
-                placeholder="مثال: برجاء تجديد الاشتراك الشهري والتواصل مع الدعم الفني..."
+              <span>اسم الشركة</span>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
               />
             </label>
-          )}
 
-          {saveError && <div className="alert error" role="alert">{saveError}</div>}
+            <label>
+              <span>ملاحظات المطور (سرية للمنصة فقط)</span>
+              <textarea
+                rows={3}
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                placeholder="ملاحظاتك الخاصة حول العميل أو الباقة أو المتابعة..."
+              />
+            </label>
 
-          <div className="platform-inline-actions">
-            <button type="submit" className="btn outline sm" disabled={saving || !hasChanges}>
-              {saving ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
-            </button>
+            {!company.is_active && (
+              <label>
+                <span>سبب الإيقاف الظاهر لمستخدمي الشركة</span>
+                <textarea
+                  rows={2}
+                  value={suspensionReason}
+                  onChange={(e) => setSuspensionReason(e.target.value)}
+                  placeholder="مثال: برجاء تجديد الاشتراك الشهري والتواصل مع الدعم الفني..."
+                />
+              </label>
+            )}
 
-            <button
-              type="button"
-              className="btn outline sm"
-              onClick={() => onRequestToggleCompanyStatus(company)}
-            >
-              {company.is_active ? (
-                <>
-                  <Ban size={15} aria-hidden="true" />
-                  <span>إيقاف الشركة مؤقتًا</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 size={15} aria-hidden="true" />
-                  <span>إعادة تفعيل الشركة</span>
-                </>
-              )}
-            </button>
-          </div>
+            {saveError && <div className="alert error" role="alert">{saveError}</div>}
+
+            <div className="platform-inline-actions">
+              <button type="submit" className="btn outline sm" disabled={saving || !hasChanges}>
+                {saving ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
+              </button>
+
+              <button
+                type="button"
+                className="btn outline sm"
+                onClick={() => onRequestToggleCompanyStatus(company)}
+              >
+                {company.is_active ? (
+                  <>
+                    <Ban size={15} aria-hidden="true" />
+                    <span>إيقاف الشركة مؤقتًا</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={15} aria-hidden="true" />
+                    <span>إعادة تفعيل الشركة</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </fieldset>
         </form>
 
         <section className="stack platform-users-section" aria-label="مستخدمو الشركة">

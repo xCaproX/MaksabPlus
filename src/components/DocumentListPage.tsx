@@ -132,7 +132,7 @@ export default function DocumentListPage<TTab extends string = string>({
           </h1>
         </div>
         <div className="actions">
-          {canDelete && onDeletedToggle && (
+          {(canDelete || showDeleted) && onDeletedToggle && (
             <button type="button" className="btn outline" onClick={onDeletedToggle}>
               {showDeleted ? 'عرض النشط' : 'عرض المحذوفات'}
             </button>

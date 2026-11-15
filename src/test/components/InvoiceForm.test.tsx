@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import InvoiceForm from '../../components/InvoiceForm';
+import { toast } from '../../components/Toast';
 import * as masterDataQueries from '../../lib/masterDataQueries';
 import { supabase } from '../../lib/supabase';
 import type { AccountKind, AccountRow } from '../../lib/types';
@@ -998,5 +999,112 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
 
     expect(container.querySelector('.lines-table .empty-state.is-compact .empty-state-icon')).toBeInTheDocument();
     expect(screen.getByText('لا توجد بنود في هذه الفاتورة.')).toBeInTheDocument();
+  });
+
+  it('في فواتير الصرف: يعرض شارة تجاوز الخزنة ويعطل زر الحفظ ويمنع الإرسال عند التجاوز', async () => {
+    vi.mocked(supabase.rpc).mockClear();
+    vi.mocked(toast.error).mockClear();
+    const supplierAccounts = [
+      {
+        id: 'sup-cash',
+        name: 'مورد نقدي عام',
+        kind: 'supplier',
+        balance: 0,
+        is_active: true,
+        notes: '',
+        phone: '',
+        serial_number: 1,
+        opening_balance: 0,
+        invoiced: 0,
+        paid: 0,
+        has_documents: false,
+        system_key: 'cash_supplier',
+      },
+    ] as any;
+    const lowBalanceBoxes = [
+      {
+        id: 'cb-1',
+        name: 'الخزينة الرئيسية',
+        balance: 100,
+        is_active: true,
+        is_primary: true,
+        serial_number: 1,
+        opening_balance: 0,
+        notes: null,
+      },
+    ] as any;
+    const purchaseEditing = {
+      invoice: {
+        ...mockEditingInvoice.invoice,
+        kind: 'purchase' as const,
+        account_id: 'sup-cash',
+        account_kind: 'supplier' as const,
+        total: 1000,
+        paid: 200,
+        remaining: 800,
+      },
+      lines: [{ key: 'l-1', item_id: 'itm-1', qty: '10', unit_price: '100' }],
+    };
+
+    const { container } = render(
+      <InvoiceForm
+        kind="purchase"
+        accounts={supplierAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={lowBalanceBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={purchaseEditing}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveClass('overdraft-warning-badge');
+    expect(alert).toHaveTextContent('تنبيه: المبلغ يتجاوز الرصيد المتوفر بالخزنة المحددة');
+
+    const saveBtn = screen.getByRole('button', { name: /حفظ التعديلات/ });
+    expect(saveBtn).toBeDisabled();
+
+    fireEvent.submit(container.querySelector('form')!);
+    expect(toast.error).toHaveBeenCalledWith('تنبيه: المبلغ يتجاوز الرصيد المتوفر بالخزنة المحددة');
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it('يبلغ عن حالة الانشغال via onBusyChange أثناء الحفظ ويعيدها إلى false عند الانتهاء', async () => {
+    let resolveRpc!: (value: { data: unknown; error: null }) => void;
+    vi.mocked(supabase.rpc).mockImplementationOnce(
+      () => new Promise((resolve) => { resolveRpc = resolve; }) as never,
+    );
+    const onBusyChange = vi.fn();
+
+    const { container, unmount } = render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={mockEditingInvoice}
+        readOnly={false}
+        onBusyChange={onBusyChange}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(onBusyChange).toHaveBeenCalledWith(true));
+
+    await act(async () => {
+      resolveRpc({ data: { id: 'inv-101' }, error: null });
+    });
+    await waitFor(() => expect(onBusyChange).toHaveBeenLastCalledWith(false));
+
+    unmount();
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
   });
 });

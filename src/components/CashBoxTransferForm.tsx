@@ -10,7 +10,7 @@ import { toast } from './Toast';
 import SearchableSelect from './SearchableSelect';
 import DateInput from './DateInput';
 import MoneyDisplay from './MoneyDisplay';
-import { useModalDirtyGuard } from './Modal';
+import { useModalDirtyGuard, useReportBusy } from './Modal';
 import { resolveDefaultCashBox } from '../lib/defaults';
 import { toCashBoxOption } from '../lib/masterDataQueries';
 import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
@@ -18,6 +18,7 @@ import type { CashBoxRow, CashBoxTransferRow } from '../lib/types';
 interface Props {
   cashBoxes: CashBoxRow[];
   editing: CashBoxTransferRow | null;
+  onBusyChange?: (busy: boolean) => void;
   onSaved: (message: string) => void;
   onCancel: () => void;
   readOnly?: boolean;
@@ -30,6 +31,7 @@ interface Props {
 export default function CashBoxTransferForm({
   cashBoxes,
   editing,
+  onBusyChange,
   onSaved,
   onCancel,
   readOnly = false,
@@ -52,6 +54,7 @@ export default function CashBoxTransferForm({
   const [amount, setAmount] = useState(editing ? String(Number(editing.amount)) : '');
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [busy, setBusy] = useState(false);
+  useReportBusy(busy, onBusyChange);
 
   const numAmount = Number(amount || 0);
   const roundedAmount = round2(numAmount);

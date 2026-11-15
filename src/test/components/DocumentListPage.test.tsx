@@ -135,4 +135,23 @@ describe('DocumentListPage - الهيكل الموحد لصفحات المستن
     expect(onCancel).toHaveBeenCalledOnce();
     expect(modalOnClose).not.toHaveBeenCalled();
   });
+
+  it('يبقي زر عرض النشط ظاهراً في وضع المحذوفات حتى عند عدم وجود صلاحية حذف لمنع احتجاز المستخدم', () => {
+    const { rerender } = render(
+      <DocumentListPage {...defaultProps} canDelete={false} showDeleted={true}>
+        <div>جدول المحذوفات</div>
+      </DocumentListPage>,
+    );
+
+    expect(screen.getByRole('button', { name: 'عرض النشط' })).toBeInTheDocument();
+
+    rerender(
+      <DocumentListPage {...defaultProps} canDelete={false} showDeleted={false}>
+        <div>جدول النشط</div>
+      </DocumentListPage>,
+    );
+
+    expect(screen.queryByRole('button', { name: 'عرض المحذوفات' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'عرض النشط' })).not.toBeInTheDocument();
+  });
 });

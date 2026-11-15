@@ -81,7 +81,7 @@ export default function PlatformUserActivationModal({
       onClose={onClose}
       dismissible={busyMode === null}
     >
-      <div className="stack">
+      <div className="stack" aria-busy={busyMode !== null}>
         <p className="hint">
           الحساب داخل شركة «<strong>{companyName}</strong>» ما زال بانتظار التفعيل على البريد{' '}
           <bdi dir="ltr" className="tabular-nums">{user.email}</bdi>.

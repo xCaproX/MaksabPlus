@@ -63,6 +63,7 @@ export default function Receipts() {
   const [editing, setEditing] = useState<ReceiptRow | null>(null);
   const [editingTransfer, setEditingTransfer] = useState<CashBoxTransferRow | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [formBusy, setFormBusy] = useState(false);
   const [version, setVersion] = useState(0);
   const { confirmation, askConfirmation, finishConfirmation } = useConfirmDialog();
 
@@ -80,7 +81,11 @@ export default function Receipts() {
       if (targetTab === 'in' || targetTab === 'out') {
         setDirection(targetTab);
       }
-      resetForm();
+      if (!searchParams.get('doc')) {
+        setShowDeleted(false);
+      }
+      setSortOrder('date-desc');
+      setFormBusy(false);
       setEditing(null);
       setEditingTransfer(null);
       setDateFrom(periodDates().from);
@@ -107,7 +112,6 @@ export default function Receipts() {
       if (action === 'new') {
         const canCreate = can(`money.${tab}.create`);
         if (canCreate) {
-          resetForm();
           setEditing(null);
           setEditingTransfer(null);
           openedFromViewRef.current = false;
@@ -359,21 +363,22 @@ export default function Receipts() {
     }
   }, [page, pageCount, setPage]);
 
-  function resetForm() {
-    setEditing(null);
-  }
-
   function switchDirection(next: ReceiptDirection) {
     if (next === tab) return;
     setDirection(next);
     setTab(next);
     setSearchParams({ tab: next });
+    setShowDeleted(false);
+    setSortOrder('date-desc');
     closeForm();
   }
 
   function switchToCashTransfer() {
+    if (tab === 'cash_box_transfer') return;
     setTab('cash_box_transfer');
     setSearchParams({ tab: 'cash_box_transfer' });
+    setShowDeleted(false);
+    setSortOrder('date-desc');
     closeForm();
   }
 
@@ -385,14 +390,8 @@ export default function Receipts() {
   function openNew() {
     openedFromViewRef.current = false;
     openedTransferFromViewRef.current = false;
-    if (isCashBoxTransfer) {
-      setEditingTransfer(null);
-      setEditing(null);
-    } else {
-      resetForm();
-      setEditing(null);
-      setEditingTransfer(null);
-    }
+    setEditing(null);
+    setEditingTransfer(null);
     setModalMode('create');
     setFormOpen(true);
   }
@@ -414,8 +413,8 @@ export default function Receipts() {
   }
 
   function closeForm() {
+    setFormBusy(false);
     setFormOpen(false);
-    resetForm();
     setEditing(null);
     setEditingTransfer(null);
     setModalMode('create');
@@ -518,6 +517,9 @@ export default function Receipts() {
     }
 
     toast.success(`تم استعادة الإيصال ${receipt.number}`);
+    if (editing?.id === receipt.id) {
+      closeForm();
+    }
     setVersion((current) => current + 1);
     void refresh(RECEIPT_RESOURCES);
   }
@@ -539,6 +541,9 @@ export default function Receipts() {
     const { error: rpcError } = await supabase.rpc('restore_cash_box_transfer', { p_transfer_id: transfer.id });
     if (rpcError) return toast.error(translateDbError(rpcError.message));
     toast.success(`تم استعادة التحويل ${transfer.number}`);
+    if (editingTransfer?.id === transfer.id) {
+      closeForm();
+    }
     setVersion((current) => current + 1);
     void refresh(CASH_BOX_RESOURCES);
   }
@@ -548,11 +553,7 @@ export default function Receipts() {
     if (firstAllowedTab) {
       return <Navigate to={`/receipts?tab=${firstAllowedTab.value}`} replace />;
     }
-    return (
-      <div className="erp-page" style={{ padding: '24px' }}>
-        <p className="danger">عفواً، ليس لديك صلاحية عرض إيصالات الاستلام أو الصرف أو التحويلات.</p>
-      </div>
-    );
+    return <Navigate to="/access-denied" replace />;
   }
 
   const newLabel = isCashBoxTransfer ? 'تحويل جديد بين الخزن' : `إيصال ${isIn ? 'استلام' : 'صرف'} جديد`;
@@ -589,6 +590,7 @@ export default function Receipts() {
       onDeletedToggle={toggleDeleted}
       canDelete={Boolean(can(`money.${tab}.delete`))}
       canCreate={Boolean(can(`money.${tab}.create`))}
+      modalDismissible={!formBusy}
       sortOrder={sortOrder}
       newLabel={`+ ${newLabel}`}
       onNew={openNew}
@@ -629,6 +631,7 @@ export default function Receipts() {
             cashBoxes={cashBoxes}
             editing={editingTransfer}
             readOnly={modalMode === 'view'}
+            onBusyChange={setFormBusy}
             onEdit={!showDeleted && can(`money.${tab}.edit`) ? () => setModalMode('edit') : undefined}
             onDelete={
               !showDeleted && can(`money.${tab}.delete`) && editingTransfer
@@ -637,10 +640,7 @@ export default function Receipts() {
             }
             onRestore={
               showDeleted && can(`money.${tab}.delete`) && editingTransfer
-                ? async () => {
-                    await restoreTransfer(editingTransfer);
-                    closeForm();
-                  }
+                ? () => void restoreTransfer(editingTransfer)
                 : undefined
             }
             onPrint={() => window.print()}
@@ -655,6 +655,7 @@ export default function Receipts() {
             cashBoxes={cashBoxes}
             editing={editing}
             readOnly={modalMode === 'view'}
+            onBusyChange={setFormBusy}
             onEdit={
               !showDeleted && can(`money.${tab}.edit`) && editing?.is_free
                 ? () => setModalMode('edit')
@@ -667,10 +668,7 @@ export default function Receipts() {
             }
             onRestore={
               showDeleted && can(`money.${tab}.delete`) && editing?.is_free && editing
-                ? async () => {
-                    await restore(editing);
-                    closeForm();
-                  }
+                ? () => void restore(editing)
                 : undefined
             }
             onPrint={() => window.print()}
@@ -685,7 +683,7 @@ export default function Receipts() {
               title: confirmation.title,
               message: confirmation.message,
               confirmLabel: confirmation.confirmLabel,
-              danger: confirmation.danger === true || confirmation.confirmLabel === 'حذف',
+              danger: confirmation.danger === true,
               onConfirm: () => finishConfirmation(true),
               onCancel: () => finishConfirmation(false),
             }

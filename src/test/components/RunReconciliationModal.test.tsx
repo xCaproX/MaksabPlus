@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import RunReconciliationModal from '../../pages/management/RunReconciliationModal';
 
 describe('RunReconciliationModal Component', () => {
@@ -57,5 +57,38 @@ describe('RunReconciliationModal Component', () => {
     fireEvent.click(cancelBtn);
 
     expect(handleClose).toHaveBeenCalled();
+  });
+
+  it('يحرس الإغلاق عند كتابة ملاحظات ويمنع إغلاق النافذة أثناء الفحص', () => {
+    const handleClose = vi.fn();
+    const { rerender } = render(
+      <RunReconciliationModal
+        onClose={handleClose}
+        onConfirm={vi.fn()}
+        loading={false}
+      />
+    );
+
+    const notesInput = screen.getByPlaceholderText(/مثال: جرد نهاية الشهر/);
+    fireEvent.change(notesInput, { target: { value: 'مراجعة هامة' } });
+
+    fireEvent.click(screen.getByText('إلغاء'));
+    expect(handleClose).not.toHaveBeenCalled();
+    const confirmModal = screen.getByRole('dialog', { name: 'تجاهل التغييرات؟' });
+    fireEvent.click(within(confirmModal).getByRole('button', { name: 'تجاهل وإغلاق' }));
+    expect(handleClose).toHaveBeenCalledOnce();
+
+    handleClose.mockClear();
+    rerender(
+      <RunReconciliationModal
+        onClose={handleClose}
+        onConfirm={vi.fn()}
+        loading={true}
+      />
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.click(screen.getByRole('presentation'));
+    fireEvent.click(screen.getByRole('button', { name: 'إغلاق' }));
+    expect(handleClose).not.toHaveBeenCalled();
   });
 });

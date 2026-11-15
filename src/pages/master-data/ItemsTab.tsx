@@ -16,7 +16,7 @@ import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
-import Modal from '../../components/Modal';
+import Modal, { ModalCancelButton } from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SearchableSelect from '../../components/SearchableSelect';
 import EmptyState from '../../components/EmptyState';
@@ -800,9 +800,7 @@ export default function ItemsTab() {
               <button type="submit" className="btn primary" disabled={savingItem}>
                 {savingItem ? 'جارٍ الحفظ…' : editingItem ? 'حفظ التعديلات' : 'إضافة صنف'}
               </button>
-              <button type="button" className="btn" onClick={cancelEdit} disabled={savingItem}>
-                إلغاء
-              </button>
+              <ModalCancelButton className="btn" onCancel={cancelEdit} disabled={savingItem} />
             </div>
           </form>
         </Modal>

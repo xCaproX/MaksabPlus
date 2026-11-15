@@ -49,7 +49,8 @@ export default function Management() {
   const [tab, setTab] = useState<ManagementTab>(initialTab);
   const canViewCurrentTab =
     tab === 'users' || tab === 'reconciliations' ? access?.role === 'owner' : can(`management.${tab}.view`);
-  const canEditOpening = can(`management.${tab}.edit`);
+  const canEditOpening =
+    tab === 'users' || tab === 'reconciliations' ? false : can(`management.${tab}.edit`);
 
   const { accounts: rawAccounts, cashBoxes, stockRows, warehouses: rawWarehouses, resourceStatus, refresh } = useMasterData(canViewCurrentTab ? TAB_RESOURCES[tab] : undefined);
   const resources = TAB_RESOURCES[tab].map((key) => resourceStatus[key]);
@@ -115,7 +116,11 @@ export default function Management() {
           : 'حفظ أرصدة الخزن';
 
   if (visibleTabs.length === 0) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/access-denied" replace />;
+  }
+
+  if (!canViewCurrentTab) {
+    return <Navigate to={`/management?tab=${visibleTabs[0].id}`} replace />;
   }
 
   return (

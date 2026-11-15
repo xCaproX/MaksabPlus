@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import { toast } from '../../components/Toast';
 
@@ -71,5 +71,25 @@ describe('ChangePasswordModal - نموذج تغيير كلمة المرور', ()
     fireEvent.click(screen.getByRole('button', { name: /حفظ كلمة المرور/ }));
 
     expect(toast.error).toHaveBeenCalledWith('كلمتا المرور غير متطابقتين.');
+  });
+
+  it('يحرس زر الإلغاء عند تعديل كلمة المرور ويعيد إخفاءها عند الإغلاق', () => {
+    const onClose = vi.fn();
+    const { rerender } = render(<ChangePasswordModal isOpen={true} onClose={onClose} />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: /إظهار كلمة المرور/ })[0]);
+    const inputs = screen.getAllByPlaceholderText('••••••••');
+    expect(inputs[0]).toHaveAttribute('type', 'text');
+    fireEvent.change(inputs[0], { target: { value: 'SecretPass123' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'إلغاء' }));
+    expect(onClose).not.toHaveBeenCalled();
+    const confirmModal = screen.getByRole('dialog', { name: 'تجاهل التغييرات؟' });
+    fireEvent.click(within(confirmModal).getByRole('button', { name: 'تجاهل وإغلاق' }));
+    expect(onClose).toHaveBeenCalledOnce();
+
+    rerender(<ChangePasswordModal isOpen={false} onClose={onClose} />);
+    rerender(<ChangePasswordModal isOpen={true} onClose={onClose} />);
+    expect(screen.getAllByPlaceholderText('••••••••')[0]).toHaveAttribute('type', 'password');
   });
 });

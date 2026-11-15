@@ -55,6 +55,8 @@ export default function PlatformAdmin() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [detailDirty, setDetailDirty] = useState(false);
+  const [pendingCompanySelection, setPendingCompanySelection] = useState<{ nextId: string | null } | null>(null);
 
   const [companyUsers, setCompanyUsers] = useState<PlatformCompanyUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -124,6 +126,15 @@ export default function PlatformAdmin() {
     () => companies.find((c) => c.id === selectedCompanyId) ?? null,
     [companies, selectedCompanyId],
   );
+
+  function requestSelectCompany(nextId: string | null) {
+    if (nextId === selectedCompanyId) return;
+    if (selectedCompany && detailDirty) {
+      setPendingCompanySelection({ nextId });
+      return;
+    }
+    setSelectedCompanyId(nextId);
+  }
 
   const filteredCompanies = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -403,7 +414,7 @@ export default function PlatformAdmin() {
                                 <button
                                   type="button"
                                   className="table-record-link"
-                                  onClick={() => setSelectedCompanyId(company.id)}
+                                  onClick={() => requestSelectCompany(company.id)}
                                 >
                                   {company.name}
                                 </button>
@@ -445,7 +456,7 @@ export default function PlatformAdmin() {
                                   triggerLabel={`إجراءات شركة ${company.name}`}
                                   editLabel="إدارة وتفاصيل"
                                   deleteLabel="حذف الشركة…"
-                                  onEdit={() => setSelectedCompanyId(company.id)}
+                                  onEdit={() => requestSelectCompany(company.id)}
                                   onDelete={() => setDeleteTargetCompany(company)}
                                   customActions={[
                                     {
@@ -472,14 +483,15 @@ export default function PlatformAdmin() {
                 <div
                   className="erp-drawer-backdrop"
                   aria-hidden="true"
-                  onClick={() => setSelectedCompanyId(null)}
+                  onClick={() => requestSelectCompany(null)}
                 />
                 <PlatformCompanyDetailPanel
                   key={`${selectedCompany.id}:${selectedCompany.updated_at}:${selectedCompany.suspension_reason}`}
                   company={selectedCompany}
                   users={companyUsers}
                   usersLoading={usersLoading}
-                  onClose={() => setSelectedCompanyId(null)}
+                  onClose={() => requestSelectCompany(null)}
+                  onDirtyChange={setDetailDirty}
                   onSaveCompany={handleSaveCompany}
                   onRequestToggleCompanyStatus={(company) => setToggleCompanyTarget(company)}
                   onRequestDeleteCompany={(company) => setDeleteTargetCompany(company)}
@@ -643,6 +655,22 @@ export default function PlatformAdmin() {
         isOpen={selfPasswordOpen}
         onClose={() => setSelfPasswordOpen(false)}
       />
+
+      {pendingCompanySelection && (
+        <ConfirmDialog
+          title="تجاهل التغييرات؟"
+          message="لديك تعديلات غير محفوظة على بيانات الشركة. هل تريد تجاهلها والمتابعة؟"
+          confirmLabel="تجاهل وإغلاق"
+          danger
+          onConfirm={() => {
+            const { nextId } = pendingCompanySelection;
+            setPendingCompanySelection(null);
+            setDetailDirty(false);
+            setSelectedCompanyId(nextId);
+          }}
+          onCancel={() => setPendingCompanySelection(null)}
+        />
+      )}
     </div>
   );
 }

@@ -397,4 +397,44 @@ describe('PlatformAdmin page', () => {
     expect(await within(drawer).findByText('لا يوجد مستخدمون مسجلون في هذه الشركة.')).toBeInTheDocument();
     expect(drawer.querySelector('.empty-state.is-compact .empty-state-icon')).toBeInTheDocument();
   });
+
+  it('guards unsaved company edits on Escape, close, and company switch while allowing clean Escape', async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'شركة الأمل' }));
+    await screen.findByLabelText('تفاصيل شركة شركة الأمل');
+
+    // Clean Escape closes drawer cleanly
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByLabelText('تفاصيل شركة شركة الأمل')).not.toBeInTheDocument();
+
+    // Open again and edit notes (dirty)
+    fireEvent.click(screen.getByRole('button', { name: 'شركة الأمل' }));
+    const dirtyDrawer = await screen.findByLabelText('تفاصيل شركة شركة الأمل');
+    const notesBox = within(dirtyDrawer).getByLabelText('ملاحظات المطور (سرية للمنصة فقط)');
+    fireEvent.change(notesBox, { target: { value: 'تعديل غير محفوظ' } });
+
+    // Switching company triggers discard confirm
+    fireEvent.click(screen.getByRole('button', { name: 'شركة البدر' }));
+    const switchConfirm = screen.getByRole('dialog', { name: 'تجاهل التغييرات؟' });
+    fireEvent.click(within(switchConfirm).getByRole('button', { name: 'إلغاء' }));
+    expect(within(screen.getByLabelText('تفاصيل شركة شركة الأمل')).getByLabelText('ملاحظات المطور (سرية للمنصة فقط)')).toHaveValue('تعديل غير محفوظ');
+
+    // Pressing Escape when dirty opens discard confirm
+    fireEvent.keyDown(document, { key: 'Escape' });
+    const escapeConfirm = screen.getByRole('dialog', { name: 'تجاهل التغييرات؟' });
+    fireEvent.click(within(escapeConfirm).getByRole('button', { name: 'تجاهل وإغلاق' }));
+    expect(screen.queryByLabelText('تفاصيل شركة شركة الأمل')).not.toBeInTheDocument();
+
+    // Suspended company modal should not warn on unmodified suspension reason and should warn when edited
+    fireEvent.click(screen.getByRole('button', { name: 'شركة الأمل' }));
+    const activeDrawer = await screen.findByLabelText('تفاصيل شركة شركة الأمل');
+    fireEvent.click(within(activeDrawer).getByRole('button', { name: 'إيقاف الشركة مؤقتًا' }));
+    const suspendModal = screen.getByRole('dialog', { name: 'إيقاف شركة «شركة الأمل»' });
+    fireEvent.keyDown(document, { key: 'Escape' });
+    // Escape closes top modal only, leaving drawer open
+    expect(screen.queryByRole('dialog', { name: 'إيقاف شركة «شركة الأمل»' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('تفاصيل شركة شركة الأمل')).toBeInTheDocument();
+    expect(suspendModal).not.toBeInTheDocument();
+  });
 });

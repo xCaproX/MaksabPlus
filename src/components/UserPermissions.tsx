@@ -21,7 +21,7 @@ import {
 import { errorMessage } from '../lib/errors';
 import { collectAllRows } from '../lib/exportRows';
 import ConfirmDialog from './ConfirmDialog';
-import Modal from './Modal';
+import Modal, { ModalCancelButton } from './Modal';
 import ChangePasswordModal from './ChangePasswordModal';
 import EmptyState from './EmptyState';
 import { LoadingSkeleton } from './LoadingSkeleton';
@@ -543,117 +543,112 @@ export default function UserPermissions({
           dismissible={!busy}
           isDirty={Boolean(inviteFullName.trim() || inviteEmail.trim() || invitePermissions.length > 0)}
         >
-          <form className="stack invoice-form" onSubmit={invite}>
-            <p className="hint">
-              أدخل بيانات الموظف لتصله دعوة تسجيل الدخول عبر البريد الإلكتروني مع الصلاحيات المحددة له.
-            </p>
+          <form className="stack invoice-form" onSubmit={invite} aria-busy={busy}>
+            <fieldset className="form-fields stack" disabled={busy}>
+              <p className="hint">
+                أدخل بيانات الموظف لتصله دعوة تسجيل الدخول عبر البريد الإلكتروني مع الصلاحيات المحددة له.
+              </p>
 
-            <div className="form-grid">
-              <label>
-                اسم الموظف
-                <input
-                  value={inviteFullName}
-                  onChange={(event) => setInviteFullName(event.target.value)}
-                  placeholder="مثال: أحمد محمد"
-                  required
-                />
-              </label>
+              <div className="form-grid">
+                <label>
+                  اسم الموظف
+                  <input
+                    value={inviteFullName}
+                    onChange={(event) => setInviteFullName(event.target.value)}
+                    placeholder="مثال: أحمد محمد"
+                    required
+                  />
+                </label>
 
-              <label>
-                البريد الإلكتروني
-                <input
-                  type="email"
-                  dir="ltr"
-                  value={inviteEmail}
-                  onChange={(event) => setInviteEmail(event.target.value)}
-                  placeholder="employee@example.com"
-                  required
-                />
-              </label>
-            </div>
+                <label>
+                  البريد الإلكتروني
+                  <input
+                    type="email"
+                    dir="ltr"
+                    value={inviteEmail}
+                    onChange={(event) => setInviteEmail(event.target.value)}
+                    placeholder="employee@example.com"
+                    required
+                  />
+                </label>
+              </div>
 
-            <div className="matrix-toolbar" style={{ marginTop: '8px', padding: '6px 10px' }}>
-              <div className="matrix-toolbar-presets">
-                <span className="presets-title" style={{ fontSize: '11px' }}>
-                  أدوار جاهزة:
-                </span>
-                <div className="presets-list">
-                  {PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      className="preset-chip-btn"
-                      onClick={() => setInvitePermissions(preset.keys)}
-                    >
-                      <span>{preset.label}</span>
-                    </button>
-                  ))}
+              <div className="matrix-toolbar" style={{ marginTop: '8px', padding: '6px 10px' }}>
+                <div className="matrix-toolbar-presets">
+                  <span className="presets-title" style={{ fontSize: '11px' }}>
+                    أدوار جاهزة:
+                  </span>
+                  <div className="presets-list">
+                    {PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        className="preset-chip-btn"
+                        onClick={() => setInvitePermissions(preset.keys)}
+                      >
+                        <span>{preset.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="matrix-toolbar-actions">
+                  <span className="matrix-toolbar-count" style={{ fontSize: '11px' }}>
+                    (<bdi dir="ltr" className="tabular-nums">{invitePermissions.length}</bdi> من <bdi dir="ltr" className="tabular-nums">{allKeys.length}</bdi>)
+                  </span>
+                  <button
+                    type="button"
+                    className="btn compact"
+                    onClick={() => setInvitePermissions(allKeys)}
+                  >
+                    تحديد الكل
+                  </button>
+                  <button
+                    type="button"
+                    className="btn compact"
+                    onClick={() => setInvitePermissions([])}
+                  >
+                    إلغاء الكل
+                  </button>
                 </div>
               </div>
 
-              <div className="matrix-toolbar-actions">
-                <span className="matrix-toolbar-count" style={{ fontSize: '11px' }}>
-                  (<bdi dir="ltr" className="tabular-nums">{invitePermissions.length}</bdi> من <bdi dir="ltr" className="tabular-nums">{allKeys.length}</bdi>)
-                </span>
-                <button
-                  type="button"
-                  className="btn compact"
-                  onClick={() => setInvitePermissions(allKeys)}
-                >
-                  تحديد الكل
-                </button>
-                <button
-                  type="button"
-                  className="btn compact"
-                  onClick={() => setInvitePermissions([])}
-                >
-                  إلغاء الكل
-                </button>
+              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                <HierarchyMatrixTable
+                  sections={sections}
+                  draftKeys={invitePermissions}
+                  onToggleKey={(key) =>
+                    setInvitePermissions((prev) =>
+                      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+                    )
+                  }
+                  onToggleSection={(sec) =>
+                    setInvitePermissions((prev) =>
+                      togglePermissionKeys(prev, getSectionPermissionKeys(sec)),
+                    )
+                  }
+                  onToggleItem={(item) =>
+                    setInvitePermissions((prev) =>
+                      togglePermissionKeys(prev, getItemPermissionKeys(item)),
+                    )
+                  }
+                  onToggleColumnAction={(action) =>
+                    setInvitePermissions((prev) =>
+                      togglePermissionKeys(prev, getActionColumnKeys(sections, action)),
+                    )
+                  }
+                  expandedSections={expandedSections}
+                  onToggleSectionCollapse={toggleSectionCollapse}
+                />
               </div>
-            </div>
 
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              <HierarchyMatrixTable
-                sections={sections}
-                draftKeys={invitePermissions}
-                onToggleKey={(key) =>
-                  setInvitePermissions((prev) =>
-                    prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-                  )
-                }
-                onToggleSection={(sec) =>
-                  setInvitePermissions((prev) =>
-                    togglePermissionKeys(prev, getSectionPermissionKeys(sec)),
-                  )
-                }
-                onToggleItem={(item) =>
-                  setInvitePermissions((prev) =>
-                    togglePermissionKeys(prev, getItemPermissionKeys(item)),
-                  )
-                }
-                onToggleColumnAction={(action) =>
-                  setInvitePermissions((prev) =>
-                    togglePermissionKeys(prev, getActionColumnKeys(sections, action)),
-                  )
-                }
-                expandedSections={expandedSections}
-                onToggleSectionCollapse={toggleSectionCollapse}
-              />
-            </div>
-
-            <div className="form-modal-actions" style={{ marginTop: '14px' }}>
-              <button type="submit" className="btn primary" disabled={busy}>
-                {busy ? 'جارٍ إرسال الدعوة…' : 'إرسال الدعوة'}
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setIsInviteOpen(false)}
-                disabled={busy}
-              >
-                إلغاء
-              </button>
-            </div>
+              <div className="form-modal-actions" style={{ marginTop: '14px' }}>
+                <button type="submit" className="btn primary" disabled={busy}>
+                  {busy ? 'جارٍ إرسال الدعوة…' : 'إرسال الدعوة'}
+                </button>
+                <ModalCancelButton className="btn" onCancel={() => setIsInviteOpen(false)} disabled={busy} />
+              </div>
+            </fieldset>
           </form>
         </Modal>
       )}

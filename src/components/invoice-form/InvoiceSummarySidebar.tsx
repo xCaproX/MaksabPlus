@@ -1,8 +1,8 @@
-import { Link, useInRouterContext } from 'react-router-dom';
 import { Check, ExternalLink, X } from 'lucide-react';
-import { round2 } from '../../lib/format';
+import { calculateInvoiceCashBoxState } from '../../lib/invoiceValidation';
 import { toCashBoxOption } from '../../lib/masterDataQueries';
 import CashBoxBalanceBox from '../CashBoxBalanceBox';
+import GuardedLink from '../GuardedLink';
 import SearchableSelect from '../SearchableSelect';
 import MoneyDisplay from '../MoneyDisplay';
 import StatusBadge from '../StatusBadge';
@@ -37,6 +37,7 @@ interface InvoiceSummarySidebarProps {
   onNotesChange: (notes: string) => void;
   onResetNew: () => void;
   onCancel: () => void;
+  onRequestNavigate?: (proceed: () => void) => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onRestore?: () => void;
@@ -66,32 +67,25 @@ export default function InvoiceSummarySidebar({
   onNotesChange,
   onResetNew,
   onCancel,
+  onRequestNavigate,
   onEdit,
   onDelete,
   onRestore,
   onPrint,
 }: InvoiceSummarySidebarProps) {
-  const inRouter = useInRouterContext();
-  const isCashOut = kind === 'purchase' || kind === 'sale_return';
+  const {
+    isCashOut,
+    displayBalance: cashBoxDisplayBalance,
+    isOverdraft: isCashBoxOverdraft,
+  } = calculateInvoiceCashBoxState({
+    kind,
+    isReadOnly,
+    paidNumber,
+    effectiveCashBoxId,
+    cashBoxes: selectableCashBoxes,
+    editingInvoice: editing?.invoice,
+  });
   const selectedCashBox = selectableCashBoxes.find((b) => b.id === effectiveCashBoxId);
-  const prevOutOnSameBox =
-    editing &&
-    isCashOut &&
-    editing.invoice.cash_box_id === effectiveCashBoxId &&
-    Number(editing.invoice.paid || 0) > 0
-      ? Number(editing.invoice.paid || 0)
-      : 0;
-  const cashBoxDisplayBalance = selectedCashBox
-    ? !isReadOnly && isCashOut
-      ? round2(Number(selectedCashBox.balance || 0) + prevOutOnSameBox)
-      : Number(selectedCashBox.balance || 0)
-    : null;
-  const isCashBoxOverdraft =
-    !isReadOnly &&
-    isCashOut &&
-    cashBoxDisplayBalance !== null &&
-    paidNumber > 0 &&
-    round2(paidNumber) > round2(cashBoxDisplayBalance);
   const saveLabel = editing
     ? 'حفظ التعديلات'
     : isReturn
@@ -124,28 +118,21 @@ export default function InvoiceSummarySidebar({
   const linkedReceiptNode = editing?.invoice.receipt_number ? (
     <div className="left-field-box linked-receipt-box">
       <span className="linked-receipt-title">السند المالي المرتبط</span>
-      {inRouter ? (
-        <Link
-          to={linkedReceiptUrl}
-          className="linked-receipt-badge receipt-linked-link"
-          onClick={onCancel}
-          title={`فتح الإيصال ${editing.invoice.receipt_number}`}
-        >
-          {linkedReceiptContent}
-        </Link>
-      ) : (
-        <a
-          href={linkedReceiptUrl}
-          className="linked-receipt-badge receipt-linked-link"
-          onClick={(e) => {
-            e.preventDefault();
+      <GuardedLink
+        to={linkedReceiptUrl}
+        className="linked-receipt-badge receipt-linked-link"
+        title={`فتح الإيصال ${editing.invoice.receipt_number}`}
+        onBeforeNavigate={(proceed) => {
+          if (onRequestNavigate) {
+            onRequestNavigate(proceed);
+          } else {
             onCancel();
-          }}
-          title={`فتح الإيصال ${editing.invoice.receipt_number}`}
-        >
-          {linkedReceiptContent}
-        </a>
-      )}
+            proceed();
+          }
+        }}
+      >
+        {linkedReceiptContent}
+      </GuardedLink>
     </div>
   ) : null;
 
@@ -155,6 +142,7 @@ export default function InvoiceSummarySidebar({
       isEditing={Boolean(editing)}
       notes={notes}
       busy={busy}
+      saveDisabled={isCashBoxOverdraft}
       notesPlaceholder="ملاحظات اختيارية على الفاتورة…"
       emptyNotesText="لا توجد ملاحظات على الفاتورة"
       saveLabel={saveLabel}
@@ -299,6 +287,11 @@ export default function InvoiceSummarySidebar({
                   ariaLabel={isCashOut ? 'الرصيد المتاح' : 'الرصيد'}
                 />
               </div>
+              {isCashBoxOverdraft && (
+                <div className="overdraft-warning-badge" role="alert">
+                  تنبيه: المبلغ يتجاوز الرصيد المتوفر بالخزنة المحددة
+                </div>
+              )}
             </div>
           )}
         </div>

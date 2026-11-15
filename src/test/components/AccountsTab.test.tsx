@@ -183,4 +183,21 @@ describe('customer and supplier account form', () => {
     if (expectedKind === 'info') expect(api.success).not.toHaveBeenCalled();
     else expect(api.info).not.toHaveBeenCalled();
   });
+
+  it('guards cancel button click in dirty account modal with discard confirmation', async () => {
+    const dialog = await addForm('customer');
+    const nameInput = within(dialog).getByPlaceholderText('اسم العميل');
+    expect(nameInput).toHaveValue('حساب الاختبار');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'إلغاء' }));
+    const confirmModal = screen.getByRole('dialog', { name: 'تجاهل التغييرات؟' });
+
+    fireEvent.click(within(confirmModal).getByRole('button', { name: 'إلغاء' }));
+    expect(screen.queryByRole('dialog', { name: 'تجاهل التغييرات؟' })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).getByPlaceholderText('اسم العميل')).toHaveValue('حساب الاختبار');
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'إلغاء' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'تجاهل التغييرات؟' })).getByRole('button', { name: 'تجاهل وإغلاق' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
 });

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import Modal from '../Modal';
+import Modal, { ModalCancelButton } from '../Modal';
 import PasswordInput from '../PasswordInput';
 import { createPlatformCompany, type AuthProvisionMode } from '../../lib/platformAdmin';
 import { toast } from '../Toast';
@@ -77,8 +77,9 @@ export default function PlatformCompanyFormModal({ onClose, onCreated }: Platfor
 
   return (
     <Modal title="إنشاء شركة جديدة" onClose={onClose} dismissible={!busy} isDirty={isDirty}>
-      <form className="stack" onSubmit={handleSubmit}>
-        <div className="form-grid">
+      <form className="stack" onSubmit={handleSubmit} aria-busy={busy}>
+        <fieldset className="form-fields stack" disabled={busy}>
+          <div className="form-grid">
           <label className="span-2">
             <span>اسم الشركة</span>
             <input
@@ -191,14 +192,13 @@ export default function PlatformCompanyFormModal({ onClose, onCreated }: Platfor
 
         {error && <div className="alert error" role="alert">{error}</div>}
 
-        <div className="form-modal-actions">
-          <button type="button" className="btn outline" onClick={onClose} disabled={busy}>
-            إلغاء
-          </button>
-          <button type="submit" className="btn primary" disabled={busy}>
-            {busy ? 'جارٍ الإنشاء…' : 'إنشاء الشركة'}
-          </button>
-        </div>
+          <div className="form-modal-actions">
+            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} />
+            <button type="submit" className="btn primary" disabled={busy}>
+              {busy ? 'جارٍ الإنشاء…' : 'إنشاء الشركة'}
+            </button>
+          </div>
+        </fieldset>
       </form>
     </Modal>
   );

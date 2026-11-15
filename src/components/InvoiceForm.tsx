@@ -6,10 +6,10 @@ import { calculateInvoiceSubtotal, calculateRemaining, calculateBalancePreview }
 import { resolveDefaultAccount, resolveDefaultWarehouse, resolveDefaultCashBox } from '../lib/defaults';
 import { clampDocQty, clampDocQtyOnBlur, DOC_LINE_CLAMP_WARNING, mergeOrInsertDocLine, flushPendingDocLine } from '../lib/docLineEntry';
 import { translateDbError } from '../lib/errors';
-import { calculateAvailableStock } from '../lib/invoiceValidation';
+import { calculateAvailableStock, calculateInvoiceCashBoxState } from '../lib/invoiceValidation';
 import type { WarehouseItemOption } from '../lib/masterDataQueries';
 import ConfirmDialog from './ConfirmDialog';
-import { useModalDirtyGuard } from './Modal';
+import { useModalDirtyGuard, useReportBusy } from './Modal';
 import { toast } from './Toast';
 import InvoiceAccountHeader from './invoice-form/InvoiceAccountHeader';
 import InvoiceItemsTable from './invoice-form/InvoiceItemsTable';
@@ -40,6 +40,7 @@ interface InvoiceFormProps {
   stockRows: StockOpeningRow[];
   editing: EditingInvoice | null;
   readOnly?: boolean;
+  onBusyChange?: (busy: boolean) => void;
   onSaved: (message: string, affectsCash: boolean) => void;
   onCancel: () => void;
   onEdit?: () => void;
@@ -57,6 +58,7 @@ export default function InvoiceForm({
   stockRows,
   editing,
   readOnly = false,
+  onBusyChange,
   onSaved,
   onCancel,
   onEdit,
@@ -101,6 +103,7 @@ export default function InvoiceForm({
     return [];
   });
   const [busy, setBusy] = useState(false);
+  useReportBusy(busy, onBusyChange);
   const [confirmZeroPriceOpen, setConfirmZeroPriceOpen] = useState(false);
   const [adjustedHighlightItemId, setAdjustedHighlightItemId] = useState<string | null>(null);
   const [clampWarning, setClampWarning] = useState<string | null>(null);
@@ -160,6 +163,14 @@ export default function InvoiceForm({
     cashBoxes.find((box) => box.is_active)?.id ||
     '';
   const effectiveCashBoxId = paidNumber > 0 ? resolvedCashBoxId : '';
+  const { isOverdraft: isCashBoxOverdraft } = calculateInvoiceCashBoxState({
+    kind,
+    isReadOnly,
+    paidNumber,
+    effectiveCashBoxId,
+    cashBoxes: selectableCashBoxes,
+    editingInvoice: editing?.invoice,
+  });
 
   const selectedAccount = accounts.find((account) => account.id === accountId);
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId);
@@ -588,6 +599,9 @@ export default function InvoiceForm({
       setPaid(Number(currentTotal).toFixed(2));
       return toast.error(`الحساب نقدي: يلزم سداد كامل قيمة المستند (${money(currentTotal)})`);
     }
+    if (isCashBoxOverdraft) {
+      return toast.error('تنبيه: المبلغ يتجاوز الرصيد المتوفر بالخزنة المحددة');
+    }
 
     // تأكيد صريح في حال وجود صنف بسعر صفر
     const hasZeroPrice = !isWaste && activeLines.some((line) => Number(line.unit_price || 0) === 0);
@@ -721,6 +735,7 @@ export default function InvoiceForm({
           onNotesChange={setNotes}
           onResetNew={handleResetNew}
           onCancel={() => requestClose(onCancel)}
+          onRequestNavigate={(proceed) => requestClose(() => { onCancel(); proceed(); })}
           onEdit={onEdit}
           onDelete={onDelete}
           onRestore={onRestore}

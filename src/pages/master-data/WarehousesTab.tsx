@@ -11,7 +11,7 @@ import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
-import Modal from '../../components/Modal';
+import Modal, { ModalCancelButton } from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import EmptyState from '../../components/EmptyState';
 import SortableHeader from '../../components/SortableHeader';
@@ -471,9 +471,7 @@ export default function WarehousesTab() {
               <button type="submit" className="btn primary" disabled={savingWarehouse}>
                 {savingWarehouse ? 'جارٍ الحفظ…' : editingWarehouseId ? 'حفظ التعديلات' : 'إضافة مخزن'}
               </button>
-              <button type="button" className="btn" onClick={cancelEdit} disabled={savingWarehouse}>
-                إلغاء
-              </button>
+              <ModalCancelButton className="btn" onCancel={cancelEdit} disabled={savingWarehouse} />
             </div>
           </form>
         </Modal>

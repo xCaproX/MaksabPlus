@@ -101,6 +101,45 @@ export function useModalDirtyGuard(isDirty: boolean, confirmMessage?: string) {
   return { requestClose };
 }
 
+export function useRequestModalClose() {
+  const modal = useContext(ModalContext);
+  return modal ? modal.requestClose : (proceed?: () => void) => proceed?.();
+}
+
+export function ModalCancelButton({
+  onCancel,
+  disabled = false,
+  className = 'btn',
+  label = 'إلغاء',
+}: {
+  onCancel: () => void;
+  disabled?: boolean;
+  className?: string;
+  label?: string;
+}) {
+  const modal = useContext(ModalContext);
+  return (
+    <button
+      type="button"
+      className={className}
+      disabled={disabled}
+      onClick={() => (modal ? modal.requestClose(onCancel) : onCancel())}
+    >
+      {label}
+    </button>
+  );
+}
+
+export function useReportBusy(busy: boolean, onBusyChange?: (busy: boolean) => void) {
+  useEffect(() => {
+    onBusyChange?.(busy);
+  }, [busy, onBusyChange]);
+
+  useEffect(() => () => {
+    onBusyChange?.(false);
+  }, [onBusyChange]);
+}
+
 interface ModalProps {
   title: string;
   onClose: () => void;

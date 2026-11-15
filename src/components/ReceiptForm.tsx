@@ -1,9 +1,9 @@
 import DateDisplay from './DateDisplay';
 import AccountBalancePills from './AccountBalancePills';
 import { useState, useEffect, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { Check, ExternalLink, FileText } from 'lucide-react';
 import DocumentActionsBar from './DocumentActionsBar';
+import GuardedLink from './GuardedLink';
 import { supabase } from '../lib/supabase';
 import { money, round2, today } from '../lib/format';
 import { tafqeet } from '../lib/tafqeet';
@@ -14,7 +14,7 @@ import CashBoxBalanceBox from './CashBoxBalanceBox';
 import { resolveDefaultCashBox, sortCashBoxesWithPrimaryFirst } from '../lib/defaults';
 import DateInput from './DateInput';
 import MoneyDisplay from './MoneyDisplay';
-import { useModalDirtyGuard } from './Modal';
+import { useModalDirtyGuard, useReportBusy } from './Modal';
 import { toast } from './Toast';
 import type {
   AccountKind,
@@ -29,6 +29,7 @@ interface ReceiptFormProps {
   accounts: AccountRow[];
   cashBoxes: CashBoxRow[];
   editing: ReceiptRow | null;
+  onBusyChange?: (busy: boolean) => void;
   onSaved: (message: string) => void;
   onCancel: () => void;
   readOnly?: boolean;
@@ -51,6 +52,7 @@ export default function ReceiptForm({
   accounts,
   cashBoxes,
   editing,
+  onBusyChange,
   onSaved,
   onCancel,
   readOnly = false,
@@ -92,6 +94,7 @@ export default function ReceiptForm({
   const [statement, setStatement] = useState(initialStatement);
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [busy, setBusy] = useState(false);
+  useReportBusy(busy, onBusyChange);
 
   const [initialSnapshot] = useState(() => ({
     accountKind,
@@ -508,19 +511,19 @@ export default function ReceiptForm({
         <div className="linked-receipt-box">
           <div className="linked-receipt-main">
             <span className="linked-receipt-label">هذا الإيصال مُنشأ تلقائيًا ومربوط بـ:</span>
-            <Link
+            <GuardedLink
               to={
                 editing.invoice_id
                   ? `/invoices?tab=${editing.invoice_kind ?? 'sale'}&doc=${encodeURIComponent(editing.invoice_id)}`
                   : `/invoices?tab=${editing.invoice_kind ?? 'sale'}&search=${encodeURIComponent(editing.invoice_number ?? '')}`
               }
               className="receipt-linked-link"
-              onClick={() => requestClose(onCancel)}
+              onBeforeNavigate={(proceed) => requestClose(() => { onCancel(); proceed(); })}
             >
               <FileText size={15} />
               <span>{linkKind(editing.invoice_kind)} {editing.invoice_number}</span>
               <ExternalLink size={13} className="link-ext-icon" />
-            </Link>
+            </GuardedLink>
           </div>
           <span className="linked-receipt-note">
             يتم تعديله أو حذفه من داخل الفاتورة نفسها

@@ -18,7 +18,7 @@ import KpiBar, { type KpiItem } from '../../components/KpiBar';
 import { supabase } from '../../lib/supabase';
 import { entityNumber } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
-import Modal from '../../components/Modal';
+import Modal, { ModalCancelButton } from '../../components/Modal';
 import EmptyState from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SortableHeader from '../../components/SortableHeader';
@@ -674,9 +674,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
               <button type="submit" className="btn primary" disabled={savingAccount}>
                 {savingAccount ? 'جارٍ الحفظ…' : editingAccount ? 'حفظ التعديلات' : `إضافة ${entityTitle}`}
               </button>
-              <button type="button" className="btn outline" onClick={cancelEdit} disabled={savingAccount}>
-                إلغاء
-              </button>
+              <ModalCancelButton className="btn outline" onCancel={cancelEdit} disabled={savingAccount} />
             </div>
           </form>
         </Modal>

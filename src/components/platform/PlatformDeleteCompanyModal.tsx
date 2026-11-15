@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import Modal from '../Modal';
+import Modal, { ModalCancelButton } from '../Modal';
 import { deletePlatformCompany, type PlatformCompany } from '../../lib/platformAdmin';
 import { toast } from '../Toast';
 
@@ -58,40 +58,40 @@ export default function PlatformDeleteCompanyModal({
       dismissible={!busy}
       isDirty={Boolean(typedName)}
     >
-      <form className="stack" onSubmit={handleSubmit}>
-        <div className="alert error" role="alert">
-          <div>
-            <strong>تحذير شديد الخطورة: لا يمكن التراجع عن هذه العملية!</strong>
-            <p>
-              سيتم حذف جميع بيانات شركة «<strong>{expectedName}</strong>» نهائيًا، بما في ذلك الفواتير والإيصالات والمخازن والخزن والأصناف والحسابات، وحذف جميع حسابات مستخدميها (<span dir="ltr" className="tabular-nums">{company.users_count}</span>) من النظام.
-            </p>
+      <form className="stack" onSubmit={handleSubmit} aria-busy={busy}>
+        <fieldset className="form-fields stack" disabled={busy}>
+          <div className="alert error" role="alert">
+            <div>
+              <strong>تحذير شديد الخطورة: لا يمكن التراجع عن هذه العملية!</strong>
+              <p>
+                سيتم حذف جميع بيانات شركة «<strong>{expectedName}</strong>» نهائيًا، بما في ذلك الفواتير والإيصالات والمخازن والخزن والأصناف والحسابات، وحذف جميع حسابات مستخدميها (<span dir="ltr" className="tabular-nums">{company.users_count}</span>) من النظام.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <label>
-          <span>
-            للمتابعة، اكتب اسم الشركة بالكامل: <strong className="platform-confirm-target">{expectedName}</strong>
-          </span>
-          <input
-            type="text"
-            value={typedName}
-            onChange={(e) => setTypedName(e.target.value)}
-            placeholder={expectedName}
-            autoFocus
-            required
-          />
-        </label>
+          <label>
+            <span>
+              للمتابعة، اكتب اسم الشركة بالكامل: <strong className="platform-confirm-target">{expectedName}</strong>
+            </span>
+            <input
+              type="text"
+              value={typedName}
+              onChange={(e) => setTypedName(e.target.value)}
+              placeholder={expectedName}
+              autoFocus
+              required
+            />
+          </label>
 
-        {error && <div className="alert error" role="alert">{error}</div>}
+          {error && <div className="alert error" role="alert">{error}</div>}
 
-        <div className="form-modal-actions">
-          <button type="button" className="btn outline" onClick={onClose} disabled={busy}>
-            تراجع
-          </button>
-          <button type="submit" className="btn danger" disabled={busy || !isMatch}>
-            {busy ? 'جارٍ الحذف النهائي…' : 'حذف الشركة نهائيًا'}
-          </button>
-        </div>
+          <div className="form-modal-actions">
+            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} label="تراجع" />
+            <button type="submit" className="btn danger" disabled={busy || !isMatch}>
+              {busy ? 'جارٍ الحذف النهائي…' : 'حذف الشركة نهائيًا'}
+            </button>
+          </div>
+        </fieldset>
       </form>
     </Modal>
   );
