@@ -10,12 +10,6 @@
     box-shadow var(--transition-fast);
 }
 
-.card.card-interactive:hover {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-md);
-  cursor: pointer;
-}
-
 .metric-card {
   --metric-accent: var(--muted);
   background: var(--card);
@@ -63,105 +57,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #f1f5f9;
-  color: var(--muted);
-  border-radius: var(--radius-full, 9999px);
-  padding: 3px 10px;
-  font-size: 11.5px;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.badge.ok {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-
-.badge.danger {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.badge.neutral {
-  background: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #cbd5e1;
-}
-
-.badge.info {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chip {
-  background: #f8fafc;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-full, 9999px);
-  padding: 4px 12px;
-  font-size: 12.5px;
-  font-weight: 550;
-  color: var(--ink-secondary);
-  transition:
-    border-color var(--transition-fast),
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.chip:hover {
-  background: #ffffff;
-  border-color: var(--line-strong);
-  color: var(--ink);
-}
-
-.stock-breakdown {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 5px;
-  margin-top: 6px;
-}
-
-.stock-breakdown .chip {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 2px 8px;
-}
-
-.filter-row {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.filter-row label {
-  width: min(320px, 100%);
-}
-
-.balance-filter-row {
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.filter-note {
-  margin: 0 0 10px;
-  color: var(--muted);
-  font-size: 13px;
+  margin-block-end: 16px;
 }
 
 @media (max-width: 760px) {
@@ -176,22 +72,22 @@
    ============================================================= */
 
 .account-header-card {
-  background: #ffffff;
-  border: 1px solid var(--erp-border, #e2e8f0);
+  background: var(--card);
+  border: 1px solid var(--erp-border);
   border-radius: 8px;
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--shadow-xs);
 }
 
 .account-header-row2 {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
+  padding-block-start: 8px;
+  border-block-start: 1px solid #f1f5f9;
 }
 
 .account-header-row2 .field-account-notes {
@@ -266,22 +162,16 @@
   line-height: 1.4;
 }
 
-.stat-pill-tag.tag-settled {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #475569;
-}
-
 .stat-pill-tag.tag-debit {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #991b1b;
+  background: var(--danger-light);
+  border-color: var(--danger-border);
+  color: var(--danger-ink);
 }
 
 .stat-pill-tag.tag-credit {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-  color: #1e40af;
+  background: var(--info-light);
+  border-color: var(--info-border);
+  color: var(--info-ink);
 }
 
 /* =============================================================
@@ -290,11 +180,11 @@
    ============================================================= */
 
 .receipt-amount-card {
-  background: #ffffff;
-  border: 1px solid var(--erp-border, #e2e8f0);
+  background: var(--card);
+  border: 1px solid var(--erp-border);
   border-radius: 8px;
   padding: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--shadow-xs);
 }
 
 .row-amount-tafqeet {
@@ -307,16 +197,16 @@
 .amount-input-with-action {
   display: flex;
   align-items: center;
-  border: 1.5px solid #cbd5e1;
+  border: 1.5px solid var(--line-strong);
   border-radius: 6px;
   overflow: hidden;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: var(--card);
+  box-shadow: var(--shadow-xs);
   transition: border-color 0.15s ease;
 }
 
 .amount-input-with-action:focus-within {
-  border-color: var(--primary, #0f172a);
+  border-color: var(--primary);
   box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
 }
 
@@ -341,10 +231,10 @@ input.receipt-amount-input {
   gap: 4px;
   padding: 0 10px;
   height: 38px;
-  background: #f0fdf4;
-  color: #166534;
+  background: var(--success-light);
+  color: var(--success-ink);
   border: none;
-  border-inline-start: 1px solid #bbf7d0;
+  border-inline-start: 1px solid var(--success-border);
   font-size: 11.5px;
   font-weight: 750;
   cursor: pointer;
@@ -352,9 +242,24 @@ input.receipt-amount-input {
   transition: all 0.15s ease;
 }
 
-.btn-settle-all-action:hover {
+.btn-settle-all-action:hover:not(:disabled) {
   background: #dcfce7;
   color: #14532d;
+}
+
+.btn-settle-all-action:active:not(:disabled) {
+  background: #bbf7d0;
+  transform: scale(0.98);
+}
+
+.btn-settle-all-action:focus-visible {
+  outline: 2px solid var(--success);
+  outline-offset: -2px;
+}
+
+.btn-settle-all-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .field-tafqeet-card {
@@ -453,9 +358,9 @@ input.receipt-amount-input {
 }
 
 .readonly-val-box.cashbox-balance-box.is-danger {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #b91c1c;
+  background: var(--danger-light);
+  border-color: var(--danger-border);
+  color: var(--danger-hover);
   font-weight: 700;
 }
 

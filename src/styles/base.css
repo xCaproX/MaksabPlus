@@ -55,6 +55,11 @@ p {
   font-weight: 700;
 }
 
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 /* ألوان دلالية للمبالغ (تباشرها MoneyDisplay عبر tone) */
 .money-success {
   color: var(--success);

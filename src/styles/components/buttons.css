@@ -128,7 +128,7 @@
 .btn.compact {
   min-height: 32px;
   padding: 4px 10px;
-  border-radius: var(--radius-xs, 6px);
+  border-radius: var(--radius-xs, 5px);
   font-size: 12px;
 }
 
@@ -144,7 +144,6 @@
 }
 /* Document Save / Primary Action Buttons (Item 15) */
 .btn.lg,
-.btn.action-save,
 .btn-invoice-save,
 .btn-receipt-save-full {
   display: inline-flex;

@@ -13,53 +13,14 @@
   }
 }
 
-.transaction-entry-modal .modal-head {
-  padding: 13px 20px;
-  background: var(--primary);
-  border-bottom: 1px solid var(--primary-dark);
-  border-start-start-radius: inherit;
-  border-start-end-radius: inherit;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-}
-
-.transaction-entry-modal .modal-head h2 {
-  font-size: 16.5px;
-  font-weight: 750;
-  color: #ffffff;
-  letter-spacing: -0.01em;
-}
-
-.transaction-entry-modal .modal-body {
-  padding: 18px 22px 22px;
-  overflow-y: auto;
-}
-
 /* Base form controls for invoice & transaction modals */
-.invoice-form,
-.inline-form {
+.invoice-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.invoice-form .form-grid,
-.inline-form .form-grid {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 12px 14px;
-}
-
-.form-grid-col-12 { grid-column: span 12; }
-.form-grid-col-6  { grid-column: span 6; }
-.form-grid-col-4  { grid-column: span 4; }
-.form-grid-col-3  { grid-column: span 3; }
-.form-grid-col-2  { grid-column: span 2; }
-.form-grid-col-5  { grid-column: span 5; }
-.form-grid-col-7  { grid-column: span 7; }
-
-.invoice-form label,
-.inline-form label {
+.invoice-form label {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -69,10 +30,7 @@
 }
 
 .invoice-form input,
-.invoice-form select,
-.inline-form input,
-.inline-form select,
-.searchable-select input {
+.invoice-form select {
   min-height: 40px;
   height: 40px;
   padding: 0 12px;
@@ -86,281 +44,24 @@
   box-sizing: border-box;
 }
 
-.invoice-form select,
-.inline-form select {
+.invoice-form .searchable-select-input-wrap input {
+  padding-inline-end: 36px;
+}
+
+.invoice-form select {
   line-height: 40px;
   padding-inline-end: 28px;
   cursor: pointer;
 }
 
 .invoice-form input:focus,
-.invoice-form select:focus,
-.inline-form input:focus,
-.inline-form select:focus,
-.searchable-select input:focus {
+.invoice-form select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(46, 66, 92, 0.12);
   outline: none;
 }
 
-/* Modern Unified Form Header with Balance Card */
-.form-header-bar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.form-header-fields {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  flex: 1;
-  min-width: 320px;
-  flex-wrap: wrap;
-}
-
-.form-header-fields label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 650;
-  color: #475569;
-}
-
-.form-header-fields .field-account-kind {
-  width: 140px;
-  flex-shrink: 0;
-}
-
-.form-header-fields .field-account-select {
-  flex: 1;
-  min-width: 220px;
-}
-
-.form-header-fields .field-warehouse-select,
-.form-header-fields .field-cashbox-select {
-  width: 220px;
-  flex-shrink: 0;
-}
-
-.form-account-balance-card {
-  display: flex;
-  align-items: center;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 8px 14px;
-  font-size: 12px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-}
-
-.form-account-balance-card .balance-card-col {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding-inline-start: 14px;
-  padding-inline-end: 14px;
-}
-
-.form-account-balance-card .balance-card-col:first-child {
-  padding-inline-start: 2px;
-}
-
-.form-account-balance-card .balance-card-col:not(:last-child) {
-  border-inline-end: 1px solid #e2e8f0;
-}
-
-.form-account-balance-card .balance-card-col:last-child {
-  padding-inline-end: 2px;
-}
-
-.form-account-balance-card .balance-card-label {
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.form-account-balance-card .highlight-label {
-  color: var(--ink);
-  font-weight: 700;
-}
-
-.form-account-balance-card .balance-val-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.form-account-balance-card .balance-card-val {
-  font-weight: 700;
-  font-family: inherit;
-  font-variant-numeric: tabular-nums;
-  direction: ltr;
-  text-align: start;
-  color: var(--ink);
-  font-size: 12.5px;
-}
-
-.form-account-balance-card .highlight-val {
-  font-size: 14.5px;
-  font-weight: 850;
-  color: var(--primary-dark);
-}
-
-.form-account-balance-card .balance-val-group .badge {
-  font-size: var(--font-xs, 11.5px);
-  padding: 1px 6px;
-}
-
-.form-account-balance-card .balance-val-group .badge.symbol-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 4px;
-  font-size: 13px;
-  font-weight: 850;
-  line-height: 1;
-}
-
-.form-account-balance-card .balance-val-group .badge.symbol-badge.symbol-dot {
-  font-size: 16px;
-  line-height: 0.8;
-}
-
-@media (max-width: 640px) {
-  .form-account-balance-card {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-    padding: 8px 10px;
-    width: 100%;
-  }
-
-  .form-account-balance-card .balance-card-col {
-    padding-inline-start: 4px;
-    padding-inline-end: 4px;
-  }
-
-  .form-account-balance-card .balance-card-col:first-child {
-    padding-inline-start: 0;
-  }
-
-  .form-account-balance-card .balance-card-col:last-child {
-    padding-inline-end: 0;
-  }
-
-  .form-account-balance-card .balance-val-group {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-  }
-}
-
-/* Notes Row in Form Footer */
-.invoice-notes-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.invoice-notes-row label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 650;
-  color: #475569;
-}
-
-.invoice-notes-row input {
-  min-height: 38px;
-  height: 38px;
-  padding: 0 12px;
-  border: 1px solid var(--erp-border, #cbd5e1);
-  border-radius: 7px;
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--erp-text, #1e293b);
-  background: #fff;
-}
-
-/* Lines Section Header */
-.lines-head-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: #f8fafc;
-  border: 1px solid var(--erp-border, #e5e9f0);
-  border-bottom: 0;
-  border-start-start-radius: 8px;
-  border-start-end-radius: 8px;
-}
-
-.lines-head-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.lines-head-title h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--erp-text, #1e293b);
-}
-
-.lines-count-badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 11px;
-  padding: 2px 8px;
-  background: #e2e8f0;
-  color: #334155;
-  border-radius: 12px;
-  font-weight: 600;
-}
-
-.add-line-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 6px;
-  background: #0f172a;
-  color: #fff;
-  border: 1px solid #0f172a;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.add-line-btn:hover {
-  background: #1e293b;
-  border-color: #1e293b;
-}
-
 /* Lines Table */
-.lines {
-  margin-top: 18px;
-}
-
-.lines-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
 
 .lines-wrap {
   overflow: visible;
@@ -473,6 +174,16 @@
   transform: translateY(-1px);
 }
 
+.btn-insert-line:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+  background: var(--primary-dark, #1e3348);
+}
+
+.btn-insert-line:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .btn-insert-line:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -484,36 +195,12 @@
   transition: background 0.12s ease;
 }
 
-.inserted-line-row:hover {
+.lines-table tbody tr.inserted-line-row:hover {
   background: #fafbfc;
-}
-
-.empty-lines-placeholder-row td {
-  padding: 32px 16px;
-  text-align: center;
-  color: var(--muted, #64748b);
-  font-size: 13.5px;
-  font-weight: 600;
-  background: #ffffff;
-}
-
-.lines-table tbody tr.empty-line-row {
-  opacity: 0.58;
-  background: #fafbfc;
-}
-
-.lines-table tbody tr.empty-line-row:hover,
-.lines-table tbody tr.empty-line-row:focus-within {
-  opacity: 1;
-  background: #fff;
 }
 
 .lines-table tbody tr:last-child {
   border-bottom: 0;
-}
-
-.lines-table tbody tr:hover {
-  background: #fafbfc;
 }
 
 .lines-table td {
@@ -599,264 +286,10 @@
   cursor: not-allowed;
 }
 
-/* Totals and Payment Bar */
-.form-footer {
-  margin-top: 16px;
-  border-top: 1px solid var(--line);
-  padding-top: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.totals {
-  display: flex;
-  align-items: flex-end;
-  gap: 28px;
-  flex-wrap: wrap;
-}
-
-.totals > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 13px;
-}
-
-.totals strong {
-  font-size: 17px;
-}
-
-.paid-field {
-  width: 170px;
-}
-
-.hint {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.invoice-totals-bar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  padding: 14px 16px;
-  background: #f8fafc;
-  border: 1px solid var(--erp-border, #e5e9f0);
-  border-radius: 10px;
-}
-
-.total-stat-box {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid var(--erp-border, #e5e9f0);
-}
-
-.total-stat-box.grand-total {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-}
-
-.total-stat-box.grand-total .stat-box-title {
-  color: #166534;
-  font-weight: 700;
-}
-
-.total-stat-box.grand-total .stat-box-num {
-  color: #15803d;
-  font-size: 19px;
-  font-weight: 800;
-}
-
-.total-stat-box.paid-full {
-  background: #f0fdfa;
-  border-color: #99f6e4;
-}
-
-.total-stat-box.paid-full .stat-box-title {
-  color: #0f766e;
-}
-
-.total-stat-box.paid-full .stat-box-num {
-  color: #0f766e;
-  font-size: 17px;
-  font-weight: 800;
-}
-
-.total-stat-box.has-remaining {
-  background: #fffbeb;
-  border-color: #fde68a;
-}
-
-.total-stat-box.has-remaining .stat-box-title {
-  color: #92400e;
-}
-
-.total-stat-box.has-remaining .stat-box-num {
-  color: #b45309;
-  font-size: 17px;
-  font-weight: 800;
-}
-
-.stat-box-title {
-  font-size: 11px;
-  font-weight: 650;
-  color: var(--erp-muted, #64748b);
-}
-
-.stat-box-num {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--erp-text, #1e293b);
-}
-
-.total-input-box {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 8px 12px;
-  background: #fff;
-  border: 1px solid var(--erp-border, #e5e9f0);
-  border-radius: 8px;
-}
-
-.total-input-box.disabled {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
-  opacity: 0.75;
-}
-
-.total-input-box.disabled label {
-  color: var(--muted, #64748b);
-  cursor: not-allowed;
-}
-
-.total-input-box.disabled select,
-.total-input-box.disabled input {
-  background: #f8fafc;
-  color: var(--muted, #64748b);
-  border-color: #e2e8f0;
-  cursor: not-allowed;
-}
-
-.total-input-box label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 650;
-  color: #475569;
-  width: 100%;
-}
-
-.input-with-action-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.input-with-action-wrap input {
-  flex: 1;
-  min-width: 0;
-  min-height: 36px;
-  height: 36px;
-}
-
-.btn-pay-full-pill {
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 0 10px;
-  min-height: 36px;
-  height: 36px;
-  white-space: nowrap;
-  background: #e0f2fe;
-  color: #0284c7;
-  border: 1px solid #bae6fd;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-pay-full-pill:hover {
-  background: #bae6fd;
-  color: #0369a1;
-}
-
-.form-footer-smart-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: 6px;
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 12px;
-}
-
-.form-footer-smart-hint.notice-cash {
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
-  color: #1e40af;
-}
-
-
-
 @media (max-width: 760px) {
-  .totals {
-    gap: 18px;
-  }
-  .invoice-form .form-grid,
-  .inline-form .form-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  .form-grid-col-12,
-  .form-grid-col-6,
-  .form-grid-col-4,
-  .form-grid-col-3,
-  .form-grid-col-2,
-  .form-grid-col-5,
-  .form-grid-col-7 {
-    grid-column: 1 / -1;
-  }
-  .invoice-totals-bar {
-    grid-template-columns: 1fr;
-  }
   .lines-table th.w-qty { width: 22%; }
   .lines-table th.w-price { width: 25%; }
 
-  .transaction-entry-backdrop { padding: 0; align-items: stretch; }
-  .modal.transaction-entry-modal {
-    width: 100%;
-    height: 100dvh;
-    max-height: 100dvh;
-    border-radius: 0;
-  }
-  .transaction-entry-modal .modal-head { position: sticky; top: 0; z-index: 2; background: var(--primary); color: #ffffff; }
-  .transaction-entry-modal .modal-body { padding: 14px 13px calc(20px + env(safe-area-inset-bottom)); }
-  .transaction-entry-modal form > .actions {
-    position: sticky;
-    bottom: -14px;
-    z-index: 1;
-    padding: 10px 0 calc(8px + env(safe-area-inset-bottom));
-    background: rgba(255,255,255,.97);
-  }
-  .transaction-entry-modal form > .actions .btn.primary { flex: 1; }
-
-  .modal.invoice-entry-modal {
-    width: 100%;
-    height: 100dvh;
-    max-height: 100dvh;
-    border-radius: 0;
-  }
-  .invoice-entry-modal .modal-head { position: sticky; top: 0; z-index: 2; background: var(--primary); color: #ffffff; }
-  .invoice-entry-modal .modal-body { padding: 14px 13px calc(20px + env(safe-area-inset-bottom)); }
   .lines-wrap { overflow: visible; }
   .lines-table,
   .lines-table tbody,
@@ -886,16 +319,6 @@
   }
   .lines-table td:first-child { grid-column: 1 / -1; width: 100%; }
   .lines-table .line-total { align-self: center; }
-  .lines-table .line-remove { grid-column: 1 / -1; text-align: start !important; }
-  .line-remove-label { display: inline; }
-  .lines-table .line-remove .icon-btn { padding: 7px 0; color: var(--danger); font-size: 13px; }
-  .form-footer { padding-bottom: 4px; }
-  .totals { align-items: stretch; gap: 12px; }
-  .totals > div { min-width: 110px; }
-  .paid-field { width: 100%; }
-  .invoice-form .actions { position: sticky; bottom: -14px; z-index: 1; padding: 10px 0 calc(8px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.97); }
-  .invoice-form .actions .btn.primary { flex: 1; }
-  .invoice-form .form-footer { bottom: calc(-18px - env(safe-area-inset-bottom)); margin-inline: -13px; padding-inline: 13px; }
 }
 
 /* =============================================================
@@ -968,9 +391,8 @@
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
-.account-header-card {
+.invoice-part-right .account-header-card {
   flex-shrink: 0;
-  gap: 10px;
 }
 
 .account-header-row1 {
@@ -1008,18 +430,8 @@
   min-width: 210px;
 }
 
-.account-header-row2 {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.account-header-row2 .field-account-notes {
-  flex: 1;
+.invoice-part-right .account-header-row2 .field-account-notes {
   min-width: 200px;
-  display: flex;
 }
 
 /* Shared .account-notes-input, .account-balance-pills, and .stat-pill inherit from cards.css (Item 14) */
@@ -1032,21 +444,6 @@
   flex-direction: column;
   overflow: hidden;
   padding: 10px 12px;
-}
-
-.table-header-title-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #f1f5f9;
-  flex-shrink: 0;
-}
-
-.items-title {
-  font-size: 13.5px;
-  font-weight: 750;
-  color: #1e293b;
 }
 
 .items-table-card .lines-wrap {
@@ -1388,7 +785,7 @@
   border-top: 1px solid #e2e8f0;
 }
 
-/* Inherits from buttons.css .btn.action-save / .btn-invoice-save (Item 15) */
+/* Inherits from buttons.css .btn-invoice-save */
 
 .btn-invoice-clear {
   display: inline-flex;

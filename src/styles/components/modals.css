@@ -34,50 +34,6 @@
   inline-size: min(580px, 100%);
 }
 
-/* Opening balance toggle inside account modal */
-.opening-balance-input-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.opening-type-toggle {
-  display: inline-flex;
-  border: 1px solid var(--border, #cbd5e1);
-  border-radius: 6px;
-  overflow: hidden;
-  background: #f1f5f9;
-}
-
-.btn-toggle-badge {
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  border: none;
-  background: transparent;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.btn-toggle-badge:hover {
-  background: #e2e8f0;
-}
-
-.btn-toggle-badge.active-debit {
-  background: #fef2f2;
-  color: #991b1b;
-  box-shadow: inset 0 0 0 1.5px #f87171;
-}
-
-.btn-toggle-badge.active-credit {
-  background: #eff6ff;
-  color: #1e40af;
-  box-shadow: inset 0 0 0 1.5px #60a5fa;
-}
-
 /* Master Shared Modal Header & Close Button */
 .modal-head {
   display: flex;
@@ -140,37 +96,6 @@
   background: #f8fafc;
   overflow-y: auto;
   scrollbar-width: thin;
-}
-
-.modal-section {
-  margin: 18px 0 10px;
-}
-
-.subtable {
-  font-size: 13px;
-}
-
-.subtable th,
-.subtable td {
-  padding: 8px 12px;
-}
-
-.doc-meta-list {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px 16px;
-  margin: 0;
-  font-size: 13.5px;
-}
-
-.doc-meta-list dt {
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.doc-meta-list dd {
-  margin: 0;
-  color: var(--ink);
 }
 
 /* Confirm Dialog Specific Polish */
@@ -241,17 +166,17 @@
 }
 
 @media (max-width: 760px) {
-  .doc-meta-list {
-    grid-template-columns: 1fr;
-    gap: 2px;
-  }
-
-  .statement-modal-backdrop {
+  .statement-modal-backdrop,
+  .master-data-backdrop,
+  .transaction-entry-backdrop {
     padding: 0;
     align-items: stretch;
   }
 
-  .modal.account-statement-modal {
+  .modal.account-statement-modal,
+  .modal.master-data-modal,
+  .modal.transaction-entry-modal,
+  .modal.invoice-entry-modal {
     width: 100%;
     height: 100dvh;
     max-height: 100dvh;
@@ -259,55 +184,28 @@
     border: none;
   }
 
-  .account-statement-modal .modal-head {
+  :is(.account-statement-modal, .master-data-modal, .transaction-entry-modal, .invoice-entry-modal) .modal-head {
     position: sticky;
-    top: 0;
+    inset-block-start: 0;
     z-index: 2;
-    background: var(--primary, #0f172a);
+    background: var(--primary);
     color: #ffffff;
   }
 
-  .account-statement-modal .modal-body {
+  :is(.account-statement-modal, .master-data-modal, .transaction-entry-modal, .invoice-entry-modal) .modal-body {
     padding: 14px 13px calc(20px + env(safe-area-inset-bottom));
   }
 
-  .master-data-backdrop {
-    padding: 0;
-    align-items: stretch;
-  }
-
-  .modal.master-data-modal {
-    width: 100%;
-    height: 100dvh;
-    max-height: 100dvh;
-    border-radius: 0;
-    border: none;
-  }
-
-  .master-data-modal .modal-head {
+  :is(.master-data-modal, .transaction-entry-modal) form > .form-modal-actions {
     position: sticky;
-    top: 0;
-    z-index: 2;
-    background: var(--primary, #0f172a);
-    color: #ffffff;
-  }
-
-  .master-data-modal .modal-body {
-    padding: 14px 13px calc(20px + env(safe-area-inset-bottom));
-  }
-
-  .master-data-modal form > .actions,
-  .master-data-modal form > .form-modal-actions {
-    position: sticky;
-    bottom: -14px;
+    inset-block-end: -14px;
     z-index: 1;
     padding: 10px 0 calc(8px + env(safe-area-inset-bottom));
     background: rgba(255, 255, 255, 0.97);
     backdrop-filter: blur(4px);
   }
 
-  .master-data-modal form > .actions .btn.primary,
-  .master-data-modal form > .form-modal-actions .btn.primary {
+  :is(.master-data-modal, .transaction-entry-modal) form > .form-modal-actions .btn.primary {
     flex: 1;
   }
 }

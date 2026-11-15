@@ -18,7 +18,6 @@
   body:has(.modal-backdrop) .document-list-toolbar,
   body:has(.modal-backdrop) .erp-sales-workspace,
   body:has(.modal-backdrop) .erp-list-panel,
-  body:has(.modal-backdrop) .erp-workspace > :not(.modal-backdrop),
   body:has(.modal-backdrop) .stack > :not(.modal-backdrop):not(:has(.modal-backdrop)) {
     display: none !important;
   }
@@ -28,8 +27,7 @@
   body:has(.modal-backdrop) #root,
   body:has(.modal-backdrop) .app,
   body:has(.modal-backdrop) .content,
-  body:has(.modal-backdrop) .stack,
-  body:has(.modal-backdrop) .erp-workspace {
+  body:has(.modal-backdrop) .stack {
     display: block !important;
     height: auto !important;
     min-height: 0 !important;
@@ -105,7 +103,6 @@
   /* Hide interactive & screen-only controls inside printable documents */
   .modal-head .icon-btn,
   .entry-line-row,
-  .line-remove,
   .lines-table th.w-action,
   .lines-table td:has(.line-delete-btn),
   .paid-quick-actions,
@@ -171,7 +168,6 @@
 
   .table tr,
   .lines-table tr,
-  .totals-box,
   .account-statement-totals,
   .account-header-card,
   .left-field-box {

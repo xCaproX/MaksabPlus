@@ -34,7 +34,7 @@
   color: var(--muted);
 }
 
-code {
+.config-card code {
   background: #eef2f6;
   border-radius: 5px;
   padding: 1px 5px;
@@ -47,7 +47,8 @@ code {
   display: block;
   width: min(100%, 260px);
   height: 94px;
-  margin: 0 auto;
+  margin-block: 0;
+  margin-inline: auto;
   object-fit: contain;
 }
 

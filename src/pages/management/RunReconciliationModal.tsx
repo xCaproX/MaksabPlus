@@ -51,7 +51,7 @@ export default function RunReconciliationModal({
                 padding: '12px',
                 borderRadius: '8px',
                 border: `2px solid ${mode === 'reconcile' ? 'var(--primary)' : 'var(--line)'}`,
-                background: mode === 'reconcile' ? 'var(--primary-subtle, #f0fdf4)' : 'var(--bg-surface)',
+                background: mode === 'reconcile' ? 'var(--primary-light)' : 'var(--card)',
                 cursor: 'pointer',
               }}
             >
@@ -82,8 +82,8 @@ export default function RunReconciliationModal({
                 gap: '10px',
                 padding: '12px',
                 borderRadius: '8px',
-                border: `2px solid ${mode === 'simulation' ? 'var(--warning, #d97706)' : 'var(--line)'}`,
-                background: mode === 'simulation' ? '#fffbeb' : 'var(--bg-surface)',
+                border: `2px solid ${mode === 'simulation' ? 'var(--warning)' : 'var(--line)'}`,
+                background: mode === 'simulation' ? 'var(--warning-light)' : 'var(--card)',
                 cursor: 'pointer',
               }}
             >
@@ -110,13 +110,12 @@ export default function RunReconciliationModal({
         </div>
 
         <div>
-          <label htmlFor="reconciliation-notes" style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '6px' }}>
+          <label htmlFor="reconciliation-notes" style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBlockEnd: '6px' }}>
             سبب أو ملاحظات الفحص (اختياري):
           </label>
           <input
             id="reconciliation-notes"
             type="text"
-            className="input full-width"
             placeholder="مثال: جرد نهاية الشهر، مراجعة بعد تسوية فواتير، تدقيق دوري…"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}

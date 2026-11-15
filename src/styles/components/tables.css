@@ -426,8 +426,6 @@ td.row-actions > * + * {
     font-weight: 700;
     color: var(--ink);
   }
-  .responsive-table .table tr.responsive-row td.transfer-item-cell { grid-column: 1 / -1; display: block; }
-  .responsive-table .table tr.responsive-row td.transfer-item-cell::before { display: block; margin-bottom: 4px; }
   .responsive-table .table tr.responsive-row td.mobile-field-cell { grid-column: 1 / -1; align-items: center; }
   .responsive-table .table tr.responsive-row td.mobile-field-cell .table-input { width: min(58%, 220px); min-width: 0; margin-inline-start: auto; }
   .responsive-table .table tr.responsive-row td.row-actions { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 9px; }
@@ -504,7 +502,7 @@ td.row-actions > * + * {
   position: relative;
   block-size: 52px;
   background: #f7f9fc;
-  border-block-end: 1px solid var(--border, #dbe3ef);
+  border-block-end: 1px solid var(--line);
 }
 /* Out-of-flow controls cannot contribute intrinsic width to table columns.
    Headings and record cells determine exactly the same widths without this row. */
@@ -542,10 +540,14 @@ td.row-actions > * + * {
 .column-filter-clear {
   display: inline-flex; align-items: center; justify-content: center; flex: 0 0 34px;
   inline-size: 34px; block-size: var(--column-filter-control-size); padding: 0;
-  color: var(--text-muted, #63758e); background: white; border: 1px solid #dbe3ef; border-radius: 7px;
+  color: var(--muted); background: var(--card); border: 1px solid var(--line); border-radius: 7px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
 }
-.column-filter-clear:hover { background: #edf2f8; color: var(--text, #30465f); }
-.column-filter-clear:focus-visible { outline: 2px solid #268ed1; outline-offset: 2px; }
-.column-filter-bar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px; border-block-end: 1px solid #dbe3ef; }
+.column-filter-clear:hover:not(:disabled) { background: #edf2f8; color: var(--ink); border-color: var(--line-strong); }
+.column-filter-clear:active:not(:disabled) { background: var(--surface-highlight); transform: scale(0.95); }
+.column-filter-clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.column-filter-clear:disabled { opacity: 0.45; cursor: not-allowed; }
+.column-filter-bar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px; border-block-end: 1px solid var(--line); }
 .column-filter-bar label { display: grid; gap: 4px; min-inline-size: 0; }
 .column-filter-bar .searchable-select { min-inline-size: 0; }

@@ -20,7 +20,7 @@
 }
 
 .platform-row-selected td {
-  background: var(--erp-row-selected, rgba(15, 118, 110, 0.06));
+  background: var(--primary-light);
 }
 
 .platform-notes-cell {
@@ -74,7 +74,7 @@
   padding: 10px 12px;
   border: 1px solid var(--erp-border);
   border-radius: 10px;
-  background: var(--surface, #fff);
+  background: var(--erp-surface);
   display: flex;
   flex-direction: column;
   gap: 6px;

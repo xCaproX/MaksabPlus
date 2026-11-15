@@ -221,7 +221,7 @@
   padding-block-start: 2px;
 }
 
-/* Inherits from buttons.css .btn.action-save / .btn-receipt-save-full (Item 15) */
+/* Inherits from buttons.css .btn-receipt-save-full */
 
 .btn-receipt-clear-full {
   display: inline-flex;

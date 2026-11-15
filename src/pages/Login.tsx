@@ -62,7 +62,6 @@ export default function Login() {
           type="submit"
           className="btn primary block"
           disabled={busy}
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
         >
           {busy ? (
             <>

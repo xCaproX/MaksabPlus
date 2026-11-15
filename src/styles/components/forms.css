@@ -186,12 +186,6 @@ input[type="number"] {
   grid-column: span 2;
 }
 
-.inline-form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
 /* Searchable Select */
 .searchable-select {
   position: relative;
@@ -416,9 +410,6 @@ input[type="number"] {
 
 .form-fields { border: 0; padding: 0; margin: 0; min-inline-size: 0; }
 .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
-.input-with-suffix { display: flex; align-items: center; gap: 8px; }
-.input-with-suffix input { flex: 1; min-inline-size: 0; }
-.input-suffix { flex-shrink: 0; color: var(--muted); font-size: 13px; }
 @media (max-width: 480px) { .form-row { grid-template-columns: minmax(0, 1fr); } }
 
 /* DateInput shared component */
