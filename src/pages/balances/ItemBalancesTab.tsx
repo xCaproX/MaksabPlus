@@ -371,7 +371,6 @@ export default function ItemBalancesTab() {
                   <EmptyState
                     colSpan={6}
                     compact
-                    icon={Boxes}
                     title="لا توجد أصناف تطابق البحث أو المخزن."
                   />
                 )}

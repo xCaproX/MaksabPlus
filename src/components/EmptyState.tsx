@@ -1,4 +1,5 @@
 import type { ElementType, ReactNode } from 'react';
+import { Inbox } from 'lucide-react';
 
 export interface EmptyStateAction {
   label: string;
@@ -8,7 +9,7 @@ export interface EmptyStateAction {
 }
 
 export interface EmptyStateProps {
-  icon?: ElementType;
+  icon?: ElementType | null;
   title: string;
   description?: ReactNode;
   action?: EmptyStateAction;
@@ -21,7 +22,7 @@ export interface EmptyStateProps {
 }
 
 export default function EmptyState({
-  icon: Icon,
+  icon: Icon = Inbox,
   title,
   description,
   action,

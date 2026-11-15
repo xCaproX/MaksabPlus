@@ -201,7 +201,6 @@ export default function ReconciliationLogTab({
                   <EmptyState
                     colSpan={6}
                     compact
-                    icon={History}
                     title="لا توجد عمليات فحص ومطابقة مسجلة حتى الآن."
                     description="اضغط على «بدء فحص جديد» للتدقيق."
                   />

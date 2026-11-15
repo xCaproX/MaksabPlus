@@ -404,7 +404,6 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                   <EmptyState
                     colSpan={6}
                     compact
-                    icon={Users}
                     title={`لا توجد حسابات ${entityPlural} تطابق البحث.`}
                   />
                 )}

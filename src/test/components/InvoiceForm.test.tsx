@@ -947,4 +947,48 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     );
     expect(screen.getByText('خزنة أرشيفية قديمة')).toBeInTheDocument();
   });
+
+  it('يعرض EmptyState الموحد بأيقونة داخل جدول الأصناف عندما يكون فارغاً في وضعي الإدخال والعرض', () => {
+    const { container, rerender } = render(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={null}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(container.querySelector('.lines-table tr.empty-state-row')).toBeInTheDocument();
+    expect(container.querySelector('.lines-table .empty-state.is-compact .empty-state-icon')).toBeInTheDocument();
+    expect(screen.getByText('لم يتم إدراج أصناف بعد')).toBeInTheDocument();
+    expect(screen.getByText('اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.')).toBeInTheDocument();
+
+    const emptyEditingInvoice = {
+      ...mockEditingInvoice,
+      lines: [],
+    };
+    rerender(
+      <InvoiceForm
+        kind="sale"
+        accounts={mockAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={emptyEditingInvoice}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(container.querySelector('.lines-table .empty-state.is-compact .empty-state-icon')).toBeInTheDocument();
+    expect(screen.getByText('لا توجد بنود في هذه الفاتورة.')).toBeInTheDocument();
+  });
 });

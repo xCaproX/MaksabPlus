@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import DateDisplay from '../DateDisplay';
+import EmptyState from '../EmptyState';
 import RowActions from '../RowActions';
 import StatusBadge from '../StatusBadge';
 import type { PlatformCompany, PlatformCompanyUser } from '../../lib/platformAdmin';
@@ -234,7 +235,10 @@ export default function PlatformCompanyDetailPanel({
           {usersLoading ? (
             <p className="hint">جارٍ تحميل المستخدمين…</p>
           ) : users.length === 0 ? (
-            <p className="empty">لا يوجد مستخدمون مسجلون في هذه الشركة.</p>
+            <EmptyState
+              compact
+              title="لا يوجد مستخدمون مسجلون في هذه الشركة."
+            />
           ) : (
             <ul className="platform-users-list">
               {users.map((user) => (

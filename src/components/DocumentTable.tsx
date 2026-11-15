@@ -80,6 +80,7 @@ export default function DocumentTable<T extends { id: string }>({
         {!loading && rows.length === 0 && (
           <EmptyState
             colSpan={totalCols}
+            compact
             title={emptyTitle}
             description={emptyDescription}
           />

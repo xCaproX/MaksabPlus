@@ -7,6 +7,7 @@ import { translateDbError } from '../lib/errors';
 import { calculateAvailableStock } from '../lib/invoiceValidation';
 import DateDisplay from './DateDisplay';
 import DateInput from './DateInput';
+import EmptyState from './EmptyState';
 import ItemNameDisplay from './ItemNameDisplay';
 import SearchableSelect from './SearchableSelect';
 import DocumentSummarySidebar from './invoice-form/DocumentSummarySidebar';
@@ -610,11 +611,12 @@ export default function WarehouseTransferForm({
 
               {/* قائمة الأصناف المدرجة بالأسفل */}
               {lines.length === 0 ? (
-                <tr className="empty-lines-placeholder-row">
-                  <td colSpan={readOnly ? 4 : 5}>
-                    {readOnly ? 'لا توجد أصناف في هذا التحويل.' : 'لم يتم إدراج أصناف بعد. اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.'}
-                  </td>
-                </tr>
+                <EmptyState
+                  colSpan={readOnly ? 4 : 5}
+                  compact
+                  title={readOnly ? 'لا توجد أصناف في هذا التحويل.' : 'لم يتم إدراج أصناف بعد'}
+                  description={readOnly ? undefined : 'اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.'}
+                />
               ) : (
                 lines.map((line, index) => {
                   const available = getAvailableStock(line.item_id, sourceId);

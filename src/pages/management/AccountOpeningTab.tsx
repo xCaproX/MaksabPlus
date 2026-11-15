@@ -297,7 +297,6 @@ export default function AccountOpeningTab({
                   <EmptyState
                     colSpan={5}
                     compact
-                    icon={isCustomer ? Users : ShoppingBag}
                     title={isCustomer ? 'لا توجد حسابات عملاء تطابق البحث.' : 'لا توجد حسابات موردين تطابق البحث.'}
                   />
                 )}

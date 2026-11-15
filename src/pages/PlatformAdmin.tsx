@@ -15,6 +15,7 @@ import {
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import DateDisplay from '../components/DateDisplay';
+import EmptyState from '../components/EmptyState';
 import KpiBar, { type KpiItem } from '../components/KpiBar';
 import RowActions from '../components/RowActions';
 import StatusBadge from '../components/StatusBadge';
@@ -376,13 +377,20 @@ export default function PlatformAdmin() {
                           </td>
                         </tr>
                       ) : filteredCompanies.length === 0 ? (
-                        <tr>
-                          <td colSpan={selectedCompany ? 5 : 8} className="empty">
-                            {companies.length === 0
-                              ? 'لا توجد شركات مسجلة بعد. ابدأ بإنشاء أول شركة.'
-                              : 'لا توجد شركات مطابقة للبحث الحالي.'}
-                          </td>
-                        </tr>
+                        <EmptyState
+                          colSpan={selectedCompany ? 5 : 8}
+                          compact
+                          title={
+                            companies.length === 0
+                              ? 'لا توجد شركات مسجلة بعد.'
+                              : 'لا توجد شركات مطابقة للبحث الحالي.'
+                          }
+                          description={
+                            companies.length === 0
+                              ? 'ابدأ بإنشاء أول شركة.'
+                              : undefined
+                          }
+                        />
                       ) : (
                         filteredCompanies.map((company) => {
                           const isSelected = selectedCompany?.id === company.id;

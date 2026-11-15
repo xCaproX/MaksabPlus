@@ -289,5 +289,24 @@ describe('WarehouseTransferForm - نموذج التحويل بين المخاز�
 
     expect(screen.getByText('المتاح بالمصدر').closest('th')).toHaveClass('print-hidden');
   });
+
+  it('يعرض EmptyState الموحد بأيقونة داخل جدول أصناف التحويل عندما يكون فارغاً', () => {
+    const { container } = render(
+      <WarehouseTransferForm
+        warehouses={mockWarehouses}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={null}
+        readOnly={false}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(container.querySelector('.lines-table tr.empty-state-row')).toBeInTheDocument();
+    expect(container.querySelector('.lines-table .empty-state.is-compact .empty-state-icon')).toBeInTheDocument();
+    expect(screen.getByText('لم يتم إدراج أصناف بعد')).toBeInTheDocument();
+    expect(screen.getByText('اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.')).toBeInTheDocument();
+  });
 });
 

@@ -16,6 +16,19 @@ describe('EmptyState - مكوّن الحالة الفارغة الموحد', () 
     expect(screen.getByText('جرّب تعديل خيارات البحث.')).toBeInTheDocument();
   });
 
+  it('يعرض أيقونة Inbox افتراضياً عند عدم تمرير icon، ويخفيها عند تمرير icon={null}', () => {
+    const { container, rerender } = render(
+      <EmptyState title="القائمة فارغة" />
+    );
+
+    expect(container.querySelector('.empty-state-icon')).toBeInTheDocument();
+    expect(container.querySelector('.empty-state-icon-svg')).toBeInTheDocument();
+
+    rerender(<EmptyState icon={null} title="نص فقط" />);
+    expect(container.querySelector('.empty-state-icon')).not.toBeInTheDocument();
+    expect(screen.getByText('نص فقط')).toBeInTheDocument();
+  });
+
   it('يعرض الأيقونة الممررة', () => {
     const { container } = render(
       <EmptyState

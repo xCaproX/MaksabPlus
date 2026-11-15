@@ -98,7 +98,7 @@ describe('DocumentTable - مكوّن جدول المستندات الموحد', 
   });
 
   it('يعرض EmptyState عند عدم وجود صفوف وانتهاء التحميل', () => {
-    render(
+    const { container } = render(
       <DocumentTable
         columns={columns}
         rows={[]}
@@ -109,6 +109,10 @@ describe('DocumentTable - مكوّن جدول المستندات الموحد', 
       />
     );
 
+    expect(container.querySelector('tr.empty-state-row')).toBeInTheDocument();
+    expect(container.querySelector('td.empty-state-cell')).toHaveAttribute('colspan', '3');
+    expect(container.querySelector('.empty-state.is-compact')).toBeInTheDocument();
+    expect(container.querySelector('.empty-state-icon')).toBeInTheDocument();
     expect(screen.getByText('لا توجد فواتير مطابقة')).toBeInTheDocument();
     expect(screen.getByText('جرّب تعديل كلمات البحث.')).toBeInTheDocument();
   });

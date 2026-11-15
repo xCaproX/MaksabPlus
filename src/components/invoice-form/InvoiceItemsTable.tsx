@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { qty as formatQty, round2 } from '../../lib/format';
 import { clampDocQty, clampDocQtyOnBlur } from '../../lib/docLineEntry';
 import ItemNameDisplay from '../ItemNameDisplay';
+import EmptyState from '../EmptyState';
 import SearchableSelect from '../SearchableSelect';
 import MoneyDisplay from '../MoneyDisplay';
 import { toast } from '../Toast';
@@ -231,13 +232,12 @@ export default function InvoiceItemsTable({
 
             {/* قائمة الأصناف المدرجة أسفل شريط الإدخال */}
             {lines.length === 0 ? (
-              <tr className="empty-lines-placeholder-row">
-                <td colSpan={isReadOnly ? 5 : 7}>
-                  {isReadOnly
-                    ? 'لا توجد بنود في هذه الفاتورة.'
-                    : 'لم يتم إدراج أصناف بعد. اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.'}
-                </td>
-              </tr>
+              <EmptyState
+                colSpan={isReadOnly ? 5 : 7}
+                compact
+                title={isReadOnly ? 'لا توجد بنود في هذه الفاتورة.' : 'لم يتم إدراج أصناف بعد'}
+                description={isReadOnly ? undefined : 'اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.'}
+              />
             ) : (
               lines.map((line, index) => {
                 const selectedItem = items.find((item) => item.id === line.item_id);

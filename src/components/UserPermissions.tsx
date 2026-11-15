@@ -355,7 +355,6 @@ export default function UserPermissions({
               {filteredUsers.length === 0 && (
                 <EmptyState
                   compact
-                  icon={UserCheck}
                   title="لا يوجد مستخدمون يطابقون البحث."
                 />
               )}

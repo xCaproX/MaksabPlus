@@ -344,4 +344,51 @@ describe('PlatformAdmin page', () => {
       });
     });
   });
+
+  it('renders compact EmptyState in companies table when no companies exist', async () => {
+    rpcSpy.mockImplementation(async (fn: string) => {
+      if (fn === 'get_platform_admin_identity') {
+        return {
+          data: [{ user_id: 'admin-1', email: 'dev@platform.test', full_name: 'مطور النظام' }],
+          error: null,
+        };
+      }
+      if (fn === 'platform_list_companies') {
+        return { data: [], error: null };
+      }
+      return { data: [], error: null };
+    });
+
+    const { container } = renderPage();
+
+    expect(await screen.findByText('لا توجد شركات مسجلة بعد.')).toBeInTheDocument();
+    expect(screen.getByText('ابدأ بإنشاء أول شركة.')).toBeInTheDocument();
+    expect(container.querySelector('tr.empty-state-row .empty-state.is-compact .empty-state-icon')).toBeInTheDocument();
+  });
+
+  it('renders compact EmptyState in company detail panel when company has no users', async () => {
+    rpcSpy.mockImplementation(async (fn: string) => {
+      if (fn === 'get_platform_admin_identity') {
+        return {
+          data: [{ user_id: 'admin-1', email: 'dev@platform.test', full_name: 'مطور النظام' }],
+          error: null,
+        };
+      }
+      if (fn === 'platform_list_companies') {
+        return { data: [companiesFixture[0]], error: null };
+      }
+      if (fn === 'platform_list_company_users') {
+        return { data: [], error: null };
+      }
+      return { data: [], error: null };
+    });
+
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'شركة الأمل' }));
+
+    const drawer = await screen.findByLabelText('تفاصيل شركة شركة الأمل');
+    expect(await within(drawer).findByText('لا يوجد مستخدمون مسجلون في هذه الشركة.')).toBeInTheDocument();
+    expect(drawer.querySelector('.empty-state.is-compact .empty-state-icon')).toBeInTheDocument();
+  });
 });

@@ -228,7 +228,6 @@ export default function CashBoxBalancesTab() {
                   <EmptyState
                     colSpan={5}
                     compact
-                    icon={Wallet}
                     title="لا توجد خزن تطابق البحث."
                   />
                 )}

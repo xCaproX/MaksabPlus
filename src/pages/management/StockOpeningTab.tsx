@@ -293,7 +293,6 @@ export default function StockOpeningTab({
                   <EmptyState
                     colSpan={canViewProfit ? 6 : 5}
                     compact
-                    icon={Boxes}
                     title="لا توجد أصناف في هذا المخزن تطابق البحث."
                   />
                 )}
