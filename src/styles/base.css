@@ -73,6 +73,10 @@ p {
   white-space: nowrap;
 }
 
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
 .spin {
   animation: spin 1s linear infinite;
 }

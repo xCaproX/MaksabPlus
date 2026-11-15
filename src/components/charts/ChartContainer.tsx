@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { RefreshCw, Inbox } from 'lucide-react';
 import EmptyState from '../EmptyState';
+import { Skeleton } from '../LoadingSkeleton';
 
 interface ChartContainerProps {
   title: string;
@@ -39,7 +40,7 @@ export default function ChartContainer({
       <div className="dashboard-card-head">
         <div className="chart-header-titles">
           <h3 className="dashboard-card-title">
-            {Icon && <Icon size={16} className="text-primary" aria-hidden="true" />}
+            {Icon && <Icon size={16} style={{ color: 'var(--primary)' }} aria-hidden="true" />}
             <span>{title}</span>
           </h3>
           {subtitle && <p className="chart-header-subtitle">{subtitle}</p>}
@@ -61,13 +62,13 @@ export default function ChartContainer({
       >
         {loading ? (
           <div className="chart-loading-state" aria-busy="true" aria-label="جارٍ تحميل الرسم البياني">
-            <div className="skeleton chart-skeleton" style={{ height: '100%', width: '100%', borderRadius: 'var(--radius-sm, 8px)' }} />
+            <Skeleton width="100%" height="100%" />
           </div>
         ) : error ? (
           <div className="chart-error-state" role="alert">
             <p>{error}</p>
             {onRetry && (
-              <button type="button" className="btn btn-secondary btn-sm" onClick={onRetry} style={{ marginTop: 8 }}>
+              <button type="button" className="btn outline sm" onClick={onRetry} style={{ marginTop: 8 }}>
                 <RefreshCw size={13} style={{ marginInlineEnd: 4 }} />
                 إعادة المحاولة
               </button>

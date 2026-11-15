@@ -151,6 +151,10 @@ describe('PlatformAdmin page', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'شركة جديدة' }));
     const dialog = screen.getByRole('dialog');
+    const authModeTabs = within(dialog).getByRole('tablist', { name: 'طريقة تفعيل حساب المالك' });
+    expect(authModeTabs).toHaveClass('form-tabs', 'platform-mode-tabs');
+    expect(authModeTabs).not.toHaveClass('tabs');
+    expect(within(dialog).getByLabelText('كلمة المرور الأولية (8 أحرف على الأقل)').closest('.pwd-input-wrap')).toHaveAttribute('dir', 'ltr');
 
     fireEvent.change(within(dialog).getByLabelText('اسم الشركة'), {
       target: { value: 'شركة الفتح' },
@@ -324,6 +328,8 @@ describe('PlatformAdmin page', () => {
     fireEvent.click(within(drawer).getByRole('button', { name: 'حذف الشركة بالكامل…' }));
     const deleteDialog = screen.getByRole('dialog');
     const confirmDeleteBtn = within(deleteDialog).getByRole('button', { name: 'حذف الشركة نهائيًا' });
+    expect(confirmDeleteBtn).toHaveClass('btn', 'danger');
+    expect(within(deleteDialog).getByRole('alert').children).toHaveLength(1);
     expect(confirmDeleteBtn).toBeDisabled();
 
     const confirmInput = within(deleteDialog).getByPlaceholderText('شركة الأمل');

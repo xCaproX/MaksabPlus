@@ -511,9 +511,13 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
 
       const accountField = container.querySelector('.field-account-select') as HTMLElement;
       const combobox = within(accountField).getByRole('combobox');
+      const getAccountOptions = () => {
+        const listbox = document.getElementById(combobox.getAttribute('aria-controls') ?? '') as HTMLElement;
+        return within(listbox).getAllByRole('option');
+      };
 
       fireEvent.focus(combobox);
-      let options = within(accountField).getAllByRole('option');
+      let options = getAccountOptions();
       expect(options[0]).toHaveTextContent(cashName);
 
       // اختيار حساب غير نقدي
@@ -524,7 +528,7 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
 
       // إعادة فتح القائمة: يجب أن يظل العميل/المورد النقدي ظاهراً وكأول خيار
       fireEvent.focus(combobox);
-      options = within(accountField).getAllByRole('option');
+      options = getAccountOptions();
       expect(options[0]).toHaveTextContent(cashName);
       expect(options.some((opt) => opt.textContent?.includes(otherName))).toBe(true);
     },
@@ -584,33 +588,37 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
 
         const accountField = container.querySelector('.field-account-select') as HTMLElement;
         const combobox = within(accountField).getByRole('combobox');
+        const getAccountOptions = () => {
+          const listbox = document.getElementById(combobox.getAttribute('aria-controls') ?? '') as HTMLElement;
+          return within(listbox).getAllByRole('option');
+        };
 
         // البحث واختيار حساب غير نقدي
         fireEvent.focus(combobox);
         fireEvent.change(combobox, { target: { value: otherName.slice(0, 4) } });
 
         await waitFor(() => {
-          expect(within(accountField).getAllByRole('option')[0]).toHaveTextContent(otherName);
+          expect(getAccountOptions()[0]).toHaveTextContent(otherName);
         });
-        fireEvent.click(within(accountField).getAllByRole('option')[0]);
+        fireEvent.click(getAccountOptions()[0]);
         expect(combobox).toHaveAttribute('placeholder', otherName);
 
         // إعادة فتح القائمة بدون نص بحث: يظل الحساب النقدي أول خيار قبل وأثناء وبعد الجلب
         fireEvent.focus(combobox);
-        expect(within(accountField).getAllByRole('option')[0]).toHaveTextContent(cashName);
+        expect(getAccountOptions()[0]).toHaveTextContent(cashName);
 
         await waitFor(() => {
           expect(searchSpy).toHaveBeenCalledWith(accountKind, '', 25, { includeCashAccount: true });
         });
 
-        const optionsAfterLoad = within(accountField).getAllByRole('option');
+        const optionsAfterLoad = getAccountOptions();
         expect(optionsAfterLoad[0]).toHaveTextContent(cashName);
         expect(optionsAfterLoad[1]).toHaveTextContent(otherName);
 
         // عند البحث بكلمة "نقدي" يظهر الحساب النقدي كأول خيار حتى لو لم يُرجع في أعلى 25 نتيجة
         fireEvent.change(combobox, { target: { value: 'نقدي' } });
         await waitFor(() => {
-          const cashSearchOptions = within(accountField).getAllByRole('option');
+          const cashSearchOptions = getAccountOptions();
           expect(cashSearchOptions[0]).toHaveTextContent(cashName);
         });
       } finally {

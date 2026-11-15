@@ -237,14 +237,12 @@ export default function StockOpeningTab({
                 label="المخزن"
                   ariaLabel="اختيار المخزن"
                 value={selectedWarehouseId}
-                options={[
-                  { value: '', label: 'اختر المخزن' },
-                  ...warehouses.map((wh) => ({
-                    value: wh.id,
-                    label: `${entityNumber('WH', wh.serial_number)} — ${wh.name}`,
-                  })),
-                ]}
+                options={warehouses.map((wh) => ({
+                  value: wh.id,
+                  label: `${entityNumber('WH', wh.serial_number)} — ${wh.name}`,
+                }))}
                 onChange={setSelectedWarehouseId}
+                placeholder="اختر المخزن…"
                 searchPlaceholder="بحث عن مخزن…"
               />
             </div>

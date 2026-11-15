@@ -94,7 +94,7 @@ export default function Home() {
     return (
       <div className="card empty" role="alert">
         <p>حدث خطأ أثناء تحميل الشاشة الرئيسية: {error}</p>
-        <button type="button" className="btn btn-secondary" onClick={() => void loadDashboard()} style={{ marginTop: 12 }}>
+        <button type="button" className="btn secondary" onClick={() => void loadDashboard()} style={{ marginTop: 12 }}>
           <RefreshCw size={14} style={{ marginInlineEnd: 6 }} />
           إعادة المحاولة
         </button>
@@ -122,17 +122,7 @@ export default function Home() {
           {/* الرسوم البيانية التفاعلية وقوائم الأكثر طلباً (تحميل كسول مع حماية من الأخطاء) */}
           <ChartErrorBoundary>
             <Suspense
-              fallback={
-                <div
-                  className="skeleton"
-                  style={{
-                    height: 280,
-                    width: '100%',
-                    borderRadius: 'var(--radius)',
-                    marginBottom: 16,
-                  }}
-                />
-              }
+              fallback={<LoadingSkeleton layout="page" label="جارٍ تحميل الإحصائيات…" />}
             >
               <DashboardChartsSection />
             </Suspense>

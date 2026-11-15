@@ -306,7 +306,7 @@ export default function SearchableSelect({
           maxBlockSize: popupPosition.height, zIndex: 1000 } : undefined} className="searchable-select-options" id={`${id}-options`} role="listbox">
           {loadingAsync && filteredOptions.length === 0 ? (
             <div className="searchable-select-loading">
-              <Loader2 size={14} className="spinner-icon" />
+              <Loader2 size={14} className="spin" />
               <span>{loadingMessage}</span>
             </div>
           ) : filteredOptions.length > 0 ? (
@@ -385,7 +385,7 @@ export default function SearchableSelect({
         />
         {showIcon && <div className="searchable-select-arrow" aria-hidden="true">
           {loadingAsync ? (
-            <Loader2 size={15} className="spinner-icon" />
+            <Loader2 size={15} className="spin" />
           ) : (
             <ChevronDown size={15} />
           )}

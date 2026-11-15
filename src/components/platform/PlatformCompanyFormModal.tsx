@@ -131,7 +131,7 @@ export default function PlatformCompanyFormModal({ onClose, onCreated }: Platfor
             </label>
           </div>
 
-          <div className="tabs platform-mode-tabs" role="tablist" aria-label="طريقة تفعيل حساب المالك">
+          <div className="form-tabs platform-mode-tabs" role="tablist" aria-label="طريقة تفعيل حساب المالك">
             <button
               type="button"
               role="tab"
@@ -157,6 +157,7 @@ export default function PlatformCompanyFormModal({ onClose, onCreated }: Platfor
               <label>
                 <span>كلمة المرور الأولية (8 أحرف على الأقل)</span>
                 <PasswordInput
+                  dir="ltr"
                   value={ownerPassword}
                   onChange={(e) => setOwnerPassword(e.target.value)}
                   revealed={showPassword}
@@ -170,6 +171,7 @@ export default function PlatformCompanyFormModal({ onClose, onCreated }: Platfor
               <label>
                 <span>تأكيد كلمة المرور</span>
                 <PasswordInput
+                  dir="ltr"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   revealed={showPassword}

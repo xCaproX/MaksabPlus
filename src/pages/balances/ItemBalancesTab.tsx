@@ -3,7 +3,7 @@ import ColumnFilterRow from '../../components/ColumnFilterRow';
 import { useColumnFilters } from '../../lib/useColumnFilters';
 import Pagination from '../../components/Pagination';
 import { useAccess } from '../../lib/access';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
   X,
@@ -94,11 +94,14 @@ export default function ItemBalancesTab() {
   });
 
 
+  const warehouseInitializedRef = useRef(false);
+
   useEffect(() => {
-    if (!selectedWarehouseId && warehouses.length > 0) {
-      setSelectedWarehouseId(resolveDefaultWarehouse(warehouses)?.id ?? '');
+    if (!warehouseInitializedRef.current && warehouses.length > 0) {
+      warehouseInitializedRef.current = true;
+      setSelectedWarehouseId((prev) => prev || (resolveDefaultWarehouse(warehouses)?.id ?? ''));
     }
-  }, [selectedWarehouseId, warehouses]);
+  }, [warehouses]);
 
   // التحديد والتفاصيل
   const [selectedItem, setSelectedItem] = useState<WarehouseItemRow | null>(null);

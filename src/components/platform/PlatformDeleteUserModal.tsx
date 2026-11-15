@@ -79,18 +79,22 @@ export default function PlatformDeleteUserModal({
       <form className="stack" onSubmit={handleSubmit}>
         {isLastActiveOwner ? (
           <div className="alert error" role="alert">
-            <strong>لا يمكن حذف آخر مالك نشط للشركة</strong>
-            <p>
-              المستخدم «{user.full_name || user.email}» هو المالك النشط الوحيد في شركة «{companyName}». أضف مالكًا نشطًا آخر أو فعّل مالكًا بديلًا قبل الحذف.
-            </p>
+            <div>
+              <strong>لا يمكن حذف آخر مالك نشط للشركة</strong>
+              <p>
+                المستخدم «{user.full_name || user.email}» هو المالك النشط الوحيد في شركة «{companyName}». أضف مالكًا نشطًا آخر أو فعّل مالكًا بديلًا قبل الحذف.
+              </p>
+            </div>
           </div>
         ) : (
           <>
             <div className="alert error" role="alert">
-              <strong>تحذير: لا يمكن التراجع عن حذف المستخدم!</strong>
-              <p>
-                سيتم حذف دخول «<strong>{user.full_name || user.email}</strong>» من شركة «{companyName}» وحذف حسابه نهائيًا، مع بقاء اسم المنشئ محفوظًا على المستندات السابقة.
-              </p>
+              <div>
+                <strong>تحذير: لا يمكن التراجع عن حذف المستخدم!</strong>
+                <p>
+                  سيتم حذف دخول «<strong>{user.full_name || user.email}</strong>» من شركة «{companyName}» وحذف حسابه نهائيًا، مع بقاء اسم المنشئ محفوظًا على المستندات السابقة.
+                </p>
+              </div>
             </div>
 
             <label>

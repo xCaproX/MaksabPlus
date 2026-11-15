@@ -56,6 +56,9 @@ describe('SearchableSelect component', () => {
     const input = screen.getByRole('combobox');
     fireEvent.focus(input);
 
+    expect(document.querySelector('.spin')).toBeInTheDocument();
+    expect(document.querySelector('.spinner-icon')).not.toBeInTheDocument();
+
     await waitFor(() => {
       expect(mockLoad).toHaveBeenCalledWith('');
     });

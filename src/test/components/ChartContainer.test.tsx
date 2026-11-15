@@ -28,6 +28,7 @@ describe('ChartContainer Component', () => {
     );
 
     expect(screen.getByLabelText('جارٍ تحميل الرسم البياني')).toBeInTheDocument();
+    expect(screen.getByLabelText('جارٍ تحميل الرسم البياني').querySelector('.loading-skeleton')).toBeInTheDocument();
     expect(screen.queryByTestId('chart-content')).not.toBeInTheDocument();
   });
 
@@ -60,6 +61,8 @@ describe('ChartContainer Component', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('فشل في الاتصال بالخادم');
     const retryBtn = screen.getByRole('button', { name: /إعادة المحاولة/ });
+    expect(retryBtn).toHaveClass('btn', 'outline', 'sm');
+    expect(retryBtn).not.toHaveClass('btn-secondary', 'btn-sm');
     fireEvent.click(retryBtn);
     expect(handleRetry).toHaveBeenCalledTimes(1);
   });

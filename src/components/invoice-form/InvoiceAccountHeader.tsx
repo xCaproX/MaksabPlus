@@ -121,6 +121,7 @@ export default function InvoiceAccountHeader({
               placeholder={selectableWarehouses.length === 0 ? 'لا يوجد مخزن نشط' : 'اختر المخزن…'}
               searchPlaceholder="اكتب للبحث عن مخزن…"
               emptyMessage="لا يوجد مخزن مطابق"
+              portal
               required
             />
           )}
@@ -141,6 +142,7 @@ export default function InvoiceAccountHeader({
                 onChange={(val) => onAccountKindChange(val as AccountKind)}
                 placeholder="اختر النوع…"
                 searchPlaceholder="بحث في الأنواع…"
+                portal
                 required
               />
             )}
@@ -181,6 +183,7 @@ export default function InvoiceAccountHeader({
                 placeholder="اختر الحساب…"
                 searchPlaceholder="اكتب للبحث عن حساب…"
                 emptyMessage="لا توجد حسابات مطابقة"
+                portal
                 required
               />
             )}

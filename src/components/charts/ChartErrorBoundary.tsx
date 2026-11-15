@@ -29,7 +29,7 @@ export default class ChartErrorBoundary extends Component<Props, State> {
       return (
         <div className="dashboard-card" style={{ padding: 24, textAlign: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: 'var(--muted)' }}>
-            <AlertCircle size={24} className="text-warning" />
+            <AlertCircle size={24} style={{ color: 'var(--warning)' }} aria-hidden="true" />
             <p style={{ margin: 0, fontSize: 'var(--font-sm)' }}>
               تعذر تحميل بعض الرسوم البيانية مؤقتاً. بقية وظائف النظام تعمل بشكل طبيعي.
             </p>

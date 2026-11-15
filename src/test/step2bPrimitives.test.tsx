@@ -57,4 +57,19 @@ describe('Phase 2B primitives (T-07, T-18)', () => {
     expect(pwdInput.type).toBe('text');
     expect(screen.getByRole('button', { name: 'إخفاء كلمة المرور' })).toHaveAttribute('aria-pressed', 'true');
   });
+
+  it('T-18b: PasswordInput propagates dir to wrapper and disables eye toggle when input is disabled', () => {
+    const { container } = render(
+      <PasswordInput aria-label="كلمة المرور المعطلة" dir="ltr" disabled value="secret123" onChange={vi.fn()} />,
+    );
+
+    const wrap = container.querySelector('.pwd-input-wrap');
+    const pwdInput = screen.getByLabelText('كلمة المرور المعطلة') as HTMLInputElement;
+    const toggleBtn = screen.getByRole('button', { name: 'إظهار كلمة المرور' });
+
+    expect(wrap).toHaveAttribute('dir', 'ltr');
+    expect(toggleBtn).toBeDisabled();
+    fireEvent.click(toggleBtn);
+    expect(pwdInput.type).toBe('password');
+  });
 });

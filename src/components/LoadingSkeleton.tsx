@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 
-export function Skeleton({ width = '100%' }: { width?: string }) {
-  return <span className="loading-skeleton" style={{ inlineSize: width }} aria-hidden="true" />;
+export function Skeleton({ width = '100%', height }: { width?: string; height?: string }) {
+  return <span className="loading-skeleton" style={{ inlineSize: width, blockSize: height }} aria-hidden="true" />;
 }
 
 export function LoadingMessage({ children }: { children: string }) {

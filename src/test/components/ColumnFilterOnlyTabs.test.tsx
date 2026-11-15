@@ -352,4 +352,51 @@ describe('redundant global search removal on ColumnFilterRow tabs', () => {
     });
     expect(screen.getByText('خزنة الفرع')).toBeInTheDocument();
   });
+
+  it('keeps all-warehouses selection active in ItemBalancesTab and hides dummy option in StockOpeningTab', async () => {
+    mocks.rpc.mockClear();
+    const { unmount } = render(
+      <MemoryRouter>
+        <ItemBalancesTab />
+      </MemoryRouter>,
+    );
+
+    const balanceWarehouseInput = await screen.findByLabelText('المخزن');
+    await waitFor(() => {
+      expect(balanceWarehouseInput).toHaveValue('WH-00001 — المخزن الرئيسي');
+    });
+
+    mocks.rpc.mockClear();
+    fireEvent.focus(balanceWarehouseInput);
+    fireEvent.click(screen.getByRole('option', { name: 'كل المخازن' }));
+
+    await waitFor(() => {
+      expect(balanceWarehouseInput).toHaveValue('كل المخازن');
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'get_warehouse_stock_kpis_columns',
+        expect.objectContaining({ p_warehouse_id: null }),
+      );
+    });
+    unmount();
+
+    render(
+      <MemoryRouter>
+        <StockOpeningTab
+          warehouses={mocks.warehouses}
+          stockRows={[]}
+          canEditOpening
+          onRefresh={vi.fn().mockResolvedValue(undefined)}
+          saving={false}
+          setSaving={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const openingWarehouseInput = await screen.findByLabelText('المخزن');
+    await waitFor(() => {
+      expect(openingWarehouseInput).toHaveValue('WH-00001 — المخزن الرئيسي');
+    });
+    fireEvent.focus(openingWarehouseInput);
+    expect(screen.queryByRole('option', { name: 'اختر المخزن' })).not.toBeInTheDocument();
+  });
 });

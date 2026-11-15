@@ -20,7 +20,7 @@ export default function PasswordInput({
   const handleToggle = onToggleReveal ?? (() => setInternalRevealed((prev) => !prev));
 
   return (
-    <div className="pwd-input-wrap">
+    <div className="pwd-input-wrap" dir={rest.dir}>
       <input
         {...rest}
         type={isRevealed ? 'text' : 'password'}
@@ -30,6 +30,7 @@ export default function PasswordInput({
         type="button"
         className="icon-btn pwd-eye-btn"
         onClick={handleToggle}
+        disabled={rest.disabled}
         aria-pressed={isRevealed}
         title={isRevealed ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
         aria-label={isRevealed ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}

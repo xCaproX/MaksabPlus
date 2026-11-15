@@ -42,7 +42,7 @@ export default function TopRankedList({
       <div className="dashboard-card-head">
         <div className="chart-header-titles">
           <h3 className="dashboard-card-title">
-            <Icon size={16} className="text-primary" aria-hidden="true" />
+            <Icon size={16} style={{ color: 'var(--primary)' }} aria-hidden="true" />
             <span>{title}</span>
           </h3>
           {subtitle && <p className="chart-header-subtitle">{subtitle}</p>}

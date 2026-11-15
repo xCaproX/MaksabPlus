@@ -60,10 +60,12 @@ export default function PlatformDeleteCompanyModal({
     >
       <form className="stack" onSubmit={handleSubmit}>
         <div className="alert error" role="alert">
-          <strong>تحذير شديد الخطورة: لا يمكن التراجع عن هذه العملية!</strong>
-          <p>
-            سيتم حذف جميع بيانات شركة «<strong>{expectedName}</strong>» نهائيًا، بما في ذلك الفواتير والإيصالات والمخازن والخزن والأصناف والحسابات، وحذف جميع حسابات مستخدميها (<span dir="ltr" className="tabular-nums">{company.users_count}</span>) من النظام.
-          </p>
+          <div>
+            <strong>تحذير شديد الخطورة: لا يمكن التراجع عن هذه العملية!</strong>
+            <p>
+              سيتم حذف جميع بيانات شركة «<strong>{expectedName}</strong>» نهائيًا، بما في ذلك الفواتير والإيصالات والمخازن والخزن والأصناف والحسابات، وحذف جميع حسابات مستخدميها (<span dir="ltr" className="tabular-nums">{company.users_count}</span>) من النظام.
+            </p>
+          </div>
         </div>
 
         <label>

@@ -124,7 +124,7 @@ export default function PlatformAddUserModal({
 
           <div>
             <span className="platform-field-caption">طريقة التفعيل</span>
-            <div className="tabs platform-mode-tabs" role="tablist" aria-label="طريقة تفعيل المستخدم">
+            <div className="form-tabs platform-mode-tabs" role="tablist" aria-label="طريقة تفعيل المستخدم">
               <button
                 type="button"
                 role="tab"
@@ -152,6 +152,7 @@ export default function PlatformAddUserModal({
             <label>
               <span>كلمة المرور (8 أحرف على الأقل)</span>
               <PasswordInput
+                dir="ltr"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 revealed={showPassword}
@@ -164,6 +165,7 @@ export default function PlatformAddUserModal({
             <label>
               <span>تأكيد كلمة المرور</span>
               <PasswordInput
+                dir="ltr"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 revealed={showPassword}
