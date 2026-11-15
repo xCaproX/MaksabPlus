@@ -25,10 +25,6 @@ export interface DashboardCollections {
 interface SalesMetricCardsProps {
   sales: DashboardSales | null;
   collections?: DashboardCollections | null;
-  sparklines?: {
-    week?: number[];
-    month?: number[];
-  };
 }
 
 function computePerf(today: number, yesterday: number) {

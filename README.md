@@ -237,7 +237,7 @@ docs/
 scripts/              # سكريبتات فحص الواجهة، التزامن، وفلاتر الأعمدة
 src/
   components/         # المكونات المشتركة (DateInput, DateDisplay, MoneyDisplay, KpiBar, StatusBadge, ...)
-    charts/           # مكونات الرسوم البيانية التفاعلية (Chart.js) وخطوط النبض (Sparklines)
+    charts/           # مكونات الرسوم البيانية التفاعلية (Chart.js)
     invoice-form/     # مكونات نموذج الفاتورة الموحد (رأس الحساب، جدول البنود، الملخص)
   context/            # سياق إدارة البيانات الأساسية (MasterDataContext)
   lib/                # دوال المعالجة الحسابية، التنسيق، الصلاحيات، الاتصال بـ Supabase، والتحقق

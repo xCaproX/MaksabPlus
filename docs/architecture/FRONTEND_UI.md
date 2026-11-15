@@ -75,7 +75,7 @@ flowchart TD
 | `RowActions` / `DocumentCreatorCell` | `src/components/RowActions.tsx`, `DocumentCreatorCell.tsx` | قائمة إجراءات السطر وخلية منشئ المستند. |
 | `ConfirmDialog` / `Modal` / `GuardedLink` / `ChangePasswordModal` | `src/components/` | النوافذ الحوارية (`Modal` مع `ModalCancelButton` و`useReportBusy`) وحراسة الروابط (`GuardedLink`) وتأكيد الحذف وتغيير كلمة المرور. |
 | `KpiBar` / `LoadingSkeleton` / `EmptyState` / `Toast` | `src/components/` | شريط المؤشرات، حالات التحميل والفراغ، والتنبيهات. |
-| `DashboardChartsSection` | `src/components/charts/` | رسوم لوحة التحكم التفاعلية (`Chart.js`: `SalesTrendChart`, `SalesVsPurchasesChart`, `SalesDistributionChart`, `SparklineSvg`, `ChartContainer`, `ChartErrorBoundary`). |
+| `DashboardChartsSection` | `src/components/charts/` | رسوم لوحة التحكم التفاعلية (`Chart.js`: `SalesTrendChart`, `SalesVsPurchasesChart`, `SalesDistributionChart`, `ChartContainer`, `ChartErrorBoundary`). |
 
 ---
 

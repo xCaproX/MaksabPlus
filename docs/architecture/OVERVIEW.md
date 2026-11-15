@@ -17,12 +17,12 @@
 - **React 18** مع **Vite** و **TypeScript**.
 - **React Router DOM v6**: للتوجيه وإدارة الصفحات وحمايتها.
 - **Lucide React**: حزمة الأيقونات القياسية.
-- **Chart.js**: رسوم بيانية تفاعلية في لوحة التحكم مع خطوط نبض خفيفة (`SparklineSvg`).
+- **Chart.js**: رسوم بيانية تفاعلية في لوحة التحكم.
 - **write-excel-file**: تصدير الجداول وكشوف الحساب إلى ملفات Excel.
 - **Pure CSS / Modular Design System**: تصميم مبني على CSS Variables و Design Tokens مخصص للمشروع يدعم RTL بالكامل والخصائص المنطقية (`inline-start`/`inline-end`) دون مكتبات UI ثقيلة لضمان أعلى سرعة استجابة.
 
 ### 3. الاختبارات وضمان الجودة (Quality Assurance)
-- **Vitest & React Testing Library** (61 ملف اختبار): لاختبارات الفرونت إند والمكونات وحسابات الفواتير والفلاتر.
+- **Vitest & React Testing Library** (63 ملف اختبار): لاختبارات الفرونت إند والمكونات وحسابات الفواتير والفلاتر.
 - **PGlite (Postgres WASM)** (76 ملف اختبار SQL عبر `npm run test:db`): لاختبار جميع الـ 90 هجرة ودوال SQL محلياً في بيئة مطابقة لقاعدة بيانات الإنتاج.
 - **Node Tests & Verification Scripts**: اختبارات `manage-users.test.mjs` و `manage-companies.test.mjs` و `verify-remote-db.test.mjs` و `free-receipt-concurrency.mjs` و `scripts/test-concurrency.mjs`، بالإضافة إلى `supabase/verify-remote-db.mjs` لفحص قاعدة البيانات السحابية.
 - **ESLint & TypeScript**: للفحص الثابت (`tsc --noEmit`, `eslint src`).
@@ -35,7 +35,7 @@
 MaksabPlus/
 ├── src/                          # كود الواجهة الأمامية
 │   ├── components/               # المكونات المشتركة والنماذج (InvoiceForm, ReceiptForm, ...)
-│   │   ├── charts/               # مكونات الرسوم البيانية للوحة التحكم (Chart.js + SparklineSvg)
+│   │   ├── charts/               # مكونات الرسوم البيانية للوحة التحكم (Chart.js)
 │   │   ├── invoice-form/         # وحدات نموذج الفاتورة الموحد (رأس الحساب، جدول الأصناف، الملخص)
 │   │   └── platform/             # نوافذ ومكونات لوحة مطور المنصة (حذف شركة / مستخدم)
 │   ├── context/                  # سياقات إدارة الحالة المشتركة (MasterDataContext)

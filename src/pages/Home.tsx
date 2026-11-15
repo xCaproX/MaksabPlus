@@ -20,19 +20,6 @@ interface DashboardSummaryData {
   cash_balance: number | null;
   receivables_balance: number | null;
   payables_balance: number | null;
-  top_items: Array<{
-    item_id: string;
-    item_name: string;
-    unit: string;
-    total_qty: number;
-    total_amount: number;
-  }> | null;
-  top_customers: Array<{
-    account_id: string;
-    account_name: string;
-    total_amount: number;
-    invoice_count: number;
-  }> | null;
   permissions: {
     can_view_sales: boolean;
     can_view_collections?: boolean;
