@@ -139,7 +139,7 @@ export default function Receipts() {
   const [totalCount, setTotalCount] = useState(0);
 
   const columns = useColumnFilters(tab, () => {
-    setDateFrom(periodDates().from); setDateTo(periodDates().to); setShowDeleted(false); setPage(1);
+    setPage(1);
   });
   const setColumnFieldImmediate = columns.setFieldImmediate;
   const { page, setPage } = useDocumentPageNumber([columns.filters, dateFrom, dateTo, sortOrder, tab, showDeleted]);
@@ -220,7 +220,7 @@ export default function Receipts() {
     }
   }, [tabParam, tab, searchParams, can, setSearchParams, setColumnFieldImmediate]);
   const columnFilter = <ColumnFilterRow scope={isCashBoxTransfer ? 'cash_transfer' : 'receipt'} kind={direction}
-     values={columns.values} onChange={columns.setField} onReset={columns.reset}
+     values={columns.values} onChange={columns.setField} onReset={columns.reset} showClearButton={false}
     options={{ cashBoxes: cashBoxes.map((b) => ({ value: b.id, label: b.name })) }} />;
 
   const [receiptSummary, setReceiptSummary] = useState<ReceiptKpiSummary>({

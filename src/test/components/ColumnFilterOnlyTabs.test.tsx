@@ -174,6 +174,38 @@ describe('redundant global search removal on ColumnFilterRow tabs', () => {
           />
         ),
       },
+      {
+        name: 'AccountsTab',
+        element: (
+          <MemoryRouter>
+            <AccountsTab kind="customer" />
+          </MemoryRouter>
+        ),
+      },
+      {
+        name: 'ItemsTab',
+        element: (
+          <MemoryRouter>
+            <ItemsTab />
+          </MemoryRouter>
+        ),
+      },
+      {
+        name: 'CashBoxesTab',
+        element: (
+          <MemoryRouter>
+            <CashBoxesTab />
+          </MemoryRouter>
+        ),
+      },
+      {
+        name: 'WarehousesTab',
+        element: (
+          <MemoryRouter>
+            <WarehousesTab />
+          </MemoryRouter>
+        ),
+      },
     ];
 
     for (const testCase of cases) {
@@ -195,42 +227,6 @@ describe('redundant global search removal on ColumnFilterRow tabs', () => {
         element: (
           <MemoryRouter>
             <ItemBalancesTab />
-          </MemoryRouter>
-        ),
-      },
-      {
-        name: 'AccountsTab',
-        expectedLabel: 'الحالة',
-        element: (
-          <MemoryRouter>
-            <AccountsTab kind="customer" />
-          </MemoryRouter>
-        ),
-      },
-      {
-        name: 'ItemsTab',
-        expectedLabel: 'الحالة',
-        element: (
-          <MemoryRouter>
-            <ItemsTab />
-          </MemoryRouter>
-        ),
-      },
-      {
-        name: 'CashBoxesTab',
-        expectedLabel: 'الحالة',
-        element: (
-          <MemoryRouter>
-            <CashBoxesTab />
-          </MemoryRouter>
-        ),
-      },
-      {
-        name: 'WarehousesTab',
-        expectedLabel: 'الحالة',
-        element: (
-          <MemoryRouter>
-            <WarehousesTab />
           </MemoryRouter>
         ),
       },
@@ -313,7 +309,7 @@ describe('redundant global search removal on ColumnFilterRow tabs', () => {
       );
       expect(mocks.rpc).toHaveBeenCalledWith(
         'get_master_accounts_kpis_columns',
-        expect.objectContaining({ p_search: null, p_kind: 'customer' }),
+        expect.objectContaining({ p_search: null, p_kind: 'customer', p_status: 'all' }),
       );
     });
     accountsRender.unmount();
@@ -331,7 +327,7 @@ describe('redundant global search removal on ColumnFilterRow tabs', () => {
       );
       expect(mocks.rpc).toHaveBeenCalledWith(
         'get_master_items_kpis_columns',
-        expect.objectContaining({ p_search: null }),
+        expect.objectContaining({ p_search: null, p_status: 'all' }),
       );
     });
     itemsRender.unmount();
@@ -398,5 +394,26 @@ describe('redundant global search removal on ColumnFilterRow tabs', () => {
     });
     fireEvent.focus(openingWarehouseInput);
     expect(screen.queryByRole('option', { name: 'اختر المخزن' })).not.toBeInTheDocument();
+  });
+
+  it('hides the redundant kind filter input in AccountOpeningTab without misaligning table columns', () => {
+    render(
+      <AccountOpeningTab
+        kind="customer"
+        accounts={[]}
+        canEditOpening
+        onRefresh={vi.fn().mockResolvedValue(undefined)}
+        saving={false}
+        setSaving={vi.fn()}
+      />,
+    );
+
+    const headerCells = screen.getAllByRole('columnheader');
+    const filterRow = screen.getByRole('row', { name: 'بحث بالأعمدة' });
+    expect(headerCells).toHaveLength(5);
+    expect(filterRow.children).toHaveLength(5);
+    expect(screen.queryByLabelText('بحث في النوع')).not.toBeInTheDocument();
+    expect(filterRow.children[2]).toBeEmptyDOMElement();
+    expect(screen.getByLabelText('بحث في الرصيد الحالي')).toBeInTheDocument();
   });
 });

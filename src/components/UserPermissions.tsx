@@ -22,7 +22,6 @@ import { errorMessage } from '../lib/errors';
 import { collectAllRows } from '../lib/exportRows';
 import ConfirmDialog from './ConfirmDialog';
 import Modal from './Modal';
-import SearchableSelect from './SearchableSelect';
 import ChangePasswordModal from './ChangePasswordModal';
 import EmptyState from './EmptyState';
 import { LoadingSkeleton } from './LoadingSkeleton';
@@ -36,8 +35,6 @@ type CompanyUser = {
   access_role: 'owner' | 'employee';
   permission_keys: PermissionKey[];
 };
-
-type UserFilterStatus = 'all' | 'active' | 'suspended' | 'owner';
 
 interface UserPermissionsProps {
   inviteOpen?: boolean;
@@ -73,9 +70,7 @@ export default function UserPermissions({
   // الموظف المختار والبحث
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<UserFilterStatus>('all');
-  const columns = useColumnFilters('users', () => { setSearchTerm(''); setStatusFilter('all'); });
+  const columns = useColumnFilters('users', () => {});
 
   // حالة طي/فرد الأقسام الهرمية
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -135,23 +130,8 @@ export default function UserPermissions({
 
   // تصفية المستخدمين للقائمة الجانبية
   const filteredUsers = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    return users.filter((user) => {
-      const matchQuery =
-        !query ||
-        (user.full_name?.toLowerCase().includes(query) ?? false) ||
-        user.email.toLowerCase().includes(query);
-      const matchStatus =
-        statusFilter === 'all'
-          ? true
-          : statusFilter === 'owner'
-          ? user.access_role === 'owner'
-          : statusFilter === 'active'
-          ? user.access_role !== 'owner' && user.is_active
-          : user.access_role !== 'owner' && !user.is_active;
-      return matchQuery && matchStatus && matchesColumnFilters(user, 'users', columns.filters);
-    });
-  }, [users, searchTerm, statusFilter, columns.filters]);
+    return users.filter((user) => matchesColumnFilters(user, 'users', columns.filters));
+  }, [users, columns.filters]);
 
   useEffect(() => {
     if (filteredUsers.length > 0 && (!selectedUserId || !filteredUsers.some((u) => u.user_id === selectedUserId))) {
@@ -324,30 +304,6 @@ export default function UserPermissions({
               <div className="head-row">
                 <strong>المستخدمون (<bdi dir="ltr" className="tabular-nums">{filteredUsers.length}</bdi>)</strong>
               </div>
-
-              <div className="users-sidebar-filters">
-                <label>
-                  <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="بحث بالاسم أو البريد…"
-                />
-                </label>
-                <SearchableSelect
-                  label="الحالة"
-                  ariaLabel="تصفية الموظفين"
-                  value={statusFilter}
-                  options={[
-                    { value: 'all', label: 'كل المستخدمين' },
-                    { value: 'active', label: 'النشطون فقط' },
-                    { value: 'suspended', label: 'الموقوفون فقط' },
-                    { value: 'owner', label: 'مديرو المنشأة' },
-                  ]}
-                  onChange={(val) => setStatusFilter(val as UserFilterStatus)}
-                />
-              </div>
             </div>
 
             <ColumnFilterRow as="bar" scope="users" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
@@ -355,7 +311,7 @@ export default function UserPermissions({
               {filteredUsers.length === 0 && (
                 <EmptyState
                   compact
-                  title="لا يوجد مستخدمون يطابقون البحث."
+                  title="لا يوجد مستخدمون يطابقون الفلاتر."
                 />
               )}
               {filteredUsers.map((user) => {

@@ -47,7 +47,6 @@ type ItemSort =
   | 'serial-asc'
   | 'price-desc'
   | 'price-asc';
-type StatusFilter = 'all' | 'active' | 'inactive';
 const PAGE_SIZE = 20;
 
 export default function ItemsTab() {
@@ -61,11 +60,10 @@ export default function ItemsTab() {
   const [version, setVersion] = useState(0);
 
   // الفلاتر
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<ItemSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("master_items", () => {
-    setStatusFilter('all'); setPage(1);
+    setPage(1);
   });
   const [totalCount, setTotalCount] = useState(0);
 
@@ -153,13 +151,6 @@ export default function ItemsTab() {
         let query = supabase
           .rpc('filter_master_item_rows', { p_columns: columns.filters, p_search: null }, { count: 'exact' }).select('*');
 
-        if (statusFilter === 'active') {
-          query = query.eq('is_active', true);
-        } else if (statusFilter === 'inactive') {
-          query = query.eq('is_active', false);
-        }
-
-
         if (sortOrder === 'price-desc') {
           query = query.order('sale_price', { ascending: false });
         } else if (sortOrder === 'price-asc') {
@@ -181,7 +172,7 @@ export default function ItemsTab() {
           supabase.rpc('get_master_items_kpis_columns', {
             p_columns: columns.filters,
             p_search: null,
-            p_status: statusFilter,
+            p_status: 'all',
           }),
         ]);
 
@@ -218,13 +209,13 @@ export default function ItemsTab() {
     return () => {
       alive = false;
     };
-  }, [columns.filters, page, statusFilter, sortOrder, version]);
+  }, [columns.filters, page, sortOrder, version]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, statusFilter, sortOrder]);
+  }, [columns.filters, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -435,22 +426,6 @@ export default function ItemsTab() {
 
       <div className={selectedItem ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة الأصناف">
-          <div className="erp-toolbar">
-            <div className="erp-filters">
-              <SearchableSelect
-                label="الحالة"
-                  ariaLabel="تصفية الحالة"
-                value={statusFilter}
-                options={[
-                  { value: 'all', label: 'كل الحالات' },
-                  { value: 'active', label: 'النشطة فقط' },
-                  { value: 'inactive', label: 'الموقوفة فقط' },
-                ]}
-                onChange={(val) => setStatusFilter(val as StatusFilter)}
-              />
-            </div>
-          </div>
-
           <div className="erp-table-wrap">
             <table className="table erp-table">
               <thead>
@@ -497,8 +472,8 @@ export default function ItemsTab() {
                   <EmptyState
                     colSpan={canViewPurchasePrice ? 8 : 7}
                     compact
-                    title="لا توجد أصناف تطابق البحث أو الفلاتر"
-                    description="جرّب تعديل كلمات البحث."
+                    title="لا توجد أصناف تطابق الفلاتر"
+                    description="جرّب تعديل الفلاتر المختارة أو تصفيرها."
                   />
                 )}
                 {!loading &&

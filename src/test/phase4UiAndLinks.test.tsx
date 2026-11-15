@@ -202,5 +202,35 @@ describe('Phase 4 UX/UI & Secure Document Deep Links', () => {
       });
       expect(screen.queryByText('توجد تعديلات غير محفوظة على صلاحيات هذا الموظف')).not.toBeInTheDocument();
     });
+
+    it('removes duplicate sidebar search and status controls and filters users via ColumnFilterRow bar', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const { container } = render(
+          <MemoryRouter>
+            <UserPermissions />
+          </MemoryRouter>,
+        );
+
+        await waitFor(() => {
+          expect(screen.getByRole('heading', { name: 'موظف أول' })).toBeInTheDocument();
+        });
+
+        expect(container.querySelector('.users-sidebar-filters')).toBeNull();
+        expect(screen.queryByLabelText('تصفية الموظفين')).not.toBeInTheDocument();
+        expect(screen.queryByPlaceholderText('بحث بالاسم أو البريد…')).not.toBeInTheDocument();
+
+        const nameFilter = screen.getByLabelText('بحث في الاسم');
+        fireEvent.change(nameFilter, { target: { value: 'ثاني' } });
+        await vi.advanceTimersByTimeAsync(300);
+
+        await waitFor(() => {
+          expect(screen.queryByRole('button', { name: /موظف أول/ })).not.toBeInTheDocument();
+        });
+        expect(screen.getByRole('button', { name: /موظف ثاني/ })).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });

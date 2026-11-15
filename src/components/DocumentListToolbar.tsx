@@ -39,13 +39,14 @@ export default function DocumentListToolbar({
   return (
     <div className="erp-toolbar document-list-toolbar">
       <div className="erp-filters">
-        <PeriodFilter from={options.dateFrom} to={options.dateTo} onChange={onDatesChange} />
+        <PeriodFilter from={options.dateFrom} to={options.dateTo} onChange={onDatesChange} disabled={disabled} />
       </div>
       <div className="document-toolbar-actions">
         {activeFilterCount > 0 && onResetFilters && (
           <button
             type="button"
             className="btn document-filter-reset-btn"
+            disabled={disabled}
             onClick={onResetFilters}
             title="مسح فلاتر الجدول النشطة"
           >

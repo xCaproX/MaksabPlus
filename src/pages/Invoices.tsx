@@ -237,7 +237,7 @@ export default function Invoices() {
   const [totalCount, setTotalCount] = useState(0);
 
   const columns = useColumnFilters(kind + String(canViewProfit), () => {
-    setDateFrom(periodDates().from); setDateTo(periodDates().to); setShowDeleted(false); setPage(1);
+    setPage(1);
   });
   const setColumnFieldImmediate = columns.setFieldImmediate;
   const { page, setPage } = useDocumentPageNumber([columns.filters, dateFrom, dateTo, sortOrder, kind, showDeleted]);
@@ -328,7 +328,7 @@ export default function Invoices() {
     }
   }, [tabParam, kind, searchParams, can, setSearchParams, setColumnFieldImmediate]);
   const columnFilter = <ColumnFilterRow scope={isWarehouseTransfer ? 'warehouse_transfer' : 'invoice'} kind={kind}
-    owner={canViewProfit} values={columns.values} onChange={columns.setField} onReset={columns.reset}
+    owner={canViewProfit} values={columns.values} onChange={columns.setField} onReset={columns.reset} showClearButton={false}
     options={{ warehouses: warehouses.map((w) => ({ value: w.id, label: w.name })), }} />;
 
   const [invoiceSummary, setInvoiceSummary] = useState<InvoiceKpiSummary>({

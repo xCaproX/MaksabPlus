@@ -351,7 +351,7 @@ export default function ItemBalancesTab() {
                   <EmptyState
                     colSpan={6}
                     compact
-                    title="لا توجد أصناف تطابق البحث أو المخزن."
+                    title="لا توجد أصناف تطابق الفلاتر أو المخزن."
                   />
                 )}
                 {!loading &&

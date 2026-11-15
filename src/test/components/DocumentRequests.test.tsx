@@ -172,4 +172,38 @@ describe('document list request lifecycle', () => {
     expect(dialog).toHaveClass('modal', 'transaction-entry-modal', 'invoice-entry-modal');
     expect(dialog.querySelector('.transfer-lines-card')).toHaveClass('right-card', 'items-table-card');
   });
+
+  it.each([
+    ['invoices', Invoices, 'sale', 'get_invoice_kpis_columns'],
+    ['receipts', Receipts, 'in', 'get_receipt_kpis_columns'],
+  ] as const)('omits duplicate clear icon in %s ColumnFilterRow and keeps date range and deleted mode when resetting filters', async (_, Page, tab, summary) => {
+    render(<MemoryRouter initialEntries={[`/?tab=${tab}`]}><Page /></MemoryRouter>);
+    await resolvePair(expectPair(0, summary, 0));
+
+    expect(screen.queryByRole('button', { name: 'مسح كل الفلاتر' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'الفترة' }));
+    fireEvent.click(screen.getByRole('option', { name: 'كل الفترات' }));
+    await resolvePair(expectPair(2, summary, 0));
+
+    fireEvent.click(screen.getByRole('button', { name: 'عرض المحذوفات' }));
+    await resolvePair(expectPair(4, summary, 0));
+
+    await changeNotes('اختبار');
+    const filteredPair = expectPair(6, summary, 0);
+    expect(filteredPair[0].args.p_columns).toEqual({ notes: 'اختبار' });
+    expect(filteredPair[0].args.p_show_deleted).toBe(true);
+    expect(filteredPair[0].args.p_date_from).toBeNull();
+    expect(filteredPair[0].args.p_date_to).toBeNull();
+    await resolvePair(filteredPair);
+
+    const resetBtn = screen.getByRole('button', { name: /مسح الفلاتر/ });
+    fireEvent.click(resetBtn);
+    const afterReset = expectPair(8, summary, 0);
+    expect(afterReset[0].args.p_columns).toEqual({});
+    expect(afterReset[0].args.p_show_deleted).toBe(true);
+    expect(afterReset[0].args.p_date_from).toBeNull();
+    expect(afterReset[0].args.p_date_to).toBeNull();
+    expect(screen.getByRole('combobox', { name: 'الفترة' })).toHaveValue('كل الفترات');
+  });
 });

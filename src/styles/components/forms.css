@@ -38,7 +38,7 @@ input[type="email"] {
 
 input::placeholder,
 textarea::placeholder,
-:is(.erp-filters, .column-filter-row, .column-filter-bar) .searchable-select:is([data-value=""], [data-value="all"]):not(.is-open) input {
+:is(.erp-filters, .column-filter-row, .column-filter-bar) .searchable-select[data-value=""]:not(.is-open) input {
   color: var(--muted-light);
   font-weight: 400;
 }

@@ -272,16 +272,16 @@ export default function AccountOpeningTab({
                   />
                   <th className="col-hide-on-detail" style={{ width: '90px' }}>النوع</th>
                   <th className="num" style={{ width: '250px' }}>الرصيد الافتتاحي</th>
-                  <th className="num" style={{ width: '170px' }}>الرصيد الحالي</th>
+                  <th className="num" style={{ width: '195px' }}>الرصيد الحالي</th>
                 </tr>
-                <ColumnFilterRow scope="opening_accounts" kind={kind} values={columns.values} onChange={columns.setField} onReset={columns.reset} />
+                <ColumnFilterRow scope="opening_accounts" kind={kind} values={columns.values} onChange={columns.setField} onReset={columns.reset} hideFilterKeys={['kind']} />
               </thead>
               <tbody>
                 {pageAccounts.length === 0 && (
                   <EmptyState
                     colSpan={5}
                     compact
-                    title={isCustomer ? 'لا توجد حسابات عملاء تطابق البحث.' : 'لا توجد حسابات موردين تطابق البحث.'}
+                    title={isCustomer ? 'لا توجد حسابات عملاء تطابق الفلاتر.' : 'لا توجد حسابات موردين تطابق الفلاتر.'}
                   />
                 )}
                 {pageAccounts.map((account) => {
@@ -340,7 +340,7 @@ export default function AccountOpeningTab({
                           </select>
                         </div>
                       </td>
-                      <td className="num" style={{ width: '170px' }}>
+                      <td className="num" style={{ width: '195px' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                           {(() => {
                             const status = getBalanceStatus(account.balance, account.kind);

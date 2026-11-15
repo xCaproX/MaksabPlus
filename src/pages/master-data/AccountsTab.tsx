@@ -21,7 +21,6 @@ import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import EmptyState from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import SearchableSelect from '../../components/SearchableSelect';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
 import StatusBadge from '../../components/StatusBadge';
@@ -33,7 +32,6 @@ import { useMasterData } from '../../context/MasterDataContext';
 import { accountOpeningBalance as signedOpeningBalance, defaultAccountOpeningDirection, type AccountOpeningDirection } from '../../lib/accountOpeningBalance';
 
 type AccountSort = 'name-asc' | 'name-desc' | 'serial-desc' | 'serial-asc';
-type StatusFilter = 'all' | 'active' | 'inactive';
 const PAGE_SIZE = 20;
 
 interface AccountsTabProps {
@@ -63,11 +61,10 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
   const [version, setVersion] = useState(0);
 
   // الفلاتر
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<AccountSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("master_accounts" + kind, () => {
-    setStatusFilter('all'); setPage(1);
+    setPage(1);
   });
   const [totalCount, setTotalCount] = useState(0);
 
@@ -127,13 +124,6 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
           .eq('kind', kind)
           .is('system_key', null);
 
-        if (statusFilter === 'active') {
-          query = query.eq('is_active', true);
-        } else if (statusFilter === 'inactive') {
-          query = query.eq('is_active', false);
-        }
-
-
         if (sortOrder === 'serial-desc') {
           query = query.order('serial_number', { ascending: false });
         } else if (sortOrder === 'serial-asc') {
@@ -152,7 +142,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
             p_columns: columns.filters,
             p_kind: kind,
             p_search: null,
-            p_status: statusFilter,
+            p_status: 'all',
           }),
         ]);
 
@@ -191,14 +181,14 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
     return () => {
       alive = false;
     };
-  }, [columns.filters, kind, version, page, statusFilter, sortOrder]);
+  }, [columns.filters, kind, version, page, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const pagedAccounts = accounts;
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, statusFilter, sortOrder]);
+  }, [columns.filters, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount && pageCount > 0) setPage(pageCount);
@@ -422,22 +412,6 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
 
       <div className={selectedAccount ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة ${entityPlural}`}>
-          <div className="erp-toolbar">
-            <div className="erp-filters">
-              <SearchableSelect
-                label="الحالة"
-                  ariaLabel="تصفية الحالة"
-                value={statusFilter}
-                options={[
-                  { value: 'all', label: 'كل الحالات' },
-                  { value: 'active', label: isCustomer ? 'العملاء النشطون' : 'الموردون النشطون' },
-                  { value: 'inactive', label: isCustomer ? 'العملاء المعطلون' : 'الموردون المعطلون' },
-                ]}
-                onChange={(val) => setStatusFilter(val as StatusFilter)}
-              />
-            </div>
-          </div>
-
           <div className="erp-table-wrap">
             <table className="table erp-table">
               <thead>
@@ -470,8 +444,8 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                   <EmptyState
                     colSpan={6}
                     compact
-                    title={`لا يوجد ${entityPlural} يطابقون البحث أو الفلاتر`}
-                    description="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+                    title={`لا يوجد ${entityPlural} يطابقون الفلاتر`}
+                    description="جرّب تعديل الفلاتر المختارة أو تصفيرها."
                   />
                 )}
                 {!loading &&

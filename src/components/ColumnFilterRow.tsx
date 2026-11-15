@@ -15,10 +15,13 @@ export interface ColumnFilterRowProps {
   onReset: () => void;
   options?: Record<string, SearchOption[]>;
   excludeKeys?: readonly string[];
+  /** Keys whose filter input is hidden without removing the table cell wrapper. */
+  hideFilterKeys?: readonly string[];
+  showClearButton?: boolean;
   as?: 'row' | 'bar';
 }
 
-export default function ColumnFilterRow({ scope, kind = '', owner = false, values, onChange, onReset, options = {}, excludeKeys, as = 'row' }: ColumnFilterRowProps) {
+export default function ColumnFilterRow({ scope, kind = '', owner = false, values, onChange, onReset, options = {}, excludeKeys, hideFilterKeys, showClearButton = true, as = 'row' }: ColumnFilterRowProps) {
   const columns = listColumns(scope, owner, kind).filter((column) => !excludeKeys?.includes(column.key));
   const rowRef = useRef<HTMLTableRowElement>(null);
   useStableTableColumns(rowRef, scope + kind + owner);
@@ -54,13 +57,18 @@ export default function ColumnFilterRow({ scope, kind = '', owner = false, value
       onFocus={(event) => event.target.select()} onChange={(event) => onChange(key, event.target.value)} />;
   }
   if (as === 'bar') return <div className="column-filter-bar" aria-label="بحث بالأعمدة">
-    {columns.filter((column) => column.type !== 'none').map((column) => <label key={column.key}>
+    {columns.filter((column) => column.type !== 'none' && !hideFilterKeys?.includes(column.key)).map((column) => <label key={column.key}>
       <span className="filter-label">{column.label}</span>{control(column)}
-    </label>)}{clear}
+    </label>)}{showClearButton && clear}
   </div>;
-  return <tr ref={rowRef} className={columns.some((column) => column.secondaryKey) ? 'column-filter-row column-filter-row-double' : 'column-filter-row'} aria-label="بحث بالأعمدة">
-    {columns.map((column, index) => <td key={column.key || 'actions'} className={column.className}>
-      <div className="column-filter-cell">{control(column)}{index === columns.length - 1 && clear}</div>
-    </td>)}
+  return <tr ref={rowRef} className={columns.some((column) => column.secondaryKey && !hideFilterKeys?.includes(column.key)) ? 'column-filter-row column-filter-row-double' : 'column-filter-row'} aria-label="بحث بالأعمدة">
+    {columns.map((column, index) => {
+      const hidden = hideFilterKeys?.includes(column.key) ?? false;
+      const showClear = index === columns.length - 1 && showClearButton;
+      const filterControl = hidden ? null : control(column);
+      return <td key={column.key || 'actions'} className={column.className}>
+        {(filterControl || showClear) && <div className="column-filter-cell">{filterControl}{showClear && clear}</div>}
+      </td>;
+    })}
   </tr>;
 }

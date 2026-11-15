@@ -13,7 +13,6 @@ import { entityNumber } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import SearchableSelect from '../../components/SearchableSelect';
 import EmptyState from '../../components/EmptyState';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
@@ -33,7 +32,6 @@ interface CashBoxRecord {
 }
 
 type CashBoxSort = 'name-asc' | 'name-desc' | 'serial-desc' | 'serial-asc';
-type StatusFilter = 'all' | 'active' | 'inactive';
 const PAGE_SIZE = 20;
 
 export default function CashBoxesTab() {
@@ -46,11 +44,10 @@ export default function CashBoxesTab() {
   const [version, setVersion] = useState(0);
 
   // الفلاتر
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<CashBoxSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("cash_boxes", () => {
-    setStatusFilter('all'); setPage(1);
+    setPage(1);
   });
 
   // التحديد والتفاصيل
@@ -105,11 +102,7 @@ export default function CashBoxesTab() {
 
   // تصفية وترتيب الخزن
   const filteredCashBoxes = useMemo(() => {
-    const list = cashBoxes.filter((box) => {
-      const matchStatus =
-        statusFilter === 'all' || (statusFilter === 'active' ? box.is_active : !box.is_active);
-      return matchStatus && matchesColumnFilters(box, 'cash_boxes', columns.filters);
-    });
+    const list = cashBoxes.filter((box) => matchesColumnFilters(box, 'cash_boxes', columns.filters));
 
     return list.sort((firstBox, secondBox) => {
       if (sortOrder === 'serial-desc') return (secondBox.serial_number ?? 0) - (firstBox.serial_number ?? 0);
@@ -117,7 +110,7 @@ export default function CashBoxesTab() {
       if (sortOrder === 'name-desc') return secondBox.name.localeCompare(firstBox.name, 'ar');
       return firstBox.name.localeCompare(secondBox.name, 'ar');
     });
-  }, [columns.filters, cashBoxes, statusFilter, sortOrder]);
+  }, [columns.filters, cashBoxes, sortOrder]);
 
   const totalCount = filteredCashBoxes.length;
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -125,7 +118,7 @@ export default function CashBoxesTab() {
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, statusFilter, sortOrder]);
+  }, [columns.filters, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -297,22 +290,6 @@ export default function CashBoxesTab() {
 
       <div className={selectedBox ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة الخزن">
-          <div className="erp-toolbar">
-            <div className="erp-filters">
-              <SearchableSelect
-                label="الحالة"
-                  ariaLabel="تصفية الحالة"
-                value={statusFilter}
-                options={[
-                  { value: 'all', label: 'كل الحالات' },
-                  { value: 'active', label: 'النشطة فقط' },
-                  { value: 'inactive', label: 'الموقوفة فقط' },
-                ]}
-                onChange={(val) => setStatusFilter(val as StatusFilter)}
-              />
-            </div>
-          </div>
-
           <div className="erp-table-wrap">
             <table className="table erp-table">
               <thead>
@@ -345,8 +322,8 @@ export default function CashBoxesTab() {
                   <EmptyState
                     colSpan={6}
                     compact
-                    title="لا توجد خزن تطابق البحث أو الفلاتر"
-                    description="جرّب تعديل كلمات البحث."
+                    title="لا توجد خزن تطابق الفلاتر"
+                    description="جرّب تعديل الفلاتر المختارة أو تصفيرها."
                   />
                 )}
                 {!loading &&

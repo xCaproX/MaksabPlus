@@ -532,6 +532,7 @@ td.row-actions > * + * {
 }
 :is(.column-filter-row, .column-filter-bar) .date-picker-trigger svg { inline-size: 14px; block-size: 14px; }
 .column-filter-cell .column-filter-clear { flex-shrink: 1; max-inline-size: 100%; min-inline-size: 0; }
+.column-filter-cell .column-filter-clear:not(:only-child) { flex-shrink: 0; }
 .column-filter-row .picker-input:has(> input[type="date"]) { inline-size: calc(var(--table-date-width) - 18px); }
 .column-filter-row .picker-input:has(> input[type="time"]) { inline-size: calc(var(--table-time-width) - 18px); }
 .column-filter-date { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }

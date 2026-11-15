@@ -379,7 +379,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
                   <EmptyState
                     colSpan={6}
                     compact
-                    title={`لا توجد حسابات ${entityPlural} تطابق البحث.`}
+                    title={`لا توجد حسابات ${entityPlural} تطابق الفلاتر.`}
                   />
                 )}
                 {!loading &&

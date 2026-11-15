@@ -209,7 +209,7 @@ export default function CashBoxBalancesTab() {
                   <EmptyState
                     colSpan={5}
                     compact
-                    title="لا توجد خزن تطابق البحث."
+                    title="لا توجد خزن تطابق الفلاتر."
                   />
                 )}
                 {!loading &&

@@ -131,8 +131,8 @@ export default function CashBoxTransferTable({
           />
         )
       }
-      emptyTitle="لا توجد تحويلات تطابق البحث أو الفلاتر"
-      emptyDescription="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+      emptyTitle="لا توجد تحويلات تطابق الفلاتر"
+      emptyDescription="جرّب تعديل الفلاتر المختارة أو تصفيرها."
     />
   );
 }

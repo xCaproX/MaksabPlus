@@ -165,8 +165,8 @@ export default function WarehouseTransferTable({
           />
         )
       }
-      emptyTitle="لا توجد تحويلات مخزنية تطابق البحث أو الفلاتر"
-      emptyDescription="جرّب تعديل كلمات البحث أو تصفير الفلاتر المختارة."
+      emptyTitle="لا توجد تحويلات مخزنية تطابق الفلاتر"
+      emptyDescription="جرّب تعديل الفلاتر المختارة أو تصفيرها."
     />
   );
 }

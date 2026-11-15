@@ -268,7 +268,7 @@ export default function StockOpeningTab({
                   />
                   <th className="num" style={{ width: '150px' }}>كمية البداية</th>
                   {canViewProfit && <th className="num" style={{ width: '150px' }}>تكلفة الوحدة</th>}
-                  <th className="num" style={{ width: '140px' }}>الرصيد الفعلي</th>
+                  <th className="num" style={{ width: '170px' }}>الرصيد الفعلي</th>
                 </tr>
                 <ColumnFilterRow scope="opening_items" owner={canViewProfit} values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
@@ -277,7 +277,7 @@ export default function StockOpeningTab({
                   <EmptyState
                     colSpan={canViewProfit ? 6 : 5}
                     compact
-                    title="لا توجد أصناف في هذا المخزن تطابق البحث."
+                    title="لا توجد أصناف في هذا المخزن تطابق الفلاتر."
                   />
                 )}
                 {pageStock.map((row) => {
@@ -337,7 +337,7 @@ export default function StockOpeningTab({
                           }
                         />
                       </td>}
-                      <td className="num strong" style={{ width: '140px' }}>
+                      <td className="num strong" style={{ width: '170px' }}>
                         <bdi dir="ltr" className="tabular-nums">{formatQty(row.current_qty)}</bdi>
                       </td>
                     </tr>

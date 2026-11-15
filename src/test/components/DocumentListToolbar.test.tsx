@@ -49,4 +49,21 @@ describe('document export action',()=>{
     fireEvent.click(resetBtn);
     expect(onReset).toHaveBeenCalledTimes(1);
   });
+
+  it('forwards disabled state to PeriodFilter controls and filter reset button', () => {
+    render(
+      <DocumentListToolbar
+        options={options}
+        onDatesChange={vi.fn()}
+        onResetFilters={vi.fn()}
+        disabled
+      />,
+    );
+
+    expect(screen.getByRole('combobox', { name: 'الفترة' })).toBeDisabled();
+    expect(screen.getByLabelText('من تاريخ')).toBeDisabled();
+    expect(screen.getByLabelText('إلى تاريخ')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /مسح الفلاتر/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'تصدير الجدول إلى إكسيل' })).toBeDisabled();
+  });
 });

@@ -175,7 +175,7 @@ export default function CashBoxOpeningTab({
                     defaultDirection="asc"
                   />
                   <th className="num" style={{ width: '160px' }}>الرصيد الافتتاحي</th>
-                  <th className="num" style={{ width: '160px' }}>الرصيد الفعلي</th>
+                  <th className="num" style={{ width: '185px' }}>الرصيد الفعلي</th>
                 </tr>
                 <ColumnFilterRow scope="opening_cash" values={columns.values} onChange={columns.setField} onReset={columns.reset} />
               </thead>
@@ -184,7 +184,7 @@ export default function CashBoxOpeningTab({
                   <EmptyState
                     colSpan={4}
                     compact
-                    title="لا توجد خزن تطابق البحث."
+                    title="لا توجد خزن تطابق الفلاتر."
                   />
                 )}
                 {pageBoxes.map((box) => {
@@ -220,7 +220,7 @@ export default function CashBoxOpeningTab({
                           }
                         />
                       </td>
-                      <td className="num strong remaining" style={{ width: '160px' }}>
+                      <td className="num strong remaining" style={{ width: '185px' }}>
                         <bdi dir="ltr" className="tabular-nums">{money(box.balance)}</bdi>
                       </td>
                     </tr>

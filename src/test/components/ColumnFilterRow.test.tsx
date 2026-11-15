@@ -51,4 +51,28 @@ describe('column-filter controls and reset', () => {
     expect(screen.getByTestId('settled')).not.toHaveTextContent('2026-02-31');
     expect(screen.getByRole('row', { name: 'بحث بالأعمدة' }).children).toHaveLength(13);
   });
+
+  it('supports hiding individual filter controls without shifting columns and omitting the inline clear button', () => {
+    render(
+      <table>
+        <thead>
+          <ColumnFilterRow
+            scope="opening_accounts"
+            kind="customer"
+            values={{}}
+            onChange={vi.fn()}
+            onReset={vi.fn()}
+            hideFilterKeys={['kind']}
+            showClearButton={false}
+          />
+        </thead>
+      </table>,
+    );
+
+    const filterRow = screen.getByRole('row', { name: 'بحث بالأعمدة' });
+    expect(filterRow.children).toHaveLength(5);
+    expect(filterRow.children[2]).toBeEmptyDOMElement();
+    expect(screen.queryByLabelText('بحث في النوع')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'مسح كل الفلاتر' })).not.toBeInTheDocument();
+  });
 });

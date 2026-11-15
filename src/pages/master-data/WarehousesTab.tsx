@@ -13,7 +13,6 @@ import { entityNumber } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import SearchableSelect from '../../components/SearchableSelect';
 import EmptyState from '../../components/EmptyState';
 import SortableHeader from '../../components/SortableHeader';
 import RowActions from '../../components/RowActions';
@@ -30,7 +29,6 @@ interface WarehouseRecord extends WarehouseOption {
 }
 
 type WarehouseSort = 'name-asc' | 'name-desc' | 'serial-desc' | 'serial-asc';
-type StatusFilter = 'all' | 'active' | 'inactive';
 const PAGE_SIZE = 20;
 
 export default function WarehousesTab() {
@@ -43,11 +41,10 @@ export default function WarehousesTab() {
   const [version, setVersion] = useState(0);
 
   // الفلاتر
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<WarehouseSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("warehouses", () => {
-    setStatusFilter('all'); setPage(1);
+    setPage(1);
   });
 
   // التحديد والتفاصيل
@@ -99,11 +96,7 @@ export default function WarehousesTab() {
 
   // تصفية وترتيب المخازن
   const filteredWarehouses = useMemo(() => {
-    const list = warehouses.filter((warehouse) => {
-      const matchStatus =
-        statusFilter === 'all' || (statusFilter === 'active' ? warehouse.is_active : !warehouse.is_active);
-      return matchStatus && matchesColumnFilters(warehouse, 'warehouses', columns.filters);
-    });
+    const list = warehouses.filter((warehouse) => matchesColumnFilters(warehouse, 'warehouses', columns.filters));
 
     return list.sort((firstWarehouse, secondWarehouse) => {
       if (sortOrder === 'serial-desc') return (secondWarehouse.serial_number ?? 0) - (firstWarehouse.serial_number ?? 0);
@@ -111,7 +104,7 @@ export default function WarehousesTab() {
       if (sortOrder === 'name-desc') return secondWarehouse.name.localeCompare(firstWarehouse.name, 'ar');
       return firstWarehouse.name.localeCompare(secondWarehouse.name, 'ar');
     });
-  }, [columns.filters, warehouses, statusFilter, sortOrder]);
+  }, [columns.filters, warehouses, sortOrder]);
 
   const totalCount = filteredWarehouses.length;
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -119,7 +112,7 @@ export default function WarehousesTab() {
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, statusFilter, sortOrder]);
+  }, [columns.filters, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -264,22 +257,6 @@ export default function WarehousesTab() {
 
       <div className={selectedWarehouse ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة المخازن">
-          <div className="erp-toolbar">
-            <div className="erp-filters">
-              <SearchableSelect
-                label="الحالة"
-                  ariaLabel="تصفية الحالة"
-                value={statusFilter}
-                options={[
-                  { value: 'all', label: 'كل الحالات' },
-                  { value: 'active', label: 'النشطة فقط' },
-                  { value: 'inactive', label: 'الموقوفة فقط' },
-                ]}
-                onChange={(val) => setStatusFilter(val as StatusFilter)}
-              />
-            </div>
-          </div>
-
           <div className="erp-table-wrap">
             <table className="table erp-table">
               <thead>
@@ -312,8 +289,8 @@ export default function WarehousesTab() {
                   <EmptyState
                     colSpan={6}
                     compact
-                    title="لا توجد مخازن تطابق البحث أو الفلاتر"
-                    description="جرّب تعديل كلمات البحث."
+                    title="لا توجد مخازن تطابق الفلاتر"
+                    description="جرّب تعديل الفلاتر المختارة أو تصفيرها."
                   />
                 )}
                 {!loading &&
