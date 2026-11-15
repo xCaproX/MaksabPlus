@@ -61,13 +61,11 @@ export default function ItemsTab() {
   const [version, setVersion] = useState(0);
 
   // الفلاتر
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<ItemSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("master_items", () => {
-    setSearchTerm(''); setDebouncedSearch(''); setStatusFilter('all'); setPage(1);
+    setStatusFilter('all'); setPage(1);
   });
   const [totalCount, setTotalCount] = useState(0);
 
@@ -78,13 +76,6 @@ export default function ItemsTab() {
     avgPrice: 0,
   });
 
-  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   // التحديد والتفاصيل
   const [selectedItem, setSelectedItem] = useState<MasterItemRecord | null>(null);
@@ -157,11 +148,10 @@ export default function ItemsTab() {
       setLoading(true);
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
-      const trimmed = debouncedSearch.trim();
 
       try {
         let query = supabase
-          .rpc('filter_master_item_rows', { p_columns: columns.filters, p_search: trimmed || null }, { count: 'exact' }).select('*');
+          .rpc('filter_master_item_rows', { p_columns: columns.filters, p_search: null }, { count: 'exact' }).select('*');
 
         if (statusFilter === 'active') {
           query = query.eq('is_active', true);
@@ -190,7 +180,7 @@ export default function ItemsTab() {
           query,
           supabase.rpc('get_master_items_kpis_columns', {
             p_columns: columns.filters,
-            p_search: trimmed || null,
+            p_search: null,
             p_status: statusFilter,
           }),
         ]);
@@ -228,13 +218,13 @@ export default function ItemsTab() {
     return () => {
       alive = false;
     };
-  }, [columns.filters, page, debouncedSearch, statusFilter, sortOrder, version]);
+  }, [columns.filters, page, statusFilter, sortOrder, version]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, debouncedSearch, statusFilter, sortOrder]);
+  }, [columns.filters, statusFilter, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -458,16 +448,6 @@ export default function ItemsTab() {
                 ]}
                 onChange={(val) => setStatusFilter(val as StatusFilter)}
               />
-
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="بحث باسم الصنف أو الكود أو الرقم…"
-                />
-              </label>
             </div>
           </div>
 

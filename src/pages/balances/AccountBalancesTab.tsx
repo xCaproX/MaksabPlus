@@ -56,19 +56,16 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
   const { can } = useAccess();
   const isCustomer = kind === 'customer';
   const entityPrefix = isCustomer ? 'CUS' : 'SUP';
-  const entityTitle = isCustomer ? 'عميل' : 'مورد';
   const entityPlural = isCustomer ? 'العملاء' : 'الموردين';
 
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // الفلاتر
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("account_balances" + kind, () => {
-    setSearchTerm(''); setDebouncedSearch('');  setPage(1);
+    setPage(1);
   });
   const [totalCount, setTotalCount] = useState(0);
 
@@ -80,13 +77,6 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
     count: 0,
   });
 
-  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   // التحديد والتفاصيل
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
@@ -106,11 +96,10 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
       setLoading(true);
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
-      const trimmed = debouncedSearch.trim();
 
       try {
         let query = supabase
-          .rpc('filter_account_balance_rows', { p_columns: columns.filters, p_search: trimmed || null, p_kind: kind }, { count: 'exact' }).select('*')
+          .rpc('filter_account_balance_rows', { p_columns: columns.filters, p_search: null, p_kind: kind }, { count: 'exact' }).select('*')
           .eq('kind', kind)
           .is('system_key', null);
 
@@ -136,7 +125,7 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
           supabase.rpc('get_account_balances_kpis_columns', {
             p_columns: columns.filters,
             p_kind: kind,
-            p_search: trimmed || null,
+            p_search: null,
           }),
         ]);
 
@@ -177,14 +166,14 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
     return () => {
       alive = false;
     };
-  }, [columns.filters, kind, page, debouncedSearch, sortOrder]);
+  }, [columns.filters, kind, page, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const pagedAccounts = accounts;
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, debouncedSearch, sortOrder]);
+  }, [columns.filters, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount && pageCount > 0) setPage(pageCount);
@@ -354,20 +343,6 @@ export default function AccountBalancesTab({ kind }: AccountBalancesTabProps) {
 
       <div className={selectedAccount ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة ${entityPlural}`}>
-          <div className="erp-toolbar">
-            <div className="erp-filters">
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم…`}
-                />
-              </label>
-            </div>
-          </div>
-
           <div className="erp-table-wrap">
             <table className="table erp-table">
               <thead>

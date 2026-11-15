@@ -25,7 +25,6 @@ import Modal from '../../components/Modal';
 import PeriodFilter from '../../components/PeriodFilter';
 import { periodDates } from '../../lib/period';
 import SortableHeader from '../../components/SortableHeader';
-import { matchesSearchQuery } from '../../lib/search';
 import { useMasterData } from '../../context/MasterDataContext';
 import type { CashBoxRow, CashBoxStatementRow } from '../../lib/types';
 
@@ -47,11 +46,10 @@ export default function CashBoxBalancesTab() {
   const { loading, error } = resourceStatus.cashBoxes;
 
   // الفلاتر
-  const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("cash_balances", () => {
-    setSearchTerm('');  setPage(1);
+    setPage(1);
   });
 
   // التحديد والتفاصيل
@@ -67,7 +65,7 @@ export default function CashBoxBalancesTab() {
   // تصفية وترتيب الخزن
   const filteredCashBoxes = useMemo(() => {
     const list = cashBoxes.filter((box) =>
-      matchesColumnFilters(box, 'cash_balances', columns.filters) && matchesSearchQuery([box.name, box.notes, box.serial_number], searchTerm),
+      matchesColumnFilters(box, 'cash_balances', columns.filters),
     );
 
     return list.sort((firstBox, secondBox) => {
@@ -78,7 +76,7 @@ export default function CashBoxBalancesTab() {
       if (sortOrder === 'name-desc') return secondBox.name.localeCompare(firstBox.name, 'ar');
       return firstBox.name.localeCompare(secondBox.name, 'ar');
     });
-  }, [columns.filters, cashBoxes, searchTerm, sortOrder]);
+  }, [columns.filters, cashBoxes, sortOrder]);
 
   useEffect(() => { setPage(1); }, [columns.filters]);
   const totalCount = filteredCashBoxes.length;
@@ -176,23 +174,6 @@ export default function CashBoxBalancesTab() {
 
       <div className={selectedBox ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة أرصدة الخزن">
-          <div className="erp-toolbar">
-            <div className="erp-filters">
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => {
-                    setSearchTerm(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="بحث باسم الخزنة أو الرقم…"
-                />
-              </label>
-            </div>
-          </div>
-
           <div className="erp-table-wrap">
             <table className="table erp-table">
               <thead>

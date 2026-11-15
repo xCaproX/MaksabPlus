@@ -12,7 +12,6 @@ import SortableHeader from '../../components/SortableHeader';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, qty as formatQty, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
-import { matchesSearchQuery } from '../../lib/search';
 import { resolveDefaultWarehouse } from '../../lib/defaults';
 import { toast } from '../../components/Toast';
 import type { StockOpeningRow, WarehouseOption } from '../../lib/types';
@@ -44,11 +43,9 @@ export default function StockOpeningTab({
   const { canViewProfit } = useAccess();
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [stockValues, setStockValues] = useState<Record<string, { qty: string; cost: string }>>({});
-  const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<ManagementSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("opening_items" + String(canViewProfit), () => {
-    setSearchTerm('');
     setSelectedWarehouseId(resolveDefaultWarehouse(warehouses)?.id ?? '');
     setPage(1);
   });
@@ -83,8 +80,7 @@ export default function StockOpeningTab({
   const filteredStockRows = useMemo(() => {
     const list = stockRows.filter((row) => {
       const matchWarehouse = row.warehouse_id === selectedWarehouseId;
-      const matchSearch = matchesSearchQuery([row.item_name, row.item_code, row.item_number, row.warehouse_name, row.item_notes, row.warehouse_notes], searchTerm);
-      return matchWarehouse && matchSearch && matchesColumnFilters(row, 'opening_items', columns.filters);
+      return matchWarehouse && matchesColumnFilters(row, 'opening_items', columns.filters);
     });
     return list.sort((firstRow, secondRow) => {
       if (sortOrder === 'serial-desc') return secondRow.item_number - firstRow.item_number;
@@ -92,14 +88,14 @@ export default function StockOpeningTab({
       if (sortOrder === 'name-desc') return secondRow.item_name.localeCompare(firstRow.item_name, 'ar');
       return firstRow.item_name.localeCompare(secondRow.item_name, 'ar');
     });
-  }, [columns.filters, stockRows, selectedWarehouseId, searchTerm, sortOrder]);
+  }, [columns.filters, stockRows, selectedWarehouseId, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(filteredStockRows.length / PAGE_SIZE));
   const pageStock = filteredStockRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, searchTerm, sortOrder, selectedWarehouseId]);
+  }, [columns.filters, sortOrder, selectedWarehouseId]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -251,16 +247,6 @@ export default function StockOpeningTab({
                 onChange={setSelectedWarehouseId}
                 searchPlaceholder="بحث عن مخزن…"
               />
-
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="بحث باسم الصنف أو كوده…"
-                />
-              </label>
             </div>
           </div>
 

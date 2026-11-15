@@ -79,12 +79,10 @@ export default function ItemBalancesTab() {
   const [loading, setLoading] = useState(true);
 
   // الفلاتر
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<BalanceSort>('balance-desc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("warehouse_items", () => {
-    setSearchTerm(''); setDebouncedSearch(''); setSelectedWarehouseId(''); setPage(1);
+    setSelectedWarehouseId(''); setPage(1);
   });
   const [totalCount, setTotalCount] = useState(0);
 
@@ -95,13 +93,6 @@ export default function ItemBalancesTab() {
     count: 0,
   });
 
-  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   useEffect(() => {
     if (!selectedWarehouseId && warehouses.length > 0) {
@@ -129,11 +120,10 @@ export default function ItemBalancesTab() {
       setLoading(true);
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
-      const trimmed = debouncedSearch.trim();
 
       try {
         let query = supabase
-          .rpc('filter_warehouse_item_rows', { p_columns: columns.filters, p_search: trimmed || null }, { count: 'exact' }).select('*');
+          .rpc('filter_warehouse_item_rows', { p_columns: columns.filters, p_search: null }, { count: 'exact' }).select('*');
 
         if (selectedWarehouseId) {
           query = query.eq('warehouse_id', selectedWarehouseId);
@@ -161,7 +151,7 @@ export default function ItemBalancesTab() {
           supabase.rpc('get_warehouse_stock_kpis_columns', {
             p_columns: columns.filters,
             p_warehouse_id: selectedWarehouseId || null,
-            p_search: trimmed || null,
+            p_search: null,
           }),
         ]);
 
@@ -198,13 +188,13 @@ export default function ItemBalancesTab() {
     return () => {
       alive = false;
     };
-  }, [columns.filters, page, debouncedSearch, selectedWarehouseId, sortOrder]);
+  }, [columns.filters, page, selectedWarehouseId, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, debouncedSearch, selectedWarehouseId, sortOrder]);
+  }, [columns.filters, selectedWarehouseId, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -319,19 +309,6 @@ export default function ItemBalancesTab() {
                 }}
                 searchPlaceholder="بحث عن مخزن…"
               />
-
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => {
-                    setSearchTerm(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="بحث باسم الصنف أو الكود…"
-                />
-              </label>
             </div>
           </div>
 

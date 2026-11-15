@@ -22,7 +22,6 @@ import { toast } from '../../components/Toast';
 import type { WarehouseOption } from '../../lib/types';
 import { useAccess } from '../../lib/access';
 import { useConfirmDialog } from '../../lib/useConfirmDialog';
-import { matchesSearchQuery } from '../../lib/search';
 import { useMasterData } from '../../context/MasterDataContext';
 
 interface WarehouseRecord extends WarehouseOption {
@@ -44,12 +43,11 @@ export default function WarehousesTab() {
   const [version, setVersion] = useState(0);
 
   // الفلاتر
-  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<WarehouseSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("warehouses", () => {
-    setSearchTerm(''); setStatusFilter('all'); setPage(1);
+    setStatusFilter('all'); setPage(1);
   });
 
   // التحديد والتفاصيل
@@ -104,11 +102,7 @@ export default function WarehousesTab() {
     const list = warehouses.filter((warehouse) => {
       const matchStatus =
         statusFilter === 'all' || (statusFilter === 'active' ? warehouse.is_active : !warehouse.is_active);
-      const matchQuery = matchesSearchQuery(
-        [warehouse.name, warehouse.serial_number, warehouse.notes],
-        searchTerm,
-      );
-      return matchStatus && matchQuery && matchesColumnFilters(warehouse, 'warehouses', columns.filters);
+      return matchStatus && matchesColumnFilters(warehouse, 'warehouses', columns.filters);
     });
 
     return list.sort((firstWarehouse, secondWarehouse) => {
@@ -117,7 +111,7 @@ export default function WarehousesTab() {
       if (sortOrder === 'name-desc') return secondWarehouse.name.localeCompare(firstWarehouse.name, 'ar');
       return firstWarehouse.name.localeCompare(secondWarehouse.name, 'ar');
     });
-  }, [columns.filters, warehouses, searchTerm, statusFilter, sortOrder]);
+  }, [columns.filters, warehouses, statusFilter, sortOrder]);
 
   const totalCount = filteredWarehouses.length;
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -125,7 +119,7 @@ export default function WarehousesTab() {
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, searchTerm, statusFilter, sortOrder]);
+  }, [columns.filters, statusFilter, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -283,16 +277,6 @@ export default function WarehousesTab() {
                 ]}
                 onChange={(val) => setStatusFilter(val as StatusFilter)}
               />
-
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="بحث باسم المخزن أو الرقم…"
-                />
-              </label>
             </div>
           </div>
 

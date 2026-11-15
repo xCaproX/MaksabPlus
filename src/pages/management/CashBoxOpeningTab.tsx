@@ -10,7 +10,6 @@ import SortableHeader from '../../components/SortableHeader';
 import { supabase } from '../../lib/supabase';
 import { entityNumber, money } from '../../lib/format';
 import { errorMessage, translateDbError } from '../../lib/errors';
-import { matchesSearchQuery } from '../../lib/search';
 import { toast } from '../../components/Toast';
 import type { CashBoxRow } from '../../lib/types';
 import type { ManagementSort } from './AccountOpeningTab';
@@ -37,11 +36,10 @@ export default function CashBoxOpeningTab({
   onDirtyCountChange,
 }: CashBoxOpeningTabProps) {
   const [cashValues, setCashValues] = useState<Record<string, string>>({});
-  const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<ManagementSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("opening_cash", () => {
-    setSearchTerm('');  setPage(1);
+    setPage(1);
   });
   const [selectedBox, setSelectedBox] = useState<CashBoxRow | null>(null);
 
@@ -64,7 +62,7 @@ export default function CashBoxOpeningTab({
 
   const filteredCashBoxes = useMemo(() => {
     const list = cashBoxes.filter((box) =>
-      matchesColumnFilters(box, 'opening_cash', columns.filters) && matchesSearchQuery([box.name, box.serial_number, box.notes], searchTerm)
+      matchesColumnFilters(box, 'opening_cash', columns.filters)
     );
     return list.sort((firstBox, secondBox) => {
       if (sortOrder === 'serial-desc') return secondBox.serial_number - firstBox.serial_number;
@@ -72,14 +70,14 @@ export default function CashBoxOpeningTab({
       if (sortOrder === 'name-desc') return secondBox.name.localeCompare(firstBox.name, 'ar');
       return firstBox.name.localeCompare(secondBox.name, 'ar');
     });
-  }, [columns.filters, cashBoxes, searchTerm, sortOrder]);
+  }, [columns.filters, cashBoxes, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(filteredCashBoxes.length / PAGE_SIZE));
   const pageBoxes = filteredCashBoxes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, searchTerm, sortOrder]);
+  }, [columns.filters, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -159,20 +157,6 @@ export default function CashBoxOpeningTab({
 
       <div className={selectedBox ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label="قائمة افتتاحيات الخزن">
-          <div className="erp-toolbar">
-            <div className="erp-filters">
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="بحث باسم الخزنة…"
-                />
-              </label>
-            </div>
-          </div>
-
           <div className="erp-table-wrap">
             <table className="table erp-table">
               <thead>

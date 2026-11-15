@@ -21,7 +21,6 @@ import StatusBadge from '../../components/StatusBadge';
 import { toast } from '../../components/Toast';
 import { useAccess } from '../../lib/access';
 import { useConfirmDialog } from '../../lib/useConfirmDialog';
-import { matchesSearchQuery } from '../../lib/search';
 import { useMasterData } from '../../context/MasterDataContext';
 
 interface CashBoxRecord {
@@ -47,12 +46,11 @@ export default function CashBoxesTab() {
   const [version, setVersion] = useState(0);
 
   // الفلاتر
-  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<CashBoxSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("cash_boxes", () => {
-    setSearchTerm(''); setStatusFilter('all'); setPage(1);
+    setStatusFilter('all'); setPage(1);
   });
 
   // التحديد والتفاصيل
@@ -110,11 +108,7 @@ export default function CashBoxesTab() {
     const list = cashBoxes.filter((box) => {
       const matchStatus =
         statusFilter === 'all' || (statusFilter === 'active' ? box.is_active : !box.is_active);
-      const matchQuery = matchesSearchQuery(
-        [box.name, box.serial_number, box.notes],
-        searchTerm,
-      );
-      return matchStatus && matchQuery && matchesColumnFilters(box, 'cash_boxes', columns.filters);
+      return matchStatus && matchesColumnFilters(box, 'cash_boxes', columns.filters);
     });
 
     return list.sort((firstBox, secondBox) => {
@@ -123,7 +117,7 @@ export default function CashBoxesTab() {
       if (sortOrder === 'name-desc') return secondBox.name.localeCompare(firstBox.name, 'ar');
       return firstBox.name.localeCompare(secondBox.name, 'ar');
     });
-  }, [columns.filters, cashBoxes, searchTerm, statusFilter, sortOrder]);
+  }, [columns.filters, cashBoxes, statusFilter, sortOrder]);
 
   const totalCount = filteredCashBoxes.length;
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -131,7 +125,7 @@ export default function CashBoxesTab() {
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, searchTerm, statusFilter, sortOrder]);
+  }, [columns.filters, statusFilter, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -316,16 +310,6 @@ export default function CashBoxesTab() {
                 ]}
                 onChange={(val) => setStatusFilter(val as StatusFilter)}
               />
-
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="بحث باسم الخزنة أو الرقم…"
-                />
-              </label>
             </div>
           </div>
 

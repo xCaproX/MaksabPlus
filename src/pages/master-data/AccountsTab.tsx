@@ -63,13 +63,11 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
   const [version, setVersion] = useState(0);
 
   // الفلاتر
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortOrder, setSortOrder] = useState<AccountSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("master_accounts" + kind, () => {
-    setSearchTerm(''); setDebouncedSearch(''); setStatusFilter('all'); setPage(1);
+    setStatusFilter('all'); setPage(1);
   });
   const [totalCount, setTotalCount] = useState(0);
 
@@ -80,13 +78,6 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
     withOpeningCount: 0,
   });
 
-  // تأخير البحث لمنع إرسال طلبات متعددة مع كل حرف (Debounce 300ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   // التحديد والتفاصيل
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
@@ -129,11 +120,10 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
       setLoading(true);
       const from = (page - 1) * PAGE_SIZE;
       const to = page * PAGE_SIZE - 1;
-      const trimmed = debouncedSearch.trim();
 
       try {
         let query = supabase
-          .rpc('filter_master_account_rows', { p_columns: columns.filters, p_search: trimmed || null, p_kind: kind }, { count: 'exact' }).select('*')
+          .rpc('filter_master_account_rows', { p_columns: columns.filters, p_search: null, p_kind: kind }, { count: 'exact' }).select('*')
           .eq('kind', kind)
           .is('system_key', null);
 
@@ -161,7 +151,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
           supabase.rpc('get_master_accounts_kpis_columns', {
             p_columns: columns.filters,
             p_kind: kind,
-            p_search: trimmed || null,
+            p_search: null,
             p_status: statusFilter,
           }),
         ]);
@@ -201,14 +191,14 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
     return () => {
       alive = false;
     };
-  }, [columns.filters, kind, version, page, debouncedSearch, statusFilter, sortOrder]);
+  }, [columns.filters, kind, version, page, statusFilter, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const pagedAccounts = accounts;
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, debouncedSearch, statusFilter, sortOrder]);
+  }, [columns.filters, statusFilter, sortOrder]);
 
   useEffect(() => {
     if (page > pageCount && pageCount > 0) setPage(pageCount);
@@ -445,16 +435,6 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                 ]}
                 onChange={(val) => setStatusFilter(val as StatusFilter)}
               />
-
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={`بحث باسم ${entityTitle} أو الهاتف أو الرقم…`}
-                />
-              </label>
             </div>
           </div>
 

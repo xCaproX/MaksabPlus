@@ -18,7 +18,6 @@ import {
   type AccountOpeningDirection,
   type AccountOpeningEntry,
 } from '../../lib/accountOpeningBalance';
-import { matchesSearchQuery } from '../../lib/search';
 import { toast } from '../../components/Toast';
 import type { AccountRow } from '../../lib/types';
 
@@ -50,11 +49,10 @@ export default function AccountOpeningTab({
   const entityPrefix = isCustomer ? 'CUS' : 'SUP';
 
   const [accountValues, setAccountValues] = useState<Record<string, AccountOpeningEntry>>({});
-  const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<ManagementSort>('name-asc');
   const [page, setPage] = useState(1);
   const columns = useColumnFilters("opening_accounts" + kind, () => {
-    setSearchTerm('');  setPage(1);
+    setPage(1);
   });
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
 
@@ -91,7 +89,7 @@ export default function AccountOpeningTab({
 
   const filteredAccounts = useMemo(() => {
     const list = visibleAccounts.filter((account) =>
-      matchesColumnFilters(account, 'opening_accounts', columns.filters) && matchesSearchQuery([account.name, account.phone, account.serial_number, account.notes], searchTerm)
+      matchesColumnFilters(account, 'opening_accounts', columns.filters)
     );
     return list.sort((firstAccount, secondAccount) => {
       if (sortOrder === 'serial-desc') return (secondAccount.serial_number ?? 0) - (firstAccount.serial_number ?? 0);
@@ -99,14 +97,14 @@ export default function AccountOpeningTab({
       if (sortOrder === 'name-desc') return secondAccount.name.localeCompare(firstAccount.name, 'ar');
       return firstAccount.name.localeCompare(secondAccount.name, 'ar');
     });
-  }, [columns.filters, visibleAccounts, searchTerm, sortOrder]);
+  }, [columns.filters, visibleAccounts, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(filteredAccounts.length / PAGE_SIZE));
   const pageAccounts = filteredAccounts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [columns.filters, searchTerm, sortOrder, kind]);
+  }, [columns.filters, sortOrder, kind]);
 
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -255,20 +253,6 @@ export default function AccountOpeningTab({
 
       <div className={selectedAccount ? 'erp-sales-workspace detail-open' : 'erp-sales-workspace'}>
         <section className="erp-list-panel" aria-label={`قائمة افتتاحيات ${isCustomer ? 'العملاء' : 'الموردين'}`}>
-          <div className="erp-toolbar">
-            <div className="erp-filters">
-              <label className="erp-search">
-                <span className="filter-label">بحث</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={`بحث باسم ${isCustomer ? 'العميل' : 'المورد'} أو الرقم…`}
-                />
-              </label>
-            </div>
-          </div>
-
           <div className="erp-table-wrap">
             <table className="table erp-table">
               <thead>
