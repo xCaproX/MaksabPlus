@@ -605,19 +605,32 @@
   color: var(--card);
   font-size: var(--font-xs);
 }
-.document-export-btn { margin-inline-start: auto; flex-shrink: 0; white-space: nowrap; gap: 8px; font-size: 12px; }
-.document-filter-reset-pill {
+.document-toolbar-actions {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #ffffff;
-  border-radius: var(--radius-full, 9999px);
-  padding-inline: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--erp-space-2, 8px);
+  margin-inline-start: auto;
+  flex-shrink: 0;
 }
-.document-filter-reset-pill:hover {
-  background: rgba(255, 255, 255, 0.24);
-  border-color: rgba(255, 255, 255, 0.5);
+.document-toolbar-actions .btn {
+  min-height: var(--erp-control-height, 36px);
+  height: var(--erp-control-height, 36px);
+  padding-block: 0;
+  padding-inline: 12px;
+  font-size: 12px;
+}
+.document-export-btn { flex-shrink: 0; white-space: nowrap; gap: 8px; }
+.document-filter-reset-btn {
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  box-shadow: none;
+}
+.document-filter-reset-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.48);
   color: #ffffff;
 }

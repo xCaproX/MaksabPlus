@@ -29,4 +29,24 @@ describe('document export action',()=>{
     await waitFor(()=>expect(toast.error).toHaveBeenCalledWith('لم يكتمل تحميل بيانات التصدير. حاول مرة أخرى.'));
     expect(button).not.toBeDisabled();
   });
+
+  it('places the active filter reset button inside the end actions group beside export', () => {
+    const onReset = vi.fn();
+    const { container } = render(
+      <DocumentListToolbar options={options} onDatesChange={vi.fn()} onResetFilters={onReset} />,
+    );
+
+    const actionsGroup = container.querySelector('.document-toolbar-actions');
+    const filtersGroup = container.querySelector('.erp-filters');
+    const resetBtn = screen.getByRole('button', { name: /مسح الفلاتر/ });
+    const exportBtn = screen.getByRole('button', { name: 'تصدير الجدول إلى إكسيل' });
+
+    expect(actionsGroup).toContainElement(resetBtn);
+    expect(actionsGroup).toContainElement(exportBtn);
+    expect(filtersGroup).not.toContainElement(resetBtn);
+    expect(resetBtn).toHaveTextContent('1');
+
+    fireEvent.click(resetBtn);
+    expect(onReset).toHaveBeenCalledTimes(1);
+  });
 });

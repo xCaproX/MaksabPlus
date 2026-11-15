@@ -136,12 +136,12 @@ describe('Phase 4 UX/UI & Secure Document Deep Links', () => {
       title: 'فواتير المبيعات',
     };
 
-    it('shows active filter count pill when filters exist and resets all filters on click', () => {
+    it('shows active filter count button inside toolbar actions group when filters exist and resets all filters on click', () => {
       const onReset = vi.fn();
       const { rerender } = render(
         <DocumentListToolbar options={baseOptions} onDatesChange={vi.fn()} onResetFilters={onReset} />,
       );
-      expect(screen.queryByRole('button', { name: /فلاتر نشطة/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /مسح الفلاتر/ })).not.toBeInTheDocument();
 
       rerender(
         <DocumentListToolbar
@@ -151,9 +151,11 @@ describe('Phase 4 UX/UI & Secure Document Deep Links', () => {
         />,
       );
 
-      const pill = screen.getByRole('button', { name: /فلاتر نشطة/ });
-      expect(pill).toHaveTextContent('2');
-      fireEvent.click(pill);
+      const resetBtn = screen.getByRole('button', { name: /مسح الفلاتر/ });
+      expect(resetBtn).toHaveTextContent('2');
+      expect(resetBtn.closest('.document-toolbar-actions')).toBeInTheDocument();
+      expect(resetBtn.closest('.erp-filters')).not.toBeInTheDocument();
+      fireEvent.click(resetBtn);
       expect(onReset).toHaveBeenCalledTimes(1);
     });
 

@@ -40,25 +40,27 @@ export default function DocumentListToolbar({
     <div className="erp-toolbar document-list-toolbar">
       <div className="erp-filters">
         <PeriodFilter from={options.dateFrom} to={options.dateTo} onChange={onDatesChange} />
+      </div>
+      <div className="document-toolbar-actions">
         {activeFilterCount > 0 && onResetFilters && (
           <button
             type="button"
-            className="btn sm document-filter-reset-pill"
+            className="btn document-filter-reset-btn"
             onClick={onResetFilters}
-            title="مسح الفلاتر النشطة"
+            title="مسح فلاتر الجدول النشطة"
           >
+            <X size={15} aria-hidden="true" />
             <span>
-              فلاتر نشطة (<bdi dir="ltr" className="tabular-nums">{activeFilterCount}</bdi>)
+              مسح الفلاتر (<bdi dir="ltr" className="tabular-nums">{activeFilterCount}</bdi>)
             </span>
-            <X size={13} aria-hidden="true" />
           </button>
         )}
+        <button type="button" className="btn outline document-export-btn" disabled={disabled || exporting}
+          aria-busy={exporting} onClick={()=>void handleExport()}>
+          <Download size={16} aria-hidden="true" />
+          {exporting ? 'جارٍ التصدير…' : 'تصدير الجدول إلى إكسيل'}
+        </button>
       </div>
-      <button type="button" className="btn outline document-export-btn" disabled={disabled || exporting}
-        aria-busy={exporting} onClick={()=>void handleExport()}>
-        <Download size={16} aria-hidden="true" />
-        {exporting ? 'جارٍ التصدير…' : 'تصدير الجدول إلى إكسيل'}
-      </button>
     </div>
   );
 }
