@@ -116,15 +116,16 @@
   flex-shrink: 0;
 }
 
-.modal-head .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.22);
+.modal-head .icon-btn:hover:not(:disabled) {
+  background: var(--danger, #dc2626);
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.35);
+  border-color: var(--danger, #dc2626);
   transform: scale(1.03);
 }
 
-.modal-head .icon-btn:active {
-  background: rgba(255, 255, 255, 0.3);
+.modal-head .icon-btn:active:not(:disabled) {
+  background: var(--danger-hover, #b91c1c);
+  border-color: var(--danger-hover, #b91c1c);
   transform: scale(0.97);
 }
 
