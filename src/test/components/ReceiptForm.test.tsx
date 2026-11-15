@@ -692,7 +692,7 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     expect(container.querySelector('.field-receipt-statement')).toHaveTextContent('بيان محفوظ للإيصال');
     const metaRow = container.querySelector('.row-cashbox-balance-notes')!;
     expect(metaRow.querySelector('.field-cashbox-select')).toHaveTextContent('الخزنة الرئيسية');
-    expect(metaRow.querySelector('.field-cashbox-balance')).toHaveTextContent('5,000.00');
+    expect(metaRow.querySelector('.field-cashbox-balance')).toBeNull();
     expect(metaRow.querySelector('.field-receipt-notes')).toHaveTextContent('ملاحظة محفوظة');
     expect(container.querySelector('.cashbox-balance-hint')).toBeNull();
 

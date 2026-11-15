@@ -148,14 +148,14 @@ export default function CashBoxTransferForm({
   return (
     <form className={`cashbox-transfer-form ${isReadOnly ? 'is-readonly' : ''}`} onSubmit={submit}>
       {/* سطر التاريخ */}
-      <div className="account-header-card" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>تاريخ التحويل:</span>
+      <div className="account-header-card cashbox-date-card">
+        <span className="cashbox-date-label">تاريخ التحويل:</span>
         {isReadOnly ? (
-          <div className="readonly-val-box num" style={{ minHeight: '34px', padding: '0 10px' }}>
+          <div className="readonly-val-box num cashbox-date-readonly">
             <DateDisplay value={date} />
           </div>
         ) : (
-          <div style={{ width: '160px' }}>
+          <div className="cashbox-date-input-wrap">
             <DateInput value={date} onChange={setDate} />
           </div>
         )}
@@ -173,6 +173,7 @@ export default function CashBoxTransferForm({
               </div>
             ) : (
               <SearchableSelect
+                portal
                 value={sourceId}
                 options={activeBoxes.map(toCashBoxOption)}
                 onChange={(next) => {
@@ -215,6 +216,7 @@ export default function CashBoxTransferForm({
               </div>
             ) : (
               <SearchableSelect
+                portal
                 value={destinationId}
                 options={activeBoxes
                   .filter((box) => box.id !== sourceId)
@@ -288,9 +290,8 @@ export default function CashBoxTransferForm({
           </div>
 
           <div className="field-tafqeet-card" title={tafqeetText || 'المبلغ بالحروف'}>
-            <span className="tafqeet-label">المبلغ بالحروف</span>
             <span className={`tafqeet-text ${tafqeetText ? 'has-value' : 'empty'}`}>
-              {tafqeetText || 'سيظهر تفقيط المبلغ بالعربية هنا…'}
+              {tafqeetText || '—'}
             </span>
           </div>
         </div>
@@ -311,9 +312,9 @@ export default function CashBoxTransferForm({
       )}
 
       {/* ملاحظات التحويل */}
-      <div className="account-header-card" style={{ padding: '8px 12px' }}>
+      <div className="account-header-card cashbox-notes-card">
         {isReadOnly ? (
-          <div className="readonly-val-box readonly-notes" style={{ minHeight: '38px' }}>
+          <div className="readonly-val-box readonly-notes cashbox-notes-readonly">
             {notes || 'لا توجد ملاحظات على التحويل'}
           </div>
         ) : (

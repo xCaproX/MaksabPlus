@@ -68,4 +68,33 @@ describe('CashBoxTransferForm', () => {
     fireEvent.submit(amountInput.closest('form')!);
     expect(supabase.rpc).not.toHaveBeenCalled();
   });
+
+  it('يوحد شكل التفقيط ويستخدم أصناف CSS دون style مضمّن ويفتح قوائم الخزن في portal', () => {
+    const cashBoxes = [
+      { id: 'cb-1', name: 'الخزنة الرئيسية', balance: 2000, opening_balance: 2000, is_active: true, is_primary: true, serial_number: 1, notes: null },
+      { id: 'cb-2', name: 'خزنة الفرع', balance: 300, opening_balance: 300, is_active: true, is_primary: false, serial_number: 2, notes: null },
+    ] as any;
+
+    const { container } = render(
+      <CashBoxTransferForm
+        cashBoxes={cashBoxes}
+        editing={null}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector('.tafqeet-label')).toBeNull();
+    expect(container.querySelector('.field-tafqeet-card .tafqeet-text')).toHaveTextContent('—');
+    expect(container.querySelector('.cashbox-date-card')).not.toBeNull();
+    expect(container.querySelector('.cashbox-date-card')?.hasAttribute('style')).toBe(false);
+    expect(container.querySelector('.cashbox-notes-card')).not.toBeNull();
+    expect(container.querySelector('.cashbox-notes-card')?.hasAttribute('style')).toBe(false);
+
+    const sourceCombo = screen.getByDisplayValue('الخزنة الرئيسية');
+    fireEvent.focus(sourceCombo);
+    const listbox = document.body.querySelector('[role="listbox"]');
+    expect(listbox).not.toBeNull();
+    expect(container.contains(listbox)).toBe(false);
+  });
 });

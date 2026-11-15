@@ -69,8 +69,11 @@ flowchart LR
    - تتم جميع عمليات إنشاء وتعديل وحذف واستعادة المستندات، وحركات المخزون، وإدارة البيانات الأساسية، والأرصدة الافتتاحية حصرياً عبر دوال RPC تتحقق من `require_permission(...)` و`guard_permission_write()`.
 2. **تغطية الصلاحيات الدقيقة (`0080`)**:
    - تفرض الدوال في `0080` الصلاحيات الفرعية على دوال البيانات الأساسية (`create_warehouse`, `update_warehouse`, `delete_warehouse`, `create_cash_box_...`, `create_item_...`, `delete_item`, `save_account`, `delete_account`)، ودوال الافتتاحيات (`save_account_opening_balances`, `save_opening_balances`)، وكشوف الحسابات (`get_account_statement`, `get_cash_box_statement`, `get_item_movement_statement`).
-3. **إدارة المستخدمين (`supabase/functions/manage-users`)**:
-   - تتحقق الدالة السحابية من JWT المستدعي واستدعاء `is_company_owner()` قبل تنفيذ `list` أو `invite` أو تغيير كلمة المرور، وترفض أي طلب عند رفض دالة قاعدة البيانات دون تجاوز إداري.
+3. **إدارة المستخدمين والشركات (`supabase/functions/manage-users`, `manage-companies`)**:
+   - تتحقق `manage-users` من JWT المستدعي واستدعاء `is_company_owner()` قبل تنفيذ `list` أو `invite` أو تغيير كلمة المرور، وترفض أي طلب عند رفض دالة قاعدة البيانات دون تجاوز إداري.
+   - تتحقق `manage-companies` من هوية مطور المنصة النشط (`is_platform_admin()`) لإدارة الشركات وأصحابها ومستخدميها، مع فصل صارم للهوية تفرضه تريجرات متناظرة على `platform_admins` (`0088`) و`profiles` (`0090`)، وحماية آخر مالك نشط وعدم تسريب `admin_notes` في `get_my_inactive_status()` (`0089`).
+4. **تشديد قراءة المستندات (`0086`, `0087`)**:
+   - تفرض سياسات `SELECT` على جداول المستندات صلاحيات `.view` التفصيلية (`0086`)، وتتحقق `get_document_detail` من الصلاحية وعزل الشركة قبل إرجاع تفاصيل أي مستند (`0087`).
 
 ---
 

@@ -11,6 +11,7 @@ flowchart TD
     App[App.tsx - Router & Session Check]
     Login[Login.tsx]
     SetPassword[SetPassword.tsx]
+    PlatformAdmin[PlatformAdmin.tsx - مطور المنصة]
     Layout[Layout.tsx - AccessProvider + MasterDataProvider]
     Home[Home.tsx - Dashboard]
     Invoices[Invoices.tsx - Sales, Purchases, Returns, Waste, Transfers]
@@ -21,7 +22,8 @@ flowchart TD
 
     App -->|غير مسجل| Login
     App -->|استكمال دعوة| SetPassword
-    App -->|مسجل| Layout
+    App -->|مطور منصة| PlatformAdmin
+    App -->|مستخدم شركة نشط| Layout
     Layout --> Home
     Layout --> Invoices
     Layout --> Receipts
@@ -31,8 +33,8 @@ flowchart TD
 ```
 
 ### حماية المسارات (Route Guards)
-- `AccessProvider` (`src/lib/access.tsx`): يُغلف التطبيق بعد تسجيل الدخول ويجلب الصلاحيات عبر `get_my_access` مع توفير خطاف `useAccess()` (`can()`, `canViewProfit`).
-- `AccessRoute`: يتحقق من صلاحيات كل مسار (`/invoices`, `/receipts`, `/data`, `/balances`, `/management`) ويوجه غير المصرح لهم إلى `/access-denied`.
+- `AccessProvider` (`src/lib/access.tsx`): يُغلف التطبيق بعد تسجيل الدخول ويجلب الصلاحيات عبر `get_my_access` مع كشف هوية مطور المنصة (`get_platform_admin_identity`) وحالة الإيقاف (`get_my_inactive_status`)، مع توفير خطاف `useAccess()` (`can()`, `canViewProfit`).
+- `AccessRoute`: يتحقق من صلاحيات كل مسار (`/invoices`, `/receipts`, `/data`, `/balances`, `/management`) ويوجه غير المصرح لهم إلى `/access-denied`، بينما يُعزل مطور المنصة في لوحة `/platform-admin`.
 
 ---
 
@@ -67,7 +69,8 @@ flowchart TD
 | `DateDisplay` | `src/components/DateDisplay.tsx` | عرض التواريخ والأوقات بتوقيت `Africa/Cairo` وصيغة `DD/MM/YYYY` في `<bdi dir="ltr">`. |
 | `MoneyDisplay` | `src/components/MoneyDisplay.tsx` | عرض المبالغ المالية مع `dir="ltr"` و`tabular-nums`. |
 | `AccountBalancePills` | `src/components/AccountBalancePills.tsx` | شارات عرض رصيد العميل/المورد قبل وبعد المستند. |
-| `SearchableSelect` / `PickerInput` | `src/components/SearchableSelect.tsx`, `PickerInput.tsx` | قوائم اختيار وبحث سريعة بلوحة المفاتيح والباركود. |
+| `CashBoxBalanceBox` / `ItemNameDisplay` | `src/components/` | عرض رصيد الخزنة المختارة وتنسيق اسم الصنف بترتيب (`code, name, unit`). |
+| `SearchableSelect` / `PickerInput` | `src/components/SearchableSelect.tsx`, `PickerInput.tsx` | قوائم اختيار وبحث سريعة بلوحة المفاتيح والباركود مع دعم `portal` داخل الحاويات القابلة للتمرير. |
 | `StatusBadge` | `src/components/StatusBadge.tsx` | شارات الحالة (مسددة، جزئية، غير مسددة، نشط، موقوف، إلخ). |
 | `RowActions` / `DocumentCreatorCell` | `src/components/RowActions.tsx`, `DocumentCreatorCell.tsx` | قائمة إجراءات السطر وخلية منشئ المستند. |
 | `ConfirmDialog` / `Modal` / `ChangePasswordModal` | `src/components/` | النوافذ الحوارية وتأكيد الحذف بالاسم/الرقم وتغيير كلمة المرور. |
@@ -80,7 +83,7 @@ flowchart TD
 
 1. **الأرقام والمبالغ والوحدات**:
    - جميع الأرقام والمبالغ والأكواد والتواريخ محاطة بـ `<bdi dir="ltr" className="tabular-nums">` لمنع تداخل النصوص العربية مع الأرقام في RTL.
-   - الوحدات (`ج.م`, `قطعة`, `كجم`, ...) توضع كلواحق ثابتة خارج قيمة حقل الإدخال، ولا تُستخدم كـ placeholder.
+   - وحدات الأصناف (`قطعة`, `كجم`, ...) تظهر بجانب اسم الصنف فقط بالترتيب (`كود، اسم، وحدة` عبر `ItemNameDisplay`) ولا توضع داخل أو بجانب حقول الأرقام والكميات والمخزون؛ ولا تُضاف لاحقة العملة (`ج.م`) بجانب حقول إدخال الأسعار أو المبالغ لثبات العملة عبر النظام.
    - حقول الأرقام تخفي الأسهم الافتراضية وتستخدم `inputMode="decimal"` وتُحدد القيمة تلقائياً عند التركيز (`select()`).
 2. **محاذاة وخصائص CSS المنطقية**:
    - استخدام `margin-inline-start`, `padding-inline-end`, `text-align: start` حصرياً عبر `src/styles/`، وتجنب `left/right` في التخطيطات.

@@ -456,11 +456,13 @@ export default function ReceiptForm({
             )}
           </label>
 
-          <CashBoxBalanceBox
-            balance={cashBoxDisplayBalance}
-            danger={isOverdraft}
-            ariaLabel={!isIn && !isReadOnly ? 'الرصيد المتاح' : 'الرصيد'}
-          />
+          {!isReadOnly && (
+            <CashBoxBalanceBox
+              balance={cashBoxDisplayBalance}
+              danger={isOverdraft}
+              ariaLabel={!isIn ? 'الرصيد المتاح' : 'الرصيد'}
+            />
+          )}
 
           <label className="field-receipt-notes">
             <span>ملاحظات</span>
@@ -513,7 +515,7 @@ export default function ReceiptForm({
                   : `/invoices?tab=${editing.invoice_kind ?? 'sale'}&search=${encodeURIComponent(editing.invoice_number ?? '')}`
               }
               className="receipt-linked-link"
-              onClick={onCancel}
+              onClick={() => requestClose(onCancel)}
             >
               <FileText size={15} />
               <span>{linkKind(editing.invoice_kind)} {editing.invoice_number}</span>

@@ -432,6 +432,7 @@ export default function WarehouseTransferForm({
                 </div>
               ) : (
                 <SearchableSelect
+                  portal
                   value={sourceId}
                   options={choices.map((warehouse) => ({
                     value: warehouse.id,
@@ -454,6 +455,7 @@ export default function WarehouseTransferForm({
                 </div>
               ) : (
                 <SearchableSelect
+                  portal
                   value={destinationId}
                   options={choices
                     .filter((warehouse) => warehouse.id !== sourceId)
@@ -500,6 +502,7 @@ export default function WarehouseTransferForm({
                   </td>
                   <td data-label="الصنف">
                     <SearchableSelect
+                      portal
                       inputRef={entryItemSearchRef}
                       value={entryItemId}
                       selectedLabel={

@@ -138,10 +138,13 @@ export default function InvoiceForm({
     } else if (switchedFromCashToCredit && paidSourceRef.current === 'auto_cash') {
       paidSourceRef.current = 'manual';
       setPaid('0.00');
-    } else if (paidNumber > total) {
-      setPaid(Number(total).toFixed(2));
+    } else {
+      setPaid((prev) => {
+        const currentPaid = parseFloat(prev) || 0;
+        return currentPaid > total ? Number(total).toFixed(2) : prev;
+      });
     }
-  }, [total, cashAccountSelected, paidNumber]);
+  }, [total, cashAccountSelected]);
 
   const selectableAccounts = accounts.filter((account) => account.kind === accountKind);
   const selectableWarehouses = warehouses.filter(
@@ -672,6 +675,7 @@ export default function InvoiceForm({
           busy={busy}
           editing={editing}
           onPaidChange={(val) => {
+            if (cashAccountSelected) return;
             const normalized = normalizeDigits(val);
             if (!/^\d*\.?\d*$/.test(normalized)) return;
             paidSourceRef.current = 'manual';

@@ -98,6 +98,7 @@ export default function InvoiceItemsTable({
                 </td>
                 <td data-label="الصنف">
                   <SearchableSelect
+                    portal
                     inputRef={entryItemSearchRef}
                     value={entryItemId}
                     selectedLabel={

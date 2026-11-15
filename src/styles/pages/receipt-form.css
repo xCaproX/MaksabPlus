@@ -113,6 +113,10 @@
   align-items: flex-end;
 }
 
+.receipt-form.is-readonly .row-cashbox-balance-notes {
+  grid-template-columns: minmax(185px, 240px) minmax(260px, 1fr);
+}
+
 .row-cashbox-balance-notes .field-receipt-notes {
   margin-inline-start: 8px;
 }
@@ -289,6 +293,10 @@
     grid-template-columns: minmax(0, 1fr) 130px;
   }
 
+  .receipt-form.is-readonly .row-cashbox-balance-notes {
+    grid-template-columns: 1fr;
+  }
+
   .row-cashbox-balance-notes .field-receipt-notes {
     grid-column: 1 / -1;
     margin-inline-start: 0;
@@ -303,6 +311,10 @@
 
   .row-cashbox-balance-notes {
     grid-template-columns: minmax(0, 1fr) 110px;
+  }
+
+  .receipt-form.is-readonly .row-cashbox-balance-notes {
+    grid-template-columns: 1fr;
   }
 
   .row-cashbox-balance-notes .field-receipt-notes {

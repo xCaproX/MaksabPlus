@@ -871,4 +871,80 @@ describe('InvoiceForm - وضع العرض وقراءة الفاتورة (readOnl
     expect(Array.from(readonlyCashBoxBox).some((el) => el.textContent?.trim() === 'الخزينة الرئيسية')).toBe(false);
     expect(Array.from(readonlyCashBoxBox).some((el) => el.textContent?.trim() === '—')).toBe(true);
   });
+
+  it('يقفل حقل المدفوع وأزرار السداد السريع للحساب النقدي ويفعلها للحساب الآجل دون رجوع مفاجئ للقيمة', () => {
+    const creditAndCashAccounts = [
+      makeAccount('acc-cash', 'عميل نقدي عام', 'customer', 'cash_customer', 1),
+      makeAccount('acc-credit', 'شركة الأمل', 'customer', null, 2),
+    ];
+
+    const { container, rerender } = render(
+      <InvoiceForm
+        kind="sale"
+        accounts={creditAndCashAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={null}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    const itemInput = screen.getByPlaceholderText('اختر صنفاً للإدراج أو امسح الباركود…');
+    fireEvent.focus(itemInput);
+    fireEvent.click(screen.getByRole('option', { name: /ITM-001 — سكر أبيض 1 كجم — كجم/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'إدراج' }));
+
+    const paidInput = screen.getByLabelText('المدفوع') as HTMLInputElement;
+    const payAllBtn = container.querySelector('.btn-paid-all') as HTMLButtonElement;
+    const payZeroBtn = container.querySelector('.btn-paid-zero') as HTMLButtonElement;
+
+    expect(paidInput).toBeDisabled();
+    expect(payAllBtn).toBeDisabled();
+    expect(payZeroBtn).toBeDisabled();
+    expect(paidInput.value).toBe('35.00');
+
+    // محاولة تغيير قيمة المدفوع على الحساب النقدي لا تنفذ التغيير
+    fireEvent.change(paidInput, { target: { value: '50' } });
+    expect(paidInput.value).toBe('35.00');
+
+    // التحويل إلى حساب آجل يفعل الحقل والأزرار ويقبل تعديل المدفوع بحرية دون ارتداد
+    fireEvent.focus(screen.getByDisplayValue('عميل نقدي عام'));
+    fireEvent.click(screen.getByRole('option', { name: /شركة الأمل/ }));
+
+    expect(paidInput).not.toBeDisabled();
+    expect(payAllBtn).not.toBeDisabled();
+    expect(payZeroBtn).not.toBeDisabled();
+    expect(paidInput.value).toBe('0.00');
+
+    fireEvent.change(paidInput, { target: { value: '20' } });
+    expect(paidInput.value).toBe('20');
+
+    // في وضع العرض فقط إذا كانت الخزنة غير موجودة بالقائمة يعرض cash_box_name المحفوظ بدلاً من "—"
+    const archivedCashBoxInvoice = {
+      ...mockEditingInvoice,
+      invoice: {
+        ...mockEditingInvoice.invoice,
+        cash_box_id: 'cb-archived',
+        cash_box_name: 'خزنة أرشيفية قديمة',
+      },
+    };
+    rerender(
+      <InvoiceForm
+        kind="sale"
+        accounts={creditAndCashAccounts}
+        warehouses={mockWarehouses}
+        cashBoxes={mockCashBoxes}
+        items={mockItems}
+        stockRows={mockStockRows}
+        editing={archivedCashBoxInvoice}
+        readOnly={true}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('خزنة أرشيفية قديمة')).toBeInTheDocument();
+  });
 });

@@ -48,6 +48,7 @@ export default function InvoiceSummarySidebar({
   isReadOnly,
   isWaste,
   isReturn,
+  cashAccountSelected,
   total,
   paid,
   paidNumber,
@@ -192,6 +193,7 @@ export default function InvoiceSummarySidebar({
                   type="button"
                   className="btn-paid-quick btn-paid-all"
                   onClick={onQuickPaidAll}
+                  disabled={cashAccountSelected}
                   title={isReturn ? 'استرداد بالكامل' : 'دفع بالكامل'}
                   aria-label={isReturn ? 'استرداد بالكامل' : 'دفع بالكامل'}
                 >
@@ -201,6 +203,7 @@ export default function InvoiceSummarySidebar({
                   type="button"
                   className="btn-paid-quick btn-paid-zero"
                   onClick={onQuickPaidZero}
+                  disabled={cashAccountSelected}
                   title={isReturn ? 'عدم استرداد شيء (صفر)' : 'عدم دفع شيء (صفر)'}
                   aria-label={isReturn ? 'عدم استرداد شيء (تصفير)' : 'عدم دفع شيء (تصفير)'}
                 >
@@ -209,7 +212,7 @@ export default function InvoiceSummarySidebar({
               </div>
             </div>
           )}
-          <div className="strip-value-box strip-paid-box">
+          <div className={`strip-value-box strip-paid-box ${!isReadOnly && cashAccountSelected ? 'is-disabled' : ''}`}>
             {isReadOnly ? (
               <MoneyDisplay value={paidNumber} strong className="strip-value" />
             ) : (
@@ -221,6 +224,14 @@ export default function InvoiceSummarySidebar({
                 onFocus={(e) => e.target.select()}
                 onChange={(e) => onPaidChange(e.target.value)}
                 onBlur={onPaidBlur}
+                disabled={cashAccountSelected}
+                title={
+                  cashAccountSelected
+                    ? isReturn
+                      ? 'الحساب النقدي يسترد بالكامل تلقائياً'
+                      : 'الحساب النقدي يسدد بالكامل تلقائياً'
+                    : undefined
+                }
                 className="no-spinner num left-paid-input"
                 aria-label={isReturn ? 'المبلغ المسترد' : 'المدفوع'}
               />
@@ -253,7 +264,7 @@ export default function InvoiceSummarySidebar({
                 <span>{isCashOut ? 'الخزنة المنصرف منها' : 'الخزنة'}</span>
               </div>
               <div className="readonly-val-box">
-                {selectedCashBox?.name ?? '—'}
+                {selectedCashBox?.name ?? editing?.invoice.cash_box_name ?? '—'}
               </div>
             </label>
           ) : (
@@ -266,8 +277,14 @@ export default function InvoiceSummarySidebar({
               </div>
               <div className="left-cashbox-balance-row">
                 <SearchableSelect
+                  portal
                   ariaLabel={isCashOut ? 'الخزنة المنصرف منها' : 'الخزنة'}
                   value={effectiveCashBoxId}
+                  selectedLabel={
+                    effectiveCashBoxId
+                      ? (selectedCashBox?.name ?? editing?.invoice.cash_box_name ?? undefined)
+                      : undefined
+                  }
                   options={selectableCashBoxes.map(toCashBoxOption)}
                   onChange={onCashBoxChange}
                   placeholder={paidNumber <= 0 ? '' : 'اختر الخزنة…'}

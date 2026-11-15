@@ -71,7 +71,7 @@
 
 ## 4. قائمة هجرات قاعدة البيانات (Database Migrations)
 
-تم بناء وتطوير النظام عبر 85 هجرة مرتبة تسلسلياً:
+تم بناء وتطوير النظام عبر 90 هجرة مرتبة تسلسلياً:
 
 1. `0001_schema.sql`: المخطط الأساسي للجداول، العلاقات، وسياسات RLS لعزل الشركات.
 2. `0002_invoice_functions.sql`: دوال إدارة الفواتير والمخزون في معاملة ذرية واحدة.
@@ -158,6 +158,11 @@
 83. `0083_reconciliation_statements_locks_and_cashbox.sql`: شمول الأصناف والمخازن المعطلة ذات الأرصدة في المطابقة الشاملة، منع الرصيد الافتتاحي السالب للخزن، توحيد توقيت القاهرة في تسويات الافتتاحية، ومنع استعادة الفواتير على كيانات معطلة.
 84. `0084_accounting_cost_restore_and_reconciliation_fixes.sql`: توحيد تقريب كميات وأسعار الفواتير لـ 4 منازل ومزامنة الربح، تسعير `sale_return` للمخزن الفارغ عبر `resolve_sale_return_unit_cost`، شمول `sale_return` في فحص الخروج اللاحق، استخدام `v_open.unit_cost` في تعديل الافتتاحية، منع استعادة المدفوعات على حساب/خزنة معطلة، حماية تعطيل المخزن الرئيسي، خصم المرتجعات من الأكثر مبيعاً، وتوسيع المطابقة الشاملة لفحص تناسق بنود وإيصالات الفواتير.
 85. `0085_security_and_transfer_restore_fixes.sql`: منع `restore_warehouse_transfer` عند تعطيل أحد أصناف التحويل، فحص صلاحية `purchase_price` في `validate_list_columns` قبل تخطي القيم الفارغة، تضمين `s.company_id = i.company_id` في `v_item_stock`، توحيد القفل المسبق لـ `cash_boxes` في `delete_free_receipt`، وتقريب `p_amount` لـ 4 منازل في الإيصالات الحرة.
+86. `0086_tighten_document_view_rls.sql`: تشديد سياسات القراءة (RLS) على جداول المستندات (`invoices`, `receipts`, `warehouse_transfers`, `warehouse_transfer_items`, `cash_box_transfers`) لتفرض صلاحيات `.view` التفصيلية بدقة.
+87. `0087_document_detail_and_statement_links.sql`: دالة `get_document_detail` لجلب وفتح المستند الفردي بروابط كشوف الحساب وإرجاع `cash_box_name` مع حجب التكاليف والربح لغير المخولين.
+88. `0088_platform_admin_companies.sql`: لوحة مطور المنصة لإدارة الشركات (`platform_admins`, `platform_company_metadata`)، حالة إيقاف الشركة، حظر دخول مطور المنصة في ملفات الشركات (`guard_platform_admin_identity`)، ودوال تهيئة وإدارة الشركات ومستخدميها.
+89. `0089_platform_suspension_and_user_lifecycle.sql`: دالة `get_my_inactive_status` لعرض سبب الإيقاف للعميل فقط دون الملاحظات الداخلية، مسح سبب الإيقاف عند إعادة التفعيل، حماية آخر مالك نشط، وتعديل/حذف مستخدمي الشركات عبر مطور المنصة.
+90. `0090_profiles_platform_admin_guard.sql`: تريجر الفصل المتناظر `profiles_platform_admin_guard` لمنع إدراج أو ربط أي مطور منصة داخل `public.profiles`.
 
 ---
 
@@ -182,10 +187,10 @@ npm run dev
 
 ### تشغيل الاختبارات:
 ```bash
-# تشغيل كافة اختبارات قاعدة البيانات (71 ملف اختبار SQL في بيئة PGlite معزولة)
+# تشغيل كافة اختبارات قاعدة البيانات (76 ملف اختبار SQL في بيئة PGlite معزولة)
 npm run test:db
 
-# تشغيل اختبارات الواجهة والوحدات (Vitest) واختبارات إدارة المستخدمين والتحقق
+# تشغيل اختبارات الواجهة والوحدات (Vitest) واختبارات إدارة المستخدمين والشركات
 npm test
 
 # فحص صحة وتكامل قاعدة بيانات Supabase الحية عن بُعد
@@ -222,9 +227,9 @@ npm run db:verify-remote
 
 ```text
 supabase/
-  functions/          # دوال Edge Functions (مثل manage-users)
-  migrations/         # كافة ملفات الهجرة الـ 85 مرتبة تسلسلياً
-  tests/              # 71 ملف اختبار SQL ومحاكي PGlite المحلي واختبارات Node
+  functions/          # دوال Edge Functions (manage-users, manage-companies)
+  migrations/         # كافة ملفات الهجرة الـ 90 مرتبة تسلسلياً
+  tests/              # 76 ملف اختبار SQL ومحاكي PGlite المحلي واختبارات Node
   verify-remote-db.mjs # محرك التحقق الآلي من تكامل قاعدة البيانات البعيدة
 docs/
   architecture/       # التوثيق المعماري الحي للمشروع (نظرة عامة، قاعدة البيانات، المنطق، الواجهة، الأمان)

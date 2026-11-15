@@ -11,7 +11,7 @@
 - **Supabase / PostgreSQL**: محرك البيانات والمصادقة (Auth).
 - **Row-Level Security (RLS)**: عزل بيانات الشركات بشكل كامل على مستوى كل استعلام.
 - **PL/pgSQL Functions (RPCs)**: جميع العمليات الحسابية، ترحيل الفواتير، وحركات المخزون والمالية تُنفذ حصرياً داخل المعاملات (ACID Transactions) في قاعدة البيانات لمنع أي تضارب أو تلاعب.
-- **Supabase Edge Functions (Deno)**: دالة `manage-users` لإدارة دعوة الموظفين وتغيير كلمات مرورهم بأمان من قِبل المالك فقط.
+- **Supabase Edge Functions (Deno)**: دالتا `manage-users` (لإدارة الموظفين وكلمات مرورهم من قِبل المالك) و `manage-companies` (لوحة مطور المنصة لإدارة الشركات وأصحابها ومستخدميها).
 
 ### 2. الواجهة الأمامية (Frontend)
 - **React 18** مع **Vite** و **TypeScript**.
@@ -22,9 +22,9 @@
 - **Pure CSS / Modular Design System**: تصميم مبني على CSS Variables و Design Tokens مخصص للمشروع يدعم RTL بالكامل والخصائص المنطقية (`inline-start`/`inline-end`) دون مكتبات UI ثقيلة لضمان أعلى سرعة استجابة.
 
 ### 3. الاختبارات وضمان الجودة (Quality Assurance)
-- **Vitest & React Testing Library** (54 ملف اختبار): لاختبارات الفرونت إند والمكونات وحسابات الفواتير والفلاتر.
-- **PGlite (Postgres WASM)** (71 ملف اختبار SQL عبر `npm run test:db`): لاختبار جميع الـ 85 هجرة ودوال SQL محلياً في بيئة مطابقة لقاعدة بيانات الإنتاج.
-- **Node Tests & Verification Scripts**: اختبارات `manage-users.test.mjs` و `verify-remote-db.test.mjs` و `free-receipt-concurrency.mjs` و `scripts/test-concurrency.mjs`، بالإضافة إلى `supabase/verify-remote-db.mjs` لفحص قاعدة البيانات السحابية.
+- **Vitest & React Testing Library** (61 ملف اختبار): لاختبارات الفرونت إند والمكونات وحسابات الفواتير والفلاتر.
+- **PGlite (Postgres WASM)** (76 ملف اختبار SQL عبر `npm run test:db`): لاختبار جميع الـ 90 هجرة ودوال SQL محلياً في بيئة مطابقة لقاعدة بيانات الإنتاج.
+- **Node Tests & Verification Scripts**: اختبارات `manage-users.test.mjs` و `manage-companies.test.mjs` و `verify-remote-db.test.mjs` و `free-receipt-concurrency.mjs` و `scripts/test-concurrency.mjs`، بالإضافة إلى `supabase/verify-remote-db.mjs` لفحص قاعدة البيانات السحابية.
 - **ESLint & TypeScript**: للفحص الثابت (`tsc --noEmit`, `eslint src`).
 
 ---
@@ -36,10 +36,11 @@ MaksabPlus/
 ├── src/                          # كود الواجهة الأمامية
 │   ├── components/               # المكونات المشتركة والنماذج (InvoiceForm, ReceiptForm, ...)
 │   │   ├── charts/               # مكونات الرسوم البيانية للوحة التحكم (Chart.js + SparklineSvg)
-│   │   └── invoice-form/         # وحدات نموذج الفاتورة الموحد (رأس الحساب، جدول الأصناف، الملخص)
+│   │   ├── invoice-form/         # وحدات نموذج الفاتورة الموحد (رأس الحساب، جدول الأصناف، الملخص)
+│   │   └── platform/             # نوافذ ومكونات لوحة مطور المنصة (حذف شركة / مستخدم)
 │   ├── context/                  # سياقات إدارة الحالة المشتركة (MasterDataContext)
 │   ├── lib/                      # دوال المنطق، التنسيق، الصلاحيات، الفلاتر، والتصدير
-│   ├── pages/                    # الشاشات الرئيسية وتبويباتها
+│   ├── pages/                    # الشاشات الرئيسية وتبويباتها (بما فيها PlatformAdmin.tsx)
 │   │   ├── home/                 # مكونات لوحة التحكم الرئيسية (بطاقات المبيعات، النبض المالي، القوائم الأعلى)
 │   │   ├── invoices/             # جداول ومؤشرات الفواتير والتحويلات المخزنية
 │   │   ├── receipts/             # جداول ومؤشرات الإيصالات والتحويلات النقدية
@@ -51,9 +52,9 @@ MaksabPlus/
 │   ├── App.tsx                   # نقطة التوجيه الرئيسية والتحقق من الجلسات
 │   └── main.tsx                  # نقطة انطلاق تطبيق React
 ├── supabase/                     # إعدادات وهجرات واختبارات قاعدة البيانات
-│   ├── functions/                # دوال Edge Functions (manage-users)
-│   ├── migrations/               # 85 ملف هجرة مرتبة بالتواريخ والأرقام التسلسلية
-│   ├── tests/                    # 71 ملف اختبار SQL + fixtures + بيئة PGlite المحلية
+│   ├── functions/                # دوال Edge Functions (manage-users, manage-companies)
+│   ├── migrations/               # 90 ملف هجرة مرتبة بالتواريخ والأرقام التسلسلية
+│   ├── tests/                    # 76 ملف اختبار SQL + fixtures + بيئة PGlite المحلية
 │   └── verify-remote-db.mjs      # سكريبت التحقق من تكامل قاعدة البيانات السحابية
 ├── scripts/                      # سكريبتات التحقق من الواجهة والتخطيط والتزامن
 ├── docs/                         # التوثيق والتقارير

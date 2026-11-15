@@ -49,6 +49,36 @@
   align-items: center;
 }
 
+.cashbox-date-card {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cashbox-date-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.cashbox-date-readonly {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.cashbox-date-input-wrap {
+  width: 160px;
+}
+
+.cashbox-notes-card {
+  padding: 8px 12px;
+}
+
+.cashbox-notes-readonly {
+  min-height: 38px;
+}
+
 @media (max-width: 760px) {
   .transfer-header-grid,
   .cashbox-transfer-boxes-grid {
