@@ -185,10 +185,10 @@ export default function PlatformAddUserModal({
         {error && <div className="alert error" role="alert">{error}</div>}
 
           <div className="form-modal-actions">
-            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} />
             <button type="submit" className="btn primary" disabled={busy}>
               {busy ? 'جارٍ الإضافة…' : 'إضافة المستخدم'}
             </button>
+            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} />
           </div>
         </fieldset>
       </form>

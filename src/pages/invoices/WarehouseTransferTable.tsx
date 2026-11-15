@@ -75,11 +75,15 @@ export default function WarehouseTransferTable({
       {
         key: 'source_warehouse',
         header: 'من مخزن',
+        headerClassName: 'col-location',
+        cellClassName: 'col-location',
         render: (transfer) => transfer.source_warehouse_name,
       },
       {
         key: 'destination_warehouse',
         header: 'إلى مخزن',
+        headerClassName: 'col-location',
+        cellClassName: 'col-location',
         render: (transfer) => transfer.destination_warehouse_name,
       },
       {
@@ -111,8 +115,8 @@ export default function WarehouseTransferTable({
         key: 'total_value',
         header: 'قيمة التكلفة',
         sortField: 'total',
-        headerClassName: 'num',
-        align: 'end',
+        headerClassName: 'col-money',
+        cellClassName: 'col-money',
         render: (transfer) => (
           <MoneyDisplay value={transfer.total_value} strong />
         ),

@@ -133,10 +133,10 @@ export default function PlatformEditUserModal({
           {error && <div className="alert error" role="alert">{error}</div>}
 
           <div className="form-modal-actions">
-            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} />
             <button type="submit" className="btn primary" disabled={busy || !hasChanges}>
               {busy ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
             </button>
+            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} />
           </div>
         </fieldset>
       </form>

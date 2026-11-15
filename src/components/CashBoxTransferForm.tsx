@@ -110,6 +110,7 @@ export default function CashBoxTransferForm({
   }
 
   function handleReset() {
+    setDate(today());
     setAmount('');
     setNotes('');
     toast.info('تم تفريغ الحقول للبدء من جديد');
@@ -118,6 +119,7 @@ export default function CashBoxTransferForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isReadOnly) return;
+    if (!date) return toast.error('أدخل التاريخ');
     if (!sourceId || !destinationId || sourceId === destinationId) {
       return toast.error('اختر خزنتين مختلفتين (خزنة المصدر وخزنة الوجهة)');
     }
@@ -159,7 +161,7 @@ export default function CashBoxTransferForm({
           </div>
         ) : (
           <div className="cashbox-date-input-wrap">
-            <DateInput value={date} onChange={setDate} />
+            <DateInput value={date} onChange={setDate} ariaLabel="تاريخ التحويل" required />
           </div>
         )}
       </div>
@@ -243,9 +245,9 @@ export default function CashBoxTransferForm({
                 <MoneyDisplay value={destBalanceAfter} strong />
                 {destBalanceAfter < 0 ? (
                   <span className="stat-pill-tag tag-debit">عجز</span>
-                ) : (
+                ) : numAmount > 0 ? (
                   <span className="stat-pill-tag tag-credit">زيادة</span>
-                )}
+                ) : null}
               </div>
             </div>
           )}
@@ -317,18 +319,24 @@ export default function CashBoxTransferForm({
       {/* ملاحظات التحويل */}
       <div className="account-header-card cashbox-notes-card">
         {isReadOnly ? (
-          <div className="readonly-val-box readonly-notes cashbox-notes-readonly">
-            {notes || 'لا توجد ملاحظات على التحويل'}
+          <div className="cashbox-notes-field">
+            <span className="cashbox-notes-label">ملاحظات</span>
+            <div className="readonly-val-box readonly-notes cashbox-notes-readonly">
+              {notes || 'لا توجد ملاحظات على التحويل'}
+            </div>
           </div>
         ) : (
-          <textarea
-            rows={2}
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            placeholder="ملاحظات اختيارية على عملية التحويل…"
-            className="left-notes-textarea account-notes-input"
-            aria-label="ملاحظات التحويل"
-          />
+          <label className="cashbox-notes-field">
+            <span>ملاحظات</span>
+            <textarea
+              rows={2}
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="ملاحظات اختيارية على عملية التحويل…"
+              className="left-notes-textarea"
+              aria-label="ملاحظات التحويل"
+            />
+          </label>
         )}
       </div>
 

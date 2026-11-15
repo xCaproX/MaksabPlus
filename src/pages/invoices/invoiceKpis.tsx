@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { money, qty as formatQty } from '../../lib/format';
 import type { KpiItem } from '../../components/KpiBar';
-import type { InvoiceKind, InvoiceRow, WarehouseTransferRow } from '../../lib/types';
+import type { InvoiceKind } from '../../lib/types';
 
 export type InvoiceTab = InvoiceKind | 'warehouse_transfer';
 
@@ -35,8 +35,6 @@ export interface WarehouseTransferKpiSummary {
 interface CalculateKpisOptions {
   kind: InvoiceTab;
   isWarehouseTransfer: boolean;
-  filteredTransferRows?: WarehouseTransferRow[];
-  filteredInvoiceRows?: InvoiceRow[];
   transferSummary?: WarehouseTransferKpiSummary;
   invoiceSummary?: InvoiceKpiSummary;
   canViewProfit: boolean;
@@ -45,23 +43,14 @@ interface CalculateKpisOptions {
 export function calculateInvoiceKpis({
   kind,
   isWarehouseTransfer,
-  filteredTransferRows = [],
-  filteredInvoiceRows = [],
   transferSummary,
   invoiceSummary,
   canViewProfit,
 }: CalculateKpisOptions): KpiItem[] {
   if (isWarehouseTransfer) {
-    const totalValue =
-      transferSummary !== undefined
-        ? transferSummary.totalValue
-        : filteredTransferRows.reduce((sum, r) => sum + Number(r.total_value || 0), 0);
-    const totalQty =
-      transferSummary !== undefined
-        ? transferSummary.totalQty
-        : filteredTransferRows.reduce((sum, r) => sum + Number(r.total_qty || 0), 0);
-    const count =
-      transferSummary !== undefined ? transferSummary.count : filteredTransferRows.length;
+    const totalValue = transferSummary?.totalValue ?? 0;
+    const totalQty = transferSummary?.totalQty ?? 0;
+    const count = transferSummary?.count ?? 0;
 
     const items: KpiItem[] = [
       {
@@ -92,24 +81,11 @@ export function calculateInvoiceKpis({
     return canViewProfit ? items : items.filter((item) => item.id !== 'transfers-value');
   }
 
-  const totalAmount =
-    invoiceSummary !== undefined
-      ? invoiceSummary.totalAmount
-      : filteredInvoiceRows.reduce((sum, r) => sum + Number(r.total || 0), 0);
-  const paidAmount =
-    invoiceSummary !== undefined
-      ? invoiceSummary.paidAmount
-      : filteredInvoiceRows.reduce((sum, r) => sum + Number(r.paid || 0), 0);
-  const remainingAmount =
-    invoiceSummary !== undefined
-      ? invoiceSummary.remainingAmount
-      : filteredInvoiceRows.reduce((sum, r) => sum + Number(r.remaining || 0), 0);
-  const count =
-    invoiceSummary !== undefined ? invoiceSummary.count : filteredInvoiceRows.length;
-  const profitTotal =
-    invoiceSummary !== undefined
-      ? invoiceSummary.profitTotal
-      : filteredInvoiceRows.reduce((sum, r) => sum + Number(r.profit_total || 0), 0);
+  const totalAmount = invoiceSummary?.totalAmount ?? 0;
+  const paidAmount = invoiceSummary?.paidAmount ?? 0;
+  const remainingAmount = invoiceSummary?.remainingAmount ?? 0;
+  const count = invoiceSummary?.count ?? 0;
+  const profitTotal = invoiceSummary?.profitTotal ?? 0;
 
   if (kind === 'waste') {
     return [
@@ -136,17 +112,17 @@ export function calculateInvoiceKpis({
     return [
       {
         id: 'return-total',
-        label: 'إجمالي المرتجعات',
+        label: 'إجمالي مرتجع المبيعات',
         value: money(totalAmount),
         unit: 'ج.م',
-        variant: 'danger',
+        variant: 'primary',
         icon: RotateCcw,
       },
       {
         id: 'return-count',
-        label: 'عدد فواتير المرتجع',
+        label: 'عدد المرتجعات',
         value: count,
-        unit: 'فاتورة',
+        unit: 'مرتجع',
         variant: 'neutral',
         icon: FileText,
       },
@@ -163,7 +139,7 @@ export function calculateInvoiceKpis({
         label: 'المخصوم من رصيدهم',
         value: money(remainingAmount),
         unit: 'ج.م',
-        variant: 'neutral',
+        variant: remainingAmount > 0 ? 'warning' : 'neutral',
         icon: FileText,
       },
     ];
@@ -183,7 +159,7 @@ export function calculateInvoiceKpis({
         id: 'p-return-count',
         label: 'عدد المرتجعات',
         value: count,
-        unit: 'عملية',
+        unit: 'مرتجع',
         variant: 'neutral',
         icon: FileText,
       },
@@ -200,7 +176,7 @@ export function calculateInvoiceKpis({
         label: 'المتبقي كخصم من حساباتهم',
         value: money(remainingAmount),
         unit: 'ج.م',
-        variant: 'neutral',
+        variant: remainingAmount > 0 ? 'warning' : 'neutral',
         icon: FileText,
       },
     ];

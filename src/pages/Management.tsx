@@ -147,7 +147,7 @@ export default function Management() {
           {tab === 'users' && access?.role === 'owner' && (
             <button
               type="button"
-              className="btn primary"
+              className="btn outline"
               onClick={() => setIsInviteOpen(true)}
             >
               <UserPlus size={16} />
@@ -157,7 +157,7 @@ export default function Management() {
           {canEditOpening && tab !== 'users' && tab !== 'reconciliations' && (
             <button
               type="button"
-              className="btn primary"
+              className={dirtyCount > 0 ? 'btn outline' : 'btn primary'}
               disabled={saving || loading || Boolean(loadError)}
               onClick={() => setSaveTrigger((count) => count + 1)}
             >

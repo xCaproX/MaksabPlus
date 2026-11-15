@@ -95,7 +95,7 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
     void loadCharts(range);
   }, [range, loadCharts]);
 
-  if (!loading && !error && (!data?.permissions.can_view_sales && !data?.permissions.can_view_purchases)) {
+  if (!loading && !error && !data?.permissions.can_view_sales) {
     return null;
   }
 
@@ -143,6 +143,21 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
       </div>
 
       <div className="home-charts-grid">
+        {!data && (loading || error) && (
+          <ChartContainer
+            title="الرسوم البيانية والتحليلات"
+            subtitle={`تحليل الأداء خلال ${rangeLabel}`}
+            icon={TrendingUp}
+            loading={loading}
+            error={error}
+            onRetry={() => void loadCharts(range)}
+            height={280}
+            className="chart-card-trend"
+          >
+            {null}
+          </ChartContainer>
+        )}
+
         {/* 1. مسار المبيعات */}
         {data?.permissions.can_view_sales && (
           <ChartContainer
@@ -212,7 +227,7 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
             emptyText={`لا توجد مبيعات أصناف مسجلة خلال ${rangeLabel}`}
             linkTo="/invoices?tab=sale"
             linkText="عرض فواتير المبيعات"
-            loading={loading && !data}
+            loading={loading}
           />
           <TopRankedList
             title="كبار العملاء"
@@ -223,7 +238,7 @@ export default function DashboardChartsSection({ onTrendLoaded }: DashboardChart
             emptyText={`لا توجد مشتريات عملاء مسجلة خلال ${rangeLabel}`}
             linkTo="/balances?tab=customers"
             linkText="عرض كشوف العملاء"
-            loading={loading && !data}
+            loading={loading}
           />
         </div>
       )}

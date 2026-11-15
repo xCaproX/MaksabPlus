@@ -390,7 +390,7 @@ export default function UserPermissions({
                       </button>
                       <button
                         type="button"
-                        className={selectedUser.is_active ? 'btn' : 'btn primary'}
+                        className="btn"
                         disabled={busy}
                         onClick={() => void toggleActive(selectedUser)}
                       >
@@ -427,7 +427,7 @@ export default function UserPermissions({
                       </button>
                       <button
                         type="button"
-                        className="btn primary sm"
+                        className="btn outline sm"
                         disabled={busy}
                         onClick={() => void savePermissions(selectedUser)}
                       >

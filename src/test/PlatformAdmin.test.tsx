@@ -130,16 +130,24 @@ describe('PlatformAdmin page', () => {
     expect(document.querySelector('.metric-card-info')).toBeInTheDocument();
     expect(screen.getByText('عميل باقة سنوية')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('الحالة'), { target: { value: 'suspended' } });
+    const statusSelect = screen.getByLabelText('الحالة');
+    fireEvent.focus(statusSelect);
+    fireEvent.click(screen.getByRole('option', { name: 'الشركات الموقوفة' }));
     expect(screen.queryByText('شركة الأمل')).not.toBeInTheDocument();
     expect(screen.getByText('شركة البدر')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('الحالة'), { target: { value: 'all' } });
+    fireEvent.click(screen.getByRole('button', { name: /مسح الفلاتر/ }));
+    expect(screen.getByText('شركة الأمل')).toBeInTheDocument();
+
     fireEvent.change(screen.getByPlaceholderText('ابحث باسم الشركة أو ملاحظات المطور...'), {
       target: { value: 'باقة سنوية' },
     });
     expect(screen.getByText('شركة الأمل')).toBeInTheDocument();
     expect(screen.queryByText('شركة البدر')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /مسح الفلاتر/ }));
+    expect(screen.getByText('شركة البدر')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /مسح الفلاتر/ })).not.toBeInTheDocument();
   });
 
   it('creates a new company with direct password via manage-companies Edge Function', async () => {

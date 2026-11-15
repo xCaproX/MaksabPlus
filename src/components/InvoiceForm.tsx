@@ -70,6 +70,8 @@ export default function InvoiceForm({
   const isPurchase = kind === 'purchase' || kind === 'purchase_return';
   const isReturn = kind === 'sale_return' || kind === 'purchase_return';
   const isWaste = kind === 'waste';
+  const docWord = isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة';
+  const cashAccountLabel = isPurchase ? 'المورد النقدي' : 'العميل النقدي';
   const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
 
   const defaultSystemKey = isWaste
@@ -423,7 +425,7 @@ export default function InvoiceForm({
       availableStock: entryAvailableStock,
       isStockLimited,
       extra: { unit_price: String(priceNum) },
-      docLabel: 'الفاتورة',
+      docLabel: docWord,
     });
 
     if (updated) {
@@ -472,7 +474,13 @@ export default function InvoiceForm({
       setAccountKind(defaultAccountKind);
       setCashBoxId('');
     }
-    toast.info('تم مسح الفاتورة وبدء فاتورة جديدة');
+    toast.info(
+      isReturn
+        ? 'تم مسح المرتجع وبدء مرتجع جديد'
+        : isWaste
+          ? 'تم مسح الهالك وبدء هالك جديد'
+          : 'تم مسح الفاتورة وبدء فاتورة جديدة',
+    );
     setTimeout(() => {
       entryItemSearchRef.current?.focus();
     }, FOCUS_SETTLE_DELAY_MS);
@@ -559,7 +567,7 @@ export default function InvoiceForm({
     if (paidNumber > 0 && !effectiveCashBoxId)
       return toast.error('اختر الخزنة التي استلمت أو صرفت المبلغ');
     if (!date) return toast.error('أدخل التاريخ');
-    if (activeLines.length === 0) return toast.error('اختر صنفًا واحدًا على الأقل في الفاتورة');
+    if (activeLines.length === 0) return toast.error(`اختر صنفًا واحدًا على الأقل في ${docWord}`);
 
     const hasInvalidLine = activeLines.some(
       (line) => !(Number(line.qty) > 0) || !(Number(line.unit_price) >= 0),
@@ -696,7 +704,7 @@ export default function InvoiceForm({
             const num = parseFloat(normalized);
             if (!isNaN(num) && num > total) {
               setPaid(Number(total).toFixed(2));
-              toast.warning('المدفوع لا يمكن أن يتجاوز إجمالي الفاتورة');
+              toast.warning(`${isReturn ? 'المسترد' : 'المدفوع'} لا يمكن أن يتجاوز إجمالي ${docWord}`);
               return;
             }
             setPaid(normalized);
@@ -710,7 +718,7 @@ export default function InvoiceForm({
             }
             if (cashAccountSelected && num < total) {
               num = total;
-              toast.warning('العميل النقدي يلزم سداد كامل قيمة الفاتورة');
+              toast.warning(`${cashAccountLabel} يلزم ${isReturn ? 'استرداد' : 'سداد'} كامل قيمة ${docWord}`);
             }
             paidSourceRef.current = cashAccountSelected ? 'auto_cash' : 'manual';
             const parts = paid.split('.');
@@ -723,7 +731,9 @@ export default function InvoiceForm({
           }}
           onQuickPaidZero={() => {
             if (cashAccountSelected) {
-              toast.warning('العميل النقدي يلزم سداد كامل قيمة الفاتورة ولا يمكن تصفير المدفوع');
+              toast.warning(
+                `${cashAccountLabel} يلزم ${isReturn ? 'استرداد' : 'سداد'} كامل قيمة ${docWord} ولا يمكن تصفير ${isReturn ? 'المسترد' : 'المدفوع'}`,
+              );
               paidSourceRef.current = 'auto_cash';
               setPaid(Number(total).toFixed(2));
               return;
@@ -746,7 +756,7 @@ export default function InvoiceForm({
       {confirmZeroPriceOpen && (
         <ConfirmDialog
           title="تأكيد حفظ صنف بسعر صفر"
-          message="يوجد صنف أو أكثر في الفاتورة بسعر 0.00. هل أنت متأكد من حفظ الفاتورة بهذا السعر؟"
+          message={`يوجد صنف أو أكثر في ${docWord} بسعر 0.00. هل أنت متأكد من حفظ ${isReturn ? 'المرتجع' : 'الفاتورة'} بهذا السعر؟`}
           confirmLabel="نعم، احفظ بسعر صفر"
           danger={false}
           onConfirm={() => {

@@ -94,7 +94,8 @@ export default function InvoiceSummarySidebar({
         ? 'حفظ الهالك'
         : 'حفظ الفاتورة';
 
-  const restoreLabel = `استعادة ${isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة'}`;
+  const docWord = isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة';
+  const restoreLabel = `استعادة ${docWord}`;
 
   const linkedReceiptDirection =
     editing?.invoice.kind === 'purchase' || editing?.invoice.kind === 'sale_return'
@@ -143,14 +144,14 @@ export default function InvoiceSummarySidebar({
       notes={notes}
       busy={busy}
       saveDisabled={isCashBoxOverdraft}
-      notesPlaceholder="ملاحظات اختيارية على الفاتورة…"
-      emptyNotesText="لا توجد ملاحظات على الفاتورة"
+      notesPlaceholder={`ملاحظات اختيارية على ${docWord}…`}
+      emptyNotesText={`لا توجد ملاحظات على ${docWord}`}
       saveLabel={saveLabel}
       restoreLabel={restoreLabel}
-      editLabel="تعديل الفاتورة"
-      printLabel="طباعة الفاتورة"
-      deleteLabel="حذف الفاتورة"
-      resetTitle="مسح بيانات الفاتورة الحالية والبدء من جديد"
+      editLabel={`تعديل ${docWord}`}
+      printLabel={`طباعة ${docWord}`}
+      deleteLabel={`حذف ${docWord}`}
+      resetTitle={`مسح بيانات ${docWord} ${isReturn || isWaste ? 'الحالي' : 'الحالية'} والبدء من جديد`}
       onNotesChange={onNotesChange}
       onResetNew={onResetNew}
       onCancel={onCancel}

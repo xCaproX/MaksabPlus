@@ -71,12 +71,12 @@ export function formatAccountOptionLabel(name: string, phone?: string | null): s
  * تنسيق خيار الخزنة الموحّد: الاسم فقط في الخانة المقفولة، والرصيد كسطر فرعي داخل القائمة عند فتحها
  */
 export function toCashBoxOption(
-  box: Pick<CashBoxRow, 'id' | 'name' | 'balance'>,
+  box: Pick<CashBoxRow, 'id' | 'name' | 'balance'> & { is_active?: boolean },
 ): SearchOption {
   const numericBalance = Number(box.balance || 0);
   return {
     value: box.id,
-    label: box.name,
+    label: box.is_active === false ? `${box.name} — موقوفة` : box.name,
     sublabel: createElement(
       Fragment,
       null,

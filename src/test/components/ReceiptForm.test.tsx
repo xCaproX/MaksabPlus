@@ -534,7 +534,7 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     const actionButtons = Array.from(form.querySelectorAll('.row-actions-group button')).map((b) =>
       b.textContent?.trim(),
     );
-    expect(actionButtons).toEqual(['مسح / جديد', 'حفظ إيصال الاستلام']);
+    expect(actionButtons).toEqual(['حفظ إيصال الاستلام', 'مسح / جديد']);
   });
 
   it('يشترط إدخال البيان ويرسل البيان والملاحظات كحقلين مستقلين وتقوم إعادة الضبط بتفريغهما', async () => {
@@ -563,7 +563,8 @@ describe('ReceiptForm - نموذج إيصال الاستلام', () => {
     fireEvent.change(amountInput, { target: { value: '250' } });
 
     const statementInput = screen.getByPlaceholderText('اكتب بيان الإيصال…') as HTMLInputElement;
-    const notesInput = screen.getByPlaceholderText('ملاحظات اختيارية…') as HTMLInputElement;
+    const notesInput = screen.getByPlaceholderText('ملاحظات اختيارية…') as HTMLTextAreaElement;
+    expect(notesInput.tagName).toBe('TEXTAREA');
     fireEvent.change(statementInput, { target: { value: '   ' } });
     fireEvent.change(notesInput, { target: { value: 'ملاحظة اختيارية فقط' } });
 

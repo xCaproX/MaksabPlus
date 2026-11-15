@@ -118,8 +118,8 @@ export default function InvoiceTable({
         key: 'total',
         header: 'الإجمالي',
         sortField: 'total',
-        headerClassName: 'num',
-        align: 'end',
+        headerClassName: 'col-money',
+        cellClassName: 'col-money',
         render: (invoice) => <MoneyDisplay value={invoice.total} strong />,
       },
     ];
@@ -137,8 +137,8 @@ export default function InvoiceTable({
           key: 'remaining',
           header: isReturn ? 'غير المسترد' : 'الآجل',
           sortField: 'remaining',
-          headerClassName: 'num',
-          align: 'end',
+          headerClassName: 'col-money',
+          cellClassName: 'col-money',
           render: (invoice) => <MoneyDisplay value={invoice.remaining} />,
         },
         {

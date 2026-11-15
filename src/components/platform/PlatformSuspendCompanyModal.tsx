@@ -68,10 +68,10 @@ export default function PlatformSuspendCompanyModal({
           {error && <div className="alert error" role="alert">{error}</div>}
 
           <div className="form-modal-actions">
-            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} label="تراجع" />
             <button type="submit" className="btn danger" disabled={busy}>
               {busy ? 'جارٍ الإيقاف…' : 'إيقاف مؤقت'}
             </button>
+            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} label="تراجع" />
           </div>
         </fieldset>
       </form>

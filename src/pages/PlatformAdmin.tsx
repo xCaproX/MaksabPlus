@@ -11,6 +11,7 @@ import {
   RefreshCw,
   UserRound,
   Users,
+  X,
 } from 'lucide-react';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -18,6 +19,7 @@ import DateDisplay from '../components/DateDisplay';
 import EmptyState from '../components/EmptyState';
 import KpiBar, { type KpiItem } from '../components/KpiBar';
 import RowActions from '../components/RowActions';
+import SearchableSelect from '../components/SearchableSelect';
 import StatusBadge from '../components/StatusBadge';
 import { toast } from '../components/Toast';
 import PlatformAddUserModal from '../components/platform/PlatformAddUserModal';
@@ -319,7 +321,7 @@ export default function PlatformAdmin() {
                 onClick={() => void loadCompanies()}
                 disabled={loading}
               >
-                <RefreshCw size={16} aria-hidden="true" />
+                <RefreshCw size={16} className={loading ? 'spin' : undefined} aria-hidden="true" />
                 <span>تحديث</span>
               </button>
               <button
@@ -335,7 +337,23 @@ export default function PlatformAdmin() {
 
           <KpiBar items={kpiItems} ariaLabel="مؤشرات المنصة" loading={loading && companies.length === 0} />
 
-          {loadError && <div className="alert error" role="alert">{loadError}</div>}
+          {loadError && (
+            <div
+              className="alert error"
+              role="alert"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}
+            >
+              <span>{loadError}</span>
+              <button
+                type="button"
+                className="btn outline sm"
+                onClick={() => void loadCompanies()}
+                disabled={loading}
+              >
+                إعادة المحاولة
+              </button>
+            </div>
+          )}
 
           <div className={`erp-sales-workspace${selectedCompany ? ' panel-open' : ''}`}>
             <section className="erp-list-panel" aria-label="قائمة الشركات">
@@ -351,23 +369,37 @@ export default function PlatformAdmin() {
                     />
                   </label>
 
-                  <label>
-                    <span>الحالة</span>
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                    >
-                      <option value="all">جميع الشركات</option>
-                      <option value="active">الشركات النشطة</option>
-                      <option value="suspended">الشركات الموقوفة</option>
-                    </select>
-                  </label>
+                  <SearchableSelect
+                    label="الحالة"
+                    ariaLabel="الحالة"
+                    value={statusFilter}
+                    onChange={(v) => setStatusFilter(v as StatusFilter)}
+                    options={[
+                      { value: 'all', label: 'جميع الشركات' },
+                      { value: 'active', label: 'الشركات النشطة' },
+                      { value: 'suspended', label: 'الشركات الموقوفة' },
+                    ]}
+                    placeholder="جميع الشركات"
+                  />
                 </div>
+                {(search.trim() !== '' || statusFilter !== 'all') && (
+                  <button
+                    type="button"
+                    className="btn outline sm"
+                    onClick={() => {
+                      setSearch('');
+                      setStatusFilter('all');
+                    }}
+                  >
+                    <X size={15} aria-hidden="true" />
+                    <span>مسح الفلاتر</span>
+                  </button>
+                )}
               </div>
 
               <div className="card">
-                <div className="table-wrap">
-                  <table className="table">
+                <div className="erp-table-wrap">
+                  <table className="table erp-table">
                     <thead>
                       <tr>
                         <th>اسم الشركة</th>
@@ -377,7 +409,7 @@ export default function PlatformAdmin() {
                         {!selectedCompany && <th className="col-date">تاريخ الإنشاء</th>}
                         <th className="col-date">آخر نشاط</th>
                         {!selectedCompany && <th>ملاحظات المطور</th>}
-                        <th>إجراءات</th>
+                        <th className="erp-row-actions">إجراءات</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -408,13 +440,24 @@ export default function PlatformAdmin() {
                           return (
                             <tr
                               key={company.id}
-                              className={isSelected ? 'platform-row-selected' : undefined}
+                              className={isSelected ? 'selected platform-row-selected' : undefined}
+                              tabIndex={0}
+                              onClick={() => requestSelectCompany(company.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  requestSelectCompany(company.id);
+                                }
+                              }}
                             >
                               <td>
                                 <button
                                   type="button"
                                   className="table-record-link"
-                                  onClick={() => requestSelectCompany(company.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    requestSelectCompany(company.id);
+                                  }}
                                 >
                                   {company.name}
                                 </button>
@@ -451,7 +494,15 @@ export default function PlatformAdmin() {
                                   {company.admin_notes ? company.admin_notes : '—'}
                                 </td>
                               )}
-                              <td>
+                              <td
+                                className="erp-row-actions"
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.stopPropagation();
+                                  }
+                                }}
+                              >
                                 <RowActions
                                   triggerLabel={`إجراءات شركة ${company.name}`}
                                   editLabel="إدارة وتفاصيل"

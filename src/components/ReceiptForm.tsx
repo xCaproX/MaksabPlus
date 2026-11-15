@@ -202,10 +202,12 @@ export default function ReceiptForm({
   }
 
   function handleResetNew() {
+    setDate(today());
     setAmount('');
     setStatement('');
     setNotes('');
     if (!editing) {
+      setAccountKind(defaultAccountKind);
       setAccountId('');
       const primaryBox = resolveDefaultCashBox(activeCashBoxes);
       setCashBoxId(primaryBox?.id ?? '');
@@ -216,6 +218,7 @@ export default function ReceiptForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isReadOnly) return;
+    if (!date) return toast.error('أدخل التاريخ');
     if (!accountId) return toast.error('اختر الحساب أولاً');
     if (!cashBoxId) return toast.error('اختر الخزنة');
     if (!(roundedAmount > 0)) return toast.error('أدخل مبلغاً صحيحاً أكبر من صفر');
@@ -279,7 +282,7 @@ export default function ReceiptForm({
                 <DateDisplay value={date} />
               </div>
             ) : (
-              <DateInput value={date} onChange={setDate} />
+              <DateInput value={date} onChange={setDate} ariaLabel="تاريخ الإيصال" required />
             )}
           </label>
 
@@ -339,15 +342,17 @@ export default function ReceiptForm({
 
         <div className="account-header-row2">
           <div className="field-account-notes">
-            <input
-              type="text"
-              readOnly
-              value={selectedAccount?.notes || ''}
-              placeholder="لا توجد ملاحظات على الحساب"
-              className="account-notes-input"
+            <div
+              className="account-notes-display"
               title={selectedAccount?.notes || 'لا توجد ملاحظات على الحساب'}
               aria-label="ملاحظات الحساب"
-            />
+            >
+              {selectedAccount?.notes ? (
+                <span>{selectedAccount.notes}</span>
+              ) : (
+                <span className="account-notes-empty">لا توجد ملاحظات على الحساب</span>
+              )}
+            </div>
           </div>
 
           <AccountBalancePills
@@ -474,12 +479,12 @@ export default function ReceiptForm({
                 {notes || 'لا توجد ملاحظات'}
               </div>
             ) : (
-              <input
-                type="text"
+              <textarea
+                rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="ملاحظات اختيارية…"
-                className="receipt-notes-input"
+                className="receipt-notes-textarea"
               />
             )}
           </label>
@@ -548,7 +553,6 @@ export default function ReceiptForm({
         cancelTitle="إلغاء التعديل والعودة"
         resetTitle="مسح الحقول والبدء من جديد"
         showCancelIcon={false}
-        primaryLast
         saveClassName="btn-receipt-save-full"
         restoreClassName="btn-receipt-restore"
         editClassName="btn-receipt-edit"

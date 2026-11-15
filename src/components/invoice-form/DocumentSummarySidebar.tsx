@@ -95,11 +95,6 @@ export default function DocumentSummarySidebar({
         cancelTitle={cancelTitle}
         resetTitle={resetTitle}
         saveClassName="btn-invoice-save"
-        restoreClassName="btn-invoice-restore"
-        editClassName="btn-invoice-edit"
-        printClassName="btn-invoice-print"
-        deleteClassName="btn-invoice-delete"
-        closeClassName="btn-invoice-close"
         cancelClassName="btn-invoice-clear"
         resetClassName="btn-invoice-clear"
         onRestore={onRestore}

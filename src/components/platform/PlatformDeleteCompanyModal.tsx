@@ -86,10 +86,10 @@ export default function PlatformDeleteCompanyModal({
           {error && <div className="alert error" role="alert">{error}</div>}
 
           <div className="form-modal-actions">
-            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} label="تراجع" />
             <button type="submit" className="btn danger" disabled={busy || !isMatch}>
               {busy ? 'جارٍ الحذف النهائي…' : 'حذف الشركة نهائيًا'}
             </button>
+            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} label="تراجع" />
           </div>
         </fieldset>
       </form>

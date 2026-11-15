@@ -132,12 +132,6 @@ export default function PlatformUserActivationModal({
         )}
 
         {error && <div className="alert error" role="alert">{error}</div>}
-
-        <div className="form-modal-actions">
-          <button type="button" className="btn outline" onClick={onClose} disabled={busyMode !== null}>
-            إغلاق
-          </button>
-        </div>
       </div>
     </Modal>
   );

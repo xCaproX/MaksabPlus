@@ -220,7 +220,7 @@ export default function PlatformCompanyDetailPanel({
             {saveError && <div className="alert error" role="alert">{saveError}</div>}
 
             <div className="platform-inline-actions">
-              <button type="submit" className="btn outline sm" disabled={saving || !hasChanges}>
+              <button type="submit" className="btn primary sm" disabled={saving || !hasChanges}>
                 {saving ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
               </button>
 

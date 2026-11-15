@@ -102,8 +102,17 @@ describe('toCashBoxOption', () => {
 
     const negOpt = toCashBoxOption({ id: 'cb-2', name: 'خزنة السحب', balance: -190732.32 });
     expect(negOpt.label).toBe('خزنة السحب');
-    render(createElement('div', null, negOpt.sublabel));
+    const negRender = render(createElement('div', null, negOpt.sublabel));
     expect(screen.getByText('-190,732.32').closest('[dir="ltr"]')).toHaveClass('money-danger', 'tabular-nums');
+    negRender.unmount();
+
+    const suspendedOpt = toCashBoxOption({
+      id: 'cb-3',
+      name: 'خزنة قديمة',
+      balance: 250,
+      is_active: false,
+    });
+    expect(suspendedOpt.label).toBe('خزنة قديمة — موقوفة');
   });
 });
 

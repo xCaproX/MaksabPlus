@@ -373,6 +373,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
     }
 
     toast.success(`تم ${actionLabel} ${entityTitle} «${account.name}» بنجاح`);
+    setSelectedAccount((cur) => (cur?.id === account.id ? { ...cur, is_active: nextState } : cur));
     setVersion((v) => v + 1);
     void refresh(['accounts']);
   }
@@ -549,7 +550,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                 {can(`${permissionPrefix}.edit`) && (
                   <button
                     type="button"
-                    className="btn outline"
+                    className="btn"
                     onClick={() => startEdit(selectedAccount)}
                   >
                     تعديل البيانات
@@ -558,10 +559,19 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                 {can(`${permissionPrefix}.edit`) && (
                   <button
                     type="button"
-                    className="btn outline"
+                    className="btn"
                     onClick={() => void toggleActive(selectedAccount)}
                   >
-                    {selectedAccount.is_active ? 'تعطيل الحساب' : 'تنشيط الحساب'}
+                    {selectedAccount.is_active ? `إيقاف ${entityTitle}` : `تنشيط ${entityTitle}`}
+                  </button>
+                )}
+                {can(`${permissionPrefix}.delete`) && !selectedAccount.system_key && (
+                  <button
+                    type="button"
+                    className="btn danger"
+                    onClick={() => void removeAccount(selectedAccount)}
+                  >
+                    حذف {entityTitle}
                   </button>
                 )}
               </div>
@@ -619,7 +629,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                     <input
                       type="number"
                       inputMode="decimal"
-                      step="0.01"
+                      step="0.0001"
                       min="0"
                       className="num no-spinner"
                       value={accountOpeningBalance}
@@ -644,6 +654,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
                 <span>رقم الهاتف</span>
                 <input
                   type="tel"
+                  dir="ltr"
                   value={accountPhone}
                   onChange={(e) => setAccountPhone(e.target.value)}
                   placeholder="01xxxxxxxxx"
@@ -674,7 +685,7 @@ export default function AccountsTab({ kind }: AccountsTabProps) {
               <button type="submit" className="btn primary" disabled={savingAccount}>
                 {savingAccount ? 'جارٍ الحفظ…' : editingAccount ? 'حفظ التعديلات' : `إضافة ${entityTitle}`}
               </button>
-              <ModalCancelButton className="btn outline" onCancel={cancelEdit} disabled={savingAccount} />
+              <ModalCancelButton className="btn" onCancel={cancelEdit} disabled={savingAccount} />
             </div>
           </form>
         </Modal>

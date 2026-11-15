@@ -63,6 +63,19 @@
   padding: 8px 12px;
 }
 
+.cashbox-notes-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.cashbox-notes-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 .cashbox-notes-readonly {
   min-height: 38px;
 }

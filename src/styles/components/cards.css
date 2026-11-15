@@ -200,18 +200,25 @@
   display: flex;
 }
 
-.account-header-row2 input.account-notes-input,
-input.account-notes-input {
-  background: var(--bg-subtle, #f8fafc);
+.account-header-row2 .account-notes-display,
+.account-notes-display {
+  display: flex;
+  align-items: center;
   color: var(--ink-secondary, #475569);
   font-size: var(--font-sm, 12.5px);
   height: 34px;
   min-height: 34px;
   padding: 0 10px;
-  border: 1px solid var(--erp-border, #e2e8f0);
-  border-radius: var(--radius-xs, 6px);
+  border-inline-start: 2px solid var(--erp-border, #cbd5e1);
   box-sizing: border-box;
   width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-notes-empty {
+  color: var(--muted-light, #94a3b8);
 }
 
 .account-balance-pills {

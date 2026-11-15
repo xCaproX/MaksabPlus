@@ -124,8 +124,7 @@ export default function RunReconciliationModal({
           />
         </div>
 
-        <div className="actions" style={{ justifyContent: 'flex-end', marginBlockStart: '8px' }}>
-          <ModalCancelButton className="btn ghost" onCancel={onClose} disabled={loading} />
+        <div className="form-modal-actions">
           <button
             type="submit"
             className="btn primary"
@@ -134,6 +133,7 @@ export default function RunReconciliationModal({
             <Play size={16} />
             <span>{loading ? 'جارٍ التدقيق والمطابقة…' : 'بدء الفحص الآن'}</span>
           </button>
+          <ModalCancelButton className="btn" onCancel={onClose} disabled={loading} />
         </div>
       </form>
     </Modal>

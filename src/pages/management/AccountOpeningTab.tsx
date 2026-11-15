@@ -387,8 +387,25 @@ export default function AccountOpeningTab({
               <dl className="erp-detail-summary">
                 <div><dt>الرقم</dt><dd className="num"><bdi dir="ltr" className="tabular-nums">{entityNumber(entityPrefix, selectedAccount.serial_number)}</bdi></dd></div>
                 <div><dt>الهاتف</dt><dd className="num"><bdi dir="ltr" className="tabular-nums">{selectedAccount.phone || '—'}</bdi></dd></div>
-                <div><dt>الحالة</dt><dd>{selectedAccount.is_active ? 'نشط' : 'معطل'}</dd></div>
-                <div><dt>الرصيد الفعلي الحالي</dt><dd className="num strong"><bdi dir="ltr" className="tabular-nums">{money(selectedAccount.balance)}</bdi></dd></div>
+                <div><dt>الحالة</dt><dd>{selectedAccount.is_active ? 'نشط' : 'موقوف'}</dd></div>
+                <div>
+                  <dt>الرصيد الفعلي الحالي</dt>
+                  <dd className="num strong">
+                    {(() => {
+                      const status = getBalanceStatus(selectedAccount.balance, selectedAccount.kind);
+                      return (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                          <span className={`status-badge-mini status-${status.type}`}>
+                            {status.text}
+                          </span>
+                          <bdi dir="ltr" className="tabular-nums">
+                            {money(Math.abs(Number(selectedAccount.balance || 0)))}
+                          </bdi>
+                        </div>
+                      );
+                    })()}
+                  </dd>
+                </div>
               </dl>
 
               <div className="erp-detail-totals">

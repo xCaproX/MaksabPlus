@@ -237,8 +237,8 @@ export default function Invoices() {
     : editing
       ? modalMode === 'view'
         ? `${showDeleted ? 'محذوف — ' : ''}${newLabel} — ${editing.invoice.number}`
-        : `تعديل ${isReturn ? 'المرتجع' : 'الفاتورة'} ${editing.invoice.number}`
-      : `${newLabel} ${isWarehouseTransfer ? 'جديد' : 'جديدة'}`;
+        : `تعديل ${isReturn ? 'المرتجع' : kind === 'waste' ? 'فاتورة الهالك' : 'الفاتورة'} ${editing.invoice.number}`
+      : `${newLabel} ${isReturn || isWarehouseTransfer ? 'جديد' : 'جديدة'}`;
 
   const [totalCount, setTotalCount] = useState(0);
 

@@ -18,10 +18,6 @@ export type ReceiptSort =
   | 'account-asc'
   | 'account-desc';
 
-export function linkKind(kind: ReceiptRow['invoice_kind']) {
-  return kind === 'sale_return' || kind === 'purchase_return' ? 'مرتجع' : 'فاتورة';
-}
-
 interface ReceiptTableProps {
   columnFilter?: ReactNode;
   loading: boolean;
@@ -101,6 +97,7 @@ export default function ReceiptTable({
       key: 'account',
       header: 'الحساب',
       sortField: 'account',
+      defaultSortDirection: 'asc',
       headerClassName: 'col-account',
       cellClassName: 'col-account',
       render: (receipt) => receipt.account_name,
@@ -109,8 +106,8 @@ export default function ReceiptTable({
       key: 'amount',
       header: 'المبلغ',
       sortField: 'amount',
-      headerClassName: 'num',
-      align: 'end',
+      headerClassName: 'col-money',
+      cellClassName: 'col-money',
       render: (receipt) => <MoneyDisplay value={receipt.amount} strong />,
     },
     {
@@ -159,32 +156,23 @@ export default function ReceiptTable({
       onSort={(s) => onSort(s as ReceiptSort)}
       onView={onView}
       renderRowActions={(receipt) =>
-        showDeleted ? (
-          canDelete ? (
-            receipt.is_free ? (
+        !receipt.is_free
+          ? null
+          : showDeleted
+            ? canDelete
+              ? (
+                <RowActions
+                  onRestore={() => onRestore(receipt)}
+                  restoreLabel="استعادة الإيصال"
+                />
+              )
+              : null
+            : (
               <RowActions
-                onRestore={() => onRestore(receipt)}
-                restoreLabel="استعادة الإيصال"
+                onEdit={canEdit ? () => onEdit(receipt) : undefined}
+                onDelete={canDelete ? () => onDelete(receipt) : undefined}
               />
-            ) : (
-              <span className="muted" title="يُستعاد مع الفاتورة">
-                مرتبط
-              </span>
             )
-          ) : null
-        ) : receipt.is_free ? (
-          <RowActions
-            onEdit={canEdit ? () => onEdit(receipt) : undefined}
-            onDelete={canDelete ? () => onDelete(receipt) : undefined}
-          />
-        ) : (
-          <span
-            className="muted"
-            title={`يُعدَّل من داخل ${linkKind(receipt.invoice_kind)}`}
-          >
-            مرتبط
-          </span>
-        )
       }
       emptyTitle="لا توجد إيصالات تطابق الفلاتر"
       emptyDescription="جرّب تعديل الفلاتر المختارة أو تصفيرها."

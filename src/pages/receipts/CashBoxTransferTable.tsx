@@ -72,19 +72,23 @@ export default function CashBoxTransferTable({
     {
       key: 'source_cash_box',
       header: 'من خزنة',
+      headerClassName: 'col-location',
+      cellClassName: 'col-location',
       render: (transfer) => transfer.source_cash_box_name,
     },
     {
       key: 'destination_cash_box',
       header: 'إلى خزنة',
+      headerClassName: 'col-location',
+      cellClassName: 'col-location',
       render: (transfer) => transfer.destination_cash_box_name,
     },
     {
       key: 'amount',
       header: 'المبلغ',
       sortField: 'amount',
-      headerClassName: 'num',
-      align: 'end',
+      headerClassName: 'col-money',
+      cellClassName: 'col-money',
       render: (transfer) => (
         <MoneyDisplay value={transfer.amount} strong />
       ),

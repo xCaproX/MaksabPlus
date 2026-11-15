@@ -320,6 +320,7 @@ export default function WarehouseTransferForm({
   }
 
   function handleReset() {
+    setDate(today());
     setLines([]);
     setAdjustedHighlightItemId(null);
     setClampWarning(null);
@@ -362,6 +363,7 @@ export default function WarehouseTransferForm({
     if (!sourceId || !destinationId || sourceId === destinationId) {
       return toast.error('اختر مخزنين مختلفين (مخزن المصدر ومخزن الوجهة)');
     }
+    if (!date) return toast.error('أدخل التاريخ');
 
     // إدراج الصنف المعلق في شريط الإدخال تلقائياً
     const pending = flushPendingDocLine(
@@ -376,6 +378,7 @@ export default function WarehouseTransferForm({
     if (activeLines !== lines) {
       setLines(activeLines);
       setEntryItemId('');
+      setEntryAsyncOption(null);
       setEntryQty('1');
     }
     if (adjusted) {
@@ -679,6 +682,11 @@ export default function WarehouseTransferForm({
                             }}
                             className="no-spinner num"
                           />
+                        )}
+                        {!readOnly && Number(line.qty) > available && (
+                          <span className="stock-warning-text" role="alert">
+                            تنبيه: الكمية (<bdi dir="ltr" className="tabular-nums">{line.qty}</bdi>) تتجاوز المتاح (<bdi dir="ltr" className="tabular-nums">{formatQty(available)}</bdi>)
+                          </span>
                         )}
                       </td>
                       {!readOnly && (

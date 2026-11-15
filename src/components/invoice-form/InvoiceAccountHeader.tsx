@@ -195,15 +195,17 @@ export default function InvoiceAccountHeader({
       <div className="account-header-row2">
         {!isWaste && (
           <div className="field-account-notes">
-            <input
-              type="text"
-              readOnly
-              value={accountNotesDisplay}
-              placeholder="لا توجد ملاحظات على الحساب"
-              className="account-notes-input"
+            <div
+              className="account-notes-display"
               title={accountNotesDisplay || 'لا توجد ملاحظات على الحساب'}
               aria-label="ملاحظات الحساب"
-            />
+            >
+              {accountNotesDisplay ? (
+                <span>{accountNotesDisplay}</span>
+              ) : (
+                <span className="account-notes-empty">لا توجد ملاحظات على الحساب</span>
+              )}
+            </div>
           </div>
         )}
 

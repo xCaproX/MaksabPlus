@@ -119,7 +119,6 @@ export default function PlatformDeleteUserModal({
           {error && <div className="alert error" role="alert">{error}</div>}
 
           <div className="form-modal-actions">
-            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} label="تراجع" />
             <button
               type="submit"
               className="btn danger"
@@ -127,6 +126,7 @@ export default function PlatformDeleteUserModal({
             >
               {busy ? 'جارٍ الحذف…' : 'حذف المستخدم نهائيًا'}
             </button>
+            <ModalCancelButton className="btn outline" onCancel={onClose} disabled={busy} label="تراجع" />
           </div>
         </fieldset>
       </form>

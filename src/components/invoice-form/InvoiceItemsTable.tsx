@@ -69,6 +69,13 @@ export default function InvoiceItemsTable({
   getItemAvailableStock,
   adjustedHighlightItemId,
 }: InvoiceItemsTableProps) {
+  const isReturn = kind === 'sale_return' || kind === 'purchase_return';
+  const docLabel = isReturn ? 'المرتجع' : isWaste ? 'الهالك' : 'الفاتورة';
+  const emptyReadonlyTitle = isReturn
+    ? 'لا توجد بنود في هذا المرتجع.'
+    : isWaste
+      ? 'لا توجد بنود في هذا الهالك.'
+      : 'لا توجد بنود في هذه الفاتورة.';
   const isStockLimited = kind === 'sale' || kind === 'waste' || kind === 'purchase_return';
   const isStockDanger = (stock: number, qtyVal: number) =>
     stock < 0 || (isStockLimited && (stock <= 0 || qtyVal > stock));
@@ -197,7 +204,7 @@ export default function InvoiceItemsTable({
                     type="number"
                     inputMode="decimal"
                     min="0"
-                    step="0.01"
+                    step="0.0001"
                     placeholder="0.00"
                     value={entryUnitPrice}
                     onFocus={(e) => e.target.select()}
@@ -221,7 +228,7 @@ export default function InvoiceItemsTable({
                     className="btn-insert-line"
                     onClick={onInsertLine}
                     disabled={!entryItemId}
-                    title="إدراج الصنف في الفاتورة"
+                    title={`إدراج الصنف في ${docLabel}`}
                   >
                     <Plus size={15} />
                     <span>إدراج</span>
@@ -235,7 +242,7 @@ export default function InvoiceItemsTable({
               <EmptyState
                 colSpan={isReadOnly ? 5 : 7}
                 compact
-                title={isReadOnly ? 'لا توجد بنود في هذه الفاتورة.' : 'لم يتم إدراج أصناف بعد'}
+                title={isReadOnly ? emptyReadonlyTitle : 'لم يتم إدراج أصناف بعد'}
                 description={isReadOnly ? undefined : 'اختر صنفاً من الشريط أعلاه واضغط إدراج أو Enter.'}
               />
             ) : (
@@ -329,7 +336,7 @@ export default function InvoiceItemsTable({
                           type="number"
                           inputMode="decimal"
                           min="0"
-                          step="0.01"
+                          step="0.0001"
                           placeholder="0.00"
                           value={line.unit_price}
                           onFocus={(e) => e.target.select()}
@@ -347,7 +354,7 @@ export default function InvoiceItemsTable({
                         <button
                           type="button"
                           className="line-delete-btn"
-                          title="حذف هذا الصنف من الفاتورة"
+                          title={`حذف هذا الصنف من ${docLabel}`}
                           aria-label="حذف سطر الصنف"
                           onClick={() => onRemoveLine(line.key)}
                         >
