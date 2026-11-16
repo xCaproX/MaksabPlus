@@ -49,7 +49,7 @@ flowchart TD
 
 ## نمط المستند الموحد (Unified Document Architecture)
 
-تطبيقاً لقاعدة **Unified document layout** في `AGENTS.md`:
+تطبيقاً لقواعد **Document screens** في `docs/agent/ui.md`:
 - `InvoiceForm.tsx` مع مكوناته الفرعية في `src/components/invoice-form/` (`InvoiceAccountHeader`, `InvoiceItemsTable`, `InvoiceSummarySidebar`, والمغلف المشترك `DocumentSummarySidebar`): المكون المركزي والوحيد لإنشاء، تعديل، وعرض جميع أنواع الفواتير (`sale`, `purchase`, `sale_return`, `purchase_return`, `waste`).
 - `ReceiptForm.tsx`: المكون المركزي لسندات القبض والصرف.
 - `WarehouseTransferForm.tsx`: المكون المركزي لأذون التحويل المخزني، ويستخدم نفس التخطيط ثنائي الأعمدة ومغلف الشريط الجانبي المشترك `DocumentSummarySidebar`.

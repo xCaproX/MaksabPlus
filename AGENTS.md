@@ -17,7 +17,6 @@ List the files you read in the final report. If you did not read a required file
 - Proof of reading the rule files: each file in docs/agent/ defines its own opening phrase near the top. Once you have actually opened a rule file in the current session, replace "كابروو.. " with that file's phrase. If you opened both, put both phrases back to back. Never write a rule file's phrase unless you opened that file in this session; the owner uses it to check that you did. If you are unsure the file is still in your context (for example in a long session), open it again.
 - Use the name only at the start of the reply (the opening phrases count as the start). Never in code, comments, commit messages, migrations, or UI text.
 - If you did not load this file in the current session, say so instead of guessing.
-- Mixed Arabic and English: break the line at every language switch so the foreign words sit on their own line. Markdown collapses a single line break, so ALWAYS use a full blank line. Example: "احنا صلحنا الـ\n\nsidepane\n\nوظبطنا شكلها". This does not apply to code blocks, file paths, commands, or identifiers; leave those exactly as they are.
 
 ## Product concept
 - The primary user is a small-business owner who may not know accounting and may have limited computer experience. Keep workflows simple, clear, and approachable in Arabic. The system handles accounting complexity behind the scenes.
@@ -56,7 +55,7 @@ List the files you read in the final report. If you did not read a required file
 - Equivalent actions (create, edit, view, form actions, modals, inputs, notifications) behave, look, and read identically on every screen.
 
 ## Project map
-Verified against the repo on 2026-11-15. If a path here does not exist, trust the code and fix that line in the same change.
+Verified against the repo on 2026-11-16. If a path here does not exist, trust the code and fix that line in the same change.
 
 ### Frontend (src/)
 - `src/components/`: shared UI, flat folder. Reuse before building: `DateInput`, `MoneyDisplay`, `StatusBadge`, `RowActions`, `ConfirmDialog`, `Modal`, `GuardedLink`, `SearchableSelect`, `PickerInput`, `Toast`, `EmptyState`, `KpiBar`, `Pagination`.
